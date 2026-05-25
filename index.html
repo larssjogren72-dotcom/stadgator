@@ -378,10 +378,10 @@ async function loadZones(apiKey) {
       const taxa = feat.properties?.TAXA || '';
       const s    = ZONE_STYLES[name] || { color:'#555', fill:'#999', label:name };
       L.geoJSON(feat, {
+        pane: 'zonesPane',
         style: { color:s.color, weight:2, fillColor:s.fill, fillOpacity:0.32 },
-        coordsToLatLng: c => toLatLng(c[0],c[1]),
-        interactive: false
-      }).addTo(map);
+        coordsToLatLng: c => toLatLng(c[0],c[1])
+      }).bindPopup(`<strong>${name}</strong><br><small style="line-height:1.6">${taxa}</small>`).addTo(map);
     });
   } catch(e) { console.warn('Zoner:', e.message); }
 }
@@ -391,6 +391,7 @@ let map, allLayers = [];
 
 function initMap() {
   map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
+  map.createPane('zonesPane').style.zIndex = 350; // under gator (400)
   // Bakgrundskarta utan text
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
     attribution:'© <a href="https://osm.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
