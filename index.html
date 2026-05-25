@@ -386,6 +386,57 @@ async function loadZones(apiKey) {
   } catch(e) { console.warn('Zoner:', e.message); }
 }
 
+// ── Parkeringsrestriktioner ───────────────────────────────────────────────────
+let forbiddenZoneGeoms = [];
+
+async function loadParkingRestrictions(apiKey) {
+  try {
+    const capR = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetCapabilities`);
+    const capXml = await capR.text();
+    const wfsLayers = [...capXml.matchAll(/<Name>([^<]+)<\/Name>/g)]
+      .map(m => m[1]).filter(n => n.includes(':'));
+    console.log('[Städgator] WFS layers:', wfsLayers.join(', '));
+
+    const forbidLayer = wfsLayers.find(n => /f[oö]rbud|p_forb|forbids|restrict/i.test(n));
+    if (!forbidLayer) { console.log('[Städgator] Ingen förbud-zon hittad.'); return; }
+
+    const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${encodeURIComponent(forbidLayer)}&outputFormat=application/json`);
+    if (!r.ok) return;
+    const d = await r.json();
+    forbiddenZoneGeoms = (d.features||[]).map(f => f.geometry).filter(Boolean);
+    console.log(`[Städgator] ${forbiddenZoneGeoms.length} förbudszoner från ${forbidLayer}`);
+  } catch(e) {
+    console.warn('[Städgator] Kunde inte ladda förbudszoner:', e.message);
+  }
+}
+
+function pointInRing(px, py, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length-1; i < ring.length; j=i++) {
+    const [xi,yi] = ring[i], [xj,yj] = ring[j];
+    if ((yi > py) !== (yj > py) && px < (xj-xi)*(py-yi)/(yj-yi)+xi) inside = !inside;
+  }
+  return inside;
+}
+
+function inForbiddenZone(coords) {
+  if (!forbiddenZoneGeoms.length) return false;
+  const [px, py] = coords;
+  return forbiddenZoneGeoms.some(g => {
+    if (g.type === 'Polygon')      return pointInRing(px, py, g.coordinates[0]);
+    if (g.type === 'MultiPolygon') return g.coordinates.some(p => pointInRing(px, py, p[0]));
+    return false;
+  });
+}
+
+function featureMidCoord(feat) {
+  const g = feat.geometry;
+  if (!g) return null;
+  const coords = g.type === 'LineString' ? g.coordinates
+               : g.type === 'MultiLineString' ? g.coordinates.flat() : null;
+  return coords ? coords[Math.floor(coords.length / 2)] : null;
+}
+
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [];
 
@@ -424,12 +475,17 @@ async function loadData() {
   const tom = tomorrow();
   document.getElementById('header-date').textContent = `Imorgon: ${fmtDate(tom)}`;
   const key = getKey();
-  await Promise.allSettled([
+  // Vänta på alla tre innan renderFeatures anropas, så att förbudszoner är klara
+  const [,,svcResult] = await Promise.allSettled([
     loadZones(key),
+    loadParkingRestrictions(key),
     fetchServicedays(key, apiDay(tom))
-      .then(renderFeatures)
-      .catch(e => { document.getElementById('hint').textContent = 'Fel: '+e.message; })
   ]);
+  if (svcResult.status === 'fulfilled') {
+    renderFeatures(svcResult.value);
+  } else {
+    document.getElementById('hint').textContent = 'Fel: ' + (svcResult.reason?.message || 'okänt fel');
+  }
   document.getElementById('loading').style.display = 'none';
 }
 
@@ -439,7 +495,15 @@ const STYLE_SELECTED = { color:'#f9a825', weight:7, opacity:1 };
 const STYLE_HIT      = { weight:26, opacity:0, fillOpacity:0 }; // osynlig trycklyta
 
 function renderFeatures(data) {
-  const features = Array.isArray(data) ? data : (data.features||[]);
+  let features = Array.isArray(data) ? data : (data.features||[]);
+
+  // Filtrera gator där parkering är förbjuden
+  if (forbiddenZoneGeoms.length) {
+    const before = features.length;
+    features = features.filter(f => { const m = featureMidCoord(f); return !m || !inForbiddenZone(m); });
+    console.log(`[Städgator] Filtrerade bort ${before - features.length} ej parkerbara gator`);
+  }
+
   if (!features.length) { document.getElementById('hint').textContent = 'Inga städgator imorgon!'; return; }
 
   // Visuellt lager – bygg lista för att para ihop med hit-lager nedan
