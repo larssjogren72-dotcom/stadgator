@@ -436,17 +436,30 @@ async function loadData() {
 // ── Rita gator ───────────────────────────────────────────────────────────────
 const STYLE_DEFAULT  = { color:'#2e7d32', weight:5, opacity:.95 };
 const STYLE_SELECTED = { color:'#f9a825', weight:7, opacity:1 };
+const STYLE_HIT      = { weight:26, opacity:0, fillOpacity:0 }; // osynlig trycklyta
 
 function renderFeatures(data) {
   const features = Array.isArray(data) ? data : (data.features||[]);
   if (!features.length) { document.getElementById('hint').textContent = 'Inga städgator imorgon!'; return; }
 
+  // Visuellt lager – bygg lista för att para ihop med hit-lager nedan
+  const visualLayers = [];
   const gj = L.geoJSON({ type:'FeatureCollection', features }, {
     style: () => STYLE_DEFAULT,
     coordsToLatLng: c => toLatLng(c[0],c[1]),
-    onEachFeature: (feat, layer) => {
-      allLayers.push({ feat, layer });
-      layer.on('click', e => { L.DomEvent.stopPropagation(e); selectStreet(feat,layer); });
+    interactive: false,
+    onEachFeature: (_f, vl) => visualLayers.push(vl)
+  }).addTo(map);
+
+  // Hit-lager (tjockt, osynligt, fångar touch) – paras med visuellt lager via index
+  let hi = 0;
+  L.geoJSON({ type:'FeatureCollection', features }, {
+    style: () => STYLE_HIT,
+    coordsToLatLng: c => toLatLng(c[0],c[1]),
+    onEachFeature: (feat, hitLayer) => {
+      const visualLayer = visualLayers[hi++];
+      allLayers.push({ feat, hitLayer, visualLayer });
+      hitLayer.on('click', e => { L.DomEvent.stopPropagation(e); selectStreet(feat, hitLayer, visualLayer); });
     }
   }).addTo(map);
 
@@ -458,9 +471,9 @@ function renderFeatures(data) {
 }
 
 // ── Val av gata ───────────────────────────────────────────────────────────────
-function selectStreet(feat, layer) {
-  allLayers.forEach(({layer:l}) => l.setStyle && l.setStyle(STYLE_DEFAULT));
-  layer.setStyle(STYLE_SELECTED);
+function selectStreet(feat, hitLayer, visualLayer) {
+  allLayers.forEach(({visualLayer:vl}) => vl && vl.setStyle(STYLE_DEFAULT));
+  visualLayer && visualLayer.setStyle(STYLE_SELECTED);
 
   const p = feat.properties || {};
   document.getElementById('street-name').textContent = p.STREET_NAME || p.ADDRESS || 'Städgata';
@@ -468,7 +481,7 @@ function selectStreet(feat, layer) {
   const from = p.START_TIME||'', to = p.END_TIME||'';
   document.getElementById('badge-time').textContent = (from&&to) ? `${from}–${to}` : 'Servicedag';
 
-  const c = getCenter(layer);
+  const c = getCenter(hitLayer);
   if (c) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
 
@@ -477,7 +490,7 @@ function selectStreet(feat, layer) {
 }
 
 function hideStreetPanel() {
-  allLayers.forEach(({layer:l}) => l.setStyle && l.setStyle(STYLE_DEFAULT));
+  allLayers.forEach(({visualLayer:vl}) => vl && vl.setStyle(STYLE_DEFAULT));
   document.getElementById('street-panel').style.display = 'none';
   document.getElementById('hint').style.display = 'block';
 }
