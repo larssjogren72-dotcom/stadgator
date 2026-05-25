@@ -387,26 +387,35 @@ async function loadZones(apiKey) {
 }
 
 // ── Parkeringsrestriktioner ───────────────────────────────────────────────────
-let forbiddenZoneGeoms = [];
+const RESTRICTION_LAYERS = [
+  'ltfr:LTFR_P_FORBUD_GEOM',  // Parkeringsförbud – polygon-zoner
+  'od_gis:NVDB_Gagata',        // Gågator – inga bilar
+];
+
+let forbiddenZoneGeoms  = [];
+let forbiddenStreetNames = new Set();
 
 async function loadParkingRestrictions(apiKey) {
-  try {
-    const capR = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetCapabilities`);
-    const capXml = await capR.text();
-    const wfsLayers = [...capXml.matchAll(/<Name>([^<]+)<\/Name>/g)]
-      .map(m => m[1]).filter(n => n.includes(':'));
-    console.log('[Städgator] WFS layers:', wfsLayers.join(', '));
-
-    const forbidLayer = wfsLayers.find(n => /f[oö]rbud|p_forb|forbids|restrict/i.test(n));
-    if (!forbidLayer) { console.log('[Städgator] Ingen förbud-zon hittad.'); return; }
-
-    const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${encodeURIComponent(forbidLayer)}&outputFormat=application/json`);
-    if (!r.ok) return;
-    const d = await r.json();
-    forbiddenZoneGeoms = (d.features||[]).map(f => f.geometry).filter(Boolean);
-    console.log(`[Städgator] ${forbiddenZoneGeoms.length} förbudszoner från ${forbidLayer}`);
-  } catch(e) {
-    console.warn('[Städgator] Kunde inte ladda förbudszoner:', e.message);
+  for (const layer of RESTRICTION_LAYERS) {
+    try {
+      const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${encodeURIComponent(layer)}&outputFormat=application/json`);
+      if (!r.ok) { console.warn(`[Städgator] ${layer}: HTTP ${r.status}`); continue; }
+      const d = await r.json();
+      let polygons = 0, names = 0;
+      (d.features||[]).forEach(f => {
+        if (!f.geometry) return;
+        const gt = f.geometry.type;
+        if (gt === 'Polygon' || gt === 'MultiPolygon') {
+          forbiddenZoneGeoms.push(f.geometry); polygons++;
+        } else {
+          const name = f.properties?.GATUNAMN || f.properties?.STREETNAME || f.properties?.NAMN || '';
+          if (name) { forbiddenStreetNames.add(name.toLowerCase().trim()); names++; }
+        }
+      });
+      console.log(`[Städgator] ${layer}: ${polygons} zoner, ${names} gatunamn`);
+    } catch(e) {
+      console.warn(`[Städgator] Kunde inte ladda ${layer}:`, e.message);
+    }
   }
 }
 
@@ -497,10 +506,15 @@ const STYLE_HIT      = { weight:26, opacity:0, fillOpacity:0 }; // osynlig tryck
 function renderFeatures(data) {
   let features = Array.isArray(data) ? data : (data.features||[]);
 
-  // Filtrera gator där parkering är förbjuden
-  if (forbiddenZoneGeoms.length) {
+  // Filtrera gator där parkering är förbjuden (p-förbud-zoner eller gågator)
+  if (forbiddenZoneGeoms.length || forbiddenStreetNames.size) {
     const before = features.length;
-    features = features.filter(f => { const m = featureMidCoord(f); return !m || !inForbiddenZone(m); });
+    features = features.filter(f => {
+      const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+      if (name && forbiddenStreetNames.has(name)) return false;
+      const m = featureMidCoord(f);
+      return !m || !inForbiddenZone(m);
+    });
     console.log(`[Städgator] Filtrerade bort ${before - features.length} ej parkerbara gator`);
   }
 
