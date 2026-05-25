@@ -379,8 +379,9 @@ async function loadZones(apiKey) {
       const s    = ZONE_STYLES[name] || { color:'#555', fill:'#999', label:name };
       L.geoJSON(feat, {
         style: { color:s.color, weight:2, fillColor:s.fill, fillOpacity:0.32 },
-        coordsToLatLng: c => toLatLng(c[0],c[1])
-      }).bindPopup(`<strong>${name}</strong><br><small>${taxa}</small>`).addTo(map);
+        coordsToLatLng: c => toLatLng(c[0],c[1]),
+        interactive: false
+      }).addTo(map);
     });
   } catch(e) { console.warn('Zoner:', e.message); }
 }
