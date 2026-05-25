@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Städgator Stockholm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    :root {
+      --glass-border: rgba(255,255,255,0.12);
+      --accent:       #4ade80;
+      --accent-dim:   rgba(74,222,128,0.14);
+      --accent-glow:  rgba(74,222,128,0.35);
+      --text:         #f0f6fc;
+      --muted:        rgba(240,246,252,0.50);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* ═══════════════ SETUP SCREEN (ny design) ═══════════════ */
+    #setup-screen {
+      position: fixed; inset: 0; z-index: 3000;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      background: linear-gradient(135deg, #080c1c 0%, #0d1f3a 45%, #091928 75%, #080c1c 100%);
+      background-size: 400% 400%;
+      animation: bgDrift 9s ease infinite;
+    }
+    @keyframes bgDrift {
+      0%,100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+    .setup-glow {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse at 25% 65%, rgba(74,222,128,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 25%, rgba(96,165,250,0.05) 0%, transparent 55%);
+    }
+    .setup-card {
+      position: relative; width: 100%; max-width: 400px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid var(--glass-border);
+      border-radius: 26px; padding: 36px 28px;
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.09);
+      color: var(--text);
+      animation: cardIn 0.65s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform: translateY(28px) scale(0.96); }
+      to   { opacity:1; transform: translateY(0) scale(1); }
+    }
+    .s-icon {
+      width: 62px; height: 62px; background: var(--accent-dim);
+      border: 1px solid rgba(74,222,128,0.28); border-radius: 18px;
+      font-size: 30px; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 0 28px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    .setup-card h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 6px; }
+    .setup-card .sub { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 26px; }
+    .sep { border: none; border-top: 1px solid var(--glass-border); margin: 22px 0; }
+    .step-lbl {
+      font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+    }
+    .api-link {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--accent-dim); border: 1px solid rgba(74,222,128,0.22);
+      border-radius: 12px; padding: 12px 14px;
+      color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 500;
+      margin-bottom: 22px; transition: background .15s;
+    }
+    .api-link:active { background: rgba(74,222,128,0.24); }
+    .input-wrap { position: relative; margin-bottom: 12px; }
+    .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; }
+    .text-input {
+      width: 100%; padding: 14px 14px 14px 42px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+      border-radius: 12px; font-size: 14px; color: var(--text);
+      font-family: 'Inter', monospace; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .text-input::placeholder { color: rgba(240,246,252,0.25); }
+    .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .btn-go {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: .01em;
+      box-shadow: 0 6px 24px rgba(34,197,94,0.4);
+      transition: transform .1s, box-shadow .15s;
+    }
+    .btn-go:active { transform: scale(0.98); }
+    .btn-go:disabled { background: rgba(255,255,255,0.1); box-shadow: none; color: var(--muted); cursor: default; transform: none; }
+    .err-box {
+      background: rgba(239,68,68,0.09); border: 1px solid rgba(239,68,68,0.28);
+      border-radius: 10px; padding: 10px 12px; margin-top: 12px;
+      font-size: 13px; color: #fca5a5; line-height: 1.5; display: none;
+    }
+
+    /* ═══════════════ MAIN APP (mörkt tema) ═══════════════ */
+    #app { height: 100%; display: none; flex-direction: column; background: #080c1c; }
+
+    #header {
+      background: #080c1c;
+      border-bottom: 1px solid var(--glass-border);
+      color: var(--text); padding: 14px 16px 13px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; user-select: none;
+    }
+    .hd-brand  { display: flex; align-items: center; gap: 10px; }
+    .hd-icon   {
+      width: 36px; height: 36px; background: var(--accent-dim);
+      border: 1px solid rgba(74,222,128,0.28); border-radius: 10px;
+      font-size: 19px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .hd-left h1 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .hd-left p  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .settings-btn {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.07); border: 1px solid var(--glass-border);
+      border-radius: 10px; color: var(--muted); font-size: 17px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .settings-btn:active { background: rgba(255,255,255,0.15); }
+
+    #map-wrap { position: relative; flex: 1; overflow: hidden; }
+    #map      { position: absolute; inset: 0; }
+
+    /* Loading */
+    #loading {
+      position: absolute; inset: 0; background: rgba(8,12,28,0.85);
+      backdrop-filter: blur(6px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 14px; z-index: 500;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(74,222,128,0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .75s linear infinite;
+    }
+    .loading-lbl { font-size: 14px; color: var(--muted); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Count badge */
+    #count-badge {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #041a0c;
+      padding: 5px 16px; border-radius: 20px; font-size: 13px; font-weight: 700;
+      box-shadow: 0 3px 16px var(--accent-glow);
+      z-index: 400; pointer-events: none; display: none; white-space: nowrap;
+      animation: popIn .4s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes popIn {
+      from { opacity:0; transform: translateX(-50%) scale(0.7); }
+      to   { opacity:1; transform: translateX(-50%) scale(1); }
+    }
+
+    /* Bottom panel */
+    #bottom {
+      background: #0d1117;
+      border-top: 1px solid var(--glass-border);
+      flex-shrink: 0; padding: 16px 18px 28px; min-height: 78px;
+    }
+    #hint { font-size: 14px; color: var(--muted); }
+    #street-panel { display: none; }
+    #street-name {
+      font-size: 18px; font-weight: 700; color: var(--text);
+      margin-bottom: 10px; letter-spacing: -.01em;
+    }
+    .street-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .sbadge {
+      padding: 5px 12px; border-radius: 22px; font-size: 12px; font-weight: 500;
+    }
+    .sbadge-place {
+      background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.28);
+      color: #bfdbfe;
+    }
+    .sbadge-time {
+      background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);
+      color: #fde68a;
+    }
+    #gmaps-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      color: #fff; padding: 14px 20px; border-radius: 14px;
+      text-decoration: none; font-size: 15px; font-weight: 700; width: 100%;
+      box-shadow: 0 4px 20px rgba(34,197,94,0.35);
+      border: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: transform .1s;
+    }
+    #gmaps-btn:active { transform: scale(0.98); }
+
+    /* Legend */
+    .legend {
+      background: rgba(8,12,28,0.88); border: 1px solid var(--glass-border);
+      border-radius: 12px; padding: 10px 14px;
+      font-size: 12px; color: var(--text); line-height: 1.9;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+      backdrop-filter: blur(12px);
+    }
+    .lgnd-row { display: flex; align-items: center; gap: 8px; }
+    .lgnd-sw  { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    .lgnd-sep { border: none; border-top: 1px solid var(--glass-border); margin: 6px 0; }
+
+    /* Leaflet overrides */
+    .leaflet-control-attribution {
+      background: rgba(8,12,28,0.75) !important; color: rgba(255,255,255,0.38) !important;
+    }
+    .leaflet-control-attribution a { color: rgba(255,255,255,0.5) !important; }
+    .leaflet-control-zoom a {
+      background: rgba(8,12,28,0.88) !important; color: var(--text) !important;
+      border-color: var(--glass-border) !important;
+    }
+    .leaflet-popup-content-wrapper {
+      background: rgba(13,17,23,0.95) !important; border: 1px solid var(--glass-border) !important;
+      color: var(--text) !important; border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+    }
+    .leaflet-popup-tip { background: rgba(13,17,23,0.95) !important; }
+    .leaflet-popup-close-button { color: var(--muted) !important; }
+  </style>
+</head>
+<body>
+
+<!-- ── SETUP SCREEN ── -->
+<div id="setup-screen">
+  <div class="setup-glow"></div>
+  <div class="setup-card">
+    <div class="s-icon">🧹</div>
+    <h1>Städgator</h1>
+    <p class="sub">Se vilka Stockholmsgator som städas imorgon. Parkera där ikväll — grannarna har redan kört bort sina bilar.</p>
+    <hr class="sep">
+    <p class="step-lbl">Steg 1 — Hämta gratis API-nyckel</p>
+    <a class="api-link" href="https://openstreetgs.stockholm.se/home/Key" target="_blank">
+      <span>🔑</span><span>openstreetgs.stockholm.se →</span>
+    </a>
+    <p class="step-lbl">Steg 2 — Klistra in nyckeln</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Bara UUID:t — inte "ApiKey=…"</p>
+    <div class="input-wrap">
+      <span class="input-icon">🔐</span>
+      <input type="text" class="text-input" id="key-input"
+             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+             autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <button class="btn-go" id="start-btn" onclick="tryStart()">Starta appen</button>
+    <div class="err-box" id="key-err"></div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app">
+  <div id="header">
+    <div class="hd-brand">
+      <div class="hd-icon">🧹</div>
+      <div class="hd-left">
+        <h1>Städgator Stockholm</h1>
+        <p id="header-date">Laddar…</p>
+      </div>
+    </div>
+    <button class="settings-btn" title="Byt API-nyckel" onclick="resetKey()">⚙</button>
+  </div>
+
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div id="loading"><div class="spinner"></div><span class="loading-lbl">Hämtar städgator…</span></div>
+    <div id="count-badge"></div>
+  </div>
+
+  <div id="bottom">
+    <div id="hint">Tryck på en grön gata för info och vägbeskrivning.</div>
+    <div id="street-panel">
+      <div id="street-name"></div>
+      <div class="street-badges">
+        <div class="sbadge sbadge-place" id="badge-district"></div>
+        <div class="sbadge sbadge-time"  id="badge-time"></div>
+      </div>
+      <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5
+                   c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        Navigera hit med Google Maps
+      </a>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script>
+
+// ── Koordinater ──────────────────────────────────────────────────────────────
+proj4.defs('EPSG:3011','+proj=tmerc +lat_0=0 +lon_0=18 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs');
+function toLatLng(x, y) {
+  if (Math.abs(x) > 1000) { const [lng,lat] = proj4('EPSG:3011','WGS84',[x,y]); return L.latLng(lat,lng); }
+  return L.latLng(y, x);
+}
+
+// ── Datum ────────────────────────────────────────────────────────────────────
+const SV_DAYS   = ['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
+const API_DAYS  = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
+const SV_MONTHS = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+function tomorrow() { const d = new Date(); d.setDate(d.getDate()+1); return d; }
+function apiDay(d)  { return API_DAYS[d.getDay()]; }
+function fmtDate(d) { return `${SV_DAYS[d.getDay()]} ${d.getDate()} ${SV_MONTHS[d.getMonth()]}`; }
+
+// ── API-nyckel ───────────────────────────────────────────────────────────────
+function getKey()   { return localStorage.getItem('sthlm_key') || ''; }
+function saveKey(k) { localStorage.setItem('sthlm_key', k); }
+function clearKey() { localStorage.removeItem('sthlm_key'); }
+
+// ── Start ────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => { if (getKey()) launchApp(); });
+
+async function tryStart() {
+  const key = document.getElementById('key-input').value.trim();
+  if (!key) return;
+  const btn = document.getElementById('start-btn');
+  btn.disabled = true; btn.textContent = 'Kontrollerar…';
+  document.getElementById('key-err').style.display = 'none';
+  try {
+    const day = apiDay(tomorrow());
+    let r;
+    try { r = await fetch(`/proxy/servicedagar/weekday/${day}?outputFormat=json&maxFeatures=1&apiKey=${encodeURIComponent(key)}`); }
+    catch { throw new Error('Nätverksfel — öppna via http://localhost:3456'); }
+    if (r.status===401||r.status===403) throw new Error('Fel nyckel (HTTP '+r.status+')');
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    saveKey(key); launchApp();
+  } catch(e) {
+    const box = document.getElementById('key-err');
+    box.textContent = e.message; box.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Starta appen';
+  }
+}
+
+function launchApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  requestAnimationFrame(() => { initMap(); loadData(); });
+}
+
+function resetKey() {
+  if (!confirm('Byt API-nyckel?')) return;
+  clearKey(); location.reload();
+}
+
+// ── API ──────────────────────────────────────────────────────────────────────
+async function fetchServicedays(apiKey, day) {
+  const r = await fetch(`/proxy/servicedagar/weekday/${day}?outputFormat=json&apiKey=${encodeURIComponent(apiKey)}`);
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+// ── Zoner ────────────────────────────────────────────────────────────────────
+const ZONE_STYLES = {
+  'Taxa 1': { color:'#b71c1c', fill:'#ef4444', label:'Taxa 1 – 55 kr/tim' },
+  'Taxa 2': { color:'#7c2d12', fill:'#f97316', label:'Taxa 2 – 31 kr/tim' },
+  'Taxa 3': { color:'#713f12', fill:'#eab308', label:'Taxa 3 – 20 kr/tim' },
+  'Taxa 4': { color:'#14532d', fill:'#22c55e', label:'Taxa 4 – 11 kr/tim' },
+  'Taxa 5': { color:'#1e3a5f', fill:'#60a5fa', label:'Taxa 5 – 8 kr/tim'  },
+};
+
+async function loadZones(apiKey) {
+  try {
+    const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=ltfr:LTFR_TAXA_VIEW&outputFormat=application/json`);
+    if (!r.ok) return;
+    const data = await r.json();
+    (data.features||[]).forEach(feat => {
+      const name = feat.properties?.DISTRICT_NAME || '';
+      const taxa = feat.properties?.TAXA || '';
+      const s    = ZONE_STYLES[name] || { color:'#555', fill:'#999', label:name };
+      L.geoJSON(feat, {
+        style: { color:s.color, weight:2, fillColor:s.fill, fillOpacity:0.32 },
+        coordsToLatLng: c => toLatLng(c[0],c[1])
+      }).bindPopup(`<strong>${name}</strong><br><small>${taxa}</small>`).addTo(map);
+    });
+  } catch(e) { console.warn('Zoner:', e.message); }
+}
+
+// ── Karta ────────────────────────────────────────────────────────────────────
+let map, allLayers = [];
+
+function initMap() {
+  map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
+  // Bakgrundskarta utan text
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution:'© <a href="https://osm.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
+    maxZoom:19
+  }).addTo(map);
+
+  // Gatunamn som eget lager — alltid längst upp, ovanpå zoner och linjer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+    maxZoom:19, zIndex:650
+  }).addTo(map);
+
+  const legend = L.control({ position:'bottomright' });
+  legend.onAdd = () => {
+    const d = L.DomUtil.create('div','legend');
+    const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
+      `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
+    ).join('');
+    d.innerHTML = zoneRows +
+      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städas imorgon</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
+    return d;
+  };
+  legend.addTo(map);
+  map.on('click', hideStreetPanel);
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+async function loadData() {
+  const tom = tomorrow();
+  document.getElementById('header-date').textContent = `Imorgon: ${fmtDate(tom)}`;
+  const key = getKey();
+  await Promise.allSettled([
+    loadZones(key),
+    fetchServicedays(key, apiDay(tom))
+      .then(renderFeatures)
+      .catch(e => { document.getElementById('hint').textContent = 'Fel: '+e.message; })
+  ]);
+  document.getElementById('loading').style.display = 'none';
+}
+
+// ── Rita gator ───────────────────────────────────────────────────────────────
+const STYLE_DEFAULT  = { color:'#2e7d32', weight:5, opacity:.95 };
+const STYLE_SELECTED = { color:'#f9a825', weight:7, opacity:1 };
+
+function renderFeatures(data) {
+  const features = Array.isArray(data) ? data : (data.features||[]);
+  if (!features.length) { document.getElementById('hint').textContent = 'Inga städgator imorgon!'; return; }
+
+  const gj = L.geoJSON({ type:'FeatureCollection', features }, {
+    style: () => STYLE_DEFAULT,
+    coordsToLatLng: c => toLatLng(c[0],c[1]),
+    onEachFeature: (feat, layer) => {
+      allLayers.push({ feat, layer });
+      layer.on('click', e => { L.DomEvent.stopPropagation(e); selectStreet(feat,layer); });
+    }
+  }).addTo(map);
+
+  if (gj.getBounds().isValid()) map.fitBounds(gj.getBounds(), { padding:[16,16] });
+
+  const badge = document.getElementById('count-badge');
+  badge.textContent = `${features.length} gator städas imorgon`;
+  badge.style.display = 'block';
+}
+
+// ── Val av gata ───────────────────────────────────────────────────────────────
+function selectStreet(feat, layer) {
+  allLayers.forEach(({layer:l}) => l.setStyle && l.setStyle(STYLE_DEFAULT));
+  layer.setStyle(STYLE_SELECTED);
+
+  const p = feat.properties || {};
+  document.getElementById('street-name').textContent = p.STREET_NAME || p.ADDRESS || 'Städgata';
+  document.getElementById('badge-district').textContent = p.CITY_DISTRICT || p.PARKING_DISTRICT || 'Stockholm';
+  const from = p.START_TIME||'', to = p.END_TIME||'';
+  document.getElementById('badge-time').textContent = (from&&to) ? `${from}–${to}` : 'Servicedag';
+
+  const c = getCenter(layer);
+  if (c) document.getElementById('gmaps-btn').href =
+    `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
+
+  document.getElementById('hint').style.display = 'none';
+  document.getElementById('street-panel').style.display = 'block';
+}
+
+function hideStreetPanel() {
+  allLayers.forEach(({layer:l}) => l.setStyle && l.setStyle(STYLE_DEFAULT));
+  document.getElementById('street-panel').style.display = 'none';
+  document.getElementById('hint').style.display = 'block';
+}
+
+function getCenter(layer) {
+  if (layer.getBounds) return layer.getBounds().getCenter();
+  if (layer.getLatLng) return layer.getLatLng();
+  return null;
+}
+</script>
+</body>
+</html>
