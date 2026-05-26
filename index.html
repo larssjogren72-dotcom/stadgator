@@ -550,8 +550,8 @@ async function showStreetsNearViewport() {
     const key    = getKey();
     const bounds = map.getBounds().pad(0.12);
 
-    // Vänta på restrictions (snabb om redan klar) och streets parallellt
-    const [, data] = await Promise.all([ restrictionsPromise, streetDataPromise ]);
+    // Vänta bara på gatudata — restriktioner laddas i bakgrunden och används om klara
+    const data = await streetDataPromise;
 
     let features = Array.isArray(data) ? data : (data.features || []);
 
