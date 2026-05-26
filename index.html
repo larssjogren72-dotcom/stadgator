@@ -475,7 +475,7 @@ function featureMidCoord(feat) {
 }
 
 // ── Karta ────────────────────────────────────────────────────────────────────
-let map, allLayers = [];
+let map, allLayers = [], streetGroupLayers = [], streetDataPromise = null;
 
 function initMap() {
   map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
@@ -513,18 +513,58 @@ async function loadData() {
   const tom = tomorrow();
   document.getElementById('header-date').textContent = `Imorgon: ${fmtDate(tom)}`;
   const key = getKey();
-  // Vänta på alla tre innan renderFeatures anropas, så att förbudszoner är klara
-  const [,,svcResult] = await Promise.allSettled([
-    loadZones(key),
-    loadParkingRestrictions(key),
-    fetchServicedays(key, apiDay(tom))
-  ]);
-  if (svcResult.status === 'fulfilled') {
-    renderFeatures(svcResult.value);
-  } else {
-    document.getElementById('hint').textContent = 'Fel: ' + (svcResult.reason?.message || 'okänt fel');
-  }
+
+  // Starta hämtning av städgator tyst i bakgrunden
+  streetDataPromise = fetchServicedays(key, apiDay(tom));
+
+  // Ladda zoner + restriktioner — vänta på dessa innan spinnern döljs
+  await Promise.allSettled([ loadZones(key), loadParkingRestrictions(key) ]);
+
   document.getElementById('loading').style.display = 'none';
+  document.getElementById('hint').textContent = 'Sök en destination ovan — städgator i närheten visas på kartan.';
+}
+
+function clearStreetsFromMap() {
+  streetGroupLayers.forEach(lg => lg.remove());
+  streetGroupLayers = [];
+  allLayers = [];
+  document.getElementById('street-panel').style.display = 'none';
+  document.getElementById('hint').style.display = 'block';
+  document.getElementById('count-badge').style.display = 'none';
+}
+
+async function showStreetsNearViewport() {
+  clearStreetsFromMap();
+  document.getElementById('hint').textContent = 'Hämtar städgator i området…';
+  try {
+    const data    = await streetDataPromise;
+    const bounds  = map.getBounds().pad(0.12);
+    let   features = Array.isArray(data) ? data : (data.features || []);
+
+    // Filtrera till synligt kartområde
+    features = features.filter(f => {
+      const m = featureMidCoord(f);
+      return m && bounds.contains(toLatLng(m[0], m[1]));
+    });
+
+    // Filtrera förbudszoner och gågator
+    if (forbiddenZoneGeoms.length || forbiddenStreetNames.size) {
+      features = features.filter(f => {
+        const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+        if (name && forbiddenStreetNames.has(name)) return false;
+        const m = featureMidCoord(f);
+        return !m || !inForbiddenZone(m);
+      });
+    }
+
+    if (!features.length) {
+      document.getElementById('hint').textContent = 'Inga städgator i det här området imorgon.';
+      return;
+    }
+    renderFeatures({ type:'FeatureCollection', features });
+  } catch(e) {
+    document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
+  }
 }
 
 // ── Rita gator ───────────────────────────────────────────────────────────────
@@ -533,34 +573,22 @@ const STYLE_SELECTED = { color:'#f9a825', weight:7, opacity:1 };
 const STYLE_HIT      = { weight:26, opacity:0, fillOpacity:0 }; // osynlig trycklyta
 
 function renderFeatures(data) {
-  let features = Array.isArray(data) ? data : (data.features||[]);
-
-  // Filtrera gator där parkering är förbjuden (p-förbud-zoner eller gågator)
-  if (forbiddenZoneGeoms.length || forbiddenStreetNames.size) {
-    const before = features.length;
-    features = features.filter(f => {
-      const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
-      if (name && forbiddenStreetNames.has(name)) return false;
-      const m = featureMidCoord(f);
-      return !m || !inForbiddenZone(m);
-    });
-    console.log(`[Städgator] Filtrerade bort ${before - features.length} ej parkerbara gator`);
-  }
-
-  if (!features.length) { document.getElementById('hint').textContent = 'Inga städgator imorgon!'; return; }
+  const features = Array.isArray(data) ? data : (data.features||[]);
+  if (!features.length) { document.getElementById('hint').textContent = 'Inga städgator i området imorgon!'; return; }
 
   // Visuellt lager – bygg lista för att para ihop med hit-lager nedan
   const visualLayers = [];
-  const gj = L.geoJSON({ type:'FeatureCollection', features }, {
+  const gjV = L.geoJSON({ type:'FeatureCollection', features }, {
     style: () => STYLE_DEFAULT,
     coordsToLatLng: c => toLatLng(c[0],c[1]),
     interactive: false,
     onEachFeature: (_f, vl) => visualLayers.push(vl)
   }).addTo(map);
+  streetGroupLayers.push(gjV);
 
   // Hit-lager (tjockt, osynligt, fångar touch) – paras med visuellt lager via index
   let hi = 0;
-  L.geoJSON({ type:'FeatureCollection', features }, {
+  const gjH = L.geoJSON({ type:'FeatureCollection', features }, {
     style: () => STYLE_HIT,
     coordsToLatLng: c => toLatLng(c[0],c[1]),
     onEachFeature: (feat, hitLayer) => {
@@ -569,12 +597,12 @@ function renderFeatures(data) {
       hitLayer.on('click', e => { L.DomEvent.stopPropagation(e); selectStreet(feat, hitLayer, visualLayer); });
     }
   }).addTo(map);
-
-  if (gj.getBounds().isValid()) map.fitBounds(gj.getBounds(), { padding:[16,16] });
+  streetGroupLayers.push(gjH);
 
   const badge = document.getElementById('count-badge');
-  badge.textContent = `${features.length} gator städas imorgon`;
+  badge.textContent = `${features.length} städgator i närheten`;
   badge.style.display = 'block';
+  document.getElementById('hint').textContent = 'Tryck på en grön gata för info och vägbeskrivning.';
 }
 
 // ── Val av gata ───────────────────────────────────────────────────────────────
@@ -623,10 +651,10 @@ async function searchStreet() {
     searchMarker = L.circleMarker(latlng, {
       radius: 9, color: '#4ade80', fillColor: '#4ade80',
       fillOpacity: 0.9, weight: 2, pane: 'markerPane'
-    }).bindPopup(`<strong>${q}</strong><br><small style="color:var(--muted)">~10 min gångavstånd</small>`)
-      .addTo(map)
-      .openPopup();
+    }).addTo(map);
 
+    // Flyg dit → visa städgator i det synliga området när animationen är klar
+    map.once('moveend', () => showStreetsNearViewport());
     map.flyTo(latlng, 15, { duration: 1.1 });
     btn.textContent = '🔍';
   } catch(e) {
