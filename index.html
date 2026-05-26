@@ -396,20 +396,28 @@ const ZONE_STYLES = {
   'Taxa 5': { color:'#1e3a5f', fill:'#60a5fa', label:'Taxa 5 – 8 kr/tim'  },
 };
 
-async function loadZones(apiKey) {
+function clearZonesFromMap() {
+  zoneGroupLayers.forEach(lg => lg.remove());
+  zoneGroupLayers = [];
+}
+
+async function loadZonesForViewport(apiKey, bounds) {
+  clearZonesFromMap();
   try {
-    const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=ltfr:LTFR_TAXA_VIEW&outputFormat=application/json`);
+    const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()},EPSG:4326`;
+    const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=ltfr:LTFR_TAXA_VIEW&outputFormat=application/json&BBOX=${bbox}`);
     if (!r.ok) return;
     const data = await r.json();
     (data.features||[]).forEach(feat => {
       const name = feat.properties?.DISTRICT_NAME || '';
       const taxa = feat.properties?.TAXA || '';
       const s    = ZONE_STYLES[name] || { color:'#555', fill:'#999', label:name };
-      L.geoJSON(feat, {
+      const lg = L.geoJSON(feat, {
         pane: 'zonesPane',
         style: { color:s.color, weight:2, fillColor:s.fill, fillOpacity:0.32 },
         coordsToLatLng: c => toLatLng(c[0],c[1])
       }).bindPopup(`<strong>${name}</strong><br><small style="line-height:1.6">${taxa}</small>`).addTo(map);
+      zoneGroupLayers.push(lg);
     });
   } catch(e) { console.warn('Zoner:', e.message); }
 }
@@ -475,7 +483,8 @@ function featureMidCoord(feat) {
 }
 
 // ── Karta ────────────────────────────────────────────────────────────────────
-let map, allLayers = [], streetGroupLayers = [], streetDataPromise = null;
+let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
+let streetDataPromise = null, restrictionsPromise = null;
 
 function initMap() {
   map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
@@ -509,17 +518,17 @@ function initMap() {
 }
 
 // ── Data ─────────────────────────────────────────────────────────────────────
-async function loadData() {
+function loadData() {
   const tom = tomorrow();
   document.getElementById('header-date').textContent = `Imorgon: ${fmtDate(tom)}`;
   const key = getKey();
 
-  // Starta hämtning av städgator tyst i bakgrunden
-  streetDataPromise = fetchServicedays(key, apiDay(tom));
+  // Starta alla hämtningar i bakgrunden — ingen blockering
+  streetDataPromise   = fetchServicedays(key, apiDay(tom));
+  restrictionsPromise = loadParkingRestrictions(key);
+  // Zoner laddas per sökning med BBOX (loadZonesForViewport)
 
-  // Ladda zoner + restriktioner — vänta på dessa innan spinnern döljs
-  await Promise.allSettled([ loadZones(key), loadParkingRestrictions(key) ]);
-
+  // Kartan visas omedelbart
   document.getElementById('loading').style.display = 'none';
   document.getElementById('hint').textContent = 'Sök en destination ovan — städgator i närheten visas på kartan.';
 }
@@ -528,6 +537,7 @@ function clearStreetsFromMap() {
   streetGroupLayers.forEach(lg => lg.remove());
   streetGroupLayers = [];
   allLayers = [];
+  clearZonesFromMap();
   document.getElementById('street-panel').style.display = 'none';
   document.getElementById('hint').style.display = 'block';
   document.getElementById('count-badge').style.display = 'none';
@@ -535,11 +545,15 @@ function clearStreetsFromMap() {
 
 async function showStreetsNearViewport() {
   clearStreetsFromMap();
-  document.getElementById('hint').textContent = 'Hämtar städgator i området…';
+  document.getElementById('hint').textContent = 'Hämtar städgator…';
   try {
-    const data    = await streetDataPromise;
-    const bounds  = map.getBounds().pad(0.12);
-    let   features = Array.isArray(data) ? data : (data.features || []);
+    const key    = getKey();
+    const bounds = map.getBounds().pad(0.12);
+
+    // Vänta på restrictions (snabb om redan klar) och streets parallellt
+    const [, data] = await Promise.all([ restrictionsPromise, streetDataPromise ]);
+
+    let features = Array.isArray(data) ? data : (data.features || []);
 
     // Filtrera till synligt kartområde
     features = features.filter(f => {
@@ -559,9 +573,12 @@ async function showStreetsNearViewport() {
 
     if (!features.length) {
       document.getElementById('hint').textContent = 'Inga städgator i det här området imorgon.';
-      return;
+    } else {
+      renderFeatures({ type:'FeatureCollection', features });
     }
-    renderFeatures({ type:'FeatureCollection', features });
+
+    // Ladda zoner för viewporten – körs parallellt, blockerar inte
+    loadZonesForViewport(key, bounds);
   } catch(e) {
     document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
   }
