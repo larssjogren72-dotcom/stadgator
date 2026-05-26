@@ -64,6 +64,26 @@
     .setup-card h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 6px; }
     .setup-card .sub { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 26px; }
     .sep { border: none; border-top: 1px solid var(--glass-border); margin: 22px 0; }
+    .setup-tagline {
+      font-size: 17px; font-weight: 700; color: var(--text);
+      letter-spacing: -.02em; margin-bottom: 10px; line-height: 1.35;
+    }
+    .setup-desc {
+      font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 16px;
+    }
+    .feature-list { list-style: none; margin-bottom: 0; }
+    .feature-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; color: rgba(240,246,252,0.75); line-height: 1.55;
+      padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .feature-list li:last-child { border-bottom: none; }
+    .feature-list li::before {
+      content: ''; display: block; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--accent);
+      margin-top: 6px; flex-shrink: 0;
+      box-shadow: 0 0 6px var(--accent-glow);
+    }
     .step-lbl {
       font-size: 10px; font-weight: 700; letter-spacing: .1em;
       text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
@@ -259,7 +279,14 @@
   <div class="setup-card">
     <div class="s-icon">🧹</div>
     <h1>Städgator</h1>
-    <p class="sub">Se vilka Stockholmsgator som städas imorgon. Parkera där ikväll — grannarna har redan kört bort sina bilar.</p>
+    <p class="setup-tagline">Hitta lediga parkeringar i Stockholm — varje kväll.</p>
+    <p class="setup-desc">Dagen innan en städgata sopas måste alla fordon flyttas. Det skapar garanterat tomma platser längs hela gatan — om du vet vilken.</p>
+    <ul class="feature-list">
+      <li>Karta med morgondagens alla städgator</li>
+      <li>Sök din destination — se lediga gator i närheten</li>
+      <li>Parkeringszoner och taxa direkt i kartan</li>
+      <li>Navigera med Google Maps med ett tryck</li>
+    </ul>
     <hr class="sep">
     <p class="step-lbl">Steg 1 — Hämta gratis API-nyckel</p>
     <a class="api-link" href="https://openstreetgs.stockholm.se/home/Key" target="_blank">
