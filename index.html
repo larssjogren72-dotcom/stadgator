@@ -1457,8 +1457,9 @@ const OVERPASS_SERVERS = [
 
 async function fetchOverpassStreets(lat, lng, radius) {
   // out geom ger full geometri (linjesegment) – inte bara centerpunkt
+  // living_street = gångfartsområde (SE) – parkering ej tillåten → utesluts
   const q = `[out:json][timeout:12];`
-    + `way["highway"~"^(residential|secondary|tertiary|living_street|unclassified|primary|trunk)$"]`
+    + `way["highway"~"^(residential|secondary|tertiary|unclassified|primary|trunk)$"]`
     + `["name"](around:${radius},${lat},${lng});out tags geom;`;
 
   for (const server of OVERPASS_SERVERS) {
