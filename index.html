@@ -1357,13 +1357,22 @@ async function showSafeStreetsNearby(lat, lng) {
     ]);
 
     // 4a. Förstegsgranskning: samla gatunamn som har ÄN ett begränsat segment
-    //     (polygon-zon, LTFR-linje eller LOCATION_APPROX-namn)
+    //     (polygon-zon, LTFR-linje, LOCATION_APPROX-namn eller OSM access-tagg)
     const restrictedBySegment = new Set();
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
       const name = el.tags?.name;
       if (!name) return;
       const nameLow = name.toLowerCase().trim();
+
+      // OSM access-taggar: privat väg eller "bara för boende/besökare med ärende"
+      const access = (el.tags?.access || '').toLowerCase();
+      const mVehicle = (el.tags?.motor_vehicle || '').toLowerCase();
+      if (access === 'private' || access === 'destination' ||
+          mVehicle === 'private' || mVehicle === 'destination') {
+        restrictedBySegment.add(nameLow); return;
+      }
+
       if (foreskriftForbiddenNames.has(nameLow)) {
         restrictedBySegment.add(nameLow); return;
       }
