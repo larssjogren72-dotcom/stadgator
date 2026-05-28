@@ -650,7 +650,7 @@ async function loadParkingRestrictions(apiKey) {
         if (gt === 'Polygon' || gt === 'MultiPolygon') {
           forbiddenZoneGeoms.push(f.geometry); polygons++;
         } else {
-          const name = f.properties?.GATUNAMN || f.properties?.STREETNAME || f.properties?.NAMN || '';
+          const name = f.properties?.STREET_NAME || f.properties?.GATUNAMN || f.properties?.NAMN || '';
           if (name) { forbiddenStreetNames.add(name.toLowerCase().trim()); names++; }
         }
       });
@@ -1206,9 +1206,9 @@ function initSuggestions() {
 
 async function fetchSuggestions(q) {
   try {
-    // Photon utan osm_tag-filter – fungerar för gatunamn OCH adresser (UC2 hemadress)
+    // Photon – lat/lon-bias mot Stockholm centrum (lang=sv + bbox ger HTTP 400)
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}`
-      + `&limit=8&lang=sv&bbox=17.5,59.1,18.5,59.65`;
+      + `&limit=8&lat=59.33&lon=18.06`;
     const r = await fetch(url);
     if (!r.ok) return;
     const data = await r.json();
