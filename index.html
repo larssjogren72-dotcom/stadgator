@@ -198,7 +198,32 @@
     #search-row {
       background: #080c1c; border-bottom: 1px solid var(--glass-border);
       padding: 9px 14px; display: flex; gap: 8px; flex-shrink: 0;
+      position: relative;
     }
+
+    /* ── Sökförslag ── */
+    #search-suggestions {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 600;
+      background: #0d1117; border: 1px solid var(--glass-border);
+      border-top: none; border-radius: 0 0 14px 14px;
+      overflow: hidden; box-shadow: 0 14px 36px rgba(0,0,0,0.65);
+      display: none;
+    }
+    .sg-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background .1s; -webkit-tap-highlight-color: transparent;
+    }
+    .sg-item:last-child { border-bottom: none; }
+    .sg-item.sg-focus, .sg-item:active { background: rgba(74,222,128,0.08); }
+    .uc2-mode .sg-item.sg-focus, .uc2-mode .sg-item:active { background: rgba(239,68,68,0.08); }
+    .sg-icon { font-size: 14px; color: var(--muted); flex-shrink: 0; }
+    .sg-text { flex: 1; min-width: 0; }
+    .sg-name { font-size: 14px; font-weight: 500; color: var(--text);
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sg-sub  { font-size: 11px; color: var(--muted); margin-top: 1px;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #search-input {
       flex: 1; padding: 10px 14px;
       background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
@@ -462,6 +487,7 @@
       onpointerdown="homePressStart()" onpointerup="homePressEnd()"
       onpointerleave="homePressCancel()">🏠</button>
     <button id="search-btn" onclick="searchStreet()" title="Sök">🔍</button>
+    <div id="search-suggestions"></div>
   </div>
 
   <div id="map-wrap">
@@ -656,6 +682,7 @@ function featureMidCoord(feat) {
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let currentMode = 'uc1';
+let sgTimer = null, sgIndex = -1;
 
 function initMap() {
   map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
@@ -688,6 +715,7 @@ function initMap() {
   document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchStreet(); });
   updateHomeBtnStyle();
   startGeolocation();
+  initSuggestions();
 }
 
 // ── Min position ──────────────────────────────────────────────────────────────
@@ -942,6 +970,7 @@ function flyToAndShow(lat, lng) {
 let searchMarker = null;
 
 async function searchStreet() {
+  hideSuggestions();
   if (currentMode === 'uc2') { searchMyStreet(); return; }
   const q = document.getElementById('search-input').value.trim();
   if (!q) return;
@@ -952,7 +981,6 @@ async function searchStreet() {
     const r   = await fetch(url);
     const res = await r.json();
     if (!res.length) throw new Error('Hittades ej');
-
     const { lat, lon } = res[0];
     flyToAndShow(parseFloat(lat), parseFloat(lon));
     btn.textContent = '🔍';
@@ -961,6 +989,105 @@ async function searchStreet() {
     setTimeout(() => { btn.textContent = '🔍'; }, 1800);
   } finally {
     btn.style.pointerEvents = '';
+  }
+}
+
+// ── Sökförslag (Photon autocomplete) ─────────────────────────────────────────
+function initSuggestions() {
+  const inp = document.getElementById('search-input');
+
+  inp.addEventListener('input', () => {
+    clearTimeout(sgTimer);
+    const q = inp.value.trim();
+    if (q.length < 2) { hideSuggestions(); return; }
+    sgTimer = setTimeout(() => fetchSuggestions(q), 280);
+  });
+
+  inp.addEventListener('keydown', e => {
+    const items = document.querySelectorAll('.sg-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      items[sgIndex]?.classList.remove('sg-focus');
+      sgIndex = Math.min(sgIndex + 1, items.length - 1);
+      items[sgIndex].classList.add('sg-focus');
+      inp.value = items[sgIndex].dataset.name;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[sgIndex]?.classList.remove('sg-focus');
+      sgIndex = Math.max(sgIndex - 1, 0);
+      items[sgIndex].classList.add('sg-focus');
+      inp.value = items[sgIndex].dataset.name;
+    } else if (e.key === 'Escape') {
+      hideSuggestions();
+    }
+  });
+
+  // Liten fördröjning vid blur så touchklick hinner registreras
+  inp.addEventListener('blur', () => setTimeout(hideSuggestions, 180));
+}
+
+async function fetchSuggestions(q) {
+  try {
+    // Photon – OSM-baserad geocoder optimerad för autocomplete, bbox = Stockholm
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lang=sv&bbox=17.6,59.1,18.5,59.6`;
+    const r   = await fetch(url);
+    if (!r.ok) return;
+    const data = await r.json();
+    const items = (data.features || [])
+      .map(f => {
+        const p    = f.properties;
+        const name = p.name || p.street || '';
+        if (!name) return null;
+        const city = p.city || p.county || '';
+        const type = p.osm_value || '';
+        const sub  = [city, type].filter(Boolean).join(' · ');
+        const [lng, lat] = f.geometry.coordinates;
+        return { name, sub, lat, lng };
+      })
+      .filter(Boolean);
+    showSuggestions(items);
+  } catch(_) { /* tyst fel – förslag ej kritiska */ }
+}
+
+function showSuggestions(items) {
+  const box = document.getElementById('search-suggestions');
+  if (!items.length) { hideSuggestions(); return; }
+  sgIndex = -1;
+  box.innerHTML = items.map((item, i) => {
+    const name = item.name.replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    const sub  = item.sub.replace(/</g,'&lt;');
+    return `<div class="sg-item" data-i="${i}" data-lat="${item.lat}" data-lng="${item.lng}" data-name="${name}">
+      <span class="sg-icon">📍</span>
+      <div class="sg-text">
+        <div class="sg-name">${name}</div>
+        ${sub ? `<div class="sg-sub">${sub}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('.sg-item').forEach(el => {
+    el.addEventListener('mousedown', e => e.preventDefault()); // hindra blur på desktop
+    el.addEventListener('click', () =>
+      applySuggestion(el.dataset.name, parseFloat(el.dataset.lat), parseFloat(el.dataset.lng))
+    );
+  });
+  box.style.display = 'block';
+}
+
+function hideSuggestions() {
+  const box = document.getElementById('search-suggestions');
+  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+  sgIndex = -1;
+}
+
+function applySuggestion(name, lat, lng) {
+  document.getElementById('search-input').value = name;
+  hideSuggestions();
+  if (currentMode === 'uc2') {
+    runUc2Check(name, lat, lng);
+  } else {
+    flyToAndShow(lat, lng);
   }
 }
 
@@ -1064,34 +1191,30 @@ function setMode(mode) {
 async function searchMyStreet() {
   const q = document.getElementById('search-input').value.trim();
   if (!q) return;
+  // Geocoda för att få koordinater, kör sedan matchning
+  let lat = null, lng = null;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Stockholm')}&format=json&limit=1&countrycodes=se`;
+    const r   = await fetch(url);
+    const res = await r.json();
+    if (res.length) { lat = parseFloat(res[0].lat); lng = parseFloat(res[0].lon); }
+  } catch(_) {}
+  await runUc2Check(q, lat, lng);
+}
+
+async function runUc2Check(inputName, lat, lng) {
   const btn = document.getElementById('search-btn');
   btn.textContent = '⏳'; btn.style.pointerEvents = 'none';
-
   try {
-    const qNorm = q.toLowerCase().trim();
-
-    // Hämta all gatudata (redan laddad i bakgrunden)
-    const data     = await streetDataPromise;
-    const features = Array.isArray(data) ? data : (data.features || []);
-
-    // Matcha på STREET_NAME (innehåller eller stämmer)
+    const qNorm   = inputName.toLowerCase().trim();
+    const data    = await streetDataPromise;
+    const features= Array.isArray(data) ? data : (data.features || []);
     const matches = features.filter(f => {
       const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
       return name && (name.includes(qNorm) || qNorm.includes(name));
     });
-
-    // Geocoda för att centrera kartan
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Stockholm')}&format=json&limit=1&countrycodes=se`;
-      const r   = await fetch(url);
-      const res = await r.json();
-      if (res.length) {
-        const lat = parseFloat(res[0].lat), lng = parseFloat(res[0].lon);
-        map.flyTo([lat, lng], 15, { duration: 1.0 });
-      }
-    } catch(_) { /* geocoding ej kritiskt */ }
-
-    showUc2Result(q, matches);
+    if (lat && lng) map.flyTo([lat, lng], 15, { duration: 1.0 });
+    showUc2Result(inputName, matches);
     btn.textContent = '🔍';
   } catch(e) {
     console.error('[UC2]', e);
