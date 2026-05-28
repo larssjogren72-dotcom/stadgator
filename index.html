@@ -933,8 +933,13 @@ async function showStreetsNearViewport() {
     const key    = getKey();
     const bounds = map.getBounds().pad(0.12);
 
-    // Vänta bara på gatudata — restriktioner laddas i bakgrunden och används om klara
-    const data = await streetDataPromise;
+    // Hämta städgatudata + LTFR-restriktionslinjer parallellt
+    // (LTFR behöver en centrumpunkt – finns alltid när vi kommer hit via flyToAndShow)
+    const ftchPromises = [streetDataPromise];
+    if (searchCenter) {
+      ftchPromises.push(loadForeskriftRestrictions(searchCenter.lat, searchCenter.lng, 700));
+    }
+    const [data] = await Promise.all(ftchPromises);
 
     let features = Array.isArray(data) ? data : (data.features || []);
 
@@ -944,13 +949,25 @@ async function showStreetsNearViewport() {
       return m && bounds.contains(toLatLng(m[0], m[1]));
     });
 
-    // Filtrera förbudszoner och gågator
+    // 1. Filtrera förbudszoner och gågator (polygon + namnbaserat från LTFR_P_FORBUD_GEOM)
     if (forbiddenZoneGeoms.length || forbiddenStreetNames.size) {
       features = features.filter(f => {
         const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
         if (name && forbiddenStreetNames.has(name)) return false;
         const m = featureMidCoord(f);
         return !m || !inForbiddenZone(m);
+      });
+    }
+
+    // 2. Filtrera LTFR_FORESKRIFT_GEOM – linjebaserade restriktioner (ändamålsplatser, p-förbud m.m.)
+    //    Koordinaterna från Stockholm-API är redan i SWEREF99, samma projektion som LTFR-linjerna.
+    if (forbiddenLineSegments.length || foreskriftForbiddenNames.size) {
+      features = features.filter(f => {
+        const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+        if (name && foreskriftForbiddenNames.has(name)) return false;
+        const m = featureMidCoord(f);
+        if (!m) return true;
+        return !nearForbiddenLine(m[0], m[1]);
       });
     }
 
