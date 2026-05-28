@@ -284,6 +284,8 @@
       flex-shrink: 0;
     }
     #hint { font-size: 14px; color: var(--muted); padding: 16px 18px 28px; min-height: 78px; }
+    .hint-main { display: block; margin-bottom: 8px; }
+    .hint-disclaimer { display: block; font-size: 11px; color: rgba(240,246,252,0.30); line-height: 1.5; }
     #street-panel { display: none; padding: 16px 18px 28px; }
 
     /* Gatulista */
@@ -457,8 +459,8 @@
 
   <div id="mode-row">
     <div class="mode-pill">
-      <button class="mode-btn active-uc1" id="btn-uc1" onclick="setMode('uc1')">🅿 Hitta parkering</button>
-      <button class="mode-btn" id="btn-uc2" onclick="setMode('uc2')">🏠 Parkera hemma</button>
+      <button class="mode-btn active-uc1" id="btn-uc1" onclick="setMode('uc1')">🌆 Kvällsparkering</button>
+      <button class="mode-btn" id="btn-uc2" onclick="setMode('uc2')">🌙 Nattparkering</button>
     </div>
   </div>
 
@@ -1326,10 +1328,16 @@ function setMode(mode) {
 
   updateLegend(mode);
   clearStreetsFromMap();
-  document.getElementById('hint').style.display = 'block';
-  document.getElementById('hint').textContent = mode === 'uc1'
-    ? 'Sök en destination — städgator i närheten visas på kartan. Parkera där kvällen innan!'
-    : 'Sök din hemadress eller tryck 🏠 — säkra parkeringar inom 10 min promenad visas.';
+  const disclaimer = '<span class="hint-disclaimer">Informationen baseras på Stockholms öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar. ParkSpot tar inget ansvar för parkeringsböter eller bogsering.</span>';
+  const hintEl = document.getElementById('hint');
+  hintEl.style.display = 'block';
+  if (mode === 'uc1') {
+    hintEl.innerHTML =
+      '<span class="hint-main">Vart är du på väg? Gator som sopas imorgon bitti är med hög sannolikhet mindre belastade.</span>' + disclaimer;
+  } else {
+    hintEl.innerHTML =
+      '<span class="hint-main">Vart är du på väg? Hitta trygga gator utan städning eller förbud nära ditt mål.</span>' + disclaimer;
+  }
   inp.value = '';
   inp.focus();
 }
