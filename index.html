@@ -912,9 +912,9 @@ function loadData() {
   restrictionsPromise = loadParkingRestrictions(key);
   // Zoner laddas per sökning med BBOX (loadZonesForViewport)
 
-  // Kartan visas omedelbart
+  // Kartan visas omedelbart – sätt hint med disclaimer via setMode så allt är konsekvent
   document.getElementById('loading').style.display = 'none';
-  document.getElementById('hint').textContent = 'Sök en destination ovan — städgator i närheten visas på kartan.';
+  setMode(currentMode);
 }
 
 function clearStreetsFromMap() {
