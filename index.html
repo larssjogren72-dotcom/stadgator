@@ -704,7 +704,8 @@ function selectStreet(feat, hitLayer, visualLayer) {
   const from = p.START_TIME||'', to = p.END_TIME||'';
   document.getElementById('badge-time').textContent = (from&&to) ? `${from}–${to}` : 'Servicedag';
 
-  const c = getCenter(hitLayer);
+  const mid = featureMidCoord(feat);
+  const c   = mid ? toLatLng(mid[0], mid[1]) : getCenter(hitLayer);
   if (c) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
 
