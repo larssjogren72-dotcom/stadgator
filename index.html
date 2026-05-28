@@ -349,6 +349,57 @@
     }
     .leaflet-popup-tip { background: rgba(13,17,23,0.95) !important; }
     .leaflet-popup-close-button { color: var(--muted) !important; }
+
+    /* ── Lägesväljare ── */
+    #mode-row {
+      background: #080c1c; border-bottom: 1px solid var(--glass-border);
+      padding: 8px 14px; flex-shrink: 0;
+    }
+    .mode-pill {
+      display: flex; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;
+    }
+    .mode-btn {
+      flex: 1; padding: 8px 10px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      border: none; background: transparent; color: var(--muted);
+      transition: background .15s, color .15s;
+      font-family: 'Inter', sans-serif; letter-spacing: -.01em;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mode-btn.active-uc1 { background: var(--accent-dim); color: var(--accent); }
+    .mode-btn.active-uc2 { background: rgba(239,68,68,0.14); color: #fca5a5; }
+
+    /* UC2-läge – färgöverskrivning */
+    .uc2-mode #search-input { border-color: rgba(239,68,68,0.25); }
+    .uc2-mode #search-input:focus { border-color: #f87171; box-shadow: 0 0 0 3px rgba(239,68,68,0.14); }
+    .uc2-mode #search-btn { background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.35); color: #fca5a5; }
+    .uc2-mode #search-btn:active { background: rgba(239,68,68,0.28); }
+
+    /* UC2-resultpanel */
+    #uc2-panel { display: none; padding: 14px 14px 20px; }
+    .uc2-result {
+      border-radius: 14px; padding: 16px 16px 18px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .uc2-safe   { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); }
+    .uc2-danger { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.28); }
+    .uc2-icon   { font-size: 26px; line-height: 1; }
+    .uc2-title  { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .uc2-safe   .uc2-title { color: #4ade80; }
+    .uc2-danger .uc2-title { color: #f87171; }
+    .uc2-body   { font-size: 13px; color: var(--muted); line-height: 1.55; }
+    .uc2-body strong { color: var(--text); }
+    .uc2-alt-btn {
+      margin-top: 6px; padding: 12px 16px;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 4px 16px rgba(239,68,68,0.3);
+      transition: transform .1s; -webkit-tap-highlight-color: transparent;
+    }
+    .uc2-alt-btn:active { transform: scale(0.98); }
   </style>
 </head>
 <body>
@@ -398,6 +449,13 @@
     <button class="settings-btn" title="Byt API-nyckel" onclick="resetKey()">⚙</button>
   </div>
 
+  <div id="mode-row">
+    <div class="mode-pill">
+      <button class="mode-btn active-uc1" id="btn-uc1" onclick="setMode('uc1')">🅿 Hitta parkering</button>
+      <button class="mode-btn" id="btn-uc2" onclick="setMode('uc2')">⚠️ Kolla min gata</button>
+    </div>
+  </div>
+
   <div id="search-row">
     <input type="text" id="search-input" placeholder="Sök gata du ska till, t.ex. Sveavägen…" autocomplete="off" autocorrect="off" spellcheck="false">
     <button id="home-btn" title="Spara hemadress"
@@ -429,6 +487,7 @@
         Navigera hit med Google Maps
       </a>
     </div>
+    <div id="uc2-panel"></div>
   </div>
 </div>
 
@@ -596,6 +655,7 @@ function featureMidCoord(feat) {
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
+let currentMode = 'uc1';
 
 function initMap() {
   map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
@@ -689,6 +749,7 @@ function clearStreetsFromMap() {
   const list = document.getElementById('street-list');
   if (list) { list.innerHTML = ''; list.style.display = 'none'; }
   document.getElementById('street-panel').style.display = 'none';
+  document.getElementById('uc2-panel').style.display = 'none';
   document.getElementById('hint').style.display = 'block';
   document.getElementById('count-badge').style.display = 'none';
 }
@@ -881,6 +942,7 @@ function flyToAndShow(lat, lng) {
 let searchMarker = null;
 
 async function searchStreet() {
+  if (currentMode === 'uc2') { searchMyStreet(); return; }
   const q = document.getElementById('search-input').value.trim();
   if (!q) return;
   const btn = document.getElementById('search-btn');
@@ -970,6 +1032,128 @@ function getCenter(layer) {
   if (layer.getBounds) return layer.getBounds().getCenter();
   if (layer.getLatLng) return layer.getLatLng();
   return null;
+}
+
+// ── UC2: Lägesväljare ─────────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  const app = document.getElementById('app');
+  const inp = document.getElementById('search-input');
+
+  document.getElementById('btn-uc1').className = 'mode-btn' + (mode === 'uc1' ? ' active-uc1' : '');
+  document.getElementById('btn-uc2').className = 'mode-btn' + (mode === 'uc2' ? ' active-uc2' : '');
+
+  if (mode === 'uc2') {
+    app.classList.add('uc2-mode');
+    inp.placeholder = 'Din parkerade gata, t.ex. Hornsgatan…';
+  } else {
+    app.classList.remove('uc2-mode');
+    inp.placeholder = 'Sök gata du ska till, t.ex. Sveavägen…';
+  }
+
+  clearStreetsFromMap();
+  document.getElementById('hint').style.display = 'block';
+  document.getElementById('hint').textContent = mode === 'uc1'
+    ? 'Sök en destination ovan — städgator i närheten visas på kartan.'
+    : 'Skriv in gatan där du parkerat — vi kollar om den städas imorgon.';
+  inp.value = '';
+  inp.focus();
+}
+
+// ── UC2: Sök parkerad gata ────────────────────────────────────────────────────
+async function searchMyStreet() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('search-btn');
+  btn.textContent = '⏳'; btn.style.pointerEvents = 'none';
+
+  try {
+    const qNorm = q.toLowerCase().trim();
+
+    // Hämta all gatudata (redan laddad i bakgrunden)
+    const data     = await streetDataPromise;
+    const features = Array.isArray(data) ? data : (data.features || []);
+
+    // Matcha på STREET_NAME (innehåller eller stämmer)
+    const matches = features.filter(f => {
+      const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+      return name && (name.includes(qNorm) || qNorm.includes(name));
+    });
+
+    // Geocoda för att centrera kartan
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Stockholm')}&format=json&limit=1&countrycodes=se`;
+      const r   = await fetch(url);
+      const res = await r.json();
+      if (res.length) {
+        const lat = parseFloat(res[0].lat), lng = parseFloat(res[0].lon);
+        map.flyTo([lat, lng], 15, { duration: 1.0 });
+      }
+    } catch(_) { /* geocoding ej kritiskt */ }
+
+    showUc2Result(q, matches);
+    btn.textContent = '🔍';
+  } catch(e) {
+    console.error('[UC2]', e);
+    btn.textContent = '❌';
+    setTimeout(() => { btn.textContent = '🔍'; }, 1800);
+  } finally {
+    btn.style.pointerEvents = '';
+  }
+}
+
+function showUc2Result(inputName, matches) {
+  const panel = document.getElementById('uc2-panel');
+  document.getElementById('hint').style.display         = 'none';
+  document.getElementById('street-list').style.display  = 'none';
+  document.getElementById('street-panel').style.display = 'none';
+
+  if (matches.length > 0) {
+    // Gatan städas imorgon — VARNING
+    const p        = matches[0].properties || {};
+    const name     = p.STREET_NAME || inputName;
+    const from     = p.START_TIME || '', to = p.END_TIME || '';
+    const timeTxt  = (from && to) ? ` kl. ${from}–${to}` : '';
+    const district = p.CITY_DISTRICT || p.PARKING_DISTRICT || '';
+
+    panel.innerHTML = `
+      <div class="uc2-result uc2-danger">
+        <div class="uc2-icon">⚠️</div>
+        <div class="uc2-title">Flytta bilen!</div>
+        <div class="uc2-body">
+          <strong>${name}</strong> städas imorgon${timeTxt}.
+          ${district ? `<br><small>${district}</small>` : ''}
+        </div>
+        <button class="uc2-alt-btn" onclick="findAlternativeParking()">
+          🅿 Hitta alternativ parkering i närheten
+        </button>
+      </div>`;
+  } else {
+    // Gatan städas INTE imorgon — SÄKER
+    panel.innerHTML = `
+      <div class="uc2-result uc2-safe">
+        <div class="uc2-icon">✅</div>
+        <div class="uc2-title">Bilen är säker!</div>
+        <div class="uc2-body">
+          <strong>${inputName}</strong> städas inte imorgon. Ingen åtgärd behövs.
+        </div>
+      </div>`;
+  }
+
+  panel.style.display = 'block';
+}
+
+function findAlternativeParking() {
+  // Byt till UC1 och visa städgator runt kartans nuvarande centrum
+  setMode('uc1');
+  const center = map.getCenter();
+  searchCenter = center;
+  if (searchMarker) { searchMarker.remove(); searchMarker = null; }
+  searchMarker = L.circleMarker([center.lat, center.lng], {
+    radius: 9, color: '#4ade80', fillColor: '#4ade80',
+    fillOpacity: 0.9, weight: 2, pane: 'markerPane'
+  }).addTo(map);
+  showStreetsNearViewport();
 }
 </script>
 </body>
