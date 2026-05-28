@@ -648,11 +648,15 @@ async function loadParkingRestrictions(apiKey) {
 // Nyckelord som identifierar parkeringsrelaterade föreskrifter i TITLE-fältet
 const PARKING_RULE_KEYWORDS = ['ändamålsplats', 'parkering', 'parkeringsförbud', 'p-förbud', 'stopförbud'];
 
+// Gatunamn extraherade ur LOCATION_APPROX (parkeringsföreskrifter) – fylls per sökning
+let foreskriftForbiddenNames = new Set();
+
 async function loadForeskriftRestrictions(lat, lng, radius) {
   forbiddenLineSegments = [];
+  foreskriftForbiddenNames = new Set();
   const key = getKey();
   if (!key) return;
-  const deg = (radius / 111000) * 1.6; // grader med marginal
+  const deg = (radius / 111000) * 1.8; // grader med marginal
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
   const url  = `/wfs/${key}/wfs?service=WFS&version=2.0.0&request=GetFeature`
     + `&typeNames=ltfr:LTFR_FORESKRIFT_GEOM&outputFormat=application/json`
@@ -662,19 +666,36 @@ async function loadForeskriftRestrictions(lat, lng, radius) {
     if (!r.ok) { console.warn('[FORESKRIFT] HTTP', r.status); return; }
     const data = await r.json();
     const features = data.features || [];
-    let count = 0;
+    let lineCount = 0, nameCount = 0;
     features.forEach(f => {
       const title = (f.properties?.TITLE || '').toLowerCase();
       if (!PARKING_RULE_KEYWORDS.some(kw => title.includes(kw))) return;
+
+      // A) Geometribaserad restriktion (linje i SWEREF99)
       const g = f.geometry;
-      if (!g) return;
-      if (g.type === 'LineString') {
-        forbiddenLineSegments.push(g.coordinates); count++;
-      } else if (g.type === 'MultiLineString') {
-        g.coordinates.forEach(line => { forbiddenLineSegments.push(line); count++; });
+      if (g) {
+        if (g.type === 'LineString') {
+          forbiddenLineSegments.push(g.coordinates); lineCount++;
+        } else if (g.type === 'MultiLineString') {
+          g.coordinates.forEach(line => { forbiddenLineSegments.push(line); lineCount++; });
+        }
+      }
+
+      // B) Namnbaserad restriktion: LOCATION_APPROX ger ofta exakt gatunamn
+      //    Filtrera bort områdesnamn som "stadsdelen X" och "Stockholm"
+      const loc = (f.properties?.LOCATION_APPROX || '').trim();
+      if (loc && loc.length < 60) {
+        loc.split(/[,;]+/).forEach(part => {
+          const name = part.trim().toLowerCase();
+          if (!name) return;
+          if (name.startsWith('stadsdelen') || name.startsWith('stockholm') ||
+              name.startsWith('hela ') || name.startsWith('delar av')) return;
+          foreskriftForbiddenNames.add(name);
+          nameCount++;
+        });
       }
     });
-    console.log(`[FORESKRIFT] ${features.length} features → ${count} parkeringsrestriktionslinjer`);
+    console.log(`[FORESKRIFT] ${features.length} features → ${lineCount} restriktionslinjer, ${nameCount} gatunamn`);
   } catch(e) {
     console.warn('[FORESKRIFT] Kunde inte ladda:', e.message);
   }
@@ -1323,7 +1344,25 @@ async function showSafeStreetsNearby(lat, lng) {
       loadForeskriftRestrictions(lat, lng, 500),
     ]);
 
-    // 4. Gruppera segment per gatunamn – filtrera städgator, förbudsnamn och förbudszoner
+    // 4a. Förstegsgranskning: samla gatunamn som har ÄN ett begränsat segment
+    //     (polygon-zon, LTFR-linje eller LOCATION_APPROX-namn)
+    const restrictedBySegment = new Set();
+    overpass.elements.forEach(el => {
+      if (!el.geometry?.length) return;
+      const name = el.tags?.name;
+      if (!name) return;
+      const nameLow = name.toLowerCase().trim();
+      if (foreskriftForbiddenNames.has(nameLow)) {
+        restrictedBySegment.add(nameLow); return;
+      }
+      const mid = el.geometry[Math.floor(el.geometry.length / 2)];
+      const [sx, sy] = proj4('WGS84', 'EPSG:3011', [mid.lon, mid.lat]);
+      if (inForbiddenZone([sx, sy]) || nearForbiddenLine(sx, sy)) {
+        restrictedBySegment.add(nameLow);
+      }
+    });
+
+    // 4b. Bygg gatukartan – uteslut hela gatan om ÄN ett segment är begränsat
     const streetMap = new Map(); // name → { segments[], lat, lng, dist }
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
@@ -1331,17 +1370,10 @@ async function showSafeStreetsNearby(lat, lng) {
       if (!name) return;
       const nameLow = name.toLowerCase().trim();
 
-      // a) Skippa städgator och gator med namnbaserat parkeringsförbud
-      if (cleaningNames.has(nameLow) || forbiddenStreetNames.has(nameLow)) return;
-
-      // b) Skippa segment vars mittpunkt är i förbudszon (polygon) ELLER nära
-      //    LTFR_FORESKRIFT_GEOM-parkeringslinje – konvertera till SWEREF99
-      {
-        const mid = el.geometry[Math.floor(el.geometry.length / 2)];
-        const [sx, sy] = proj4('WGS84', 'EPSG:3011', [mid.lon, mid.lat]);
-        if (inForbiddenZone([sx, sy])) return;
-        if (nearForbiddenLine(sx, sy)) return;
-      }
+      // Skippa städgator, namnbaserade förbud och alla restrikterade gator
+      if (cleaningNames.has(nameLow)) return;
+      if (forbiddenStreetNames.has(nameLow)) return;
+      if (restrictedBySegment.has(nameLow)) return;
 
       // Centrum för detta segment (används för avstånd och navigation)
       const segLat = el.geometry.reduce((s, p) => s + p.lat, 0) / el.geometry.length;
