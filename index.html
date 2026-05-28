@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Städgator Stockholm – Hitta ledig parkering kvällstid</title>
+  <title>Parkly Stockholm – Hitta ledig parkering kvällstid</title>
 
   <!-- SEO: grundläggande -->
-  <meta name="description" content="Se vilka gator i Stockholm som städas imorgon och parkera där kvällen innan. Gratis karta med städgator, parkeringszoner och taxa – sök din destination och navigera direkt.">
-  <meta name="keywords" content="städgator stockholm, parkering stockholm, hitta parkering stockholm, lediga parkeringsplatser, städgator imorgon, gratis parkering stockholm, parkeringszoner stockholm">
+  <meta name="description" content="Se vilka gator i Stockholm som städas imorgon och parkera där kvällen innan. Parkly Stockholm – gratis karta med städgator, parkeringszoner och taxa.">
+  <meta name="keywords" content="parkly stockholm, parkering stockholm, hitta parkering stockholm, lediga parkeringsplatser, städgator imorgon, gratis parkering stockholm, parkeringszoner stockholm">
   <meta name="robots" content="index, follow">
-  <meta name="author" content="Städgator">
+  <meta name="author" content="Parkly Stockholm">
   <link rel="canonical" href="https://stadgator-production.up.railway.app/">
 
   <!-- Open Graph – visas när du delar länken i sociala medier -->
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://stadgator-production.up.railway.app/">
-  <meta property="og:title"       content="Städgator Stockholm – Hitta ledig parkering kvällstid">
-  <meta property="og:description" content="Dagen innan en städgata sopas måste alla bilar bort. Det skapar garanterat tomma platser. Städgator visar vilka gator det gäller imorgon.">
+  <meta property="og:title"       content="Parkly Stockholm – Hitta ledig parkering kvällstid">
+  <meta property="og:description" content="Dagen innan en städgata sopas måste alla bilar bort. Det skapar garanterat tomma platser. Parkly Stockholm visar vilka gator det gäller imorgon.">
   <meta property="og:locale"      content="sv_SE">
 
   <!-- Twitter/X Card -->
   <meta name="twitter:card"        content="summary">
-  <meta name="twitter:title"       content="Städgator Stockholm – Hitta ledig parkering kvällstid">
+  <meta name="twitter:title"       content="Parkly Stockholm – Hitta ledig parkering kvällstid">
   <meta name="twitter:description" content="Gratis karta som visar morgondagens städgator i Stockholm. Parkera smart – kvällen innan är gatorna tomma.">
 
   <!-- Strukturerad data – Google förstår vad appen är -->
@@ -29,9 +29,9 @@
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "Städgator Stockholm",
+    "name": "Parkly Stockholm",
     "url": "https://stadgator-production.up.railway.app/",
-    "description": "Visar vilka gator i Stockholm som städas imorgon så att du kan parkera där kvällen innan.",
+    "description": "Parkly Stockholm visar vilka gator som städas imorgon så att du kan parkera där kvällen innan.",
     "applicationCategory": "TransportationApplication",
     "operatingSystem": "Web",
     "inLanguage": "sv",
@@ -414,8 +414,8 @@
 <div id="setup-screen">
   <div class="setup-glow"></div>
   <div class="setup-card">
-    <div class="s-icon">🧹</div>
-    <h1>Städgator</h1>
+    <div class="s-icon">🅿</div>
+    <h1>Parkly Stockholm</h1>
     <p class="setup-tagline">Hitta lediga parkeringar i Stockholm — varje kväll.</p>
     <p class="setup-desc">Dagen innan en städgata sopas måste alla fordon flyttas. Det skapar garanterat tomma platser längs hela gatan — om du vet vilken.</p>
     <ul class="feature-list">
@@ -446,9 +446,9 @@
 <div id="app">
   <div id="header">
     <div class="hd-brand">
-      <div class="hd-icon">🧹</div>
+      <div class="hd-icon">🅿</div>
       <div class="hd-left">
-        <h1>Städgator Stockholm</h1>
+        <h1>Parkly Stockholm</h1>
         <p id="header-date">Laddar…</p>
       </div>
     </div>
@@ -813,6 +813,25 @@ let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let currentMode = 'uc1';
 let sgTimer = null, sgIndex = -1;
 
+// ── Legend – uppdateras när mode byts ────────────────────────────────────────
+function updateLegend(mode) {
+  if (!legendDiv) return;
+  const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
+    `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
+  ).join('');
+  if (mode === 'uc2') {
+    legendDiv.innerHTML = zoneRows +
+      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`;
+  } else {
+    legendDiv.innerHTML = zoneRows +
+      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städas imorgon</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
+  }
+}
+
 function initMap() {
   map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
   map.createPane('zonesPane').style.zIndex = 350; // under gator (400)
@@ -827,17 +846,12 @@ function initMap() {
     maxZoom:19, zIndex:650
   }).addTo(map);
 
+  let legendDiv = null;
   const legend = L.control({ position:'bottomright' });
   legend.onAdd = () => {
-    const d = L.DomUtil.create('div','legend');
-    const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
-      `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
-    ).join('');
-    d.innerHTML = zoneRows +
-      `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städas imorgon</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
-    return d;
+    legendDiv = L.DomUtil.create('div','legend');
+    updateLegend(currentMode);
+    return legendDiv;
   };
   legend.addTo(map);
   map.on('click', hideStreetPanel);
@@ -1310,6 +1324,7 @@ function setMode(mode) {
     inp.placeholder = 'Sök gata du ska till, t.ex. Sveavägen…';
   }
 
+  updateLegend(mode);
   clearStreetsFromMap();
   document.getElementById('hint').style.display = 'block';
   document.getElementById('hint').textContent = mode === 'uc1'
