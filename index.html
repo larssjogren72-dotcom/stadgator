@@ -929,20 +929,20 @@ function clearStreetsFromMap() {
   document.getElementById('count-badge').style.display = 'none';
 }
 
-async function showStreetsNearViewport() {
+async function showStreetsNearViewport(foreskriftP = null) {
   clearStreetsFromMap();
   document.getElementById('hint').textContent = 'Hämtar städgator…';
   try {
     const key    = getKey();
     const bounds = map.getBounds().pad(0.12);
 
-    // Hämta städgatudata + LTFR-restriktionslinjer parallellt
-    // (LTFR behöver en centrumpunkt – finns alltid när vi kommer hit via flyToAndShow)
-    const ftchPromises = [streetDataPromise];
-    if (searchCenter) {
-      ftchPromises.push(loadForeskriftRestrictions(searchCenter.lat, searchCenter.lng, 700));
-    }
-    const [data] = await Promise.all(ftchPromises);
+    // Använd pre-startad LTFR-hämtning om tillgänglig (startades i flyToAndShow)
+    const [data] = await Promise.all([
+      streetDataPromise,
+      foreskriftP || (searchCenter
+        ? loadForeskriftRestrictions(searchCenter.lat, searchCenter.lng, 700)
+        : Promise.resolve()),
+    ]);
 
     let features = Array.isArray(data) ? data : (data.features || []);
 
@@ -1124,16 +1124,22 @@ function flyToAndShow(lat, lng) {
   searchCenter = L.latLng(lat, lng);
   if (searchMarker) { searchMarker.remove(); searchMarker = null; }
   const uc2 = currentMode === 'uc2';
+
+  // Pre-starta tunga nätverksanrop under kartanimationen (~1.1 s) så att
+  // data är klar (eller nära klar) när animationen slutar.
+  const overpassP   = uc2 ? fetchOverpassStreets(lat, lng, 500) : null;
+  const foreskriftP = loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
+
   searchMarker = L.circleMarker([lat, lng], {
     radius: 10,
     color:       uc2 ? '#ffffff' : '#4ade80',
-    fillColor:   uc2 ? '#1e3a8a' : '#4ade80', // mörkblå i UC2, tydligt skild från ljusblå gator
+    fillColor:   uc2 ? '#1e3a8a' : '#4ade80',
     fillOpacity: 0.95, weight: uc2 ? 2.5 : 2, pane: 'markerPane'
   }).addTo(map);
-  if (currentMode === 'uc2') {
-    map.once('moveend', () => showSafeStreetsNearby(lat, lng));
+  if (uc2) {
+    map.once('moveend', () => showSafeStreetsNearby(lat, lng, overpassP, foreskriftP));
   } else {
-    map.once('moveend', () => showStreetsNearViewport());
+    map.once('moveend', () => showStreetsNearViewport(foreskriftP));
   }
   map.flyTo([lat, lng], 15, { duration: 1.1 });
 }
@@ -1200,18 +1206,21 @@ function initSuggestions() {
 
 async function fetchSuggestions(q) {
   try {
-    // Photon med osm_tag=highway – prefix-matchning på gatunamn, bbox = Stor-Stockholm
+    // Photon utan osm_tag-filter – fungerar för gatunamn OCH adresser (UC2 hemadress)
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}`
-      + `&limit=7&lang=sv&bbox=17.5,59.1,18.5,59.65&osm_tag=highway`;
+      + `&limit=8&lang=sv&bbox=17.5,59.1,18.5,59.65`;
     const r = await fetch(url);
     if (!r.ok) return;
     const data = await r.json();
     const seen  = new Set();
     const items = (data.features || [])
       .map(f => {
-        const p    = f.properties;
-        const name = p.name || p.street || '';
-        if (!name || seen.has(name.toLowerCase())) return null;
+        const p      = f.properties;
+        const street = p.name || p.street || '';
+        if (!street) return null;
+        // Bygg visningsnamn: "Sveavägen" eller "Sveavägen 42"
+        const name = street + (p.housenumber ? ` ${p.housenumber}` : '');
+        if (seen.has(name.toLowerCase())) return null;
         seen.add(name.toLowerCase());
         const sub = [p.city, p.district || p.suburb].filter(Boolean).join(', ');
         const [lng, lat] = f.geometry.coordinates;
@@ -1363,7 +1372,7 @@ function setMode(mode) {
 }
 
 // ── UC2: Hitta säkra parkeringar nära hemmet ──────────────────────────────────
-async function showSafeStreetsNearby(lat, lng) {
+async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = null) {
   clearStreetsFromMap();
   document.getElementById('hint').textContent = 'Hämtar gatunätet…';
   try {
@@ -1392,11 +1401,11 @@ async function showSafeStreetsNearby(lat, lng) {
       streetGroupLayers.push(gjR);
     }
 
-    // 3. Hämta OSM-gator med full linjegeometri (500 m ≈ 6 min promenad)
-    //    samt LTFR_FORESKRIFT_GEOM-restriktionslinjer parallellt
+    // 3. Använd pre-startade hämtningar (startades i flyToAndShow under kartanimationen)
+    //    Är de klara är väntetiden noll – annars väntar vi på resterande tid.
     const [overpass] = await Promise.all([
-      fetchOverpassStreets(lat, lng, 500),
-      loadForeskriftRestrictions(lat, lng, 500),
+      overpassP   || fetchOverpassStreets(lat, lng, 500),
+      foreskriftP || loadForeskriftRestrictions(lat, lng, 500),
     ]);
 
     // 4a. Förstegsgranskning: samla gatunamn som har ÄN ett begränsat segment
@@ -1469,10 +1478,10 @@ async function showSafeStreetsNearby(lat, lng) {
           L.DomEvent.stopPropagation(e);
           allPolylines.forEach(p => p.setStyle(SAFE_LINE));
           pl.setStyle(SAFE_SEL);
-          const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking`;
+          const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`;
           pl.bindPopup(
             `<strong style="color:#f0f6fc">${s.name}</strong><br>` +
-            `<a href="${url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Gå hit ↗</a>`
+            `<a href="${url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>`
           ).openPopup();
         });
         allPolylines.push(pl);
@@ -1528,7 +1537,7 @@ function buildSafeStreetList(streets) {
   list.innerHTML = '';
   streets.forEach(({ name, lat, lng, dist }) => {
     const distStr = dist < 1000 ? `${dist} m` : `${(dist/1000).toFixed(1)} km`;
-    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
     const item    = document.createElement('div');
     item.className = 'sl-item';
     item.innerHTML = `
