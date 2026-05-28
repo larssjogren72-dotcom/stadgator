@@ -616,8 +616,9 @@ const RESTRICTION_LAYERS = [
   'od_gis:NVDB_Gagata',        // Gågator – inga bilar
 ];
 
-let forbiddenZoneGeoms  = [];
-let forbiddenStreetNames = new Set();
+let forbiddenZoneGeoms    = [];
+let forbiddenStreetNames  = new Set();
+let forbiddenLineSegments = []; // LTFR_FORESKRIFT_GEOM – parkeringsrestriktionslinjer (SWEREF99)
 
 async function loadParkingRestrictions(apiKey) {
   for (const layer of RESTRICTION_LAYERS) {
@@ -641,6 +642,62 @@ async function loadParkingRestrictions(apiKey) {
       console.warn(`[Städgator] Kunde inte ladda ${layer}:`, e.message);
     }
   }
+}
+
+// ── LTFR_FORESKRIFT_GEOM – hämta parkeringsrestriktionslinjer för ett bbox-område ──
+// Nyckelord som identifierar parkeringsrelaterade föreskrifter i TITLE-fältet
+const PARKING_RULE_KEYWORDS = ['ändamålsplats', 'parkering', 'parkeringsförbud', 'p-förbud', 'stopförbud'];
+
+async function loadForeskriftRestrictions(lat, lng, radius) {
+  forbiddenLineSegments = [];
+  const key = getKey();
+  if (!key) return;
+  const deg = (radius / 111000) * 1.6; // grader med marginal
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  const url  = `/wfs/${key}/wfs?service=WFS&version=2.0.0&request=GetFeature`
+    + `&typeNames=ltfr:LTFR_FORESKRIFT_GEOM&outputFormat=application/json`
+    + `&count=500&BBOX=${bbox}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) { console.warn('[FORESKRIFT] HTTP', r.status); return; }
+    const data = await r.json();
+    const features = data.features || [];
+    let count = 0;
+    features.forEach(f => {
+      const title = (f.properties?.TITLE || '').toLowerCase();
+      if (!PARKING_RULE_KEYWORDS.some(kw => title.includes(kw))) return;
+      const g = f.geometry;
+      if (!g) return;
+      if (g.type === 'LineString') {
+        forbiddenLineSegments.push(g.coordinates); count++;
+      } else if (g.type === 'MultiLineString') {
+        g.coordinates.forEach(line => { forbiddenLineSegments.push(line); count++; });
+      }
+    });
+    console.log(`[FORESKRIFT] ${features.length} features → ${count} parkeringsrestriktionslinjer`);
+  } catch(e) {
+    console.warn('[FORESKRIFT] Kunde inte ladda:', e.message);
+  }
+}
+
+// Avstånd punkt→linjesegment i SWEREF99 (meter)
+function distPointToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx*dx + dy*dy;
+  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px-ax)*dx + (py-ay)*dy) / lenSq));
+  return Math.hypot(px - (ax + t*dx), py - (ay + t*dy));
+}
+
+// Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en restriktionslinje
+function nearForbiddenLine(sx, sy, threshold = 25) {
+  return forbiddenLineSegments.some(line => {
+    for (let i = 0; i < line.length - 1; i++) {
+      const [ax, ay] = line[i], [bx, by] = line[i+1];
+      if (distPointToSegment(sx, sy, ax, ay, bx, by) <= threshold) return true;
+    }
+    return false;
+  });
 }
 
 // ── Diagnostik: hämta LTFR_FORESKRIFT_GEOM och visa schema i UI-panel ──
@@ -1260,7 +1317,11 @@ async function showSafeStreetsNearby(lat, lng) {
     }
 
     // 3. Hämta OSM-gator med full linjegeometri (500 m ≈ 6 min promenad)
-    const overpass = await fetchOverpassStreets(lat, lng, 500);
+    //    samt LTFR_FORESKRIFT_GEOM-restriktionslinjer parallellt
+    const [overpass] = await Promise.all([
+      fetchOverpassStreets(lat, lng, 500),
+      loadForeskriftRestrictions(lat, lng, 500),
+    ]);
 
     // 4. Gruppera segment per gatunamn – filtrera städgator, förbudsnamn och förbudszoner
     const streetMap = new Map(); // name → { segments[], lat, lng, dist }
@@ -1273,12 +1334,13 @@ async function showSafeStreetsNearby(lat, lng) {
       // a) Skippa städgator och gator med namnbaserat parkeringsförbud
       if (cleaningNames.has(nameLow) || forbiddenStreetNames.has(nameLow)) return;
 
-      // b) Skippa segment vars mittpunkt ligger inuti en förbudszon (polygon)
-      //    Overpass är WGS84 – konvertera mittpunkt till SWEREF99 för inForbiddenZone()
-      if (forbiddenZoneGeoms.length) {
+      // b) Skippa segment vars mittpunkt är i förbudszon (polygon) ELLER nära
+      //    LTFR_FORESKRIFT_GEOM-parkeringslinje – konvertera till SWEREF99
+      {
         const mid = el.geometry[Math.floor(el.geometry.length / 2)];
         const [sx, sy] = proj4('WGS84', 'EPSG:3011', [mid.lon, mid.lat]);
         if (inForbiddenZone([sx, sy])) return;
+        if (nearForbiddenLine(sx, sy)) return;
       }
 
       // Centrum för detta segment (används för avstånd och navigation)
@@ -1327,8 +1389,6 @@ async function showSafeStreetsNearby(lat, lng) {
     badge.style.display = 'block';
     buildSafeStreetList(safe);
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
-    // Tillfällig schema-diagnostik – visar LTFR_FORESKRIFT_GEOM-egenskaper i UI
-    diagForeskrift(lat, lng);
   } catch(e) {
     console.error('[UC2]', e);
     document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
