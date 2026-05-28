@@ -1203,13 +1203,26 @@ async function showSafeStreetsNearby(lat, lng) {
     // 3. Hämta OSM-gator med full linjegeometri (500 m ≈ 6 min promenad)
     const overpass = await fetchOverpassStreets(lat, lng, 500);
 
-    // 4. Gruppera segment per gatunamn, filtrera bort städgator
+    // 4. Gruppera segment per gatunamn – filtrera städgator, förbudsnamn och förbudszoner
     const streetMap = new Map(); // name → { segments[], lat, lng, dist }
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
       const name = el.tags?.name;
-      if (!name || cleaningNames.has(name.toLowerCase().trim())) return;
-      // Centrum för detta segment
+      if (!name) return;
+      const nameLow = name.toLowerCase().trim();
+
+      // a) Skippa städgator och gator med namnbaserat parkeringsförbud
+      if (cleaningNames.has(nameLow) || forbiddenStreetNames.has(nameLow)) return;
+
+      // b) Skippa segment vars mittpunkt ligger inuti en förbudszon (polygon)
+      //    Overpass är WGS84 – konvertera mittpunkt till SWEREF99 för inForbiddenZone()
+      if (forbiddenZoneGeoms.length) {
+        const mid = el.geometry[Math.floor(el.geometry.length / 2)];
+        const [sx, sy] = proj4('WGS84', 'EPSG:3011', [mid.lon, mid.lat]);
+        if (inForbiddenZone([sx, sy])) return;
+      }
+
+      // Centrum för detta segment (används för avstånd och navigation)
       const segLat = el.geometry.reduce((s, p) => s + p.lat, 0) / el.geometry.length;
       const segLng = el.geometry.reduce((s, p) => s + p.lon, 0) / el.geometry.length;
       const dist   = Math.round(map.distance([lat, lng], [segLat, segLng]));
