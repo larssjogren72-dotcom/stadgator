@@ -631,6 +631,38 @@ async function loadParkingRestrictions(apiKey) {
   }
 }
 
+// ── Diagnostik: hämta LTFR_FORESKRIFT_GEOM för en specifik plats (schema-utforskning) ──
+async function diagForeskrift(lat, lng) {
+  const key  = getKey();
+  const d    = 0.003; // ~300 m
+  const bbox = `${lng-d},${lat-d},${lng+d},${lat+d},EPSG:4326`;
+  const url  = `/wfs/${key}/wfs?service=WFS&version=2.0.0&request=GetFeature`
+    + `&typeNames=ltfr:LTFR_FORESKRIFT_GEOM&outputFormat=application/json`
+    + `&count=20&BBOX=${bbox}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) { console.warn('[FORESKRIFT] HTTP', r.status); return; }
+    const data = await r.json();
+    const features = data.features || [];
+    console.log(`[FORESKRIFT] ${features.length} features inom BBOX`);
+    if (!features.length) { console.log('[FORESKRIFT] Inga features – lagret är tomt här'); return; }
+    // Visa alla unika property-nycklar och exempelvärden
+    const keys = {};
+    features.forEach(f => {
+      Object.entries(f.properties || {}).forEach(([k, v]) => {
+        if (!keys[k]) keys[k] = new Set();
+        if (v !== null) keys[k].add(String(v).substring(0, 60));
+      });
+    });
+    console.table(Object.fromEntries(
+      Object.entries(keys).map(([k, vs]) => [k, [...vs].join(' | ')])
+    ));
+    console.log('[FORESKRIFT] Rå feature 0:', features[0]);
+  } catch(e) {
+    console.warn('[FORESKRIFT] Fel:', e.message);
+  }
+}
+
 function pointInRing(px, py, ring) {
   let inside = false;
   for (let i = 0, j = ring.length-1; i < ring.length; j=i++) {
