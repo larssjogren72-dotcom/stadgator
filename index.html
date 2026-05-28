@@ -938,10 +938,12 @@ async function promptSetHome() {
 function flyToAndShow(lat, lng) {
   searchCenter = L.latLng(lat, lng);
   if (searchMarker) { searchMarker.remove(); searchMarker = null; }
-  const col = currentMode === 'uc2' ? '#60a5fa' : '#4ade80';
+  const uc2 = currentMode === 'uc2';
   searchMarker = L.circleMarker([lat, lng], {
-    radius: 9, color: col, fillColor: col,
-    fillOpacity: 0.9, weight: 2, pane: 'markerPane'
+    radius: 10,
+    color:       uc2 ? '#ffffff' : '#4ade80',
+    fillColor:   uc2 ? '#1e3a8a' : '#4ade80', // mörkblå i UC2, tydligt skild från ljusblå gator
+    fillOpacity: 0.95, weight: uc2 ? 2.5 : 2, pane: 'markerPane'
   }).addTo(map);
   if (currentMode === 'uc2') {
     map.once('moveend', () => showSafeStreetsNearby(lat, lng));
@@ -1013,24 +1015,22 @@ function initSuggestions() {
 
 async function fetchSuggestions(q) {
   try {
-    // Nominatim – samma geocoder som sökningen, bounded viewbox = hela Stor-Stockholm
-    // viewbox: west,north,east,south
-    const url = `https://nominatim.openstreetmap.org/search`
-      + `?q=${encodeURIComponent(q)}&format=json&limit=7&countrycodes=se`
-      + `&viewbox=17.5,59.65,18.5,59.1&bounded=1&addressdetails=1`;
-    const r = await fetch(url, { headers: { 'Accept-Language': 'sv' } });
+    // Photon med osm_tag=highway – prefix-matchning på gatunamn, bbox = Stor-Stockholm
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}`
+      + `&limit=7&lang=sv&bbox=17.5,59.1,18.5,59.65&osm_tag=highway`;
+    const r = await fetch(url);
     if (!r.ok) return;
     const data = await r.json();
     const seen  = new Set();
-    const items = data
+    const items = (data.features || [])
       .map(f => {
-        const name = f.address?.road || f.address?.suburb || f.name
-                  || f.display_name.split(',')[0];
+        const p    = f.properties;
+        const name = p.name || p.street || '';
         if (!name || seen.has(name.toLowerCase())) return null;
         seen.add(name.toLowerCase());
-        const sub = [f.address?.suburb, f.address?.city_district, f.address?.city]
-          .filter(Boolean).slice(0, 2).join(', ');
-        return { name, sub, lat: parseFloat(f.lat), lng: parseFloat(f.lon) };
+        const sub = [p.city, p.district || p.suburb].filter(Boolean).join(', ');
+        const [lng, lat] = f.geometry.coordinates;
+        return { name, sub, lat, lng };
       })
       .filter(Boolean);
     showSuggestions(items);
@@ -1184,10 +1184,26 @@ async function showSafeStreetsNearby(lat, lng) {
         .filter(Boolean)
     );
 
-    // 2. Hämta OSM-gator med full linjegeometri via Overpass
-    const overpass = await fetchOverpassStreets(lat, lng, 700);
+    // 2. Städgator inom 500 m → röda linjer (undvik att parkera här)
+    const cleaningNearby = cleaningFeatures.filter(f => {
+      const m = featureMidCoord(f);
+      if (!m) return false;
+      const ll = toLatLng(m[0], m[1]);
+      return map.distance([lat, lng], [ll.lat, ll.lng]) <= 500;
+    });
+    if (cleaningNearby.length) {
+      const gjR = L.geoJSON({ type:'FeatureCollection', features: cleaningNearby }, {
+        style: () => STYLE_DANGER,
+        coordsToLatLng: c => toLatLng(c[0],c[1]),
+        interactive: false
+      }).addTo(map);
+      streetGroupLayers.push(gjR);
+    }
 
-    // 3. Gruppera segment per gatunamn, filtrera bort städgator
+    // 3. Hämta OSM-gator med full linjegeometri (500 m ≈ 6 min promenad)
+    const overpass = await fetchOverpassStreets(lat, lng, 500);
+
+    // 4. Gruppera segment per gatunamn, filtrera bort städgator
     const streetMap = new Map(); // name → { segments[], lat, lng, dist }
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
