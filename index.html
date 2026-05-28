@@ -1356,10 +1356,6 @@ async function showSafeStreetsNearby(lat, lng) {
       loadForeskriftRestrictions(lat, lng, 500),
     ]);
 
-    // DEBUG – visa kortfattad status i hint (tas bort när det fungerar)
-    document.getElementById('hint').textContent =
-      `LTFR: ${foreskriftForbiddenNames.size} namn [${[...foreskriftForbiddenNames].join(', ')}] | ${forbiddenLineSegments.length} linjer`;
-
     // 4a. Förstegsgranskning: samla gatunamn som har ÄN ett begränsat segment
     //     (polygon-zon, LTFR-linje eller LOCATION_APPROX-namn)
     const restrictedBySegment = new Set();
@@ -1377,10 +1373,6 @@ async function showSafeStreetsNearby(lat, lng) {
         restrictedBySegment.add(nameLow);
       }
     });
-
-    // DEBUG – visa restrictedBySegment
-    document.getElementById('hint').textContent +=
-      ` | Restricted: [${[...restrictedBySegment].join(', ')}]`;
 
     // 4b. Bygg gatukartan – uteslut hela gatan om ÄN ett segment är begränsat
     const streetMap = new Map(); // name → { segments[], lat, lng, dist }
