@@ -620,6 +620,42 @@ function initMap() {
   legend.addTo(map);
   map.on('click', hideStreetPanel);
   document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchStreet(); });
+  startGeolocation();
+}
+
+// ── Min position ──────────────────────────────────────────────────────────────
+let userMarker = null, userAccCircle = null, userFirstFix = true;
+
+const STOCKHOLM_BOUNDS = { minLat:59.1, maxLat:59.6, minLng:17.6, maxLng:18.5 };
+
+function startGeolocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(pos => {
+    const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+
+    // Blå punkt
+    if (!userMarker) {
+      userAccCircle = L.circle([lat, lng], {
+        radius: accuracy, color:'#3b82f6', fillColor:'#3b82f6',
+        fillOpacity:0.08, weight:1, interactive:false
+      }).addTo(map);
+      userMarker = L.circleMarker([lat, lng], {
+        radius:7, color:'#fff', fillColor:'#3b82f6',
+        fillOpacity:1, weight:2.5, pane:'markerPane', interactive:false
+      }).addTo(map);
+    } else {
+      userMarker.setLatLng([lat, lng]);
+      userAccCircle.setLatLng([lat, lng]).setRadius(accuracy);
+    }
+
+    // Centrera bara vid första träff och om utanför Stockholm
+    if (userFirstFix) {
+      userFirstFix = false;
+      const inStockholm = lat > STOCKHOLM_BOUNDS.minLat && lat < STOCKHOLM_BOUNDS.maxLat
+                       && lng > STOCKHOLM_BOUNDS.minLng && lng < STOCKHOLM_BOUNDS.maxLng;
+      if (!inStockholm) map.flyTo([lat, lng], 13, { duration: 1.5 });
+    }
+  }, null, { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 });
 }
 
 // ── Data ─────────────────────────────────────────────────────────────────────
