@@ -477,6 +477,18 @@
     <div id="count-badge"></div>
   </div>
 
+  <!-- Diagnostikpanel – visas tillfälligt när LTFR_FORESKRIFT_GEOM inspekteras -->
+  <div id="diag-panel" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);overflow:auto;padding:16px;">
+    <div style="max-width:600px;margin:0 auto;background:#0d1f3a;border-radius:12px;padding:16px;color:#f0f6fc;font-size:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <strong style="font-size:14px;">🔬 LTFR_FORESKRIFT_GEOM – schema</strong>
+        <button onclick="document.getElementById('diag-panel').style.display='none'"
+                style="background:#ef4444;border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">✕ Stäng</button>
+      </div>
+      <div id="diag-output" style="white-space:pre-wrap;font-family:monospace;font-size:11px;line-height:1.5;color:#bfdbfe;"></div>
+    </div>
+  </div>
+
   <div id="bottom">
     <div id="hint">Sök en destination ovan — städgator i närheten visas på kartan.</div>
     <div id="street-list"></div>
@@ -631,7 +643,7 @@ async function loadParkingRestrictions(apiKey) {
   }
 }
 
-// ── Diagnostik: hämta LTFR_FORESKRIFT_GEOM för en specifik plats (schema-utforskning) ──
+// ── Diagnostik: hämta LTFR_FORESKRIFT_GEOM och visa schema i UI-panel ──
 async function diagForeskrift(lat, lng) {
   const key  = getKey();
   const d    = 0.003; // ~300 m
@@ -639,26 +651,41 @@ async function diagForeskrift(lat, lng) {
   const url  = `/wfs/${key}/wfs?service=WFS&version=2.0.0&request=GetFeature`
     + `&typeNames=ltfr:LTFR_FORESKRIFT_GEOM&outputFormat=application/json`
     + `&count=20&BBOX=${bbox}`;
+  const out  = document.getElementById('diag-output');
+  const panel = document.getElementById('diag-panel');
+  out.textContent = 'Hämtar…';
+  panel.style.display = 'block';
   try {
     const r = await fetch(url);
-    if (!r.ok) { console.warn('[FORESKRIFT] HTTP', r.status); return; }
+    if (!r.ok) { out.textContent = `HTTP ${r.status} – lagret svarade inte`; return; }
     const data = await r.json();
     const features = data.features || [];
-    console.log(`[FORESKRIFT] ${features.length} features inom BBOX`);
-    if (!features.length) { console.log('[FORESKRIFT] Inga features – lagret är tomt här'); return; }
-    // Visa alla unika property-nycklar och exempelvärden
+    if (!features.length) {
+      out.textContent = `0 features inom BBOX\n(Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)})\nLagret är tomt här – prova en annan plats.`;
+      return;
+    }
+    // Samla alla unika property-nycklar + exempelvärden
     const keys = {};
     features.forEach(f => {
       Object.entries(f.properties || {}).forEach(([k, v]) => {
         if (!keys[k]) keys[k] = new Set();
-        if (v !== null) keys[k].add(String(v).substring(0, 60));
+        if (v !== null) keys[k].add(String(v).substring(0, 80));
       });
     });
-    console.table(Object.fromEntries(
-      Object.entries(keys).map(([k, vs]) => [k, [...vs].join(' | ')])
-    ));
-    console.log('[FORESKRIFT] Rå feature 0:', features[0]);
+    let text = `${features.length} features vid Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}\n\n`;
+    text += 'PROPERTY                         EXEMPELVÄRDEN\n';
+    text += '─'.repeat(72) + '\n';
+    Object.entries(keys).forEach(([k, vs]) => {
+      const vals = [...vs].join(' | ');
+      text += `${k.padEnd(32)} ${vals}\n`;
+    });
+    text += '\n── Feature 0 (rådata) ──\n';
+    text += JSON.stringify(features[0], null, 2);
+    out.textContent = text;
+    console.log('[FORESKRIFT] Schema:', Object.fromEntries(Object.entries(keys).map(([k,vs]) => [k, [...vs].join(' | ')])));
+    console.log('[FORESKRIFT] Feature 0:', features[0]);
   } catch(e) {
+    out.textContent = 'Fel: ' + e.message;
     console.warn('[FORESKRIFT] Fel:', e.message);
   }
 }
@@ -1300,6 +1327,8 @@ async function showSafeStreetsNearby(lat, lng) {
     badge.style.display = 'block';
     buildSafeStreetList(safe);
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
+    // Tillfällig schema-diagnostik – visar LTFR_FORESKRIFT_GEOM-egenskaper i UI
+    diagForeskrift(lat, lng);
   } catch(e) {
     console.error('[UC2]', e);
     document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
