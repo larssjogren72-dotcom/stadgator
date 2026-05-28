@@ -1013,21 +1013,24 @@ function initSuggestions() {
 
 async function fetchSuggestions(q) {
   try {
-    // Photon – OSM-baserad geocoder optimerad för autocomplete, bbox = Stockholm
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lang=sv&bbox=17.6,59.1,18.5,59.6`;
-    const r   = await fetch(url);
+    // Nominatim – samma geocoder som sökningen, bounded viewbox = hela Stor-Stockholm
+    // viewbox: west,north,east,south
+    const url = `https://nominatim.openstreetmap.org/search`
+      + `?q=${encodeURIComponent(q)}&format=json&limit=7&countrycodes=se`
+      + `&viewbox=17.5,59.65,18.5,59.1&bounded=1&addressdetails=1`;
+    const r = await fetch(url, { headers: { 'Accept-Language': 'sv' } });
     if (!r.ok) return;
     const data = await r.json();
-    const items = (data.features || [])
+    const seen  = new Set();
+    const items = data
       .map(f => {
-        const p    = f.properties;
-        const name = p.name || p.street || '';
-        if (!name) return null;
-        const city = p.city || p.county || '';
-        const type = p.osm_value || '';
-        const sub  = [city, type].filter(Boolean).join(' · ');
-        const [lng, lat] = f.geometry.coordinates;
-        return { name, sub, lat, lng };
+        const name = f.address?.road || f.address?.suburb || f.name
+                  || f.display_name.split(',')[0];
+        if (!name || seen.has(name.toLowerCase())) return null;
+        seen.add(name.toLowerCase());
+        const sub = [f.address?.suburb, f.address?.city_district, f.address?.city]
+          .filter(Boolean).slice(0, 2).join(', ');
+        return { name, sub, lat: parseFloat(f.lat), lng: parseFloat(f.lon) };
       })
       .filter(Boolean);
     showSuggestions(items);
@@ -1170,87 +1173,71 @@ function setMode(mode) {
 // ── UC2: Hitta säkra parkeringar nära hemmet ──────────────────────────────────
 async function showSafeStreetsNearby(lat, lng) {
   clearStreetsFromMap();
-  document.getElementById('hint').textContent = 'Hämtar säkra parkeringar…';
+  document.getElementById('hint').textContent = 'Hämtar gatunätet…';
   try {
-    // 1. Städgator (redan laddade) – visa röda som varning
+    // 1. Städgatunamn för filtrering (redan laddade)
     const data = await streetDataPromise;
     const cleaningFeatures = Array.isArray(data) ? data : (data.features || []);
-
-    // Bygg set av städgatunamn (normaliserat)
     const cleaningNames = new Set(
       cleaningFeatures
         .map(f => (f.properties?.STREET_NAME || '').toLowerCase().trim())
         .filter(Boolean)
     );
 
-    // Städgator inom 700 m → röda linjer på kartan
-    const cleaningNearby = cleaningFeatures.filter(f => {
-      const m = featureMidCoord(f);
-      if (!m) return false;
-      const ll = toLatLng(m[0], m[1]);
-      return map.distance([lat, lng], [ll.lat, ll.lng]) <= 700;
-    });
-    if (cleaningNearby.length) {
-      const gjR = L.geoJSON({ type:'FeatureCollection', features: cleaningNearby }, {
-        style: () => STYLE_DANGER,
-        coordsToLatLng: c => toLatLng(c[0],c[1]),
-        interactive: false
-      }).addTo(map);
-      streetGroupLayers.push(gjR);
-    }
-
-    // 2. Hämta alla gator inom 700 m via Overpass (OSM)
-    document.getElementById('hint').textContent = 'Filtrerar säkra gator…';
+    // 2. Hämta OSM-gator med full linjegeometri via Overpass
     const overpass = await fetchOverpassStreets(lat, lng, 700);
 
-    // 3. Ta bort städgator → kvar = säkra
-    const seen = new Set();
-    const safe = [];
+    // 3. Gruppera segment per gatunamn, filtrera bort städgator
+    const streetMap = new Map(); // name → { segments[], lat, lng, dist }
     overpass.elements.forEach(el => {
+      if (!el.geometry?.length) return;
       const name = el.tags?.name;
-      if (!name) return;
-      const key = name.toLowerCase().trim();
-      if (seen.has(key) || cleaningNames.has(key)) return;
-      if (!el.center?.lat) return;
-      seen.add(key);
-      const dist = Math.round(map.distance([lat, lng], [el.center.lat, el.center.lon]));
-      safe.push({ name, lat: el.center.lat, lng: el.center.lon, dist });
+      if (!name || cleaningNames.has(name.toLowerCase().trim())) return;
+      // Centrum för detta segment
+      const segLat = el.geometry.reduce((s, p) => s + p.lat, 0) / el.geometry.length;
+      const segLng = el.geometry.reduce((s, p) => s + p.lon, 0) / el.geometry.length;
+      const dist   = Math.round(map.distance([lat, lng], [segLat, segLng]));
+      if (!streetMap.has(name)) {
+        streetMap.set(name, { name, segments: [], lat: segLat, lng: segLng, dist });
+      }
+      const entry = streetMap.get(name);
+      entry.segments.push(el.geometry.map(p => [p.lat, p.lon]));
+      if (dist < entry.dist) { entry.dist = dist; entry.lat = segLat; entry.lng = segLng; }
     });
-    safe.sort((a, b) => a.dist - b.dist);
 
+    const safe = Array.from(streetMap.values()).sort((a, b) => a.dist - b.dist);
     if (!safe.length) {
-      document.getElementById('hint').textContent =
-        cleaningNearby.length
-          ? `Röda gator städas imorgon — inga övriga gator hittades via OSM.`
-          : 'Inga säkra parkeringar hittades i närheten.';
+      document.getElementById('hint').textContent = 'Inga säkra parkeringar hittades i närheten.';
       return;
     }
 
-    // 4. Blå markörer för säkra gator
-    const markers = safe.map(s => {
-      const m = L.circleMarker([s.lat, s.lng], {
-        radius: 9, color: '#1d4ed8', fillColor: '#60a5fa',
-        fillOpacity: 0.85, weight: 2, pane: 'markerPane', interactive: true
-      });
-      m.on('click', e => {
-        L.DomEvent.stopPropagation(e);
-        const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking`;
-        m.bindPopup(
-          `<strong style="color:#f0f6fc">${s.name}</strong><br>
-           <a href="${url}" target="_blank" rel="noopener"
-              style="color:#60a5fa;font-size:13px">Gå hit ↗</a>`
-        ).openPopup();
-      });
-      return m;
-    });
-    streetGroupLayers.push(L.layerGroup(markers).addTo(map));
+    // 4. Blå linjer – samma utseende som UC1 fast blå
+    const SAFE_LINE = { color: '#60a5fa', weight: 5, opacity: .95 };
+    const SAFE_SEL  = { color: '#93c5fd', weight: 7, opacity: 1  };
+    const allPolylines = [];
 
-    // Badge + lista
+    safe.forEach(s => {
+      s.segments.forEach(coords => {
+        const pl = L.polyline(coords, { ...SAFE_LINE });
+        pl.on('click', e => {
+          L.DomEvent.stopPropagation(e);
+          allPolylines.forEach(p => p.setStyle(SAFE_LINE));
+          pl.setStyle(SAFE_SEL);
+          const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking`;
+          pl.bindPopup(
+            `<strong style="color:#f0f6fc">${s.name}</strong><br>` +
+            `<a href="${url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Gå hit ↗</a>`
+          ).openPopup();
+        });
+        allPolylines.push(pl);
+      });
+    });
+    streetGroupLayers.push(L.layerGroup(allPolylines).addTo(map));
+
     const badge = document.getElementById('count-badge');
     badge.textContent = `${safe.length} säkra parkeringar i närheten`;
     badge.style.display = 'block';
     buildSafeStreetList(safe);
-
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
   } catch(e) {
     console.error('[UC2]', e);
@@ -1258,16 +1245,34 @@ async function showSafeStreetsNearby(lat, lng) {
   }
 }
 
+// Overpass med full linjegeometri + fallback på flera servrar
+const OVERPASS_SERVERS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
+
 async function fetchOverpassStreets(lat, lng, radius) {
-  const q = `[out:json][timeout:15];`
+  // out geom ger full geometri (linjesegment) – inte bara centerpunkt
+  const q = `[out:json][timeout:12];`
     + `way["highway"~"^(residential|secondary|tertiary|living_street|unclassified|primary|trunk)$"]`
-    + `["name"](around:${radius},${lat},${lng});out tags center;`;
-  const r = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: 'data=' + encodeURIComponent(q)
-  });
-  if (!r.ok) throw new Error('Overpass HTTP ' + r.status);
-  return r.json();
+    + `["name"](around:${radius},${lat},${lng});out tags geom;`;
+
+  for (const server of OVERPASS_SERVERS) {
+    try {
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 12000); // 12 s timeout per server
+      const r    = await fetch(server, {
+        method: 'POST', body: 'data=' + encodeURIComponent(q), signal: ctrl.signal
+      });
+      clearTimeout(tid);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } catch(e) {
+      console.warn(`[Overpass] ${server}: ${e.message}`);
+    }
+  }
+  throw new Error('Gatunätet kunde inte hämtas just nu — försök igen om en stund');
 }
 
 function buildSafeStreetList(streets) {
