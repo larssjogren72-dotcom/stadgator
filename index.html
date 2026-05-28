@@ -687,6 +687,7 @@ async function showStreetsNearViewport() {
     // Ladda zoner för viewporten – körs parallellt, blockerar inte
     loadZonesForViewport(key, bounds);
   } catch(e) {
+    console.error('[Städgator] showStreetsNearViewport fel:', e);
     document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
   }
 }
