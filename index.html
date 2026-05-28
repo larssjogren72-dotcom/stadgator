@@ -570,9 +570,21 @@ function resetKey() {
 
 // ── API ──────────────────────────────────────────────────────────────────────
 async function fetchServicedays(apiKey, day) {
-  const r = await fetch(`/proxy/servicedagar/weekday/${day}?outputFormat=json&apiKey=${encodeURIComponent(apiKey)}`);
-  if (!r.ok) throw new Error('HTTP '+r.status);
-  return r.json();
+  const url = `/proxy/servicedagar/weekday/${day}?outputFormat=json&apiKey=${encodeURIComponent(apiKey)}`;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } catch(e) {
+      console.warn(`[Städgator] fetchServicedays försök ${attempt}: ${e.message}`);
+      if (attempt === 3) {
+        console.warn('[Städgator] Städgatudata misslyckades – fortsätter utan.');
+        return { features: [] };   // tomt = inga städgator → visa alla gator som potentiellt säkra
+      }
+      await new Promise(res => setTimeout(res, 800 * attempt));
+    }
+  }
 }
 
 // ── Zoner ────────────────────────────────────────────────────────────────────
