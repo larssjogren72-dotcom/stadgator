@@ -254,10 +254,43 @@
     #bottom {
       background: #0d1117;
       border-top: 1px solid var(--glass-border);
-      flex-shrink: 0; padding: 16px 18px 28px; min-height: 78px;
+      flex-shrink: 0;
     }
-    #hint { font-size: 14px; color: var(--muted); }
-    #street-panel { display: none; }
+    #hint { font-size: 14px; color: var(--muted); padding: 16px 18px 28px; min-height: 78px; }
+    #street-panel { display: none; padding: 16px 18px 28px; }
+
+    /* Gatulista */
+    #street-list { display: none; overflow-y: auto; max-height: 44vh; }
+    .sl-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 18px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .sl-item:active { background: rgba(74,222,128,0.06); }
+    .sl-item.sl-selected {
+      background: rgba(74,222,128,0.09);
+      border-left: 3px solid var(--accent); padding-left: 15px;
+    }
+    .sl-info { flex: 1; min-width: 0; }
+    .sl-name {
+      font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sl-sub { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .sl-badge { padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+    .sl-place { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25); color: #bfdbfe; }
+    .sl-time  { background: rgba(251,191,36,0.12);  border: 1px solid rgba(251,191,36,0.25);  color: #fde68a; }
+    .sl-dist  { font-size: 11px; color: var(--muted); }
+    .sl-nav {
+      width: 38px; height: 38px; flex-shrink: 0;
+      background: var(--accent-dim); border: 1px solid rgba(74,222,128,0.28);
+      border-radius: 10px; color: var(--accent); font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none; -webkit-tap-highlight-color: transparent;
+      transition: background .15s;
+    }
+    .sl-nav:active { background: rgba(74,222,128,0.28); }
     #street-name {
       font-size: 18px; font-weight: 700; color: var(--text);
       margin-bottom: 10px; letter-spacing: -.01em;
@@ -374,7 +407,8 @@
   </div>
 
   <div id="bottom">
-    <div id="hint">Tryck på en grön gata för info och vägbeskrivning.</div>
+    <div id="hint">Sök en destination ovan — städgator i närheten visas på kartan.</div>
+    <div id="street-list"></div>
     <div id="street-panel">
       <div id="street-name"></div>
       <div class="street-badges">
@@ -555,7 +589,7 @@ function featureMidCoord(feat) {
 
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
-let streetDataPromise = null, restrictionsPromise = null;
+let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 
 function initMap() {
   map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
@@ -609,6 +643,8 @@ function clearStreetsFromMap() {
   streetGroupLayers = [];
   allLayers = [];
   clearZonesFromMap();
+  const list = document.getElementById('street-list');
+  if (list) { list.innerHTML = ''; list.style.display = 'none'; }
   document.getElementById('street-panel').style.display = 'none';
   document.getElementById('hint').style.display = 'block';
   document.getElementById('count-badge').style.display = 'none';
@@ -690,13 +726,25 @@ function renderFeatures(data) {
   const badge = document.getElementById('count-badge');
   badge.textContent = `${features.length} städgator i närheten`;
   badge.style.display = 'block';
-  document.getElementById('hint').textContent = 'Tryck på en grön gata för info och vägbeskrivning.';
+
+  buildStreetList(features);
 }
 
 // ── Val av gata ───────────────────────────────────────────────────────────────
 function selectStreet(feat, hitLayer, visualLayer) {
-  allLayers.forEach(({visualLayer:vl}) => vl && vl.setStyle(STYLE_DEFAULT));
+  allLayers.forEach(({ visualLayer: vl }) => vl && vl.setStyle(STYLE_DEFAULT));
   visualLayer && visualLayer.setStyle(STYLE_SELECTED);
+
+  // Synka markering i listan om den är öppen
+  const list = document.getElementById('street-list');
+  if (list && list.style.display !== 'none') {
+    document.querySelectorAll('.sl-item').forEach(el => {
+      const selected = el._feat === feat;
+      el.classList.toggle('sl-selected', selected);
+      if (selected) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    return; // behåll listan synlig, visa inte street-panel
+  }
 
   const p = feat.properties || {};
   document.getElementById('street-name').textContent = p.STREET_NAME || p.ADDRESS || 'Städgata';
@@ -714,9 +762,13 @@ function selectStreet(feat, hitLayer, visualLayer) {
 }
 
 function hideStreetPanel() {
-  allLayers.forEach(({visualLayer:vl}) => vl && vl.setStyle(STYLE_DEFAULT));
+  allLayers.forEach(({ visualLayer: vl }) => vl && vl.setStyle(STYLE_DEFAULT));
+  document.querySelectorAll('.sl-item').forEach(el => el.classList.remove('sl-selected'));
   document.getElementById('street-panel').style.display = 'none';
-  document.getElementById('hint').style.display = 'block';
+  const list = document.getElementById('street-list');
+  if (!list || list.style.display === 'none') {
+    document.getElementById('hint').style.display = 'block';
+  }
 }
 
 // ── Sök gata ─────────────────────────────────────────────────────────────────
@@ -735,6 +787,7 @@ async function searchStreet() {
 
     const { lat, lon } = res[0];
     const latlng = L.latLng(parseFloat(lat), parseFloat(lon));
+    searchCenter = latlng;
 
     if (searchMarker) { searchMarker.remove(); searchMarker = null; }
     searchMarker = L.circleMarker(latlng, {
@@ -752,6 +805,70 @@ async function searchStreet() {
   } finally {
     btn.style.pointerEvents = '';
   }
+}
+
+// ── Gatulista ─────────────────────────────────────────────────────────────────
+function buildStreetList(features) {
+  const list = document.getElementById('street-list');
+  if (!list || !searchCenter) return;
+
+  const sorted = features.map(f => {
+    const m  = featureMidCoord(f);
+    const ll = m ? toLatLng(m[0], m[1]) : null;
+    const dist = ll ? Math.round(Math.sqrt(
+      Math.pow((ll.lat - searchCenter.lat) * 111320, 2) +
+      Math.pow((ll.lng - searchCenter.lng) * 65000, 2)
+    )) : 99999;
+    return { f, ll, dist };
+  }).sort((a, b) => a.dist - b.dist);
+
+  list.innerHTML = '';
+  sorted.forEach(({ f, ll, dist }) => {
+    const p       = f.properties || {};
+    const name    = p.STREET_NAME || p.ADDRESS || 'Städgata';
+    const district= p.CITY_DISTRICT || p.PARKING_DISTRICT || '';
+    const from    = p.START_TIME || '', to = p.END_TIME || '';
+    const time    = (from && to) ? `${from}–${to}` : '';
+    const distStr = dist < 1000 ? `${dist} m` : `${(dist/1000).toFixed(1)} km`;
+    const mapsUrl = ll
+      ? `https://www.google.com/maps/dir/?api=1&destination=${ll.lat},${ll.lng}&travelmode=driving`
+      : '#';
+
+    const item = document.createElement('div');
+    item.className = 'sl-item';
+    item._feat = f;
+    item.innerHTML = `
+      <div class="sl-info">
+        <div class="sl-name">${name}</div>
+        <div class="sl-sub">
+          ${district ? `<span class="sl-badge sl-place">${district}</span>` : ''}
+          ${time     ? `<span class="sl-badge sl-time">${time}</span>`     : ''}
+          <span class="sl-dist">${distStr} bort</span>
+        </div>
+      </div>
+      <a class="sl-nav" href="${mapsUrl}" target="_blank" rel="noopener"
+         onclick="event.stopPropagation()">↗</a>`;
+
+    item.addEventListener('click', () => {
+      const match = allLayers.find(({ feat }) => feat === f);
+      if (match) highlightFromList(match.visualLayer, item, match.hitLayer);
+    });
+    list.appendChild(item);
+  });
+
+  document.getElementById('hint').style.display         = 'none';
+  document.getElementById('street-panel').style.display = 'none';
+  list.style.display = 'block';
+}
+
+function highlightFromList(visualLayer, itemEl, hitLayer) {
+  allLayers.forEach(({ visualLayer: vl }) => vl && vl.setStyle(STYLE_DEFAULT));
+  visualLayer && visualLayer.setStyle(STYLE_SELECTED);
+  document.querySelectorAll('.sl-item').forEach(el => el.classList.remove('sl-selected'));
+  itemEl.classList.add('sl-selected');
+  itemEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const c = getCenter(hitLayer);
+  if (c) map.panTo(c);
 }
 
 function getCenter(layer) {
