@@ -208,14 +208,17 @@
     }
     #search-input::placeholder { color: rgba(240,246,252,0.28); }
     #search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-    #search-btn {
+    #search-btn, #home-btn {
       width: 42px; height: 42px; flex-shrink: 0;
-      background: var(--accent-dim); border: 1px solid rgba(74,222,128,0.28);
-      border-radius: 10px; color: var(--accent); font-size: 17px;
+      border-radius: 10px; font-size: 17px;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: background .15s;
+      transition: background .15s; border: 1px solid rgba(74,222,128,0.28);
     }
+    #search-btn { background: var(--accent-dim); color: var(--accent); }
     #search-btn:active { background: rgba(74,222,128,0.28); }
+    #home-btn { background: rgba(255,255,255,0.07); border-color: var(--glass-border); color: var(--muted); }
+    #home-btn.home-set { background: var(--accent-dim); border-color: rgba(74,222,128,0.28); color: var(--accent); }
+    #home-btn:active { opacity: .7; }
 
     #map-wrap { position: relative; flex: 1; overflow: hidden; }
     #map      { position: absolute; inset: 0; }
@@ -397,6 +400,9 @@
 
   <div id="search-row">
     <input type="text" id="search-input" placeholder="Sök gata du ska till, t.ex. Sveavägen…" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button id="home-btn" title="Spara hemadress"
+      onpointerdown="homePressStart()" onpointerup="homePressEnd()"
+      onpointerleave="homePressCancel()">🏠</button>
     <button id="search-btn" onclick="searchStreet()" title="Sök">🔍</button>
   </div>
 
@@ -620,6 +626,7 @@ function initMap() {
   legend.addTo(map);
   map.on('click', hideStreetPanel);
   document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchStreet(); });
+  updateHomeBtnStyle();
   startGeolocation();
 }
 
@@ -808,6 +815,68 @@ function hideStreetPanel() {
   }
 }
 
+// ── Hemadress ────────────────────────────────────────────────────────────────
+function getHome()              { const h = localStorage.getItem('sthlm_home'); return h ? JSON.parse(h) : null; }
+function saveHome(addr, lat, lng){ localStorage.setItem('sthlm_home', JSON.stringify({ addr, lat, lng })); }
+function clearHome()            { localStorage.removeItem('sthlm_home'); }
+
+function updateHomeBtnStyle() {
+  const btn  = document.getElementById('home-btn');
+  if (!btn) return;
+  const home = getHome();
+  btn.classList.toggle('home-set', !!home);
+  btn.title = home ? `Hem: ${home.addr}\nHåll inne för att ändra` : 'Spara hemadress (håll inne för att ändra)';
+}
+
+let homePressTimer = null;
+function homePressStart() {
+  homePressTimer = setTimeout(() => {
+    homePressTimer = null;
+    if (confirm(`Ändra hemadress?${getHome() ? '\n\nNuvarande: ' + getHome().addr : ''}`)) {
+      clearHome(); updateHomeBtnStyle(); promptSetHome();
+    }
+  }, 600);
+}
+function homePressEnd()    { if (homePressTimer) { clearTimeout(homePressTimer); homePressTimer = null; flyHome(); } }
+function homePressCancel() { if (homePressTimer) { clearTimeout(homePressTimer); homePressTimer = null; } }
+
+async function flyHome() {
+  const home = getHome();
+  if (!home) { await promptSetHome(); return; }
+  flyToAndShow(home.lat, home.lng);
+}
+
+async function promptSetHome() {
+  const q = prompt('Ange din hemadress:\n(t.ex. Sveavägen 10, Stockholm)');
+  if (!q) return;
+  const btn = document.getElementById('home-btn');
+  btn.textContent = '⏳';
+  try {
+    const r   = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Stockholm')}&format=json&limit=1&countrycodes=se`);
+    const res = await r.json();
+    if (!res.length) throw new Error('Adressen hittades inte');
+    const { lat, lon } = res[0];
+    saveHome(q, parseFloat(lat), parseFloat(lon));
+    updateHomeBtnStyle();
+    flyToAndShow(parseFloat(lat), parseFloat(lon));
+  } catch(e) {
+    alert('Kunde inte spara adressen: ' + e.message);
+  } finally {
+    btn.textContent = '🏠';
+  }
+}
+
+function flyToAndShow(lat, lng) {
+  searchCenter = L.latLng(lat, lng);
+  if (searchMarker) { searchMarker.remove(); searchMarker = null; }
+  searchMarker = L.circleMarker([lat, lng], {
+    radius: 9, color: '#4ade80', fillColor: '#4ade80',
+    fillOpacity: 0.9, weight: 2, pane: 'markerPane'
+  }).addTo(map);
+  map.once('moveend', () => showStreetsNearViewport());
+  map.flyTo([lat, lng], 15, { duration: 1.1 });
+}
+
 // ── Sök gata ─────────────────────────────────────────────────────────────────
 let searchMarker = null;
 
@@ -823,18 +892,7 @@ async function searchStreet() {
     if (!res.length) throw new Error('Hittades ej');
 
     const { lat, lon } = res[0];
-    const latlng = L.latLng(parseFloat(lat), parseFloat(lon));
-    searchCenter = latlng;
-
-    if (searchMarker) { searchMarker.remove(); searchMarker = null; }
-    searchMarker = L.circleMarker(latlng, {
-      radius: 9, color: '#4ade80', fillColor: '#4ade80',
-      fillOpacity: 0.9, weight: 2, pane: 'markerPane'
-    }).addTo(map);
-
-    // Flyg dit → visa städgator i det synliga området när animationen är klar
-    map.once('moveend', () => showStreetsNearViewport());
-    map.flyTo(latlng, 15, { duration: 1.1 });
+    flyToAndShow(parseFloat(lat), parseFloat(lon));
     btn.textContent = '🔍';
   } catch(e) {
     btn.textContent = '❌';
