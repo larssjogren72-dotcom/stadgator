@@ -811,6 +811,7 @@ function featureMidCoord(feat) {
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let currentMode = 'uc1';
+let legendDiv = null;
 let sgTimer = null, sgIndex = -1;
 
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
@@ -846,7 +847,6 @@ function initMap() {
     maxZoom:19, zIndex:650
   }).addTo(map);
 
-  let legendDiv = null;
   const legend = L.control({ position:'bottomright' });
   legend.onAdd = () => {
     legendDiv = L.DomUtil.create('div','legend');
