@@ -1427,6 +1427,10 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
   clearStreetsFromMap();
   document.getElementById('hint').textContent = 'Hämtar gatunätet…';
   try {
+    // Vänta på att parkeringsrestriktioner (LTFR_P_FORBUD_GEOM) är klara.
+    // forbiddenParkingLines är tom tills loadParkingRestrictions är klar.
+    await restrictionsPromise;
+
     // 1. Städgator inom 500 m – röda linjer och namnfilter baseras BARA på nearby-features.
     //    Annars bannlyses t.ex. "Birger Jarlsgatan" nära sökadressen för att samma gatunamn
     //    råkar ha städdag på Södermalm – trots att den lokala sträckan är helt trygg.
