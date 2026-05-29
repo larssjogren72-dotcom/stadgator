@@ -10,11 +10,11 @@
   <meta name="keywords" content="parkspot stockholm, parkering stockholm, hitta parkering stockholm, lediga parkeringsplatser, städgator imorgon, gratis parkering stockholm, parkeringszoner stockholm">
   <meta name="robots" content="index, follow">
   <meta name="author" content="ParkSpot Stockholm">
-  <link rel="canonical" href="https://stadgator-production.up.railway.app/">
+  <link rel="canonical" href="https://parkspot.se/">
 
   <!-- Open Graph – visas när du delar länken i sociala medier -->
   <meta property="og:type"        content="website">
-  <meta property="og:url"         content="https://stadgator-production.up.railway.app/">
+  <meta property="og:url"         content="https://parkspot.se/">
   <meta property="og:title"       content="ParkSpot Stockholm – Hitta ledig parkering kvällstid">
   <meta property="og:description" content="Dagen innan en städgata sopas måste alla bilar bort. Det skapar garanterat tomma platser. ParkSpot Stockholm visar vilka gator det gäller imorgon.">
   <meta property="og:locale"      content="sv_SE">
@@ -30,7 +30,7 @@
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "ParkSpot Stockholm",
-    "url": "https://stadgator-production.up.railway.app/",
+    "url": "https://parkspot.se/",
     "description": "ParkSpot Stockholm visar vilka gator som städas imorgon så att du kan parkera där kvällen innan.",
     "applicationCategory": "TransportationApplication",
     "operatingSystem": "Web",
@@ -644,12 +644,17 @@ async function loadParkingRestrictions(apiKey) {
       if (!r.ok) { console.warn(`[Städgator] ${layer}: HTTP ${r.status}`); continue; }
       const d = await r.json();
       let polygons = 0, names = 0;
+      // LTFR_P_FORBUD_GEOM returnerar LineStrings (ej polygoner) för hela Stockholm.
+      // Att lägga namnerna i forbiddenStreetNames bannlyser hundratals gator felaktigt.
+      // → Polygon-geometrier sparas för inForbiddenZone.
+      // → Namnbaserade förbud läses BARA från NVDB_Gagata (gågator = genuint bilfritt).
+      const addNames = layer === 'od_gis:NVDB_Gagata';
       (d.features||[]).forEach(f => {
         if (!f.geometry) return;
         const gt = f.geometry.type;
         if (gt === 'Polygon' || gt === 'MultiPolygon') {
           forbiddenZoneGeoms.push(f.geometry); polygons++;
-        } else {
+        } else if (addNames) {
           const name = f.properties?.STREET_NAME || f.properties?.GATUNAMN || f.properties?.NAMN || '';
           if (name) { forbiddenStreetNames.add(name.toLowerCase().trim()); names++; }
         }
@@ -698,21 +703,8 @@ async function loadForeskriftRestrictions(lat, lng, radius) {
         }
       }
 
-      // B) Namnbaserad restriktion: LOCATION_APPROX ger ofta exakt gatunamn
-      //    Filtrera bort områdesnamn som "stadsdelen X" och "Stockholm"
-      const loc = (f.properties?.LOCATION_APPROX || '').trim();
-      if (loc && loc.length < 60) {
-        loc.split(/[,;]+/).forEach(part => {
-          const name = part.trim().toLowerCase();
-          if (!name) return;
-          if (name.startsWith('stadsdelen') || name.startsWith('stockholm') ||
-              name.startsWith('hela ') || name.startsWith('delar av')) return;
-          foreskriftForbiddenNames.add(name);
-          nameCount++;
-        });
-      }
     });
-    console.log(`[FORESKRIFT] ${features.length} features → ${lineCount} restriktionslinjer, ${nameCount} gatunamn`);
+    console.log(`[FORESKRIFT] ${features.length} features → ${lineCount} restriktionslinjer (namnfilter avstängt)`);
   } catch(e) {
     console.warn('[FORESKRIFT] Kunde inte ladda:', e.message);
   }
@@ -945,34 +937,51 @@ async function showStreetsNearViewport(foreskriftP = null) {
     ]);
 
     let features = Array.isArray(data) ? data : (data.features || []);
+    const dbg = {}; // diagnostik
 
     // Filtrera till synligt kartområde
+    const beforeViewport = features.length;
     features = features.filter(f => {
       const m = featureMidCoord(f);
       return m && bounds.contains(toLatLng(m[0], m[1]));
     });
+    dbg.viewport    = features.map(f => f.properties?.STREET_NAME).filter(Boolean);
+    dbg.removedViewport = beforeViewport - features.length;
 
-    // 1. Filtrera förbudszoner och gågator (polygon + namnbaserat från LTFR_P_FORBUD_GEOM)
+    // 1. Filtrera förbudszoner och gågator
+    const beforeForbidden = features.length;
+    const removedForbidden = [];
     if (forbiddenZoneGeoms.length || forbiddenStreetNames.size) {
       features = features.filter(f => {
         const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
-        if (name && forbiddenStreetNames.has(name)) return false;
+        if (name && forbiddenStreetNames.has(name)) { removedForbidden.push(name + ' (gågata/namnförbud)'); return false; }
         const m = featureMidCoord(f);
-        return !m || !inForbiddenZone(m);
+        if (m && inForbiddenZone(m)) { removedForbidden.push((f.properties?.STREET_NAME||'?') + ' (förbudszon)'); return false; }
+        return true;
       });
     }
+    dbg.removedForbidden = removedForbidden;
 
-    // 2. Filtrera LTFR_FORESKRIFT_GEOM – linjebaserade restriktioner (ändamålsplatser, p-förbud m.m.)
-    //    Koordinaterna från Stockholm-API är redan i SWEREF99, samma projektion som LTFR-linjerna.
-    if (forbiddenLineSegments.length || foreskriftForbiddenNames.size) {
+    // 2. Filtrera LTFR_FORESKRIFT_GEOM – geometribaserade linjer
+    const removedLine = [];
+    if (forbiddenLineSegments.length) {
       features = features.filter(f => {
-        const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
-        if (name && foreskriftForbiddenNames.has(name)) return false;
         const m = featureMidCoord(f);
         if (!m) return true;
-        return !nearForbiddenLine(m[0], m[1]);
+        if (nearForbiddenLine(m[0], m[1])) { removedLine.push(f.properties?.STREET_NAME || '?'); return false; }
+        return true;
       });
     }
+    dbg.removedLine = removedLine;
+    dbg.shown = features.map(f => f.properties?.STREET_NAME).filter(Boolean);
+
+    // Skriv diagnostik till konsolen
+    console.group('🟢 UC1 Kvällsparkering – filterrapport');
+    console.log(`Totalt i API: ${beforeViewport} → i viewport: ${dbg.viewport.length}`);
+    console.log('Visas på kartan:', [...new Set(dbg.shown)]);
+    if (dbg.removedForbidden.length) console.warn('Borttagna (gågata/zon):', dbg.removedForbidden);
+    if (dbg.removedLine.length)     console.warn('Borttagna (restriktionslinje):', [...new Set(dbg.removedLine)]);
+    console.groupEnd();
 
     if (!features.length) {
       document.getElementById('hint').textContent = 'Inga städgator i det här området imorgon.';
@@ -1376,22 +1385,22 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
   clearStreetsFromMap();
   document.getElementById('hint').textContent = 'Hämtar gatunätet…';
   try {
-    // 1. Städgatunamn för filtrering (redan laddade)
+    // 1. Städgator inom 500 m – röda linjer och namnfilter baseras BARA på nearby-features.
+    //    Annars bannlyses t.ex. "Birger Jarlsgatan" nära sökadressen för att samma gatunamn
+    //    råkar ha städdag på Södermalm – trots att den lokala sträckan är helt trygg.
     const data = await streetDataPromise;
     const cleaningFeatures = Array.isArray(data) ? data : (data.features || []);
-    const cleaningNames = new Set(
-      cleaningFeatures
-        .map(f => (f.properties?.STREET_NAME || '').toLowerCase().trim())
-        .filter(Boolean)
-    );
-
-    // 2. Städgator inom 500 m → röda linjer (undvik att parkera här)
     const cleaningNearby = cleaningFeatures.filter(f => {
       const m = featureMidCoord(f);
       if (!m) return false;
       const ll = toLatLng(m[0], m[1]);
       return map.distance([lat, lng], [ll.lat, ll.lng]) <= 500;
     });
+    const cleaningNames = new Set(
+      cleaningNearby
+        .map(f => (f.properties?.STREET_NAME || '').toLowerCase().trim())
+        .filter(Boolean)
+    );
     if (cleaningNearby.length) {
       const gjR = L.geoJSON({ type:'FeatureCollection', features: cleaningNearby }, {
         style: () => STYLE_DANGER,
@@ -1409,43 +1418,41 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     ]);
 
     // 4a. Förstegsgranskning: samla gatunamn som har ÄN ett begränsat segment
-    //     (polygon-zon, LTFR-linje, LOCATION_APPROX-namn eller OSM access-tagg)
     const restrictedBySegment = new Set();
+    const dbg2 = { access: [], zone: [], cleaning: [], gagata: [], safe: [] };
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
       const name = el.tags?.name;
       if (!name) return;
       const nameLow = name.toLowerCase().trim();
 
-      // OSM access-taggar: privat väg eller "bara för boende/besökare med ärende"
       const access = (el.tags?.access || '').toLowerCase();
       const mVehicle = (el.tags?.motor_vehicle || '').toLowerCase();
       if (access === 'private' || access === 'destination' ||
           mVehicle === 'private' || mVehicle === 'destination') {
-        restrictedBySegment.add(nameLow); return;
+        restrictedBySegment.add(nameLow);
+        if (!dbg2.access.includes(name)) dbg2.access.push(name);
+        return;
       }
 
-      if (foreskriftForbiddenNames.has(nameLow)) {
-        restrictedBySegment.add(nameLow); return;
-      }
       const mid = el.geometry[Math.floor(el.geometry.length / 2)];
       const [sx, sy] = proj4('WGS84', 'EPSG:3011', [mid.lon, mid.lat]);
-      if (inForbiddenZone([sx, sy]) || nearForbiddenLine(sx, sy)) {
+      if (inForbiddenZone([sx, sy])) {
         restrictedBySegment.add(nameLow);
+        if (!dbg2.zone.includes(name)) dbg2.zone.push(name);
       }
     });
 
     // 4b. Bygg gatukartan – uteslut hela gatan om ÄN ett segment är begränsat
-    const streetMap = new Map(); // name → { segments[], lat, lng, dist }
+    const streetMap = new Map();
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
       const name = el.tags?.name;
       if (!name) return;
       const nameLow = name.toLowerCase().trim();
 
-      // Skippa städgator, namnbaserade förbud och alla restrikterade gator
-      if (cleaningNames.has(nameLow)) return;
-      if (forbiddenStreetNames.has(nameLow)) return;
+      if (cleaningNames.has(nameLow))       { if (!dbg2.cleaning.includes(name)) dbg2.cleaning.push(name); return; }
+      if (forbiddenStreetNames.has(nameLow)){ if (!dbg2.gagata.includes(name))   dbg2.gagata.push(name);   return; }
       if (restrictedBySegment.has(nameLow)) return;
 
       // Centrum för detta segment (används för avstånd och navigation)
@@ -1461,6 +1468,17 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     });
 
     const safe = Array.from(streetMap.values()).sort((a, b) => a.dist - b.dist);
+
+    // Diagnostik UC2
+    dbg2.safe = safe.map(s => `${s.name} (${s.dist}m)`);
+    console.group('🔵 UC2 Nattparkering – filterrapport');
+    console.log('Säkra gator:', dbg2.safe);
+    if (dbg2.cleaning.length) console.warn('Borttagna – städgas imorgon nära dig:', dbg2.cleaning);
+    if (dbg2.gagata.length)   console.warn('Borttagna – gågata:', dbg2.gagata);
+    if (dbg2.zone.length)     console.warn('Borttagna – förbudszon:', dbg2.zone);
+    if (dbg2.access.length)   console.warn('Borttagna – privat/destination (OSM):', dbg2.access);
+    console.groupEnd();
+
     if (!safe.length) {
       document.getElementById('hint').textContent = 'Inga säkra parkeringar hittades i närheten.';
       return;

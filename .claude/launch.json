@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "stadgator",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "serve", "-s", "C:\\Users\\Lars\\Documents\\Claude appar\\Stadgator"],
-      "autoPort": true
+      "name": "parkspot",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3456
     }
   ]
 }
