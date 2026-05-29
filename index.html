@@ -3,26 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>ParkSpot Stockholm – Hitta ledig parkering kvällstid</title>
+  <title>Städgator Stockholm imorgon – Gratis parkering | ParkSpot</title>
+
+  <!-- Favicon – inline SVG undviker 404 -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234ade80'/><text x='16' y='23' text-anchor='middle' font-size='22' font-weight='bold' font-family='Arial' fill='%23080c1c'>P</text></svg>">
 
   <!-- SEO: grundläggande -->
-  <meta name="description" content="Se vilka gator i Stockholm som städas imorgon och parkera där kvällen innan. ParkSpot Stockholm – gratis karta med städgator, parkeringszoner och taxa.">
-  <meta name="keywords" content="parkspot stockholm, parkering stockholm, hitta parkering stockholm, lediga parkeringsplatser, städgator imorgon, gratis parkering stockholm, parkeringszoner stockholm">
+  <meta name="description" content="ParkSpot visar morgondagens städgator i Stockholm på karta. Parkera kvällen innan på lediga platser och hitta säkra gator för nattparkering. Gratis – med parkeringszoner och taxa.">
+  <meta name="keywords" content="städgator stockholm imorgon, gratis parkering stockholm, nattparkering stockholm, parkering stockholm kväll, städdag stockholm karta, parkeringszoner stockholm, hitta parkering stockholm, lediga parkeringsplatser stockholm">
   <meta name="robots" content="index, follow">
   <meta name="author" content="ParkSpot Stockholm">
   <link rel="canonical" href="https://parkspot.se/">
 
+  <!-- Mobil/PWA -->
+  <meta name="theme-color" content="#080c1c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ParkSpot">
+
   <!-- Open Graph – visas när du delar länken i sociala medier -->
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://parkspot.se/">
-  <meta property="og:title"       content="ParkSpot Stockholm – Hitta ledig parkering kvällstid">
-  <meta property="og:description" content="Dagen innan en städgata sopas måste alla bilar bort. Det skapar garanterat tomma platser. ParkSpot Stockholm visar vilka gator det gäller imorgon.">
+  <meta property="og:title"       content="Städgator Stockholm imorgon – Gratis parkering | ParkSpot">
+  <meta property="og:description" content="Vet var du kan parkera ikväll. ParkSpot visar morgondagens städgator och säkra gator för nattparkering – gratis karta med zoner och taxa.">
   <meta property="og:locale"      content="sv_SE">
+  <meta property="og:site_name"   content="ParkSpot Stockholm">
 
   <!-- Twitter/X Card -->
   <meta name="twitter:card"        content="summary">
-  <meta name="twitter:title"       content="ParkSpot Stockholm – Hitta ledig parkering kvällstid">
-  <meta name="twitter:description" content="Gratis karta som visar morgondagens städgator i Stockholm. Parkera smart – kvällen innan är gatorna tomma.">
+  <meta name="twitter:title"       content="Städgator Stockholm imorgon – Gratis parkering | ParkSpot">
+  <meta name="twitter:description" content="Morgondagens städgator på karta. Parkera kvällen innan – garanterat ledigt. Hitta även säkra gator för nattparkering.">
 
   <!-- Strukturerad data – Google förstår vad appen är -->
   <script type="application/ld+json">
@@ -31,12 +41,19 @@
     "@type": "WebApplication",
     "name": "ParkSpot Stockholm",
     "url": "https://parkspot.se/",
-    "description": "ParkSpot Stockholm visar vilka gator som städas imorgon så att du kan parkera där kvällen innan.",
+    "description": "Visar morgondagens städgator i Stockholm och säkra gator för nattparkering. Gratis parkeringskarta med zoner och taxa.",
     "applicationCategory": "TransportationApplication",
+    "applicationSubCategory": "Parking",
     "operatingSystem": "Web",
     "inLanguage": "sv",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "SEK" },
-    "areaServed": { "@type": "City", "name": "Stockholm" }
+    "areaServed": { "@type": "City", "name": "Stockholm" },
+    "featureList": [
+      "Morgondagens städgator på karta",
+      "Säkra gator för nattparkering",
+      "Parkeringszoner och taxa",
+      "Navigering med Google Maps"
+    ]
   }
   </script>
 
