@@ -1419,12 +1419,14 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
 
     // 4a. Förstegsgranskning: samla gatunamn som har ÄN ett begränsat segment
     const restrictedBySegment = new Set();
+    const allOverpassNames = new Set();
     const dbg2 = { access: [], zone: [], cleaning: [], gagata: [], safe: [] };
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
       const name = el.tags?.name;
       if (!name) return;
       const nameLow = name.toLowerCase().trim();
+      allOverpassNames.add(name);
 
       const access = (el.tags?.access || '').toLowerCase();
       const mVehicle = (el.tags?.motor_vehicle || '').toLowerCase();
@@ -1467,16 +1469,22 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       if (dist < entry.dist) { entry.dist = dist; entry.lat = segLat; entry.lng = segLng; }
     });
 
-    const safe = Array.from(streetMap.values()).sort((a, b) => a.dist - b.dist);
+    const safe = Array.from(streetMap.values())
+      .filter(s => s.dist <= 500)
+      .sort((a, b) => a.dist - b.dist);
 
     // Diagnostik UC2
     dbg2.safe = safe.map(s => `${s.name} (${s.dist}m)`);
+    const safeNames = new Set(safe.map(s => s.name));
+    const allExcluded = [...allOverpassNames].filter(n => !safeNames.has(n)).sort();
     console.group('🔵 UC2 Nattparkering – filterrapport');
-    console.log('Säkra gator:', dbg2.safe);
-    if (dbg2.cleaning.length) console.warn('Borttagna – städgas imorgon nära dig:', dbg2.cleaning);
-    if (dbg2.gagata.length)   console.warn('Borttagna – gågata:', dbg2.gagata);
-    if (dbg2.zone.length)     console.warn('Borttagna – förbudszon:', dbg2.zone);
-    if (dbg2.access.length)   console.warn('Borttagna – privat/destination (OSM):', dbg2.access);
+    console.log(`Overpass returnerade ${allOverpassNames.size} unika gator → ${safe.length} säkra`);
+    console.log('✅ Säkra gator:', dbg2.safe);
+    if (dbg2.cleaning.length) console.warn('🔴 Borttagna – städgas imorgon nära dig:', dbg2.cleaning);
+    if (dbg2.gagata.length)   console.warn('🚶 Borttagna – gågata:', dbg2.gagata);
+    if (dbg2.zone.length)     console.warn('🚫 Borttagna – förbudszon (LTFR polygon):', dbg2.zone);
+    if (dbg2.access.length)   console.warn('🔒 Borttagna – privat/stängd (OSM access-tagg):', dbg2.access);
+    if (allExcluded.length)   console.info('ℹ️ Alla exkluderade gator:', allExcluded);
     console.groupEnd();
 
     if (!safe.length) {
