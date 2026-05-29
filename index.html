@@ -685,7 +685,11 @@ async function loadParkingRestrictions(apiKey) {
             for (let i = 0; i < line.length - 1; i++) {
               len += Math.hypot(line[i+1][0]-line[i][0], line[i+1][1]-line[i][1]);
             }
-            if (len >= 30) forbiddenParkingLines.push(line);
+            if (len >= 30) {
+              forbiddenParkingLines.push(line);
+              // DEBUG: Logga alla egenskaper för detta P-förbud
+              console.log('[LTFR_P_FORBUD_GEOM properties]', f.properties);
+            }
           });
         }
       });
