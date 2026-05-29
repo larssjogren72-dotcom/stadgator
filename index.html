@@ -673,14 +673,19 @@ async function loadParkingRestrictions(apiKey) {
           const name = f.properties?.STREET_NAME || f.properties?.GATUNAMN || f.properties?.NAMN || '';
           if (name) { forbiddenStreetNames.add(name.toLowerCase().trim()); names++; }
         } else if (layer === 'ltfr:LTFR_P_FORBUD_GEOM') {
-          // Spara linjegeometrier för segmentvis kontroll i UC2.
-          // Koordinater är i SWEREF99 (meter) – används direkt i nearForbiddenParkingLine.
+          // Spara förbudslinjer för segmentvis kontroll i UC2 (SWEREF99, meter).
+          // Minimumslängd 30 m: utesluter taxi-fickor, infartsspärrar (~5-15 m).
+          // Kvar: verkliga parkeringsförbud på gatuavsnitt (30 m+).
           const g = f.geometry;
-          if (gt === 'LineString') {
-            forbiddenParkingLines.push(g.coordinates);
-          } else if (gt === 'MultiLineString') {
-            g.coordinates.forEach(line => forbiddenParkingLines.push(line));
-          }
+          const rawLines = gt === 'LineString' ? [g.coordinates]
+                         : gt === 'MultiLineString' ? g.coordinates : [];
+          rawLines.forEach(line => {
+            let len = 0;
+            for (let i = 0; i < line.length - 1; i++) {
+              len += Math.hypot(line[i+1][0]-line[i][0], line[i+1][1]-line[i][1]);
+            }
+            if (len >= 30) forbiddenParkingLines.push(line);
+          });
         }
       });
       console.log(`[Städgator] ${layer}: ${polygons} zoner, ${names} gatunamn, ${forbiddenParkingLines.length} förbudslinjer`);
@@ -758,8 +763,9 @@ function nearForbiddenLine(sx, sy, threshold = 25) {
 }
 
 // Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en parkeringsförbudslinje (P_FORBUD)
+// Tröskel 10 m: matchar bara segment PÅ samma gata, inte granngator 30-50 m bort.
 // activeParkingLines = pre-filtrerad delmängd nära sökadressen (prestanda)
-function nearForbiddenParkingLine(sx, sy, activeParkingLines, threshold = 25) {
+function nearForbiddenParkingLine(sx, sy, activeParkingLines, threshold = 10) {
   return activeParkingLines.some(line => {
     for (let i = 0; i < line.length - 1; i++) {
       const [ax, ay] = line[i], [bx, by] = line[i+1];
