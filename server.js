@@ -23,12 +23,12 @@ http.createServer((req, res) => {
   } else if (reqUrl.pathname === '/robots.txt') {
     res.setHeader('Content-Type', 'text/plain');
     res.writeHead(200);
-    res.end('User-agent: *\nAllow: /\nSitemap: https://stadgator-production.up.railway.app/sitemap.xml\n');
+    res.end('User-agent: *\nAllow: /\nSitemap: https://parkspot.se/sitemap.xml\n');
 
   } else if (reqUrl.pathname === '/sitemap.xml') {
     res.setHeader('Content-Type', 'application/xml');
     res.writeHead(200);
-    res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://stadgator-production.up.railway.app/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>`);
+    res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>`);
 
   } else {
     // Servera statiska filer (index.html)
