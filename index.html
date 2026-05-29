@@ -1428,7 +1428,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
 
       const access = (el.tags?.access || '').toLowerCase();
       const mVehicle = (el.tags?.motor_vehicle || '').toLowerCase();
-      if (access === 'private' || access === 'destination' ||
+      if (access === 'private' || access === 'destination' || access === 'no' ||
           mVehicle === 'private' || mVehicle === 'destination') {
         restrictedBySegment.add(nameLow);
         if (!dbg2.access.includes(name)) dbg2.access.push(name);
@@ -1526,11 +1526,15 @@ const OVERPASS_SERVERS = [
 ];
 
 async function fetchOverpassStreets(lat, lng, radius) {
-  // out geom ger full geometri (linjesegment) – inte bara centerpunkt
-  // living_street = gångfartsområde (SE) – parkering ej tillåten → utesluts
+  // Filtrerar bort:
+  //   trunk/motorway  – motorleder utan parkering
+  //   bridge=yes      – broar (Centralbron, Klarabergsviadukten m.fl.)
+  //   tunnel=yes      – tunnlar (Blekholmstunneln m.fl.)
+  //   access=no       – stängda vägar
   const q = `[out:json][timeout:12];`
-    + `way["highway"~"^(residential|secondary|tertiary|unclassified|primary|trunk)$"]`
-    + `["name"](around:${radius},${lat},${lng});out tags geom;`;
+    + `way["highway"~"^(residential|secondary|tertiary|unclassified|primary)$"]`
+    + `["name"]["bridge"!="yes"]["tunnel"!="yes"]["access"!="no"]`
+    + `(around:${radius},${lat},${lng});out tags geom;`;
 
   for (const server of OVERPASS_SERVERS) {
     try {
