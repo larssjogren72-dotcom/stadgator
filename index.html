@@ -684,6 +684,9 @@ async function loadParkingRestrictions(apiKey) {
         }
       });
       console.log(`[Städgator] ${layer}: ${polygons} zoner, ${names} gatunamn, ${forbiddenParkingLines.length} förbudslinjer`);
+      if (layer === 'ltfr:LTFR_P_FORBUD_GEOM' && forbiddenParkingLines.length > 0) {
+        console.log('[DEBUG P_FORBUD] Exempelkoordinat (första linjens första punkt):', forbiddenParkingLines[0][0]);
+      }
     } catch(e) {
       console.warn(`[Städgator] Kunde inte ladda ${layer}:`, e.message);
     }
