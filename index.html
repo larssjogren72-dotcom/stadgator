@@ -424,6 +424,7 @@
 
     /* Säker-badge (UC2-lista) */
     .sl-safe { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25); color: #bfdbfe; }
+    .sl-warn { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.28); color: #fcd34d; }
     /* Städar-badge (UC2 varningsrad) */
     .sl-danger { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.28); color: #fca5a5; }
   </style>
@@ -867,6 +868,7 @@ function updateLegend(mode) {
     legendDiv.innerHTML = zoneRows +
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Kontrollera skylt (P-förbud)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`;
   } else {
     legendDiv.innerHTML = zoneRows +
@@ -1476,57 +1478,61 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       line.some(([x, y]) => Math.abs(x - searchSX) < 600 && Math.abs(y - searchSY) < 600)
     );
 
-    // 4b. Segmentgranskning: markera enskilda OSM-segment som begränsade
-    //     Begränsning lagras per segment-ID – inte per gatunamn.
-    //     Gator med DELVIS förbud får blå linjer på de fria segmenten.
-    const restrictedSegmentIds = new Set();
-    const allOverpassNames = new Set();
-    const dbg2 = { access: [], zone: [], cleaning: [], gagata: [], safe: [] };
+    // 4b. Segmentgranskning
+    //     hardRestricted: access=no/private, polygon-zon → exkluderas helt
+    //     softRestricted: P_FORBUD-linje → visas gult ("kontrollera skylt")
+    const hardRestrictedIds = new Set();
+    const softRestrictedIds = new Set();
+    const allOverpassNames  = new Set();
+    const dbg2 = { access: [], zone: [], pforbud: [], cleaning: [], gagata: [], safe: [] };
+
     overpass.elements.forEach(el => {
-      if (!el.geometry?.length) return;
-      const name = el.tags?.name;
-      if (!name) return;
+      if (!el.geometry?.length || !el.tags?.name) return;
+      const name = el.tags.name;
       allOverpassNames.add(name);
 
-      const access = (el.tags?.access || '').toLowerCase();
+      const access   = (el.tags?.access || '').toLowerCase();
       const mVehicle = (el.tags?.motor_vehicle || '').toLowerCase();
       if (access === 'private' || access === 'destination' || access === 'no' ||
           mVehicle === 'private' || mVehicle === 'destination') {
-        restrictedSegmentIds.add(el.id);
+        hardRestrictedIds.add(el.id);
         if (!dbg2.access.includes(name)) dbg2.access.push(name);
         return;
       }
-
       const mid = el.geometry[Math.floor(el.geometry.length / 2)];
       const [sx, sy] = proj4('WGS84', 'EPSG:3011', [mid.lon, mid.lat]);
-      if (inForbiddenZone([sx, sy]) || nearForbiddenParkingLine(sx, sy, activeParkingLines)) {
-        restrictedSegmentIds.add(el.id);
+      if (inForbiddenZone([sx, sy])) {
+        hardRestrictedIds.add(el.id);
         if (!dbg2.zone.includes(name)) dbg2.zone.push(name);
+      } else if (nearForbiddenParkingLine(sx, sy, activeParkingLines)) {
+        softRestrictedIds.add(el.id);
+        if (!dbg2.pforbud.includes(name)) dbg2.pforbud.push(name);
       }
     });
 
-    // 4c. Bygg gatukartan – uteslut bara de segment som är begränsade
+    // 4c. Bygg gatukartan – inkludera P_FORBUD-segment med flagga `warn: true`
     const streetMap = new Map();
     overpass.elements.forEach(el => {
-      if (!el.geometry?.length) return;
-      const name = el.tags?.name;
-      if (!name) return;
+      if (!el.geometry?.length || !el.tags?.name) return;
+      const name    = el.tags.name;
       const nameLow = name.toLowerCase().trim();
 
       if (cleaningNames.has(nameLow))                       { if (!dbg2.cleaning.includes(name)) dbg2.cleaning.push(name); return; }
       if (forbiddenStreetNames.has(nameLow))                { if (!dbg2.gagata.includes(name))   dbg2.gagata.push(name);   return; }
-      if (searchStreetName && nameLow === searchStreetName) return; // sökadressen – redan där
-      if (restrictedSegmentIds.has(el.id))                  return; // detta segment är begränsat
+      if (searchStreetName && nameLow === searchStreetName) return;
+      if (hardRestrictedIds.has(el.id))                     return;
 
-      // Centrum för detta segment (används för avstånd och navigation)
       const segLat = el.geometry.reduce((s, p) => s + p.lat, 0) / el.geometry.length;
       const segLng = el.geometry.reduce((s, p) => s + p.lon, 0) / el.geometry.length;
       const dist   = Math.round(map.distance([lat, lng], [segLat, segLng]));
+      const warn   = softRestrictedIds.has(el.id);
+
       if (!streetMap.has(name)) {
-        streetMap.set(name, { name, segments: [], lat: segLat, lng: segLng, dist });
+        streetMap.set(name, { name, segments: [], lat: segLat, lng: segLng, dist, hasWarn: false });
       }
       const entry = streetMap.get(name);
-      entry.segments.push(el.geometry.map(p => [p.lat, p.lon]));
+      entry.segments.push({ coords: el.geometry.map(p => [p.lat, p.lon]), warn });
+      if (warn) entry.hasWarn = true;
       if (dist < entry.dist) { entry.dist = dist; entry.lat = segLat; entry.lng = segLng; }
     });
 
@@ -1535,7 +1541,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       .sort((a, b) => a.dist - b.dist);
 
     // Diagnostik UC2
-    dbg2.safe = safe.map(s => `${s.name} (${s.dist}m)`);
+    dbg2.safe = safe.map(s => s.hasWarn ? `${s.name} ⚠️` : `${s.name} (${s.dist}m)`);
     const safeNames = new Set(safe.map(s => s.name));
     const allExcluded = [...allOverpassNames].filter(n => !safeNames.has(n)).sort();
     console.group('🔵 UC2 Nattparkering – filterrapport');
@@ -1543,7 +1549,8 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     console.log('✅ Säkra gator:', dbg2.safe);
     if (dbg2.cleaning.length) console.warn('🔴 Borttagna – städgas imorgon nära dig:', dbg2.cleaning);
     if (dbg2.gagata.length)   console.warn('🚶 Borttagna – gågata:', dbg2.gagata);
-    if (dbg2.zone.length)     console.warn('🚫 Segment nära förbudszon/P-förbud (LTFR):', dbg2.zone);
+    if (dbg2.pforbud.length)  console.info('⚠️ Gator med P-förbud-segment (visas gult – kontrollera skylt):', dbg2.pforbud);
+    if (dbg2.zone.length)     console.warn('🚫 Borttagna – förbudszon:', dbg2.zone);
     if (dbg2.access.length)   console.warn('🔒 Borttagna – privat/stängd (OSM access-tagg):', dbg2.access);
     if (allExcluded.length)   console.info('ℹ️ Alla exkluderade gator:', allExcluded);
     console.groupEnd();
@@ -1553,24 +1560,31 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       return;
     }
 
-    // 4. Blå linjer – samma utseende som UC1 fast blå
+    // 4. Blå linjer (fri parkering) + gula linjer (P-förbud – kontrollera skylt)
     const SAFE_LINE = { color: '#60a5fa', weight: 5, opacity: .95 };
     const SAFE_SEL  = { color: '#93c5fd', weight: 7, opacity: 1  };
+    const WARN_LINE = { color: '#fbbf24', weight: 5, opacity: .95 };
+    const WARN_SEL  = { color: '#fcd34d', weight: 7, opacity: 1  };
     const allPolylines = [];
 
     safe.forEach(s => {
-      s.segments.forEach(coords => {
-        const pl = L.polyline(coords, { ...SAFE_LINE });
+      s.segments.forEach(seg => {
+        const coords = seg.coords;
+        const style  = seg.warn ? WARN_LINE : SAFE_LINE;
+        const selStyle = seg.warn ? WARN_SEL : SAFE_SEL;
+        const pl = L.polyline(coords, { ...style });
         pl.on('click', e => {
           L.DomEvent.stopPropagation(e);
-          allPolylines.forEach(p => p.setStyle(SAFE_LINE));
-          pl.setStyle(SAFE_SEL);
+          allPolylines.forEach(p => p.setStyle(p._warn ? WARN_LINE : SAFE_LINE));
+          pl.setStyle(selStyle);
           const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`;
+          const hint = seg.warn ? '<br><em style="color:#f59e0b;font-size:12px">⚠️ Kontrollera parkeringsskylt</em>' : '';
           pl.bindPopup(
-            `<strong style="color:#f0f6fc">${s.name}</strong><br>` +
+            `<strong style="color:#f0f6fc">${s.name}</strong>${hint}<br>` +
             `<a href="${url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>`
           ).openPopup();
         });
+        pl._warn = seg.warn;
         allPolylines.push(pl);
       });
     });
@@ -1626,16 +1640,19 @@ function buildSafeStreetList(streets) {
   const list = document.getElementById('street-list');
   if (!list) return;
   list.innerHTML = '';
-  streets.forEach(({ name, lat, lng, dist }) => {
+  streets.forEach(({ name, lat, lng, dist, hasWarn }) => {
     const distStr = dist < 1000 ? `${dist} m` : `${(dist/1000).toFixed(1)} km`;
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
     const item    = document.createElement('div');
     item.className = 'sl-item';
+    const badge = hasWarn
+      ? '<span class="sl-badge sl-warn">⚠️ Kontrollera skylt</span>'
+      : '<span class="sl-badge sl-safe">✅ Säker</span>';
     item.innerHTML = `
       <div class="sl-info">
         <div class="sl-name">${name}</div>
         <div class="sl-sub">
-          <span class="sl-badge sl-safe">✅ Säker</span>
+          ${badge}
           <span class="sl-dist">${distStr} bort</span>
         </div>
       </div>
