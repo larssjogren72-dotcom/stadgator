@@ -654,6 +654,7 @@ const RESTRICTION_LAYERS = [
 let forbiddenZoneGeoms    = [];
 let forbiddenStreetNames  = new Set();
 let forbiddenLineSegments = []; // LTFR_FORESKRIFT_GEOM – parkeringsrestriktionslinjer (SWEREF99)
+let forbiddenParkingLines = []; // LTFR_P_FORBUD_GEOM – parkeringsförbudslinjer (SWEREF99)
 
 async function loadParkingRestrictions(apiKey) {
   for (const layer of RESTRICTION_LAYERS) {
@@ -662,22 +663,27 @@ async function loadParkingRestrictions(apiKey) {
       if (!r.ok) { console.warn(`[Städgator] ${layer}: HTTP ${r.status}`); continue; }
       const d = await r.json();
       let polygons = 0, names = 0;
-      // LTFR_P_FORBUD_GEOM returnerar LineStrings (ej polygoner) för hela Stockholm.
-      // Att lägga namnerna i forbiddenStreetNames bannlyser hundratals gator felaktigt.
-      // → Polygon-geometrier sparas för inForbiddenZone.
-      // → Namnbaserade förbud läses BARA från NVDB_Gagata (gågator = genuint bilfritt).
-      const addNames = layer === 'od_gis:NVDB_Gagata';
       (d.features||[]).forEach(f => {
         if (!f.geometry) return;
         const gt = f.geometry.type;
         if (gt === 'Polygon' || gt === 'MultiPolygon') {
           forbiddenZoneGeoms.push(f.geometry); polygons++;
-        } else if (addNames) {
+        } else if (layer === 'od_gis:NVDB_Gagata') {
+          // Gågator – alltid totalförbud
           const name = f.properties?.STREET_NAME || f.properties?.GATUNAMN || f.properties?.NAMN || '';
           if (name) { forbiddenStreetNames.add(name.toLowerCase().trim()); names++; }
+        } else if (layer === 'ltfr:LTFR_P_FORBUD_GEOM') {
+          // Spara linjegeometrier för segmentvis kontroll i UC2.
+          // Koordinater är i SWEREF99 (meter) – används direkt i nearForbiddenParkingLine.
+          const g = f.geometry;
+          if (gt === 'LineString') {
+            forbiddenParkingLines.push(g.coordinates);
+          } else if (gt === 'MultiLineString') {
+            g.coordinates.forEach(line => forbiddenParkingLines.push(line));
+          }
         }
       });
-      console.log(`[Städgator] ${layer}: ${polygons} zoner, ${names} gatunamn`);
+      console.log(`[Städgator] ${layer}: ${polygons} zoner, ${names} gatunamn, ${forbiddenParkingLines.length} förbudslinjer`);
     } catch(e) {
       console.warn(`[Städgator] Kunde inte ladda ${layer}:`, e.message);
     }
@@ -737,9 +743,21 @@ function distPointToSegment(px, py, ax, ay, bx, by) {
   return Math.hypot(px - (ax + t*dx), py - (ay + t*dy));
 }
 
-// Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en restriktionslinje
+// Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en restriktionslinje (FORESKRIFT)
 function nearForbiddenLine(sx, sy, threshold = 25) {
   return forbiddenLineSegments.some(line => {
+    for (let i = 0; i < line.length - 1; i++) {
+      const [ax, ay] = line[i], [bx, by] = line[i+1];
+      if (distPointToSegment(sx, sy, ax, ay, bx, by) <= threshold) return true;
+    }
+    return false;
+  });
+}
+
+// Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en parkeringsförbudslinje (P_FORBUD)
+// activeParkingLines = pre-filtrerad delmängd nära sökadressen (prestanda)
+function nearForbiddenParkingLine(sx, sy, activeParkingLines, threshold = 25) {
+  return activeParkingLines.some(line => {
     for (let i = 0; i < line.length - 1; i++) {
       const [ax, ay] = line[i], [bx, by] = line[i+1];
       if (distPointToSegment(sx, sy, ax, ay, bx, by) <= threshold) return true;
@@ -1438,35 +1456,43 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       foreskriftP || loadForeskriftRestrictions(lat, lng, 500),
     ]);
 
-    // 4a. Förstegsgranskning: samla gatunamn som har ÄN ett begränsat segment
-    const restrictedBySegment = new Set();
+    // 4a. Pre-filtrera parkeringsförbudslinjer till sökadressen (prestanda)
+    //     forbiddenParkingLines täcker hela Stockholm – vi vill bara ha de nära sökadressen.
+    const [searchSX, searchSY] = proj4('WGS84', 'EPSG:3011', [lng, lat]);
+    const activeParkingLines = forbiddenParkingLines.filter(line =>
+      line.some(([x, y]) => Math.abs(x - searchSX) < 600 && Math.abs(y - searchSY) < 600)
+    );
+
+    // 4b. Segmentgranskning: markera enskilda OSM-segment som begränsade
+    //     Begränsning lagras per segment-ID – inte per gatunamn.
+    //     Gator med DELVIS förbud får blå linjer på de fria segmenten.
+    const restrictedSegmentIds = new Set();
     const allOverpassNames = new Set();
     const dbg2 = { access: [], zone: [], cleaning: [], gagata: [], safe: [] };
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
       const name = el.tags?.name;
       if (!name) return;
-      const nameLow = name.toLowerCase().trim();
       allOverpassNames.add(name);
 
       const access = (el.tags?.access || '').toLowerCase();
       const mVehicle = (el.tags?.motor_vehicle || '').toLowerCase();
       if (access === 'private' || access === 'destination' || access === 'no' ||
           mVehicle === 'private' || mVehicle === 'destination') {
-        restrictedBySegment.add(nameLow);
+        restrictedSegmentIds.add(el.id);
         if (!dbg2.access.includes(name)) dbg2.access.push(name);
         return;
       }
 
       const mid = el.geometry[Math.floor(el.geometry.length / 2)];
       const [sx, sy] = proj4('WGS84', 'EPSG:3011', [mid.lon, mid.lat]);
-      if (inForbiddenZone([sx, sy])) {
-        restrictedBySegment.add(nameLow);
+      if (inForbiddenZone([sx, sy]) || nearForbiddenParkingLine(sx, sy, activeParkingLines)) {
+        restrictedSegmentIds.add(el.id);
         if (!dbg2.zone.includes(name)) dbg2.zone.push(name);
       }
     });
 
-    // 4b. Bygg gatukartan – uteslut hela gatan om ÄN ett segment är begränsat
+    // 4c. Bygg gatukartan – uteslut bara de segment som är begränsade
     const streetMap = new Map();
     overpass.elements.forEach(el => {
       if (!el.geometry?.length) return;
@@ -1474,10 +1500,10 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       if (!name) return;
       const nameLow = name.toLowerCase().trim();
 
-      if (cleaningNames.has(nameLow))                    { if (!dbg2.cleaning.includes(name)) dbg2.cleaning.push(name); return; }
-      if (forbiddenStreetNames.has(nameLow))             { if (!dbg2.gagata.includes(name))   dbg2.gagata.push(name);   return; }
+      if (cleaningNames.has(nameLow))                       { if (!dbg2.cleaning.includes(name)) dbg2.cleaning.push(name); return; }
+      if (forbiddenStreetNames.has(nameLow))                { if (!dbg2.gagata.includes(name))   dbg2.gagata.push(name);   return; }
       if (searchStreetName && nameLow === searchStreetName) return; // sökadressen – redan där
-      if (restrictedBySegment.has(nameLow)) return;
+      if (restrictedSegmentIds.has(el.id))                  return; // detta segment är begränsat
 
       // Centrum för detta segment (används för avstånd och navigation)
       const segLat = el.geometry.reduce((s, p) => s + p.lat, 0) / el.geometry.length;
@@ -1500,11 +1526,11 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     const safeNames = new Set(safe.map(s => s.name));
     const allExcluded = [...allOverpassNames].filter(n => !safeNames.has(n)).sort();
     console.group('🔵 UC2 Nattparkering – filterrapport');
-    console.log(`Overpass returnerade ${allOverpassNames.size} unika gator → ${safe.length} säkra`);
+    console.log(`Overpass returnerade ${allOverpassNames.size} unika gator → ${safe.length} säkra | ${activeParkingLines.length} förbudslinjer nära`);
     console.log('✅ Säkra gator:', dbg2.safe);
     if (dbg2.cleaning.length) console.warn('🔴 Borttagna – städgas imorgon nära dig:', dbg2.cleaning);
     if (dbg2.gagata.length)   console.warn('🚶 Borttagna – gågata:', dbg2.gagata);
-    if (dbg2.zone.length)     console.warn('🚫 Borttagna – förbudszon (LTFR polygon):', dbg2.zone);
+    if (dbg2.zone.length)     console.warn('🚫 Segment nära förbudszon/P-förbud (LTFR):', dbg2.zone);
     if (dbg2.access.length)   console.warn('🔒 Borttagna – privat/stängd (OSM access-tagg):', dbg2.access);
     if (allExcluded.length)   console.info('ℹ️ Alla exkluderade gator:', allExcluded);
     console.groupEnd();
