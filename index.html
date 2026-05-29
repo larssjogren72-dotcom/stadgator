@@ -825,6 +825,7 @@ function featureMidCoord(feat) {
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
+let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
 let currentMode = 'uc1';
 let legendDiv = null;
 let sgTimer = null, sgIndex = -1;
@@ -1292,7 +1293,9 @@ function hideSuggestions() {
 function applySuggestion(name, lat, lng) {
   document.getElementById('search-input').value = name;
   hideSuggestions();
-  flyToAndShow(lat, lng); // flyToAndShow hanterar rätt läge automatiskt
+  // Spara gatunamnet utan husnummer: "Svartviksslingan 76 d" → "svartviksslingan"
+  searchStreetName = name.replace(/\s+\d+.*$/, '').trim().toLowerCase();
+  flyToAndShow(lat, lng);
 }
 
 // ── Gatulista ─────────────────────────────────────────────────────────────────
@@ -1471,8 +1474,9 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       if (!name) return;
       const nameLow = name.toLowerCase().trim();
 
-      if (cleaningNames.has(nameLow))       { if (!dbg2.cleaning.includes(name)) dbg2.cleaning.push(name); return; }
-      if (forbiddenStreetNames.has(nameLow)){ if (!dbg2.gagata.includes(name))   dbg2.gagata.push(name);   return; }
+      if (cleaningNames.has(nameLow))                    { if (!dbg2.cleaning.includes(name)) dbg2.cleaning.push(name); return; }
+      if (forbiddenStreetNames.has(nameLow))             { if (!dbg2.gagata.includes(name))   dbg2.gagata.push(name);   return; }
+      if (searchStreetName && nameLow === searchStreetName) return; // sökadressen – redan där
       if (restrictedBySegment.has(nameLow)) return;
 
       // Centrum för detta segment (används för avstånd och navigation)
