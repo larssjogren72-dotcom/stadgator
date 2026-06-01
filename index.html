@@ -740,12 +740,14 @@ async function loadForeskriftRestrictions(lat, lng, radius) {
       if (!PARKING_RULE_KEYWORDS.some(kw => title.includes(kw))) return;
 
       // A) Geometribaserad restriktion (linje i SWEREF99)
+      // Spara locationApprox för att undvika falska positiver från granngatans restriktioner.
+      const locationApprox = (f.properties?.LOCATION_APPROX || '').toLowerCase();
       const g = f.geometry;
       if (g) {
         if (g.type === 'LineString') {
-          forbiddenLineSegments.push(g.coordinates); lineCount++;
+          forbiddenLineSegments.push({ coords: g.coordinates, locationApprox }); lineCount++;
         } else if (g.type === 'MultiLineString') {
-          g.coordinates.forEach(line => { forbiddenLineSegments.push(line); lineCount++; });
+          g.coordinates.forEach(line => { forbiddenLineSegments.push({ coords: line, locationApprox }); lineCount++; });
         }
       }
 
@@ -766,10 +768,14 @@ function distPointToSegment(px, py, ax, ay, bx, by) {
 }
 
 // Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en restriktionslinje (FORESKRIFT)
-function nearForbiddenLine(sx, sy, threshold = 10) {
-  return forbiddenLineSegments.some(line => {
-    for (let i = 0; i < line.length - 1; i++) {
-      const [ax, ay] = line[i], [bx, by] = line[i+1];
+// streetName: om angivet matchas mot locationApprox för att undvika granngatans restriktioner.
+function nearForbiddenLine(sx, sy, streetName = null, threshold = 10) {
+  const nameLow = streetName ? streetName.toLowerCase().trim() : null;
+  return forbiddenLineSegments.some(({ coords, locationApprox }) => {
+    // Om gatunamn angivet: hoppa över linjer som gäller en annan gata
+    if (nameLow && locationApprox && !locationApprox.includes(nameLow)) return false;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const [ax, ay] = coords[i], [bx, by] = coords[i+1];
       if (distPointToSegment(sx, sy, ax, ay, bx, by) <= threshold) return true;
     }
     return false;
@@ -959,6 +965,7 @@ function initMap() {
 
 // ── Min position ──────────────────────────────────────────────────────────────
 let userMarker = null, userAccCircle = null, userFirstFix = true;
+let userLat = null, userLng = null;
 
 const STOCKHOLM_BOUNDS = { minLat:59.1, maxLat:59.6, minLng:17.6, maxLng:18.5 };
 
@@ -967,7 +974,10 @@ function startGeolocation() {
   navigator.geolocation.watchPosition(pos => {
     const { latitude: lat, longitude: lng, accuracy } = pos.coords;
 
-    // Blå punkt
+    // Spara senaste GPS-position
+    userLat = lat; userLng = lng;
+
+    // Blå punkt – klickbar för att söka parkering här
     if (!userMarker) {
       userAccCircle = L.circle([lat, lng], {
         radius: accuracy, color:'#3b82f6', fillColor:'#3b82f6',
@@ -975,8 +985,12 @@ function startGeolocation() {
       }).addTo(map);
       userMarker = L.circleMarker([lat, lng], {
         radius:7, color:'#fff', fillColor:'#3b82f6',
-        fillOpacity:1, weight:2.5, pane:'markerPane', interactive:false
+        fillOpacity:1, weight:2.5, pane:'markerPane', interactive:true,
+        title:'Tryck för att söka parkering här'
       }).addTo(map);
+      userMarker.on('click', () => {
+        if (userLat && userLng) flyToAndShow(userLat, userLng);
+      });
     } else {
       userMarker.setLatLng([lat, lng]);
       userAccCircle.setLatLng([lat, lng]).setRadius(accuracy);
@@ -1572,7 +1586,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
         if (!dbg2.zone.includes(name)) dbg2.zone.push(name);
       } else {
         const matchedRate = nearForbiddenParkingLine(sx, sy, activeParkingLines);
-        if (matchedRate || nearForbiddenLine(sx, sy)) {
+        if (matchedRate || nearForbiddenLine(sx, sy, name)) {
           softRestrictedIds.add(el.id);
           if (matchedRate && matchedRate.includes('boende')) boendeRestrictedIds.add(el.id);
           if (!dbg2.pforbud.includes(name)) dbg2.pforbud.push(name);
@@ -1588,7 +1602,6 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       const nameLow = name.toLowerCase().trim();
 
       if (forbiddenStreetNames.has(nameLow))                { if (!dbg2.gagata.includes(name))   dbg2.gagata.push(name);   return; }
-      if (searchStreetName && nameLow === searchStreetName) return;
       if (hardRestrictedIds.has(el.id))                     return;
 
       const segLat = el.geometry.reduce((s, p) => s + p.lat, 0) / el.geometry.length;
