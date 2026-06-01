@@ -686,9 +686,9 @@ async function loadParkingRestrictions(apiKey) {
               len += Math.hypot(line[i+1][0]-line[i][0], line[i+1][1]-line[i][1]);
             }
             if (len >= 30) {
-              forbiddenParkingLines.push(line);
-              // DEBUG: Logga alla egenskaper för detta P-förbud
-              console.log('[LTFR_P_FORBUD_GEOM properties]', f.properties);
+              const rate = (f.properties?.PARKING_RATE || '').toLowerCase().trim();
+              if (rate === 'avgiftsfri') return; // tillåten fri parkering – inte ett förbud
+              forbiddenParkingLines.push({ coords: line, rate });
             }
           });
         }
@@ -757,7 +757,7 @@ function distPointToSegment(px, py, ax, ay, bx, by) {
 }
 
 // Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en restriktionslinje (FORESKRIFT)
-function nearForbiddenLine(sx, sy, threshold = 25) {
+function nearForbiddenLine(sx, sy, threshold = 10) {
   return forbiddenLineSegments.some(line => {
     for (let i = 0; i < line.length - 1; i++) {
       const [ax, ay] = line[i], [bx, by] = line[i+1];
@@ -767,13 +767,23 @@ function nearForbiddenLine(sx, sy, threshold = 25) {
   });
 }
 
+// Returnerar true om en P_FORBUD-linje utgör ett genuint nattförbud för UC2.
+// "vardagar X-Y" → avgiftszon som är fri på natten → inte ett förbud ur nattparkerings-perspektiv.
+// Tom/okänd rate → kan vara ett genuint förbud → behandla som aktivt.
+function isNightParkingForbidden(rate) {
+  if (!rate) return true; // okänt → konservativt: anta förbud
+  if (rate.includes('vardagar')) return false; // tidsbegränsat vardagar → fri på natten
+  return true; // annat okänt format → anta förbud
+}
+
 // Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en parkeringsförbudslinje (P_FORBUD)
 // Tröskel 10 m: matchar bara segment PÅ samma gata, inte granngator 30-50 m bort.
 // activeParkingLines = pre-filtrerad delmängd nära sökadressen (prestanda)
 function nearForbiddenParkingLine(sx, sy, activeParkingLines, threshold = 10) {
-  return activeParkingLines.some(line => {
-    for (let i = 0; i < line.length - 1; i++) {
-      const [ax, ay] = line[i], [bx, by] = line[i+1];
+  return activeParkingLines.some(({ coords, rate }) => {
+    if (!isNightParkingForbidden(rate)) return false; // vardagsavgift → fri på natten → inte gult
+    for (let i = 0; i < coords.length - 1; i++) {
+      const [ax, ay] = coords[i], [bx, by] = coords[i+1];
       if (distPointToSegment(sx, sy, ax, ay, bx, by) <= threshold) return true;
     }
     return false;
@@ -860,6 +870,7 @@ let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
 let currentMode = 'uc1';
 let legendDiv = null;
+let legendCollapsed = false;
 let sgTimer = null, sgIndex = -1;
 
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
@@ -868,18 +879,42 @@ function updateLegend(mode) {
   const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
     `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
   ).join('');
-  if (mode === 'uc2') {
-    legendDiv.innerHTML = zoneRows +
-      `<hr class="lgnd-sep">
+  const modeRows = mode === 'uc2'
+    ? `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Kontrollera skylt (P-förbud)</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`;
-  } else {
-    legendDiv.innerHTML = zoneRows +
-      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`
+    : `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städas imorgon</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
+
+  legendDiv.innerHTML =
+    `<div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+       <button onclick="toggleLegend()" title="Dölj förklaring"
+         style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0;line-height:1">✕</button>
+     </div>
+     <div id="legend-content">${zoneRows}${modeRows}</div>`;
+  applyLegendState();
+}
+
+function applyLegendState() {
+  if (!legendDiv) return;
+  const content = document.getElementById('legend-content');
+  const btn     = legendDiv.querySelector('button');
+  if (legendCollapsed) {
+    if (content) content.style.display = 'none';
+    if (btn) btn.textContent = '🗺';
+    legendDiv.style.padding = '8px 10px';
+  } else {
+    if (content) content.style.display = 'block';
+    if (btn) btn.textContent = '✕';
+    legendDiv.style.padding = '10px 14px';
   }
+}
+
+function toggleLegend() {
+  legendCollapsed = !legendCollapsed;
+  applyLegendState();
 }
 
 function initMap() {
@@ -903,6 +938,8 @@ function initMap() {
     return legendDiv;
   };
   legend.addTo(map);
+  // Auto-kollaps efter 8 sekunder
+  setTimeout(() => { if (!legendCollapsed) { legendCollapsed = true; applyLegendState(); } }, 8000);
   map.on('click', hideStreetPanel);
   document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchStreet(); });
   updateHomeBtnStyle();
@@ -1478,8 +1515,8 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     // 4a. Pre-filtrera parkeringsförbudslinjer till sökadressen (prestanda)
     //     forbiddenParkingLines täcker hela Stockholm – vi vill bara ha de nära sökadressen.
     const [searchSX, searchSY] = proj4('WGS84', 'EPSG:3011', [lng, lat]);
-    const activeParkingLines = forbiddenParkingLines.filter(line =>
-      line.some(([x, y]) => Math.abs(x - searchSX) < 600 && Math.abs(y - searchSY) < 600)
+    const activeParkingLines = forbiddenParkingLines.filter(({ coords }) =>
+      coords.some(([x, y]) => Math.abs(x - searchSX) < 600 && Math.abs(y - searchSY) < 600)
     );
 
     // 4b. Segmentgranskning
@@ -1508,7 +1545,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       if (inForbiddenZone([sx, sy])) {
         hardRestrictedIds.add(el.id);
         if (!dbg2.zone.includes(name)) dbg2.zone.push(name);
-      } else if (nearForbiddenParkingLine(sx, sy, activeParkingLines)) {
+      } else if (nearForbiddenParkingLine(sx, sy, activeParkingLines) || nearForbiddenLine(sx, sy)) {
         softRestrictedIds.add(el.id);
         if (!dbg2.pforbud.includes(name)) dbg2.pforbud.push(name);
       }
@@ -1574,15 +1611,15 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     safe.forEach(s => {
       s.segments.forEach(seg => {
         const coords = seg.coords;
-        const style  = seg.warn ? WARN_LINE : SAFE_LINE;
-        const selStyle = seg.warn ? WARN_SEL : SAFE_SEL;
+        const style    = s.hasWarn ? WARN_LINE : SAFE_LINE;
+        const selStyle = s.hasWarn ? WARN_SEL  : SAFE_SEL;
         const pl = L.polyline(coords, { ...style });
         pl.on('click', e => {
           L.DomEvent.stopPropagation(e);
           allPolylines.forEach(p => p.setStyle(p._warn ? WARN_LINE : SAFE_LINE));
           pl.setStyle(selStyle);
           const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`;
-          const hint = seg.warn ? '<br><em style="color:#f59e0b;font-size:12px">⚠️ Kontrollera parkeringsskylt</em>' : '';
+          const hint = s.hasWarn ? '<br><em style="color:#f59e0b;font-size:12px">⚠️ Kontrollera parkeringsskylt</em>' : '';
           pl.bindPopup(
             `<strong style="color:#f0f6fc">${s.name}</strong>${hint}<br>` +
             `<a href="${url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>`
