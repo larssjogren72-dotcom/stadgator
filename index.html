@@ -764,12 +764,14 @@ async function fetchServicedays(apiKey, day) {
 }
 
 // ── Zoner ────────────────────────────────────────────────────────────────────
+// Legenden visar bara ordning (dyrast→billigast) – exakt pris kommer från
+// zon-popupens TAXA-fält (riktig, tidsaktuell data) för att undvika drift.
 const ZONE_STYLES = {
-  'Taxa 1': { color:'#b71c1c', fill:'#ef4444', label:'Taxa 1 – 55 kr/tim' },
-  'Taxa 2': { color:'#7c2d12', fill:'#f97316', label:'Taxa 2 – 31 kr/tim' },
-  'Taxa 3': { color:'#713f12', fill:'#eab308', label:'Taxa 3 – 20 kr/tim' },
-  'Taxa 4': { color:'#14532d', fill:'#22c55e', label:'Taxa 4 – 11 kr/tim' },
-  'Taxa 5': { color:'#1e3a5f', fill:'#60a5fa', label:'Taxa 5 – 8 kr/tim'  },
+  'Taxa 1': { color:'#b71c1c', fill:'#ef4444', label:'Taxa 1 (dyrast)' },
+  'Taxa 2': { color:'#7c2d12', fill:'#f97316', label:'Taxa 2' },
+  'Taxa 3': { color:'#713f12', fill:'#eab308', label:'Taxa 3' },
+  'Taxa 4': { color:'#14532d', fill:'#22c55e', label:'Taxa 4' },
+  'Taxa 5': { color:'#1e3a5f', fill:'#60a5fa', label:'Taxa 5 (billigast)' },
 };
 
 function clearZonesFromMap() {
