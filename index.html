@@ -58,14 +58,7 @@
   }
   </script>
 
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KMG3XTNPPN"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-KMG3XTNPPN');
-  </script>
+  <!-- Google Analytics laddas FÖRST efter cookie-samtycke (se loadGA() / GDPR) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -473,9 +466,77 @@
       border-radius: 50%;
       animation: spin .75s linear infinite;
     }
+
+    /* ── Cookie-samtycke (GDPR) ── */
+    #cookie-banner {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 4000;
+      display: none; flex-direction: column; gap: 10px;
+      background: #0d1117; border-top: 1px solid var(--glass-border);
+      padding: 16px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.6);
+      font-family: 'Inter', sans-serif;
+    }
+    .cookie-text { font-size: 13px; color: rgba(240,246,252,0.80); line-height: 1.55; }
+    .cookie-link {
+      background: none; border: none; color: var(--accent); cursor: pointer;
+      font-size: 13px; padding: 0; text-decoration: underline; font-family: inherit;
+    }
+    .cookie-actions { display: flex; gap: 10px; }
+    .cookie-btn {
+      flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent;
+    }
+    .cookie-decline { background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: var(--text); }
+    .cookie-accept  { background: linear-gradient(135deg,#22c55e,#15803d); border: none; color: #fff; }
+
+    /* ── Integritets-/ansvarsruta ── */
+    #privacy-modal {
+      position: fixed; inset: 0; z-index: 4100; display: none;
+      align-items: center; justify-content: center; padding: 20px;
+      background: rgba(8,12,28,0.75); backdrop-filter: blur(6px);
+    }
+    .privacy-card {
+      background: #0d1117; border: 1px solid var(--glass-border); border-radius: 18px;
+      max-width: 420px; width: 100%; max-height: 80vh; overflow-y: auto;
+      padding: 24px; color: var(--text); font-family: 'Inter', sans-serif;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+    .privacy-card h2 { font-size: 18px; margin-bottom: 12px; }
+    .privacy-card p  { font-size: 13px; color: rgba(240,246,252,0.72); line-height: 1.6; margin-bottom: 10px; }
+    .privacy-card strong { color: var(--text); }
+    .privacy-close {
+      margin-top: 8px; width: 100%; padding: 12px; border-radius: 10px;
+      background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent);
+      font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
   </style>
 </head>
 <body>
+
+<!-- ── Cookie-samtycke (GDPR) ── -->
+<div id="cookie-banner">
+  <div class="cookie-text">
+    🍪 ParkSpot använder anonym statistik (Google Analytics) för att förbättra appen.
+    Ingen personlig data lagras hos oss.
+    <button class="cookie-link" onclick="openPrivacy()">Om &amp; integritet</button>
+  </div>
+  <div class="cookie-actions">
+    <button class="cookie-btn cookie-decline" onclick="cookieConsent(false)">Avböj</button>
+    <button class="cookie-btn cookie-accept"  onclick="cookieConsent(true)">Acceptera</button>
+  </div>
+</div>
+
+<!-- ── Integritet & ansvar ── -->
+<div id="privacy-modal">
+  <div class="privacy-card">
+    <h2>Om ParkSpot &amp; integritet</h2>
+    <p><strong>Vad appen gör:</strong> visar parkeringsinformation från Stockholms stads öppna data.</p>
+    <p><strong>Ansvar:</strong> informationen kan vara inaktuell eller felaktig. Kontrollera alltid lokala skyltar. ParkSpot ansvarar inte för parkeringsböter eller bogsering.</p>
+    <p><strong>Din data:</strong> vi lagrar ingen personlig information på server. Hemadress och inställningar sparas bara lokalt i din webbläsare. Din GPS-position används enbart i din enhet för att visa var du är – den skickas aldrig till oss.</p>
+    <p><strong>Statistik:</strong> om du accepterar används Google Analytics med anonymiserad IP för att förstå hur appen används. Du kan avböja – appen fungerar lika bra ändå.</p>
+    <button class="privacy-close" onclick="closePrivacy()">Stäng</button>
+  </div>
+</div>
 
 <!-- ── SETUP SCREEN ── -->
 <div id="setup-screen">
@@ -623,9 +684,33 @@ function getKey()   { return localStorage.getItem('sthlm_key') || 'server'; }
 function saveKey(k) { localStorage.setItem('sthlm_key', k); }
 function clearKey() { localStorage.removeItem('sthlm_key'); }
 
+// ── Cookie-samtycke (GDPR) ───────────────────────────────────────────────────
+function loadGA() {
+  if (window._gaLoaded) return; window._gaLoaded = true;
+  const s = document.createElement('script');
+  s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=G-KMG3XTNPPN';
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function(){ dataLayer.push(arguments); };
+  gtag('js', new Date());
+  gtag('config', 'G-KMG3XTNPPN', { anonymize_ip: true });
+}
+function cookieConsent(accept) {
+  localStorage.setItem('cookie_consent', accept ? 'accepted' : 'declined');
+  document.getElementById('cookie-banner').style.display = 'none';
+  if (accept) loadGA();
+}
+function initCookieConsent() {
+  const c = localStorage.getItem('cookie_consent');
+  if (c === 'accepted') loadGA();
+  else if (c !== 'declined') document.getElementById('cookie-banner').style.display = 'flex';
+}
+function openPrivacy()  { document.getElementById('privacy-modal').style.display = 'flex'; }
+function closePrivacy() { document.getElementById('privacy-modal').style.display = 'none'; }
+
 // ── Start ────────────────────────────────────────────────────────────────────
 // Hoppa direkt in i appen – ingen setup-skärm (servern sköter nyckeln).
-window.addEventListener('DOMContentLoaded', () => launchApp());
+window.addEventListener('DOMContentLoaded', () => { launchApp(); initCookieConsent(); });
 
 async function tryStart() {
   const key = document.getElementById('key-input').value.trim();
