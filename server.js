@@ -5,18 +5,35 @@ const path  = require('path');
 
 const PORT = process.env.PORT || 3456;
 
+// Server-side Stockholm-API-nyckel: env-variabel (Railway) eller lokal .apikey-fil.
+// Sätts den → användaren behöver INGEN egen nyckel. Saknas den → fallback till
+// klientens nyckel (gammalt beteende, för lokal utveckling).
+let API_KEY = (process.env.STHLM_API_KEY || '').trim();
+if (!API_KEY) {
+  try { API_KEY = fs.readFileSync(path.join(__dirname, '.apikey'), 'utf8').trim(); } catch {}
+}
+console.log(API_KEY ? '[ParkSpot] Server-API-nyckel laddad – användare behöver ingen egen.'
+                    : '[ParkSpot] Ingen server-nyckel – faller tillbaka på klientens nyckel.');
+
 http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
   if (reqUrl.pathname.startsWith('/proxy/')) {
-    // Proxy → openparking.stockholm.se (parkeringsregler)
+    // Proxy → openparking.stockholm.se (parkeringsregler). Nyckel = apiKey-param.
     const apiPath = reqUrl.pathname.replace('/proxy/', '/LTF-Tolken/v1/');
+    if (API_KEY) reqUrl.searchParams.set('apiKey', API_KEY);   // injicera server-nyckel
     const target  = apiPath + '?' + reqUrl.searchParams.toString();
     forward('openparking.stockholm.se', target, res);
 
   } else if (reqUrl.pathname.startsWith('/wfs/')) {
-    // Proxy → openstreetgs.stockholm.se (WFS zonlager)
-    const wfsPath = reqUrl.pathname.replace('/wfs/', '/geoservice/api/');
+    // Proxy → openstreetgs.stockholm.se (WFS). Nyckel = path-segment /geoservice/api/{key}/...
+    let wfsPath;
+    if (API_KEY) {
+      const afterKey = reqUrl.pathname.replace(/^\/wfs\/[^/]+/, '');   // ta bort klientens nyckelsegment
+      wfsPath = `/geoservice/api/${API_KEY}${afterKey}`;              // injicera server-nyckel
+    } else {
+      wfsPath = reqUrl.pathname.replace('/wfs/', '/geoservice/api/'); // fallback: klientnyckel
+    }
     const target  = wfsPath + '?' + reqUrl.searchParams.toString();
     forward('openstreetgs.stockholm.se', target, res);
 

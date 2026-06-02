@@ -616,12 +616,16 @@ function apiDay(d)  { return API_DAYS[d.getDay()]; }
 function fmtDate(d) { return `${SV_DAYS[d.getDay()]} ${d.getDate()} ${SV_MONTHS[d.getMonth()]}`; }
 
 // ── API-nyckel ───────────────────────────────────────────────────────────────
-function getKey()   { return localStorage.getItem('sthlm_key') || ''; }
+// Servern håller numera nyckeln (env/.apikey). Klienten behöver ingen egen –
+// 'server' är en dummy som servern ersätter. Egen nyckel i localStorage används
+// ändå om servern saknar nyckel (lokal utveckling/fallback).
+function getKey()   { return localStorage.getItem('sthlm_key') || 'server'; }
 function saveKey(k) { localStorage.setItem('sthlm_key', k); }
 function clearKey() { localStorage.removeItem('sthlm_key'); }
 
 // ── Start ────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => { if (getKey()) launchApp(); });
+// Hoppa direkt in i appen – ingen setup-skärm (servern sköter nyckeln).
+window.addEventListener('DOMContentLoaded', () => launchApp());
 
 async function tryStart() {
   const key = document.getElementById('key-input').value.trim();
