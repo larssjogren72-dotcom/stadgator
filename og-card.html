@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>ParkSpot – delningskort</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#1b2330; display:flex; align-items:center; justify-content:center; min-height:100vh; font-family:'Inter',sans-serif; }
+  /* 1200×630 = standard OG-format */
+  .card {
+    position:relative; width:1200px; height:630px; overflow:hidden;
+    background:linear-gradient(135deg,#080c1c 0%,#0d1f3a 48%,#091928 78%,#080c1c 100%);
+    color:#f0f6fc; display:flex;
+  }
+  .glow { position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at 22% 70%, rgba(74,222,128,.10) 0%, transparent 55%),
+               radial-gradient(ellipse at 85% 25%, rgba(96,165,250,.08) 0%, transparent 55%); }
+
+  /* Vänster: text */
+  .left { position:relative; z-index:2; width:660px; padding:64px 56px; display:flex; flex-direction:column; }
+  .brand { display:flex; align-items:center; gap:16px; margin-bottom:34px; }
+  .logo { width:64px; height:64px; border-radius:18px; background:rgba(74,222,128,.16);
+    border:1px solid rgba(74,222,128,.4); box-shadow:0 0 28px rgba(74,222,128,.35);
+    display:flex; align-items:center; justify-content:center; font-size:38px; font-weight:800; color:#4ade80; }
+  .brand-name { font-size:26px; font-weight:700; letter-spacing:-.01em; }
+  .brand-sub  { font-size:15px; color:rgba(240,246,252,.55); margin-top:2px; }
+  h1 { font-size:62px; line-height:1.04; font-weight:800; letter-spacing:-.02em; margin-bottom:24px; }
+  h1 .accent { color:#4ade80; }
+  .pills { display:flex; gap:12px; margin-bottom:26px; }
+  .pill { font-size:18px; font-weight:600; padding:10px 18px; border-radius:999px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); }
+  .pill .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+  .sub { font-size:21px; line-height:1.5; color:rgba(240,246,252,.78); max-width:520px; }
+  .foot { margin-top:auto; font-size:20px; font-weight:700; color:#4ade80; }
+
+  /* Höger: stiliserad karta med färgade gator */
+  .right { position:relative; flex:1; }
+  .map { position:absolute; inset:0; background:#0c1830;
+    background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:46px 46px; }
+  .map::before { content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg,#080c1c 0%, transparent 22%); }
+  svg { position:absolute; inset:0; width:100%; height:100%; }
+  .pin { position:absolute; left:300px; top:300px; width:26px; height:26px; border-radius:50%;
+    background:#3b82f6; border:4px solid #fff; box-shadow:0 0 0 10px rgba(59,130,246,.25); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="glow"></div>
+
+    <div class="left">
+      <div class="brand">
+        <div class="logo">P</div>
+        <div>
+          <div class="brand-name">ParkSpot Stockholm</div>
+          <div class="brand-sub">parkering på karta</div>
+        </div>
+      </div>
+
+      <h1>Var får du <span class="accent">parkera?</span></h1>
+
+      <div class="pills">
+        <div class="pill"><span class="dot" style="background:#4ade80"></span>Nu</div>
+        <div class="pill"><span class="dot" style="background:#fbbf24"></span>I kväll</div>
+        <div class="pill"><span class="dot" style="background:#60a5fa"></span>Över natten</div>
+      </div>
+
+      <div class="sub">Lagliga platser i Stockholm – utan städgator, förbud och böter. Vet på förhand, gissa inte.</div>
+
+      <div class="foot">parkspot.se</div>
+    </div>
+
+    <div class="right">
+      <div class="map"></div>
+      <svg viewBox="0 0 540 630" preserveAspectRatio="none">
+        <!-- gator i olika status-färger -->
+        <path d="M-20,150 C120,120 220,210 360,180 540,150 560,150 560,150" stroke="#4ade80" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <path d="M40,640 C90,470 60,360 150,300 250,235 360,250 560,210" stroke="#4ade80" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <path d="M-20,360 C120,360 210,330 300,360 420,400 470,470 470,640" stroke="#60a5fa" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <path d="M150,300 C150,210 210,150 320,150" stroke="#60a5fa" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <path d="M300,360 C360,360 410,330 470,210" stroke="#ef4444" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <path d="M360,180 C420,180 470,210 470,260" stroke="#fbbf24" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="6 9"/>
+      </svg>
+      <div class="pin"></div>
+    </div>
+  </div>
+</body>
+</html>

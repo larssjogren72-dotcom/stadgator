@@ -55,7 +55,9 @@ http.createServer((req, res) => {
     );
     fs.readFile(filePath, (err, data) => {
       if (err) { res.writeHead(404); res.end('Not found'); return; }
-      const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css' };
+      const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
+                      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+                      '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon' };
       res.setHeader('Content-Type', types[path.extname(filePath)] || 'text/plain');
       res.writeHead(200);
       res.end(data);
