@@ -665,6 +665,7 @@ let forbiddenZoneGeoms    = [];
 let forbiddenStreetNames  = new Set();
 let forbiddenLineSegments = []; // LTFR_FORESKRIFT_GEOM – parkeringsrestriktionslinjer (SWEREF99)
 let forbiddenParkingLines = []; // LTFR_P_FORBUD_GEOM – parkeringsförbudslinjer (SWEREF99)
+let loadingZoneSegments   = []; // Lastzoner (ändamålsplats lastning/lossning) – ritas som korta markörer, blockerar ej hela gatan
 
 async function loadParkingRestrictions(apiKey) {
   for (const layer of RESTRICTION_LAYERS) {
@@ -695,9 +696,10 @@ async function loadParkingRestrictions(apiKey) {
               len += Math.hypot(line[i+1][0]-line[i][0], line[i+1][1]-line[i][1]);
             }
             if (len >= 30) {
-              const rate = (f.properties?.PARKING_RATE || '').toLowerCase().trim();
+              const rate       = (f.properties?.PARKING_RATE || '').toLowerCase().trim();
               if (rate === 'avgiftsfri') return; // tillåten fri parkering – inte ett förbud
-              forbiddenParkingLines.push({ coords: line, rate });
+              const streetName = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+              forbiddenParkingLines.push({ coords: line, rate, streetName });
             }
           });
         }
@@ -721,6 +723,7 @@ let foreskriftForbiddenNames = new Set();
 
 async function loadForeskriftRestrictions(lat, lng, radius) {
   forbiddenLineSegments = [];
+  loadingZoneSegments = [];
   foreskriftForbiddenNames = new Set();
   const key = getKey();
   if (!key) return;
@@ -737,19 +740,29 @@ async function loadForeskriftRestrictions(lat, lng, radius) {
     let lineCount = 0, nameCount = 0;
     features.forEach(f => {
       const title = (f.properties?.TITLE || '').toLowerCase();
+
       if (!PARKING_RULE_KEYWORDS.some(kw => title.includes(kw))) return;
 
-      // A) Geometribaserad restriktion (linje i SWEREF99)
-      // Spara locationApprox för att undvika falska positiver från granngatans restriktioner.
+      const text = (f.properties?.FORESKRIFTSTEXT || '').toLowerCase();
       const locationApprox = (f.properties?.LOCATION_APPROX || '').toLowerCase();
       const g = f.geometry;
-      if (g) {
-        if (g.type === 'LineString') {
-          forbiddenLineSegments.push({ coords: g.coordinates, locationApprox }); lineCount++;
-        } else if (g.type === 'MultiLineString') {
-          g.coordinates.forEach(line => { forbiddenLineSegments.push({ coords: line, locationApprox }); lineCount++; });
-        }
+      if (!g) return;
+      const lines = g.type === 'LineString' ? [g.coordinates]
+                  : g.type === 'MultiLineString' ? g.coordinates : [];
+
+      // a) Tidsbaserad lastzon ("övrig tid får parkeras") → fri på natten, ingen markör behövs
+      if (text.includes('övrig tid') && text.includes('parkeras')) return;
+
+      // b) Lastzon (lastning/lossning) utan "övrig tid" → genuin restriktion men kort sträcka.
+      //    Ritas som egen markör – blockerar INTE hela gatan (street förblir blå).
+      if (text.includes('lastning') || text.includes('lossning')) {
+        lines.forEach(line => loadingZoneSegments.push({ coords: line, locationApprox }));
+        return;
       }
+
+      // c) Övriga ändamålsplatser (taxi, reserverat m.m.) → hela gatan gul som tidigare.
+      //    Spara locationApprox för att undvika falska positiver från granngatans restriktioner.
+      lines.forEach(line => { forbiddenLineSegments.push({ coords: line, locationApprox }); lineCount++; });
 
     });
     console.log(`[FORESKRIFT] ${features.length} features → ${lineCount} restriktionslinjer (namnfilter avstängt)`);
@@ -795,9 +808,12 @@ function isNightParkingForbidden(rate) {
 // Tröskel 10 m: matchar bara segment PÅ samma gata, inte granngator 30-50 m bort.
 // activeParkingLines = pre-filtrerad delmängd nära sökadressen (prestanda)
 // Returnerar matchande rate-sträng om punkt ligger nära en aktiv förbudslinje, annars null.
-function nearForbiddenParkingLine(sx, sy, activeParkingLines, threshold = 10) {
-  for (const { coords, rate } of activeParkingLines) {
+// checkStreetName: om angivet matchas mot P_FORBUD STREET_NAME för att undvika granngatans restriktioner.
+function nearForbiddenParkingLine(sx, sy, activeParkingLines, checkStreetName = null, threshold = 10) {
+  const nameLow = checkStreetName ? checkStreetName.toLowerCase().trim() : null;
+  for (const { coords, rate, streetName } of activeParkingLines) {
     if (!isNightParkingForbidden(rate)) continue;
+    if (nameLow && streetName && streetName !== nameLow) continue; // annan gata → hoppa över
     for (let i = 0; i < coords.length - 1; i++) {
       const [ax, ay] = coords[i], [bx, by] = coords[i+1];
       if (distPointToSegment(sx, sy, ax, ay, bx, by) <= threshold) return rate || 'unknown';
@@ -880,6 +896,228 @@ function featureMidCoord(feat) {
   return coords ? coords[Math.floor(coords.length / 2)] : null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// v2.0 DATAGRUND – strukturerad parkeringsdata (P_TILLATEN / P_FORBUD)
+// Byggs BREDVID befintlig kod. Anropas ännu inte av UC1/UC2 → noll risk.
+// Validerad modell (se ARKITEKTUR.md §2): förbud = P_FORBUD utan P_TILLATEN inom 12 m.
+// ═══════════════════════════════════════════════════════════════════════════
+const PARKDATA_V2 = true;            // flagga – styr om v2-vyn aktiveras (Steg 2)
+let   v2Active = PARKDATA_V2;        // runtime-växel för A/B (sätt v2Active=false i konsolen → gamla UC2)
+const FORBID_THRESHOLD_M = 12;       // meter: P_FORBUD-punkt utan tillåten inom detta = förbud
+
+// Lager 2 – generisk WFS-källadapter (ett anrop för alla lager)
+async function fetchLayer(layer, bbox) {
+  const key = getKey();
+  const url = `/wfs/${key}/wfs?service=WFS&version=2.0.0&request=GetFeature`
+    + `&typeNames=ltfr:${layer}&outputFormat=application/json&count=3000&BBOX=${bbox}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${layer}: HTTP ${r.status}`);
+  return (await r.json()).features || [];
+}
+
+// hjälp: plocka ut råa linjer (SWEREF99) ur en WFS-feature
+function featureLines(f) {
+  const g = f.geometry; if (!g) return [];
+  return g.type === 'LineString'      ? [g.coordinates]
+       : g.type === 'MultiLineString' ?  g.coordinates : [];
+}
+
+// Lager 3 – tolka PARKING_RATE EN gång (domänregler, se ARKITEKTUR.md §5)
+function parseRate(raw) {
+  const rate = (raw || '').toLowerCase();
+  const freeAtNight = rate === 'avgiftsfri' || rate.includes('vardagar');
+  const taxa = (rate.match(/taxa\s*(\d+)/) || [])[1];
+  return {
+    raw: raw || '',
+    freeAtNight,                       // fri/avgiftsfri på natten
+    residentZone: rate.includes('boende'),  // boende = rabatt, INTE förbud
+    taxa: taxa ? +taxa : null
+  };
+}
+
+// Lager 3 – normalisera P_TILLATEN-feature → ParkingSegment
+function toAllowedSegment(f) {
+  const p = f.properties || {};
+  return {
+    kind: 'allowed',
+    vehicle: (p.VEHICLE || 'fordon').toLowerCase(),
+    linesSweref: featureLines(f),      // [[x,y],…] SWEREF99 (EPSG:3011)
+    rate: parseRate(p.PARKING_RATE),
+    platsTyp: p.VF_PLATS_TYP || '',
+    street: p.STREET_NAME || '',
+    district: p.CITY_DISTRICT || '',
+    citation: p.CITATION || ''
+  };
+}
+
+// Lager 3+5 – ladda och klassificera parkering runt en punkt.
+// Returnerar { allowed:[ParkingSegment], forbiddenLines:[[ [x,y],[x,y] ] …] } (SWEREF99)
+async function loadParkingV2(lat, lng, radius = 500) {
+  const deg  = (radius / 111000) * 1.8;
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  const [tillRaw, forbRaw] = await Promise.all([
+    fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
+    fetchLayer('LTFR_P_FORBUD_GEOM',  bbox),
+  ]);
+
+  const allowed = tillRaw.map(toAllowedSegment);
+
+  // Alla tillåten-punkter (SWEREF99) för närhetstest
+  const allowedPts = allowed.flatMap(s => s.linesSweref.flat());
+  const hasAllowedNear = (p) => {
+    for (const q of allowedPts) {
+      if (Math.hypot(p[0]-q[0], p[1]-q[1]) <= FORBID_THRESHOLD_M) return true;
+    }
+    return false;
+  };
+
+  // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten
+  const forbiddenLines = [];
+  forbRaw.forEach(f => featureLines(f).forEach(line => {
+    for (let i = 0; i < line.length - 1; i++) {
+      const mid = [(line[i][0]+line[i+1][0])/2, (line[i][1]+line[i+1][1])/2];
+      if (!hasAllowedNear(mid)) forbiddenLines.push([line[i], line[i+1]]);
+    }
+  }));
+
+  return { allowed, forbiddenLines };
+}
+
+// Konsol-paritetstest mot gårdagens bevisade prototyp
+async function testV2(lat = 59.3386863, lng = 17.9872348) {
+  const t0 = performance.now();
+  const { allowed, forbiddenLines } = await loadParkingV2(lat, lng);
+  const fordon = allowed.filter(s => s.vehicle === 'fordon').length;
+  const fri    = allowed.filter(s => s.rate.freeAtNight).length;
+  console.log(`[v2] ${Math.round(performance.now()-t0)}ms | tillåtna=${allowed.length} (fordon=${fordon}, fri-natt=${fri}) | förbud-delsträckor=${forbiddenLines.length}`);
+  return { allowed, forbiddenLines };
+}
+
+// Lager 6 (prototyp) – rita v2-parkeringsbilden på kartan.
+// Konsol-anropbar: showSafeStreetsV2(lat,lng). Egen layer, rör ej UC1/UC2.
+let v2Layer = null;
+const V2_COLORS = {
+  blue:   '#60a5fa',  // fordon, fri på natten → säker nattparkering
+  orange: '#f97316',  // fordon, avgift dygnet runt (ovanligt)
+  purple: '#9333ea',  // ej för bil (mc/buss/rörelsehindrad)
+  red:    '#ef4444',  // förbud (P_FORBUD utan tillåten nära)
+};
+async function showSafeStreetsV2(lat = 59.3386863, lng = 17.9872348) {
+  if (v2Layer) { map.removeLayer(v2Layer); v2Layer = null; }
+  const { allowed, forbiddenLines } = await loadParkingV2(lat, lng);
+  const grp = L.layerGroup();
+
+  // Förbudssträckor (rött, underst)
+  forbiddenLines.forEach(line => {
+    L.polyline(line.map(c => toLatLng(c[0], c[1])),
+      { color: V2_COLORS.red, weight: 6, opacity: .9 }).addTo(grp);
+  });
+
+  // Tillåtna platser (färg efter villkor, överst)
+  let n = { blue:0, orange:0, purple:0 };
+  allowed.forEach(s => {
+    let color;
+    if (s.vehicle !== 'fordon')   { color = V2_COLORS.purple; n.purple++; }
+    else if (s.rate.freeAtNight)  { color = V2_COLORS.blue;   n.blue++;   }
+    else                          { color = V2_COLORS.orange; n.orange++; }
+    const villkor = s.vehicle !== 'fordon' ? `Ej för bil (${s.vehicle})`
+                  : s.rate.freeAtNight ? 'Säker – fri på natten'
+                  : 'Avgift dygnet runt';
+    const boende = s.rate.residentZone ? '<br><small>Boendezon (rabatt för boende)</small>' : '';
+    s.linesSweref.forEach(line => {
+      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight: 7, opacity: .95 })
+        .bindPopup(`<b>${s.street||'?'}</b><br>${villkor}${boende}`).addTo(grp);
+    });
+  });
+
+  grp.addTo(map); v2Layer = grp;
+  console.log(`[v2-vy] 🔵säker=${n.blue} 🟠avgift=${n.orange} 🟣ej-bil=${n.purple} 🔴förbud=${forbiddenLines.length}`);
+}
+function clearV2() { if (v2Layer) { map.removeLayer(v2Layer); v2Layer = null; } }
+
+// Punkt→segment-avstånd i lat/lng (meter), oberoende av källans koordinatsystem.
+function distPointToSegmentLL(p, a, b) {
+  const mLat = 111320, mLng = 111320 * Math.cos(a.lat * Math.PI / 180);
+  const px = (p.lng - a.lng) * mLng, py = (p.lat - a.lat) * mLat;
+  const bx = (b.lng - a.lng) * mLng, by = (b.lat - a.lat) * mLat;
+  return distPointToSegment(px, py, 0, 0, bx, by);
+}
+
+// v2-vyn integrerad i UC2-flödet – rensar lager, badge, zoner som gamla UC2.
+async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
+  clearStreetsFromMap();
+  document.getElementById('hint').innerHTML =
+    `<div style="display:flex;align-items:center;gap:12px">
+       <div class="mini-spinner"></div>
+       <span style="color:var(--text);font-size:14px">Hämtar parkering…</span>
+     </div>`;
+  try {
+    // Parkering (v2-grunden) + morgondagens städning (befintlig servicedagar-data) parallellt
+    const [{ allowed, forbiddenLines }, cleaningData] = await Promise.all([
+      parkPromise ? parkPromise : loadParkingV2(lat, lng),
+      streetDataPromise,
+    ]);
+    const grp = L.layerGroup();
+
+    // Städgator imorgon inom 500 m: rita (gul streckad) + samla linjesegment + gatunamn (SWEREF99)
+    const cleaningFeatures = Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []);
+    const cleaningSegs = [];   // { a:latlng, b:latlng, name }  (lat/lng – koordinatsystem-oberoende)
+    cleaningFeatures.forEach(f => {
+      const m = featureMidCoord(f); if (!m) return;
+      const mll = toLatLng(m[0], m[1]);
+      if (map.distance([lat, lng], [mll.lat, mll.lng]) > 500) return;
+      const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+      L.geoJSON(f, { style:{ color:'#fbbf24', weight:5, opacity:.85, dashArray:'6 6' },
+        coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
+      featureLines(f).forEach(line => {
+        for (let i = 0; i < line.length - 1; i++)
+          cleaningSegs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name });
+      });
+    });
+    // Tillåten plats städas imorgon = samma gatunamn OCH ≤25 m från städgatans geometri (lat/lng)
+    // (namn-match hindrar att granngata vid korsning "läcker" gult)
+    const nearCleaning = (ll, name) => !!name && cleaningSegs.some(s =>
+      s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
+
+    // Förbudssträckor (rött, underst) – samma tjocklek som tillåtna
+    forbiddenLines.forEach(line =>
+      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp));
+
+    // Tillåtna platser (färg efter villkor, överst)
+    let safe = 0, städas = 0;
+    allowed.forEach(s => {
+      const first = s.linesSweref[0] && s.linesSweref[0][0];
+      const dest  = first && toLatLng(first[0], first[1]);
+      const cleans = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());
+      let color, ok = false, txt;
+      if (cleans)                  { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
+      else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
+      else if (s.rate.freeAtNight) { color = '#60a5fa'; txt = 'Säker – fri på natten'; ok = true; }
+      else                         { color = '#f97316'; txt = 'Avgift dygnet runt'; }
+      if (ok) safe++;
+      const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
+      s.linesSweref.forEach(line =>
+        L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
+          .bindPopup(`<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${nav}`).addTo(grp));
+    });
+
+    streetGroupLayers.push(grp.addTo(map));
+
+    const badge = document.getElementById('count-badge');
+    badge.textContent = `${safe} säkra parkeringar i närheten`;
+    badge.style.display = 'block';
+    document.getElementById('hint').innerHTML =
+      '<span class="hint-main">🔵 Säker · 🟡 städas imorgon · 🟠 avgift dygnet runt · 🟣 ej för bil · 🔴 förbud</span>' +
+      '<span class="hint-disclaimer">Baseras på Stockholms öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar.</span>';
+
+    loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
+    console.log(`[UC2-v2] säkra=${safe} | städas=${städas} | tillåtna=${allowed.length} | förbud=${forbiddenLines.length} | städsegment=${cleaningSegs.length}`);
+  } catch(e) {
+    console.error('[UC2-v2]', e);
+    document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
+  }
+}
+
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
@@ -895,11 +1133,21 @@ function updateLegend(mode) {
   const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
     `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
   ).join('');
-  const modeRows = mode === 'uc2'
-    ? `<hr class="lgnd-sep">
+  const uc2LegendV2 =
+      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas imorgon – undvik</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #c2410c"></div>Avgift dygnet runt</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
+  const uc2LegendOld =
+      `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Kontrollera skylt (P-förbud)</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #c2410c"></div>Lastzon – parkera ej</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`;
+  const modeRows = mode === 'uc2'
+    ? (v2Active ? uc2LegendV2 : uc2LegendOld)
     : `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städas imorgon</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
@@ -1061,7 +1309,7 @@ async function showStreetsNearViewport(foreskriftP = null) {
     dbg.viewport    = features.map(f => f.properties?.STREET_NAME).filter(Boolean);
     dbg.removedViewport = beforeViewport - features.length;
 
-    // 1. Filtrera förbudszoner och gågator
+    // 1. Filtrera förbudszoner, gågator och mc-only parker
     const beforeForbidden = features.length;
     const removedForbidden = [];
     if (forbiddenZoneGeoms.length || forbiddenStreetNames.size) {
@@ -1249,8 +1497,11 @@ function flyToAndShow(lat, lng) {
 
   // Pre-starta tunga nätverksanrop under kartanimationen (~1.1 s) så att
   // data är klar (eller nära klar) när animationen slutar.
-  const overpassP   = uc2 ? fetchOverpassStreets(lat, lng, 500) : null;
-  const foreskriftP = loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
+  // v2-flödet använder inte Overpass → hoppa över det anropet.
+  const useV2here   = uc2 && v2Active;
+  const overpassP   = (uc2 && !v2Active) ? fetchOverpassStreets(lat, lng, 500) : null;
+  const foreskriftP = useV2here ? null : loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
+  const parkV2P     = useV2here ? loadParkingV2(lat, lng, 500) : null;
 
   searchMarker = L.circleMarker([lat, lng], {
     radius: 10,
@@ -1258,7 +1509,9 @@ function flyToAndShow(lat, lng) {
     fillColor:   uc2 ? '#1e3a8a' : '#4ade80',
     fillOpacity: 0.95, weight: uc2 ? 2.5 : 2, pane: 'markerPane'
   }).addTo(map);
-  if (uc2) {
+  if (useV2here) {
+    map.once('moveend', () => showSafeStreetsV2Flow(lat, lng, parkV2P));
+  } else if (uc2) {
     map.once('moveend', () => showSafeStreetsNearby(lat, lng, overpassP, foreskriftP));
   } else {
     map.once('moveend', () => showStreetsNearViewport(foreskriftP));
@@ -1585,7 +1838,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
         hardRestrictedIds.add(el.id);
         if (!dbg2.zone.includes(name)) dbg2.zone.push(name);
       } else {
-        const matchedRate = nearForbiddenParkingLine(sx, sy, activeParkingLines);
+        const matchedRate = nearForbiddenParkingLine(sx, sy, activeParkingLines, name);
         if (matchedRate || nearForbiddenLine(sx, sy, name)) {
           softRestrictedIds.add(el.id);
           if (matchedRate && matchedRate.includes('boende')) boendeRestrictedIds.add(el.id);
@@ -1675,6 +1928,21 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
       });
     });
     streetGroupLayers.push(L.layerGroup(allPolylines).addTo(map));
+
+    // 5. Lastzoner – korta orange markörer (ändamålsplats lastning/lossning).
+    //    Gatan i övrigt är blå/parkerbar; markören visar just den reserverade sträckan.
+    if (loadingZoneSegments.length) {
+      const LOAD_LINE = { color: '#f97316', weight: 6, opacity: .95, dashArray: '3 5', lineCap: 'round' };
+      const loadLines = loadingZoneSegments.map(({ coords, locationApprox }) => {
+        const latlngs = coords.map(c => toLatLng(c[0], c[1]));
+        const namn = locationApprox ? locationApprox.charAt(0).toUpperCase() + locationApprox.slice(1) : 'Lastzon';
+        return L.polyline(latlngs, { ...LOAD_LINE })
+          .bindPopup(`<strong style="color:#fb923c">🚚 Lastzon</strong><br>` +
+                     `<span style="font-size:12px;color:#f0f6fc">${namn}</span><br>` +
+                     `<em style="font-size:11px;color:#fdba74">Reserverad för lastning/lossning – parkera ej här</em>`);
+      });
+      streetGroupLayers.push(L.layerGroup(loadLines).addTo(map));
+    }
 
     const badge = document.getElementById('count-badge');
     badge.textContent = `${safe.length} säkra parkeringar i närheten`;

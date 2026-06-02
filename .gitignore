@@ -1,3 +1,8 @@
 node_modules/
 .env
 .DS_Store
+
+# Testskräp / diagnostik
+overpass_test.json
+server_test.log
+*.log
