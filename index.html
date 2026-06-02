@@ -531,8 +531,8 @@
       <span class="when-caret">▾</span>
     </button>
     <div id="when-menu">
-      <button class="when-opt" data-mode="now" onclick="pickWhen('now')" disabled>
-        <span class="when-opt-main">Nu <span class="when-soon">Snart</span></span>
+      <button class="when-opt" data-mode="now" onclick="pickWhen('now')">
+        <span class="when-opt-main">Nu</span>
         <span class="when-opt-sub">Var får jag stå just nu?</span>
       </button>
       <button class="when-opt" data-mode="uc1" onclick="pickWhen('uc1')">
@@ -1173,19 +1173,105 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
   }
 }
 
+// ── UC3 "Nu" – nulägesparkering (realtid) ────────────────────────────────────
+// Avgör om en plats är avgiftsbelagd JUST NU utifrån PARKING_RATE + aktuell tid.
+function feeStatusNow(raw) {
+  const rate = (raw || '').toLowerCase();
+  if (!rate || rate.includes('avgiftsfri')) return { paid:false, label:'Får stå nu – gratis' };
+  const now = new Date(), day = now.getDay(), h = now.getHours();
+  const weekday = day >= 1 && day <= 5;
+  const m = rate.match(/vardagar\s+(\d+)\s*[-–]\s*(\d+)/);
+  if (m && weekday && h >= +m[1] && h < +m[2]) {
+    const taxa = (rate.match(/taxa\s*(\d+)/) || [])[1];
+    return { paid:true, label:'Avgift nu' + (taxa ? ` (taxa ${taxa})` : '') };
+  }
+  return { paid:false, label:'Får stå nu – gratis' };   // utanför avgiftstid
+}
+
+// Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
+// (latlng, gatunamn) → bool. Namn + geometri (lat/lng) hindrar granngata-läcka.
+function buildCleaningMatcher(cleaningData, lat, lng, grp) {
+  const feats = Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []);
+  const segs = [];
+  feats.forEach(f => {
+    const m = featureMidCoord(f); if (!m) return;
+    const mll = toLatLng(m[0], m[1]);
+    if (map.distance([lat, lng], [mll.lat, mll.lng]) > 500) return;
+    const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+    L.geoJSON(f, { style:{ color:'#fbbf24', weight:5, opacity:.85, dashArray:'6 6' },
+      coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
+    featureLines(f).forEach(line => {
+      for (let i = 0; i < line.length - 1; i++)
+        segs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name });
+    });
+  });
+  return { count: segs.length, near: (ll, name) => !!name && segs.some(s =>
+    s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25) };
+}
+
+async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
+  clearStreetsFromMap();
+  document.getElementById('hint').innerHTML =
+    `<div style="display:flex;align-items:center;gap:12px"><div class="mini-spinner"></div>
+       <span style="color:var(--text);font-size:14px">Kollar var du får stå just nu…</span></div>`;
+  try {
+    const [{ allowed, forbiddenLines }, cleaningToday] = await Promise.all([
+      parkPromise ? parkPromise : loadParkingV2(lat, lng),
+      fetchServicedays(getKey(), apiDay(new Date())),   // DAGENS städning
+    ]);
+    const grp = L.layerGroup();
+    const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp);
+
+    forbiddenLines.forEach(line =>
+      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp));
+
+    let gratis = 0, avgift = 0;
+    allowed.forEach(s => {
+      const first = s.linesSweref[0] && s.linesSweref[0][0];
+      const dest  = first && toLatLng(first[0], first[1]);
+      const cleans = dest && clean.near(dest, (s.street || '').toLowerCase().trim());
+      let color, txt;
+      if (cleans)                      { color = '#fbbf24'; txt = 'Städas idag – kontrollera tid'; }
+      else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
+      else {
+        const fee = feeStatusNow(s.rate.raw);
+        if (fee.paid) { color = '#60a5fa'; txt = fee.label; avgift++; }
+        else          { color = '#4ade80'; txt = fee.label; gratis++; }
+      }
+      const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
+      s.linesSweref.forEach(line =>
+        L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
+          .bindPopup(`<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${nav}`).addTo(grp));
+    });
+
+    streetGroupLayers.push(grp.addTo(map));
+    const badge = document.getElementById('count-badge');
+    badge.textContent = `${gratis + avgift} gator där du får stå nu`;
+    badge.style.display = 'block';
+    document.getElementById('hint').innerHTML =
+      '<span class="hint-main">🟢 Får stå nu · 🔵 Avgift nu · 🟡 Städas idag · 🔴 Förbud</span>' +
+      '<span class="hint-disclaimer">Nuläge baserat på tid + öppna data. Kontrollera alltid lokala skyltar.</span>';
+    loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
+    sheetSnapTo('peek');
+    console.log(`[UC3-nu] gratis=${gratis} | avgift=${avgift} | förbud=${forbiddenLines.length} | städsegment=${clean.count}`);
+  } catch(e) {
+    console.error('[UC3-nu]', e);
+    document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
+  }
+}
+
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
-// Smart standard (beslut UX §11.4): kväll/natt → Över natten, annars → I kväll
-let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'uc1'; })();
+// Smart standard (beslut UX §11.4): kväll/natt → Över natten, dagtid → Nu
+let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'now'; })();
 const WHEN_LABELS = { now: 'Nu',  uc1: 'I kväll',      uc2: 'Över natten' };
 const WHEN_SUBS   = { now: 'Var får jag stå just nu?', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
 
 function toggleWhenMenu(e) { e && e.stopPropagation(); document.getElementById('mode-row').classList.toggle('open'); }
 function closeWhenMenu()    { document.getElementById('mode-row').classList.remove('open'); }
 function pickWhen(mode) {
-  if (mode === 'now') return;            // "Nu" är inte byggt än (visas som Snart)
   closeWhenMenu();
   if (mode !== currentMode) setMode(mode);
 }
@@ -1270,7 +1356,16 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Kontrollera skylt (P-förbud)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #c2410c"></div>Lastzon – parkera ej</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`;
-  const modeRows = mode === 'uc2'
+  const nowLegend =
+      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Får stå nu – gratis</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Avgift nu</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas idag – undvik</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
+  const modeRows = mode === 'now'
+    ? nowLegend
+    : mode === 'uc2'
     ? (v2Active ? uc2LegendV2 : uc2LegendOld)
     : `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Hög chans – städas imorgon</div>
@@ -1620,15 +1715,15 @@ async function promptSetHome() {
 function flyToAndShow(lat, lng) {
   searchCenter = L.latLng(lat, lng);
   if (searchMarker) { searchMarker.remove(); searchMarker = null; }
-  const uc2 = currentMode === 'uc2';
+  const uc2   = currentMode === 'uc2';
+  const isNow = currentMode === 'now';
 
-  // Pre-starta tunga nätverksanrop under kartanimationen (~1.1 s) så att
-  // data är klar (eller nära klar) när animationen slutar.
-  // v2-flödet använder inte Overpass → hoppa över det anropet.
+  // Pre-starta tunga nätverksanrop under kartanimationen (~1.1 s).
+  // v2/now använder P_TILLATEN-grunden (ej Overpass).
   const useV2here   = uc2 && v2Active;
   const overpassP   = (uc2 && !v2Active) ? fetchOverpassStreets(lat, lng, 500) : null;
-  const foreskriftP = useV2here ? null : loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
-  const parkV2P     = useV2here ? loadParkingV2(lat, lng, 500) : null;
+  const foreskriftP = (useV2here || isNow) ? null : loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
+  const parkV2P     = (useV2here || isNow) ? loadParkingV2(lat, lng, 500) : null;
 
   searchMarker = L.circleMarker([lat, lng], {
     radius: 10,
@@ -1636,7 +1731,9 @@ function flyToAndShow(lat, lng) {
     fillColor:   uc2 ? '#1e3a8a' : '#4ade80',
     fillOpacity: 0.95, weight: uc2 ? 2.5 : 2, pane: 'markerPane'
   }).addTo(map);
-  if (useV2here) {
+  if (isNow) {
+    map.once('moveend', () => showNowParkingV2Flow(lat, lng, parkV2P));
+  } else if (useV2here) {
     map.once('moveend', () => showSafeStreetsV2Flow(lat, lng, parkV2P));
   } else if (uc2) {
     map.once('moveend', () => showSafeStreetsNearby(lat, lng, overpassP, foreskriftP));
@@ -1854,6 +1951,9 @@ function setMode(mode) {
   if (mode === 'uc2') {
     app.classList.add('uc2-mode');
     inp.placeholder = 'Din hemadress, t.ex. Hornsgatan 10…';
+  } else if (mode === 'now') {
+    app.classList.remove('uc2-mode');
+    inp.placeholder = 'Sök plats – eller tryck 📍 för din position';
   } else {
     app.classList.remove('uc2-mode');
     inp.placeholder = 'Sök gata du ska till, t.ex. Sveavägen…';
@@ -1864,7 +1964,10 @@ function setMode(mode) {
   const disclaimer = '<span class="hint-disclaimer">Informationen baseras på Stockholms öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar. ParkSpot tar inget ansvar för parkeringsböter eller bogsering.</span>';
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
-  if (mode === 'uc1') {
+  if (mode === 'now') {
+    hintEl.innerHTML =
+      '<span class="hint-main">Var får du stå just nu? Sök en plats eller tryck på din blå position på kartan.</span>' + disclaimer;
+  } else if (mode === 'uc1') {
     hintEl.innerHTML =
       '<span class="hint-main">Vart är du på väg? Gator som sopas imorgon bitti är med hög sannolikhet mindre belastade.</span>' + disclaimer;
   } else {
