@@ -186,7 +186,7 @@
     }
 
     /* ═══════════════ MAIN APP (mörkt tema) ═══════════════ */
-    #app { height: 100%; display: none; flex-direction: column; background: #080c1c; }
+    #app { height: 100%; display: none; flex-direction: column; background: #080c1c; position: relative; }
 
     #header {
       background: #080c1c;
@@ -295,19 +295,34 @@
       to   { opacity:1; transform: translateX(-50%) scale(1); }
     }
 
-    /* Bottom panel */
+    /* Bottensheet (draggbar, svävar över kartan) */
     #bottom {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: 85vh; max-height: 85vh;
       background: #0d1117;
       border-top: 1px solid var(--glass-border);
-      flex-shrink: 0;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column;
+      transform: translateY(calc(85vh - 118px));   /* peek tills JS tar över */
+      transition: transform .28s cubic-bezier(.16,1,.3,1);
+      z-index: 1050;
     }
-    #hint { font-size: 14px; color: var(--muted); padding: 16px 18px 28px; min-height: 78px; }
+    #sheet-handle {
+      flex-shrink: 0; padding: 10px 0 6px; cursor: grab;
+      display: flex; justify-content: center; touch-action: none; user-select: none;
+    }
+    #sheet-handle .grabber {
+      width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.25);
+    }
+    #sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: env(safe-area-inset-bottom, 0px); }
+    #hint { font-size: 14px; color: var(--muted); padding: 6px 18px 24px; min-height: 60px; }
     .hint-main { display: block; margin-bottom: 8px; }
     .hint-disclaimer { display: block; font-size: 11px; color: rgba(240,246,252,0.30); line-height: 1.5; }
-    #street-panel { display: none; padding: 16px 18px 28px; }
+    #street-panel { display: none; padding: 8px 18px 28px; }
 
     /* Gatulista */
-    #street-list { display: none; overflow-y: auto; max-height: 124px; }
+    #street-list { display: none; }
     .sl-item {
       display: flex; align-items: center; gap: 12px;
       padding: 11px 18px; cursor: pointer;
@@ -394,25 +409,47 @@
     .leaflet-popup-tip { background: rgba(13,17,23,0.95) !important; }
     .leaflet-popup-close-button { color: var(--muted) !important; }
 
-    /* ── Lägesväljare ── */
+    /* ── "När"-väljare (sentence-stil, ej flikar) ── */
     #mode-row {
       background: #080c1c; border-bottom: 1px solid var(--glass-border);
-      padding: 8px 14px; flex-shrink: 0;
+      padding: 8px 14px; flex-shrink: 0; position: relative; z-index: 1100;
     }
-    .mode-pill {
-      display: flex; background: rgba(255,255,255,0.04);
-      border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;
+    #when-chip {
+      display: flex; align-items: center; justify-content: space-between; width: 100%;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+      border-radius: 10px; padding: 10px 14px; cursor: pointer; color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 14px;
+      -webkit-tap-highlight-color: transparent; transition: border-color .15s;
     }
-    .mode-btn {
-      flex: 1; padding: 8px 10px;
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      border: none; background: transparent; color: var(--muted);
-      transition: background .15s, color .15s;
-      font-family: 'Inter', sans-serif; letter-spacing: -.01em;
+    #when-chip:active { border-color: var(--accent); }
+    .when-label { color: var(--muted); }
+    #when-chip strong { color: var(--accent); font-weight: 700; }
+    #when-sub { font-size: 12px; color: var(--muted); margin-left: 8px; }
+    .when-caret { color: var(--accent); font-size: 20px; line-height: 1; transition: transform .2s; }
+    #mode-row.open .when-caret { transform: rotate(180deg); }
+    #when-menu {
+      position: absolute; top: calc(100% - 1px); left: 14px; right: 14px; z-index: 700;
+      background: #0d1117; border: 1px solid var(--glass-border);
+      border-radius: 0 0 14px 14px; box-shadow: 0 14px 36px rgba(0,0,0,.65);
+      overflow: hidden; display: none;
+    }
+    #mode-row.open #when-menu { display: block; }
+    .when-opt {
+      display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
+      padding: 12px 16px; background: transparent; border: none; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
       -webkit-tap-highlight-color: transparent;
     }
-    .mode-btn.active-uc1,
-    .mode-btn.active-uc2 { background: var(--accent-dim); color: var(--accent); }
+    .when-opt:last-child { border-bottom: none; }
+    .when-opt:active, .when-opt.active-when { background: var(--accent-dim); }
+    .when-opt-main { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; }
+    .when-opt-sub  { font-size: 12px; color: var(--muted); }
+    .when-opt[disabled] { opacity: .45; cursor: default; }
+    .when-soon {
+      font-size: 10px; font-weight: 700; color: var(--accent); background: var(--accent-dim);
+      border: 1px solid var(--accent); border-radius: 6px; padding: 1px 6px; margin-left: 8px;
+      text-transform: uppercase; letter-spacing: .05em;
+    }
 
     /* UC2-läge – blå accentfärg via CSS-variabler (gäller hela #app automatiskt) */
     #app.uc2-mode {
@@ -489,9 +526,23 @@
   </div>
 
   <div id="mode-row">
-    <div class="mode-pill">
-      <button class="mode-btn active-uc1" id="btn-uc1" onclick="setMode('uc1')">🌆 Kvällsparkering</button>
-      <button class="mode-btn" id="btn-uc2" onclick="setMode('uc2')">🌙 Nattparkering</button>
+    <button id="when-chip" onclick="toggleWhenMenu(event)">
+      <span class="when-label">Parkerar: <strong id="when-current">Över natten</strong></span>
+      <span class="when-caret">▾</span>
+    </button>
+    <div id="when-menu">
+      <button class="when-opt" data-mode="now" onclick="pickWhen('now')" disabled>
+        <span class="when-opt-main">Nu <span class="when-soon">Snart</span></span>
+        <span class="when-opt-sub">Var får jag stå just nu?</span>
+      </button>
+      <button class="when-opt" data-mode="uc1" onclick="pickWhen('uc1')">
+        <span class="when-opt-main">I kväll</span>
+        <span class="when-opt-sub">Störst chans till plats</span>
+      </button>
+      <button class="when-opt" data-mode="uc2" onclick="pickWhen('uc2')">
+        <span class="when-opt-main">Över natten</span>
+        <span class="when-opt-sub">Tryggt till imorgon bitti</span>
+      </button>
     </div>
   </div>
 
@@ -523,6 +574,8 @@
   </div>
 
   <div id="bottom">
+    <div id="sheet-handle"><div class="grabber"></div></div>
+    <div id="sheet-body">
     <div id="hint">Sök en destination ovan — städgator i närheten visas på kartan.</div>
     <div id="street-list"></div>
     <div id="street-panel">
@@ -538,6 +591,7 @@
         </svg>
         Navigera hit med Google Maps
       </a>
+    </div>
     </div>
   </div>
 </div>
@@ -1090,10 +1144,10 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const dest  = first && toLatLng(first[0], first[1]);
       const cleans = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());
       let color, ok = false, txt;
-      if (cleans)                  { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
+      if (cleans)                      { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
-      else if (s.rate.freeAtNight) { color = '#60a5fa'; txt = 'Säker – fri på natten'; ok = true; }
-      else                         { color = '#f97316'; txt = 'Avgift dygnet runt'; }
+      else if (s.rate.freeAtNight)     { color = '#4ade80'; txt = 'Rekommenderad – trygg & fri i natt'; ok = true; }
+      else                             { color = '#60a5fa'; txt = 'Laglig – avgift dygnet runt'; }
       if (ok) safe++;
       const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
       s.linesSweref.forEach(line =>
@@ -1104,13 +1158,14 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     streetGroupLayers.push(grp.addTo(map));
 
     const badge = document.getElementById('count-badge');
-    badge.textContent = `${safe} säkra parkeringar i närheten`;
+    badge.textContent = `${safe} rekommenderade platser i natt`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">🔵 Säker · 🟡 städas imorgon · 🟠 avgift dygnet runt · 🟣 ej för bil · 🔴 förbud</span>' +
-      '<span class="hint-disclaimer">Baseras på Stockholms öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar.</span>';
+      '<span class="hint-main">🟢 Rekommenderad · 🟡 Städas imorgon · 🔴 Undvik · <span style="color:var(--muted)">full förklaring uppe till höger</span></span>' +
+      '<span class="hint-disclaimer">Kontrollera alltid lokala skyltar – data kan vara inaktuell.</span>';
 
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
+    sheetSnapTo('peek');   // mät peek mot färgraden
     console.log(`[UC2-v2] säkra=${safe} | städas=${städas} | tillåtna=${allowed.length} | förbud=${forbiddenLines.length} | städsegment=${cleaningSegs.length}`);
   } catch(e) {
     console.error('[UC2-v2]', e);
@@ -1122,10 +1177,79 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
-let currentMode = 'uc1';
+// Smart standard (beslut UX §11.4): kväll/natt → Över natten, annars → I kväll
+let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'uc1'; })();
+const WHEN_LABELS = { now: 'Nu',  uc1: 'I kväll',      uc2: 'Över natten' };
+const WHEN_SUBS   = { now: 'Var får jag stå just nu?', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
+
+function toggleWhenMenu(e) { e && e.stopPropagation(); document.getElementById('mode-row').classList.toggle('open'); }
+function closeWhenMenu()    { document.getElementById('mode-row').classList.remove('open'); }
+function pickWhen(mode) {
+  if (mode === 'now') return;            // "Nu" är inte byggt än (visas som Snart)
+  closeWhenMenu();
+  if (mode !== currentMode) setMode(mode);
+}
+function updateWhenChip(mode) {
+  document.getElementById('when-current').textContent = WHEN_LABELS[mode] || '';
+  document.querySelectorAll('.when-opt').forEach(el =>
+    el.classList.toggle('active-when', el.dataset.mode === mode));
+}
 let legendDiv = null;
 let legendCollapsed = false;
 let sgTimer = null, sgIndex = -1;
+
+// ── Bottensheet (draggbar: peek / halv / full) ───────────────────────────────
+let sheetEl = null, sheetSnaps = { full:0, half:0, peek:0 }, sheetCurY = 0;
+function sheetCompute() {
+  const vh = window.innerHeight;
+  const appH   = document.getElementById('app').offsetHeight || vh;
+  const mapTop = document.getElementById('map-wrap').offsetTop;   // kartans topp (under väljare/sök)
+  const topY   = appH - sheetEl.offsetHeight;                     // sheet-topp vid translateY=0
+  sheetSnaps.full = Math.max(0, mapTop - topY + 4);               // stannar vid kartans topp – täcker aldrig väljaren
+  sheetSnaps.half = Math.round(vh * 0.42);
+  // peek = visa handtag + hela sammanfattningen (hint) exakt, annars fast fallback
+  const handleH = (document.getElementById('sheet-handle')?.offsetHeight) || 34;
+  const hintEl  = document.getElementById('hint');
+  const hintVisible = hintEl && getComputedStyle(hintEl).display !== 'none';
+  const wantVisible = handleH + (hintVisible ? hintEl.offsetHeight + 14 : 90);
+  sheetSnaps.peek = Math.max(0, sheetEl.offsetHeight - Math.min(wantVisible, Math.round(vh * 0.5)));
+}
+function sheetSet(y, animate = true) {
+  sheetEl.style.transition = animate ? 'transform .28s cubic-bezier(.16,1,.3,1)' : 'none';
+  sheetEl.style.transform  = `translateY(${y}px)`;
+  sheetCurY = y;
+}
+function sheetSnapTo(state) { if (!sheetEl) return; sheetCompute(); sheetSet(sheetSnaps[state]); }
+function initSheet() {
+  sheetEl = document.getElementById('bottom');
+  const handle = document.getElementById('sheet-handle');
+  sheetCompute(); sheetSet(sheetSnaps.peek, false);
+  window.addEventListener('resize', () => { sheetCompute(); sheetSet(Math.min(sheetCurY, sheetSnaps.peek), false); });
+
+  let startY = 0, startT = 0, moved = 0, dragging = false;
+  handle.addEventListener('pointerdown', e => {
+    dragging = true; startY = e.clientY; startT = sheetCurY; moved = 0;
+    sheetEl.style.transition = 'none'; handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dy = e.clientY - startY; moved = Math.max(moved, Math.abs(dy));
+    sheetSet(Math.max(0, Math.min(sheetSnaps.peek, startT + dy)), false);
+  });
+  const endDrag = () => {
+    if (!dragging) return; dragging = false;
+    if (moved < 6) {                                  // tap → cykla peek→halv→full
+      const order = [sheetSnaps.peek, sheetSnaps.half, sheetSnaps.full];
+      const i = order.findIndex(v => Math.abs(v - sheetCurY) < 2);
+      sheetSet(order[(i + 1) % order.length]);
+    } else {                                          // släpp → snäpp till närmaste
+      const pts = [sheetSnaps.full, sheetSnaps.half, sheetSnaps.peek];
+      sheetSet(pts.reduce((a, b) => Math.abs(b - sheetCurY) < Math.abs(a - sheetCurY) ? b : a));
+    }
+  };
+  handle.addEventListener('pointerup', endDrag);
+  handle.addEventListener('pointercancel', endDrag);
+}
 
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
@@ -1135,9 +1259,9 @@ function updateLegend(mode) {
   ).join('');
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Rekommenderad – trygg i natt</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Laglig – avgift dygnet runt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas imorgon – undvik</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #c2410c"></div>Avgift dygnet runt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const uc2LegendOld =
@@ -1149,7 +1273,7 @@ function updateLegend(mode) {
   const modeRows = mode === 'uc2'
     ? (v2Active ? uc2LegendV2 : uc2LegendOld)
     : `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städas imorgon</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Hög chans – städas imorgon</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
 
   legendDiv.innerHTML =
@@ -1195,7 +1319,7 @@ function initMap() {
     maxZoom:19, zIndex:650
   }).addTo(map);
 
-  const legend = L.control({ position:'bottomright' });
+  const legend = L.control({ position:'topright' });
   legend.onAdd = () => {
     legendDiv = L.DomUtil.create('div','legend');
     updateLegend(currentMode);
@@ -1204,11 +1328,13 @@ function initMap() {
   legend.addTo(map);
   // Auto-kollaps efter 8 sekunder
   setTimeout(() => { if (!legendCollapsed) { legendCollapsed = true; applyLegendState(); } }, 8000);
-  map.on('click', hideStreetPanel);
+  map.on('click', () => { hideStreetPanel(); closeWhenMenu(); });
+  document.addEventListener('click', e => { if (!e.target.closest('#mode-row')) closeWhenMenu(); });
   document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchStreet(); });
   updateHomeBtnStyle();
   startGeolocation();
   initSuggestions();
+  initSheet();
 }
 
 // ── Min position ──────────────────────────────────────────────────────────────
@@ -1280,6 +1406,7 @@ function clearStreetsFromMap() {
   document.getElementById('street-panel').style.display = 'none';
   document.getElementById('hint').style.display = 'block';
   document.getElementById('count-badge').style.display = 'none';
+  sheetSnapTo('peek');
 }
 
 async function showStreetsNearViewport(foreskriftP = null) {
@@ -1697,6 +1824,7 @@ function buildStreetList(features) {
   document.getElementById('hint').style.display         = 'none';
   document.getElementById('street-panel').style.display = 'none';
   list.style.display = 'block';
+  sheetSnapTo('half');
 }
 
 function highlightFromList(visualLayer, itemEl, hitLayer) {
@@ -1721,8 +1849,7 @@ function setMode(mode) {
   const app = document.getElementById('app');
   const inp = document.getElementById('search-input');
 
-  document.getElementById('btn-uc1').className = 'mode-btn' + (mode === 'uc1' ? ' active-uc1' : '');
-  document.getElementById('btn-uc2').className = 'mode-btn' + (mode === 'uc2' ? ' active-uc2' : '');
+  updateWhenChip(mode);
 
   if (mode === 'uc2') {
     app.classList.add('uc2-mode');
@@ -1746,6 +1873,7 @@ function setMode(mode) {
   }
   inp.value = '';
   inp.focus();
+  sheetSnapTo('peek');   // mät peek mot den nya sammanfattningstexten
 }
 
 // ── UC2: Hitta säkra parkeringar nära hemmet ──────────────────────────────────
@@ -2023,6 +2151,7 @@ function buildSafeStreetList(streets) {
   document.getElementById('hint').style.display         = 'none';
   document.getElementById('street-panel').style.display = 'none';
   list.style.display = 'block';
+  sheetSnapTo('half');
 }
 </script>
 </body>
