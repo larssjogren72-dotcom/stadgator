@@ -1097,9 +1097,20 @@ function featureLines(f) {
 }
 
 // Lager 3 – tolka PARKING_RATE EN gång (domänregler, se ARKITEKTUR.md §5)
+// Avgift dygnet runt? "alla dagar"/"dygnet", eller "övrig tid <avgift>" (tiered, betald även natt).
+// "övrig tid avgiftsfri/gratis" räknas INTE som dygnet-runt-avgift.
+function paidAroundClock(rate) {
+  if (rate.includes('alla dagar') || rate.includes('dygnet')) return true;
+  if (rate.includes('övrig tid') && !/övrig tid\s*(avgiftsfri|gratis)/.test(rate)) return true;
+  return false;
+}
+
 function parseRate(raw) {
   const rate = (raw || '').toLowerCase();
-  const freeAtNight = rate === 'avgiftsfri' || rate.includes('vardagar');
+  // Fri på natten endast om TYDLIGT gratis: avgiftsfri, ELLER rent "vardagar X-Y"
+  // (inget dygnet-runt-pris, inget utförligt "klockan"-format). Annars konservativt: ej fri.
+  const freeAtNight = rate.includes('avgiftsfri') ||
+    (rate.includes('vardagar') && !rate.includes('klockan') && !paidAroundClock(rate));
   const taxa = (rate.match(/taxa\s*(\d+)/) || [])[1];
   return {
     raw: raw || '',
@@ -1257,32 +1268,31 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     forbiddenLines.forEach(line =>
       L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp));
 
-    // Tillåtna platser (färg efter villkor, överst)
+    // Gatufärg = trygg att stå över natten? (pris visas av zonerna + popupen, ej av färgen)
     let safe = 0, städas = 0;
     allowed.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
       const cleans = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());
-      let color, ok = false, txt;
+      let color, txt;
       if (cleans)                      { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
-      else if (s.rate.freeAtNight)     { color = '#4ade80'; txt = 'Rekommenderad – trygg & fri i natt'; ok = true; }
-      else                             { color = '#60a5fa'; txt = 'Laglig – avgift dygnet runt'; }
-      if (ok) safe++;
+      else                             { color = '#4ade80'; txt = 'Trygg över natten'; safe++; }
+      const taxaInfo = s.rate.taxa ? `<br><small style="color:rgba(240,246,252,0.5)">Taxa ${s.rate.taxa} – pris enligt zon</small>` : '';
       const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
       s.linesSweref.forEach(line =>
         L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
-          .bindPopup(`<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${nav}`).addTo(grp));
+          .bindPopup(`<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${taxaInfo}${nav}`).addTo(grp));
     });
 
     streetGroupLayers.push(grp.addTo(map));
 
     const badge = document.getElementById('count-badge');
-    badge.textContent = `${safe} rekommenderade platser i natt`;
+    badge.textContent = `${safe} trygga platser i natt`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">🟢 Rekommenderad · 🟡 Städas imorgon · 🔴 Undvik · <span style="color:var(--muted)">full förklaring uppe till höger</span></span>' +
-      '<span class="hint-disclaimer">Kontrollera alltid lokala skyltar – data kan vara inaktuell.</span>';
+      '<span class="hint-main">🟢 Trygg över natten · 🟡 Städas imorgon · 🟣 Ej för bil · 🔴 Förbud</span>' +
+      '<span class="hint-disclaimer">Pris visas av zonerna. Kontrollera alltid lokala skyltar.</span>';
 
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
     sheetSnapTo('peek');   // mät peek mot färgraden
@@ -1297,15 +1307,21 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 // Avgör om en plats är avgiftsbelagd JUST NU utifrån PARKING_RATE + aktuell tid.
 function feeStatusNow(raw) {
   const rate = (raw || '').toLowerCase();
-  if (!rate || rate.includes('avgiftsfri')) return { paid:false, label:'Får stå nu – gratis' };
+  const taxa = (rate.match(/taxa\s*(\d+)/) || [])[1];
+  const paid = { paid:true,  label:'Avgift nu' + (taxa ? ` (taxa ${taxa})` : '') };
+  const free = { paid:false, label:'Får stå nu – gratis' };
+
+  if (rate.includes('avgiftsfri')) return free;
+  if (!rate) return paid;                      // okänt → konservativt avgift
+  if (paidAroundClock(rate)) return paid;      // alla dagar / dygnet / övrig-tid-avgift
+  if (rate.includes('klockan')) return paid;   // utförligt format – tolkas ej säkert → konservativt
+
+  // Endast rent "vardagar X-Y": avgift inom tiden, gratis utanför
+  const m = rate.match(/vardagar\s+(\d{1,2})\s*[-–]\s*(\d{1,2})/);
+  if (!m) return paid;                         // ingen tolkbar tid → konservativt avgift
   const now = new Date(), day = now.getDay(), h = now.getHours();
   const weekday = day >= 1 && day <= 5;
-  const m = rate.match(/vardagar\s+(\d+)\s*[-–]\s*(\d+)/);
-  if (m && weekday && h >= +m[1] && h < +m[2]) {
-    const taxa = (rate.match(/taxa\s*(\d+)/) || [])[1];
-    return { paid:true, label:'Avgift nu' + (taxa ? ` (taxa ${taxa})` : '') };
-  }
-  return { paid:false, label:'Får stå nu – gratis' };   // utanför avgiftstid
+  return (weekday && h >= +m[1] && h < +m[2]) ? paid : free;
 }
 
 // Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
@@ -1345,7 +1361,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     forbiddenLines.forEach(line =>
       L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp));
 
-    let gratis = 0, avgift = 0;
+    // Gatufärg = får jag stå här just nu? (pris visas av zonerna + popupen, ej av färgen)
+    let okNu = 0;
     allowed.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
@@ -1353,27 +1370,24 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       let color, txt;
       if (cleans)                      { color = '#fbbf24'; txt = 'Städas idag – kontrollera tid'; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
-      else {
-        const fee = feeStatusNow(s.rate.raw);
-        if (fee.paid) { color = '#60a5fa'; txt = fee.label; avgift++; }
-        else          { color = '#4ade80'; txt = fee.label; gratis++; }
-      }
+      else                             { color = '#4ade80'; txt = 'Får stå nu'; okNu++; }
+      const taxaInfo = s.rate.taxa ? `<br><small style="color:rgba(240,246,252,0.5)">Taxa ${s.rate.taxa} – pris enligt zon</small>` : '';
       const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
       s.linesSweref.forEach(line =>
         L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
-          .bindPopup(`<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${nav}`).addTo(grp));
+          .bindPopup(`<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${taxaInfo}${nav}`).addTo(grp));
     });
 
     streetGroupLayers.push(grp.addTo(map));
     const badge = document.getElementById('count-badge');
-    badge.textContent = `${gratis + avgift} gator där du får stå nu`;
+    badge.textContent = `${okNu} gator där du får stå nu`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">🟢 Får stå nu · 🔵 Avgift nu · 🟡 Städas idag · 🔴 Förbud</span>' +
-      '<span class="hint-disclaimer">Nuläge baserat på tid + öppna data. Kontrollera alltid lokala skyltar.</span>';
+      '<span class="hint-main">🟢 Får stå nu · 🟡 Städas idag · 🟣 Ej för bil · 🔴 Förbud</span>' +
+      '<span class="hint-disclaimer">Pris visas av zonerna. Kontrollera alltid lokala skyltar.</span>';
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
     sheetSnapTo('peek');
-    console.log(`[UC3-nu] gratis=${gratis} | avgift=${avgift} | förbud=${forbiddenLines.length} | städsegment=${clean.count}`);
+    console.log(`[UC3-nu] får-stå=${okNu} | förbud=${forbiddenLines.length} | städsegment=${clean.count}`);
   } catch(e) {
     console.error('[UC3-nu]', e);
     document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
@@ -1465,8 +1479,7 @@ function updateLegend(mode) {
   ).join('');
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Rekommenderad – trygg i natt</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Laglig – avgift dygnet runt</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Trygg över natten</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas imorgon – undvik</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
@@ -1478,8 +1491,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`;
   const nowLegend =
       `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Får stå nu – gratis</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Avgift nu</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Får stå nu</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas idag – undvik</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
