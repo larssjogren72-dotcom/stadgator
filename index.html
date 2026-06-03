@@ -292,6 +292,29 @@
       to   { opacity:1; transform: translateX(-50%) scale(1); }
     }
 
+    /* Platsknapp (locate me) – uppe till vänster, under zoom */
+    #locate-btn {
+      position: absolute; top: 88px; left: 11px; z-index: 600;
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(8,12,28,0.88); border: 1px solid var(--glass-border);
+      color: var(--text); font-size: 17px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.45); -webkit-tap-highlight-color: transparent;
+    }
+    #locate-btn:active { background: rgba(74,222,128,0.18); }
+    #locate-btn.locating { animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.45 } }
+
+    /* Toast – kort meddelande (t.ex. plats blockerad) */
+    #toast {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 1200; max-width: 86%; text-align: center;
+      background: rgba(13,17,23,0.96); border: 1px solid var(--glass-border);
+      color: var(--text); font-size: 13px; line-height: 1.45;
+      padding: 11px 16px; border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+
     /* Bottensheet (draggbar, svävar över kartan) */
     #bottom {
       position: absolute; left: 0; right: 0; bottom: 0;
@@ -624,6 +647,8 @@
     <div id="map"></div>
     <div id="loading"><div class="spinner"></div><span class="loading-lbl">Hämtar städgator…</span></div>
     <div id="count-badge"></div>
+    <button id="locate-btn" title="Visa min plats" onclick="locateMe()">📍</button>
+    <div id="toast"></div>
   </div>
 
   <!-- Diagnostikpanel – visas tillfälligt när LTFR_FORESKRIFT_GEOM inspekteras -->
@@ -1567,7 +1592,40 @@ function startGeolocation() {
                        && lng > STOCKHOLM_BOUNDS.minLng && lng < STOCKHOLM_BOUNDS.maxLng;
       if (!inStockholm) map.flyTo([lat, lng], 13, { duration: 1.5 });
     }
-  }, null, { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 });
+  }, err => {
+    if (err.code === 1) geoDenied = true;   // blockerad – platsknappen guidar vidare
+  }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 });
+}
+
+// ── Platsknapp + meddelanden ─────────────────────────────────────────────────
+let geoDenied = false;
+function showToast(msg, ms = 4500) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.opacity = '0'; }, ms);
+}
+function locateMe() {
+  const btn = document.getElementById('locate-btn');
+  if (!navigator.geolocation) { showToast('Platsåtkomst stöds inte i den här webbläsaren.'); return; }
+  btn.classList.add('locating');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      btn.classList.remove('locating'); geoDenied = false;
+      userLat = pos.coords.latitude; userLng = pos.coords.longitude;
+      flyToAndShow(userLat, userLng);          // visar parkering runt dig i aktuellt läge
+    },
+    err => {
+      btn.classList.remove('locating');
+      if (err.code === 1) {                    // PERMISSION_DENIED
+        geoDenied = true;
+        showToast('📍 Plats är blockerad. Tillåt platsåtkomst i webbläsaren (hänglåset till vänster om adressen) och försök igen.', 7000);
+      } else {
+        showToast('Kunde inte hämta din plats just nu. Försök igen.');
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 }
+  );
 }
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -2061,7 +2119,7 @@ function setMode(mode) {
   hintEl.style.display = 'block';
   if (mode === 'now') {
     hintEl.innerHTML =
-      '<span class="hint-main">Var får du stå just nu? Sök en plats eller tryck på din blå position på kartan.</span>' + disclaimer;
+      '<span class="hint-main">Var får du stå just nu? Sök en plats — eller tryck 📍 för var du står.</span>' + disclaimer;
   } else if (mode === 'uc1') {
     hintEl.innerHTML =
       '<span class="hint-main">Vart är du på väg? Gator som sopas imorgon bitti är med hög sannolikhet mindre belastade.</span>' + disclaimer;
