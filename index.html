@@ -1106,7 +1106,11 @@ function featureMidCoord(feat) {
 // ═══════════════════════════════════════════════════════════════════════════
 const PARKDATA_V2 = true;            // flagga – styr om v2-vyn aktiveras (Steg 2)
 let   v2Active = PARKDATA_V2;        // runtime-växel för A/B (sätt v2Active=false i konsolen → gamla UC2)
-const FORBID_THRESHOLD_M = 12;       // meter: P_FORBUD-punkt utan tillåten inom detta = förbud
+const FORBID_THRESHOLD_M = 12;       // meter: P_FORBUD utan tillåten inom detta = förbud.
+                                     // OBS: 12 m behålls medvetet. Lägre (t.ex. 6 m) fångar
+                                     // förbudssidan på smala gator men ger falska röda i innerstan
+                                     // (där avståndsfördelningen saknar gap). Smal-gata-miss är en
+                                     // känd begränsning som disclaimern täcker ("kontrollera skylt").
 
 // Lager 2 – generisk WFS-källadapter (ett anrop för alla lager)
 async function fetchLayer(layer, bbox) {
