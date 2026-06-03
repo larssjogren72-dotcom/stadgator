@@ -113,9 +113,17 @@ Naturlig påbyggnad på regelmotorn (lager 5) – ingen ny datakod. Hög priorit
 - 🅿️ "Var får jag parkera nu med mitt boendetillstånd?" → `residentOnly`-filter på
 - 🏍️ MC / ♿ rörelsehindrad → byt `kind`-filter (egna lager finns)
 - 💰 "Billigaste parkering nära X" → sortera på `rate.taxa`
-- ⏱️ "Hur länge får jag stå?" → `MAX_HOURS`/`MAX_MINUTES`-fält
+- ⏱️ "Hur länge får jag stå?" → `MAX_HOURS`/`MAX_MINUTES`-fält (OBS: ofta null i datan,
+  t.ex. 30-min-fickor saknar värde → kan ej filtreras; känd begränsning)
 - 🕐 "Var kan jag parkera imorgon kl 14?" → tidskontext in i `evaluate`
 - 🚚 Lastzon för leverans → `kind='loading'`
+
+### Framtida: använd P_TILLATENs EGNA tidsfält (upptäckt 2026-06-03)
+P_TILLATEN bär strukturerade tidsfält vi inte använder: `START_TIME`/`END_TIME`,
+`DAY_TYPE`, `START_WEEKDAY`, `START/END_MONTH`+`DAY` (säsong) och `OTHER_INFO`
+(t.ex. "Servicetid måndag 08:00–16:00 1 november–15 maj"). Idag hämtas städning
+från separat servicedagar-API. Möjlighet: mer exakt städ-/säsong-/avgiftshantering
+direkt ur P_TILLATEN → en datakälla, säsongsmedveten (t.ex. vinterstädning 1/11–15/5).
 
 ---
 
