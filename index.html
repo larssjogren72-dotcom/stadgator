@@ -403,14 +403,43 @@
     /* Legend */
     .legend {
       background: rgba(8,12,28,0.88); border: 1px solid var(--glass-border);
-      border-radius: 12px; padding: 10px 14px;
+      border-radius: 12px; padding: 8px 12px;
       font-size: 12px; color: var(--text); line-height: 1.9;
       box-shadow: 0 4px 18px rgba(0,0,0,0.5);
       backdrop-filter: blur(12px);
+      position: relative;
+      transition: padding .5s ease, background .5s ease, border-color .5s ease;
     }
     .lgnd-row { display: flex; align-items: center; gap: 8px; }
     .lgnd-sw  { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
     .lgnd-sep { border: none; border-top: 1px solid var(--glass-border); margin: 6px 0; }
+
+    /* Toggle: ✕ när öppen, tydlig pill "🗺 Förklaring" när minimerad */
+    .lgnd-toggle {
+      display: block; margin: 0 0 4px auto; background: none; border: none;
+      color: var(--muted); font-size: 13px; line-height: 1; cursor: pointer;
+      padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent;
+      transition: color .3s ease;
+    }
+    .lgnd-toggle .lt-label { display: none; }
+    /* Mjuk uttoning av innehållet vid kollaps */
+    #legend-content {
+      overflow: hidden; max-height: 420px; opacity: 1;
+      transition: opacity .7s ease, max-height .6s ease .05s;
+    }
+    .legend.collapsed { padding: 3px 8px; border-radius: 999px; background: var(--accent-dim); border-color: var(--accent); }
+    /* Ur flödet när minimerad → pillen blir bara så bred som texten */
+    .legend.collapsed #legend-content {
+      opacity: 0; max-height: 0;
+      position: absolute; top: 0; right: 0; width: max-content;
+      pointer-events: none;
+    }
+    .legend.collapsed .lgnd-toggle {
+      margin: 0; display: flex; align-items: center; gap: 4px;
+      color: var(--accent); font-weight: 600; font-size: 10px;
+    }
+    .legend.collapsed .lgnd-toggle .lt-label { display: inline; }
+    .legend.collapsed .lgnd-toggle .lt-x { display: none; }
 
     /* Leaflet overrides */
     .leaflet-control-attribution {
@@ -1504,27 +1533,16 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
 
   legendDiv.innerHTML =
-    `<div style="display:flex;justify-content:flex-end;margin-bottom:4px">
-       <button onclick="toggleLegend()" title="Dölj förklaring"
-         style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0;line-height:1">✕</button>
-     </div>
+    `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
+       <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
+     </button>
      <div id="legend-content">${zoneRows}${modeRows}</div>`;
   applyLegendState();
 }
 
 function applyLegendState() {
   if (!legendDiv) return;
-  const content = document.getElementById('legend-content');
-  const btn     = legendDiv.querySelector('button');
-  if (legendCollapsed) {
-    if (content) content.style.display = 'none';
-    if (btn) btn.textContent = '🗺';
-    legendDiv.style.padding = '8px 10px';
-  } else {
-    if (content) content.style.display = 'block';
-    if (btn) btn.textContent = '✕';
-    legendDiv.style.padding = '10px 14px';
-  }
+  legendDiv.classList.toggle('collapsed', legendCollapsed);   // CSS sköter mjuk uttoning + pill
 }
 
 function toggleLegend() {
@@ -2140,7 +2158,8 @@ function setMode(mode) {
       '<span class="hint-main">Vart är du på väg? Hitta trygga gator utan städning eller förbud nära ditt mål.</span>' + disclaimer;
   }
   inp.value = '';
-  inp.focus();
+  // Ingen auto-fokus: tangentbordet ska inte slå upp och dölja lägesförklaringen.
+  // Användaren trycker själv i sökfältet när hen vill skriva.
   sheetSnapTo('peek');   // mät peek mot den nya sammanfattningstexten
 }
 
