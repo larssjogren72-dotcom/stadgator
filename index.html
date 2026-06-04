@@ -2108,7 +2108,7 @@ function buildStreetList(features) {
   document.getElementById('hint').style.display         = 'none';
   document.getElementById('street-panel').style.display = 'none';
   list.style.display = 'block';
-  sheetSnapTo('half');
+  sheetSnapTo('peek');   // stanna i nedre läget – skym inte kartan; listan nås genom att dra upp
 }
 
 function highlightFromList(visualLayer, itemEl, hitLayer) {
@@ -2442,7 +2442,7 @@ function buildSafeStreetList(streets) {
   document.getElementById('hint').style.display         = 'none';
   document.getElementById('street-panel').style.display = 'none';
   list.style.display = 'block';
-  sheetSnapTo('half');
+  sheetSnapTo('peek');   // stanna i nedre läget – skym inte kartan; listan nås genom att dra upp
 }
 </script>
 </body>

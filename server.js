@@ -15,6 +15,33 @@ if (!API_KEY) {
 console.log(API_KEY ? '[ParkSpot] Server-API-nyckel laddad – användare behöver ingen egen.'
                     : '[ParkSpot] Ingen server-nyckel – faller tillbaka på klientens nyckel.');
 
+// ── Server-side cache (TTL + minnesgräns + single-flight) ────────────────────
+// Stockholms data ändras långsamt och är identisk för alla användare → cacha
+// upstream-svar så N användares identiska anrop blir 1 anrop. Skyddar API-nyckeln.
+const CACHE      = new Map();            // key -> { body:Buffer, type, expires }
+const INFLIGHT   = new Map();            // key -> [res, …]  (koalescering)
+const CACHE_TTL  = 6 * 60 * 60 * 1000;   // 6 h
+const CACHE_MAX  = 64 * 1024 * 1024;     // 64 MB total
+const ENTRY_MAX  = 30 * 1024 * 1024;     // cacha ej svar > 30 MB
+let   cacheBytes = 0, HITS = 0, MISSES = 0;
+
+function cacheGet(key) {
+  const e = CACHE.get(key);
+  if (!e) return null;
+  if (Date.now() > e.expires) { CACHE.delete(key); cacheBytes -= e.body.length; return null; }
+  CACHE.delete(key); CACHE.set(key, e);  // LRU-touch (flytta sist)
+  return e;
+}
+function cacheSet(key, body, type) {
+  if (body.length > ENTRY_MAX) return;
+  while (cacheBytes + body.length > CACHE_MAX && CACHE.size) {   // evicta äldsta
+    const k = CACHE.keys().next().value, o = CACHE.get(k);
+    CACHE.delete(k); cacheBytes -= o.body.length;
+  }
+  CACHE.set(key, { body, type, expires: Date.now() + CACHE_TTL });
+  cacheBytes += body.length;
+}
+
 http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
@@ -36,6 +63,16 @@ http.createServer((req, res) => {
     }
     const target  = wfsPath + '?' + reqUrl.searchParams.toString();
     forward('openstreetgs.stockholm.se', target, res);
+
+  } else if (reqUrl.pathname === '/cache-stats') {
+    res.setHeader('Content-Type', 'application/json');
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      entries: CACHE.size,
+      bytesMB: +(cacheBytes / 1048576).toFixed(1),
+      hits: HITS, misses: MISSES,
+      hitRate: (HITS + MISSES) ? +(HITS / (HITS + MISSES) * 100).toFixed(1) : 0
+    }));
 
   } else if (reqUrl.pathname === '/robots.txt') {
     res.setHeader('Content-Type', 'text/plain');
@@ -66,13 +103,47 @@ http.createServer((req, res) => {
 
 }).listen(PORT, () => console.log(`Städgator: http://localhost:${PORT}`));
 
-function forward(hostname, path, res) {
-  const proxyReq = https.request({ hostname, path, method: 'GET' }, (proxyRes) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'application/json');
-    res.writeHead(proxyRes.statusCode);
-    proxyRes.pipe(res);
+function send(res, status, type, body, cacheState) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', type);
+  res.setHeader('X-Cache', cacheState);
+  res.writeHead(status);
+  res.end(body);
+}
+
+function forward(hostname, upstreamPath, res) {
+  const key = hostname + upstreamPath;
+
+  // 1) Cache-träff → svara direkt
+  const cached = cacheGet(key);
+  if (cached) { HITS++; return send(res, 200, cached.type, cached.body, 'HIT'); }
+
+  // 2) Single-flight: pågår redan en hämtning för samma nyckel → vänta in den
+  const waiting = INFLIGHT.get(key);
+  if (waiting) { waiting.push(res); return; }
+  INFLIGHT.set(key, [res]);
+  MISSES++;
+
+  const flush = (status, type, body, state) => {
+    const list = INFLIGHT.get(key) || []; INFLIGHT.delete(key);
+    // Originalanropet (i=0) gjorde upstream-anropet; övriga delade det → COALESCED.
+    list.forEach((r, i) => send(r, status, type, body, i === 0 ? state : 'COALESCED'));
+  };
+
+  // 3) Hämta upstream, buffra, cacha (om 200), svara alla väntande
+  const proxyReq = https.request({ hostname, path: upstreamPath, method: 'GET' }, (proxyRes) => {
+    const chunks = [], type = proxyRes.headers['content-type'] || 'application/json';
+    proxyRes.on('data', c => chunks.push(c));
+    proxyRes.on('end', () => {
+      const body = Buffer.concat(chunks);
+      if (proxyRes.statusCode === 200) cacheSet(key, body, type);
+      flush(proxyRes.statusCode, type, body, 'MISS');
+    });
   });
-  proxyReq.on('error', (err) => { res.writeHead(502); res.end(JSON.stringify({ error: err.message })); });
+  proxyReq.on('error', (err) => {
+    const list = INFLIGHT.get(key) || []; INFLIGHT.delete(key);
+    list.forEach(r => { r.writeHead(502); r.end(JSON.stringify({ error: err.message })); });
+  });
+  proxyReq.setTimeout(20000, () => proxyReq.destroy(new Error('upstream timeout')));
   proxyReq.end();
 }
