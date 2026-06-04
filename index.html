@@ -1555,7 +1555,10 @@ function toggleLegend() {
 }
 
 function initMap() {
-  map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true });
+  // Canvas-renderare med tolerance → större (osynlig) klickyta på ALLA linjer
+  // app-brett → lättare att träffa en gata, konsekvent, och snabbare för många segment.
+  map = L.map('map', { center:[59.332,18.065], zoom:13, zoomControl:true,
+                       renderer: L.canvas({ tolerance: 12 }) });
   map.createPane('zonesPane').style.zIndex = 350; // under gator (400)
   // Bakgrundskarta utan text
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
@@ -1572,12 +1575,22 @@ function initMap() {
   legend.onAdd = () => {
     legendDiv = L.DomUtil.create('div','legend');
     updateLegend(currentMode);
+    L.DomEvent.disableClickPropagation(legendDiv);   // klick på legenden ≠ klick på kartan
+    L.DomEvent.disableScrollPropagation(legendDiv);
     return legendDiv;
   };
   legend.addTo(map);
   // Auto-kollaps efter 8 sekunder
   setTimeout(() => { if (!legendCollapsed) { legendCollapsed = true; applyLegendState(); } }, 8000);
-  map.on('click', () => { hideStreetPanel(); closeWhenMenu(); });
+  map.on('click', e => {
+    // Är "när"-menyn öppen? → stäng bara den, sök inte
+    if (document.getElementById('mode-row').classList.contains('open')) { closeWhenMenu(); return; }
+    // Annars: tryck på kartan = destination → sök parkering där (i aktuellt läge)
+    hideStreetPanel();
+    searchStreetName = null;                                   // punkt, inte namngiven gata
+    document.getElementById('search-input').value = '';
+    flyToAndShow(e.latlng.lat, e.latlng.lng);
+  });
   document.addEventListener('click', e => { if (!e.target.closest('#mode-row')) closeWhenMenu(); });
   document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchStreet(); });
   updateHomeBtnStyle();
@@ -2153,13 +2166,13 @@ function setMode(mode) {
   hintEl.style.display = 'block';
   if (mode === 'now') {
     hintEl.innerHTML =
-      '<span class="hint-main">Var får du stå just nu? Sök en plats — eller tryck 📍 för var du står.</span>' + disclaimer;
+      '<span class="hint-main">Var får du stå just nu? Tryck på kartan, sök en plats — eller 📍 för var du står.</span>' + disclaimer;
   } else if (mode === 'uc1') {
     hintEl.innerHTML =
-      '<span class="hint-main">Vart är du på väg? Gator som sopas imorgon bitti är med hög sannolikhet mindre belastade.</span>' + disclaimer;
+      '<span class="hint-main">Vart är du på väg? Tryck på kartan eller sök — gator som sopas imorgon bitti är ofta mindre belastade.</span>' + disclaimer;
   } else {
     hintEl.innerHTML =
-      '<span class="hint-main">Vart är du på väg? Hitta trygga gator utan städning eller förbud nära ditt mål.</span>' + disclaimer;
+      '<span class="hint-main">Vart är du på väg? Tryck på kartan eller sök — hitta trygga gator utan städning eller förbud nära målet.</span>' + disclaimer;
   }
   inp.value = '';
   // Ingen auto-fokus: tangentbordet ska inte slå upp och dölja lägesförklaringen.
