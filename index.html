@@ -30,6 +30,7 @@
   <meta property="og:image"       content="https://parkspot.se/og-image-v2.png">
   <meta property="og:image:width"  content="2400">
   <meta property="og:image:height" content="1260">
+  <meta property="og:image:alt"   content="ParkSpot Stockholm – karta som visar var du får parkera: nu, i kväll eller över natten.">
   <meta property="og:locale"      content="sv_SE">
   <meta property="og:site_name"   content="ParkSpot Stockholm">
 
@@ -38,6 +39,7 @@
   <meta name="twitter:title"       content="ParkSpot Stockholm – var får du parkera?">
   <meta name="twitter:description" content="Se på karta var du får parkera i Stockholm – just nu, i kväll eller över natten. Lagliga platser, utan städgator, förbud och böter.">
   <meta name="twitter:image"       content="https://parkspot.se/og-image-v2.png">
+  <meta name="twitter:image:alt"   content="ParkSpot Stockholm – parkeringskarta för nu, i kväll och över natten.">
 
   <!-- Strukturerad data – Google förstår vad appen är -->
   <script type="application/ld+json">
@@ -45,19 +47,72 @@
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "ParkSpot Stockholm",
+    "alternateName": "ParkSpot",
     "url": "https://parkspot.se/",
     "description": "Visar morgondagens städgator i Stockholm och säkra gator för nattparkering. Gratis parkeringskarta med zoner och taxa.",
     "applicationCategory": "TransportationApplication",
     "applicationSubCategory": "Parking",
     "operatingSystem": "Web",
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
     "inLanguage": "sv",
+    "isAccessibleForFree": true,
+    "datePublished": "2026-06-03",
+    "image": "https://parkspot.se/og-image-v2.png",
+    "screenshot": "https://parkspot.se/og-image-v2.png",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "SEK" },
-    "areaServed": { "@type": "City", "name": "Stockholm" },
+    "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "ParkSpot Stockholm",
+      "url": "https://parkspot.se/"
+    },
     "featureList": [
       "Morgondagens städgator på karta",
       "Säkra gator för nattparkering",
       "Parkeringszoner och taxa",
       "Navigering med Google Maps"
+    ]
+  }
+  </script>
+
+  <!-- FAQ-schema – matchar vad folk faktiskt googlar om parkering i Stockholm -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Vilka gator städas imorgon i Stockholm?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ParkSpot visar på karta vilka gator som har städdag (servicedag) imorgon utifrån Stockholms stads öppna data. Välj läget \"I kväll\" eller \"Över natten\" så markeras gator som städas så att du kan undvika dem – eller hitta dem inför kvällen då de ofta är lediga."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Var får man parkera gratis över natten i Stockholm?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "I läget \"Över natten\" visar ParkSpot gröna gator nära dig där det är lagligt att stå till morgonen efter, utan städgata eller förbud. Avgift kan ändå gälla – kontrollera alltid skylten och taxazonen på plats."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Är städgator i Stockholm säsongsbaserade?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Många städgator i ytterstaden gäller bara vinterhalvåret (ofta 1 november–15 maj), medan innerstaden oftast städas året runt. ParkSpot filtrerar varje gata mot dagens datum och visar bara städning som faktiskt är aktiv just nu."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Kostar ParkSpot något?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nej. ParkSpot är gratis, kräver ingen inloggning och ingen egen API-nyckel. Appen bygger på Stockholms stads öppna data."
+        }
+      }
     ]
   }
   </script>
@@ -558,6 +613,7 @@
       box-shadow: 0 32px 80px rgba(0,0,0,0.6);
     }
     .privacy-card h2 { font-size: 18px; margin-bottom: 12px; }
+    .privacy-card h3 { font-size: 14px; margin: 16px 0 4px; color: var(--accent); }
     .privacy-card p  { font-size: 13px; color: rgba(240,246,252,0.72); line-height: 1.6; margin-bottom: 10px; }
     .privacy-card strong { color: var(--text); }
     .privacy-close {
@@ -585,8 +641,21 @@
 <!-- ── Integritet & ansvar ── -->
 <div id="privacy-modal">
   <div class="privacy-card">
-    <h2>Om ParkSpot &amp; integritet</h2>
-    <p><strong>Vad appen gör:</strong> visar parkeringsinformation från Stockholms stads öppna data.</p>
+    <h2>Om ParkSpot &amp; vanliga frågor</h2>
+    <p><strong>Vad appen gör:</strong> visar på karta var du får parkera i Stockholm – just nu, i kväll eller över natten – utifrån Stockholms stads öppna data.</p>
+
+    <h3>Vilka gator städas imorgon i Stockholm?</h3>
+    <p>ParkSpot markerar gator med städdag (servicedag) imorgon. I läget "I kväll" och "Över natten" ser du vilka gator som städas, så att du kan undvika dem – eller hitta dem inför kvällen då de ofta är lediga.</p>
+
+    <h3>Var får man parkera gratis över natten i Stockholm?</h3>
+    <p>I läget "Över natten" visas gröna gator nära dig där det är lagligt att stå till morgonen efter, utan städgata eller förbud. Avgift kan ändå gälla – kontrollera alltid skylten på plats.</p>
+
+    <h3>Är städgator säsongsbaserade?</h3>
+    <p>Ja, ofta. Många gator i ytterstaden städas bara vinterhalvåret (oftast 1 november–15 maj), medan innerstaden vanligen städas året runt. ParkSpot filtrerar varje gata mot dagens datum och visar bara städning som är aktiv just nu.</p>
+
+    <h3>Kostar ParkSpot något?</h3>
+    <p>Nej. ParkSpot är gratis och kräver ingen inloggning eller egen API-nyckel.</p>
+
     <p><strong>Ansvar:</strong> informationen kan vara inaktuell eller felaktig. Kontrollera alltid lokala skyltar. ParkSpot ansvarar inte för parkeringsböter eller bogsering.</p>
     <p><strong>Din data:</strong> vi lagrar ingen personlig information på server. Hemadress och inställningar sparas bara lokalt i din webbläsare. Din GPS-position används enbart i din enhet för att visa var du är – den skickas aldrig till oss.</p>
     <p><strong>Statistik:</strong> om du accepterar används Google Analytics med anonymiserad IP för att förstå hur appen används. Du kan avböja – appen fungerar lika bra ändå.</p>
