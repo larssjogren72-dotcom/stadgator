@@ -1278,7 +1278,9 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     const grp = L.layerGroup();
 
     // Städgator imorgon inom 500 m: rita (gul streckad) + samla linjesegment + gatunamn (SWEREF99)
-    const cleaningFeatures = Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []);
+    // "Över natten" → städning gäller IMORGON. Filtrera bort poster ur säsong.
+    const cleaningFeatures = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
+      .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
     const cleaningSegs = [];   // { a:latlng, b:latlng, name }  (lat/lng – koordinatsystem-oberoende)
     cleaningFeatures.forEach(f => {
       const m = featureMidCoord(f); if (!m) return;
@@ -1357,10 +1359,25 @@ function feeStatusNow(raw) {
   return (weekday && h >= +m[1] && h < +m[2]) ? paid : free;
 }
 
+// Säsongskoll per gata: är städposten aktiv på datumet? (58% av datan är säsong,
+// mest vinter 1/11–15/5 i ytterstaden.) Saknar START_MONTH → året runt → alltid aktiv.
+function cleaningActiveOn(p, date) {
+  if (p.START_MONTH == null) return true;
+  const md  = (m, d) => m * 100 + (d || 1);
+  const cur = md(date.getMonth() + 1, date.getDate());
+  const a   = md(p.START_MONTH, p.START_DAY);
+  const b   = md(p.END_MONTH, p.END_DAY);
+  return a <= b ? (cur >= a && cur <= b)      // normalt intervall (t.ex. 16/5–31/10)
+                : (cur >= a || cur <= b);     // wrap över årsskifte (t.ex. 1/11–15/5)
+}
+
 // Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
 // (latlng, gatunamn) → bool. Namn + geometri (lat/lng) hindrar granngata-läcka.
 function buildCleaningMatcher(cleaningData, lat, lng, grp) {
-  const feats = Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []);
+  // UC3 "Nu" → städning gäller IDAG. Filtrera bort poster ur säsong.
+  const today = new Date();
+  const feats = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
+    .filter(f => cleaningActiveOn(f.properties || {}, today));
   const segs = [];
   feats.forEach(f => {
     const m = featureMidCoord(f); if (!m) return;
@@ -1719,7 +1736,9 @@ async function showStreetsNearViewport(foreskriftP = null) {
         : Promise.resolve()),
     ]);
 
-    let features = Array.isArray(data) ? data : (data.features || []);
+    // "I kväll" → städning gäller IMORGON. Filtrera bort poster ur säsong (per gata).
+    let features = (Array.isArray(data) ? data : (data.features || []))
+      .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
     const dbg = {}; // diagnostik
 
     // Filtrera till synligt kartområde
@@ -2200,7 +2219,8 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     //    Annars bannlyses t.ex. "Birger Jarlsgatan" nära sökadressen för att samma gatunamn
     //    råkar ha städdag på Södermalm – trots att den lokala sträckan är helt trygg.
     const data = await streetDataPromise;
-    const cleaningFeatures = Array.isArray(data) ? data : (data.features || []);
+    const cleaningFeatures = (Array.isArray(data) ? data : (data.features || []))
+      .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));   // säsongsfilter
     const cleaningNearby = cleaningFeatures.filter(f => {
       const m = featureMidCoord(f);
       if (!m) return false;
