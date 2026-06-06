@@ -394,7 +394,7 @@
     #hint { font-size: 14px; color: var(--muted); padding: 6px 18px 24px; min-height: 60px; }
     .hint-main { display: block; margin-bottom: 8px; }
     .hint-disclaimer { display: block; font-size: 11px; color: rgba(240,246,252,0.30); line-height: 1.5; }
-    #street-panel { display: none; padding: 8px 18px 28px; }
+    #street-panel { display: none; padding: 4px 18px 16px; }
 
     /* Gatulista */
     #street-list { display: none; }
@@ -429,10 +429,10 @@
     }
     .sl-nav:active { background: rgba(74,222,128,0.28); }
     #street-name {
-      font-size: 18px; font-weight: 700; color: var(--text);
-      margin-bottom: 10px; letter-spacing: -.01em;
+      font-size: 17px; font-weight: 700; color: var(--text);
+      margin-bottom: 8px; letter-spacing: -.01em;
     }
-    .street-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .street-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
     .sbadge {
       padding: 5px 12px; border-radius: 22px; font-size: 12px; font-weight: 500;
     }
@@ -446,19 +446,20 @@
     }
     #taxa-row {
       background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
-      border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;
-      font-size: 12px; line-height: 1.5; color: rgba(240,246,252,0.78);
+      border-radius: 9px; padding: 8px 10px; margin-bottom: 10px;
+      font-size: 12px; line-height: 1.45; color: rgba(240,246,252,0.78);
     }
     #taxa-row b { color: var(--text); }
     #gmaps-btn {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
       background: linear-gradient(135deg, #22c55e, #15803d);
-      color: #fff; padding: 14px 20px; border-radius: 14px;
-      text-decoration: none; font-size: 15px; font-weight: 700; width: 100%;
-      box-shadow: 0 4px 20px rgba(34,197,94,0.35);
+      color: #fff; padding: 10px 16px; border-radius: 11px;
+      text-decoration: none; font-size: 14px; font-weight: 700; width: 100%;
+      box-shadow: 0 3px 14px rgba(34,197,94,0.3);
       border: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
       transition: transform .1s;
     }
+    #gmaps-btn svg { width: 15px; height: 15px; }
     #gmaps-btn:active { transform: scale(0.98); }
 
     /* Legend */
@@ -1227,6 +1228,27 @@ function taxaPopupLine(lat, lng, fallbackTaxa) {
   return '';
 }
 
+// Visa platskort i nedre lådan för Nu/Över natten – pris + status utan att öppna popup.
+function showPlaceCardV2(name, statusTxt, statusColor, dest) {
+  document.getElementById('street-name').textContent = name;
+  const bd = document.getElementById('badge-district');
+  bd.textContent     = statusTxt;
+  bd.style.background = statusColor + '22';
+  bd.style.borderColor = statusColor + '66';
+  bd.style.color     = statusColor;
+  document.getElementById('badge-time').style.display = 'none';   // ingen tid-bricka här
+  const taxaRow = document.getElementById('taxa-row');
+  const z = dest ? taxaZoneAt(dest.lat, dest.lng) : null;
+  if (z && z.taxa) { taxaRow.innerHTML = `💰 <b>${z.name}</b> · ${z.taxa}`; taxaRow.style.display = 'block'; }
+  else             { taxaRow.style.display = 'none'; }
+  if (dest) document.getElementById('gmaps-btn').href =
+    `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+  document.getElementById('hint').style.display = 'none';
+  document.getElementById('street-list').style.display = 'none';
+  document.getElementById('street-panel').style.display = 'block';
+  sheetSnapTo('peek');   // självanpassat lägsta läge – skymmer inte kartan
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // v2.0 DATAGRUND – strukturerad parkeringsdata (P_TILLATEN / P_FORBUD)
 // Byggs BREDVID befintlig kod. Anropas ännu inte av UC1/UC2 → noll risk.
@@ -1443,9 +1465,11 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else                             { color = '#4ade80'; txt = 'Trygg över natten'; safe++; }
       const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
       const popupHtml = () => `<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${taxaPopupLine(dest&&dest.lat, dest&&dest.lng, s.rate.taxa)}${nav}`;
-      s.linesSweref.forEach(line =>
-        L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
-          .bindPopup(popupHtml).addTo(grp));
+      s.linesSweref.forEach(line => {
+        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
+          .bindPopup(popupHtml).addTo(grp);
+        pl.on('click', () => showPlaceCardV2(s.street || 'Parkering', txt, color, dest));   // fyll lådan med pris + status
+      });
     });
 
     streetGroupLayers.push(grp.addTo(map));
@@ -1551,9 +1575,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else                             { color = '#4ade80'; txt = 'Får stå nu'; okNu++; }
       const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
       const popupHtml = () => `<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${taxaPopupLine(dest&&dest.lat, dest&&dest.lng, s.rate.taxa)}${nav}`;
-      s.linesSweref.forEach(line =>
-        L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
-          .bindPopup(popupHtml).addTo(grp));
+      s.linesSweref.forEach(line => {
+        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
+          .bindPopup(popupHtml).addTo(grp);
+        pl.on('click', () => showPlaceCardV2(s.street || 'Parkering', txt, color, dest));   // fyll lådan med pris + status
+      });
     });
 
     streetGroupLayers.push(grp.addTo(map));
@@ -1605,11 +1631,15 @@ function sheetCompute() {
   const topY   = appH - sheetEl.offsetHeight;                     // sheet-topp vid translateY=0
   sheetSnaps.full = Math.max(0, mapTop - topY + 4);               // stannar vid kartans topp – täcker aldrig väljaren
   sheetSnaps.half = Math.round(vh * 0.42);
-  // peek = visa handtag + hela sammanfattningen (hint) exakt, annars fast fallback
+  // peek = visa handtag + det innehåll som faktiskt syns (kort > lista > hint) exakt.
+  // Självanpassar → lådan stannar lågt och skymmer inte kartan, i alla lägen.
   const handleH = (document.getElementById('sheet-handle')?.offsetHeight) || 34;
-  const hintEl  = document.getElementById('hint');
-  const hintVisible = hintEl && getComputedStyle(hintEl).display !== 'none';
-  const wantVisible = handleH + (hintVisible ? hintEl.offsetHeight + 14 : 90);
+  const vis = ['street-panel','street-list','hint']
+    .map(id => document.getElementById(id))
+    .find(el => el && getComputedStyle(el).display !== 'none');
+  const contentH = vis ? vis.offsetHeight : 90;
+  const wantVisible = handleH + contentH + 14;
+  // Tak: 50% av skärmen (kort ryms helt; lång lista scrollar i stället för att täcka kartan)
   sheetSnaps.peek = Math.max(0, sheetEl.offsetHeight - Math.min(wantVisible, Math.round(vh * 0.5)));
 }
 function sheetSet(y, animate = true) {
@@ -1986,9 +2016,13 @@ function selectStreet(feat, hitLayer, visualLayer) {
 
   const p = feat.properties || {};
   document.getElementById('street-name').textContent = p.STREET_NAME || p.ADDRESS || 'Städgata';
-  document.getElementById('badge-district').textContent = p.CITY_DISTRICT || p.PARKING_DISTRICT || 'Stockholm';
+  const bdEl = document.getElementById('badge-district');
+  bdEl.style.background = ''; bdEl.style.borderColor = ''; bdEl.style.color = '';   // återställ ev. v2-statusfärg
+  bdEl.textContent = p.CITY_DISTRICT || p.PARKING_DISTRICT || 'Stockholm';
+  const btEl = document.getElementById('badge-time');
+  btEl.style.display = '';                                                          // visa tid-brickan igen
   const from = p.START_TIME||'', to = p.END_TIME||'';
-  document.getElementById('badge-time').textContent = (from&&to) ? `${from}–${to}` : 'Servicedag';
+  btEl.textContent = (from&&to) ? `${from}–${to}` : 'Servicedag';
 
   const mid = featureMidCoord(feat);
   const c   = mid ? toLatLng(mid[0], mid[1]) : getCenter(hitLayer);
@@ -2007,6 +2041,7 @@ function selectStreet(feat, hitLayer, visualLayer) {
 
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-panel').style.display = 'block';
+  sheetSnapTo('peek');   // självanpassat lägsta läge – skymmer inte kartan
 }
 
 function hideStreetPanel() {
