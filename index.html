@@ -450,6 +450,49 @@
       font-size: 12px; line-height: 1.45; color: rgba(240,246,252,0.78);
     }
     #taxa-row b { color: var(--text); }
+
+    /* ── Parkeringshus (sista utväg) – indigo-identitet ── */
+    #phus-btn {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      background: rgba(129,140,248,0.14); border: 1px solid rgba(129,140,248,0.4);
+      border-radius: 12px; padding: 11px 14px; margin-bottom: 12px;
+      color: #c7d0ff; font-size: 13.5px; font-weight: 600; font-family: inherit;
+      cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .15s;
+    }
+    #phus-btn:active { background: rgba(129,140,248,0.26); }
+    #phus-btn.loading { opacity: .7; pointer-events: none; }
+    #phus-btn .phus-p {
+      width: 24px; height: 24px; border-radius: 6px; background: #818cf8; color: #0c1030;
+      font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    #phus-btn .phus-arrow { margin-left: auto; color: #9aa6ee; font-size: 18px; }
+
+    .phus-pin {
+      width: 30px; height: 30px; border-radius: 50% 50% 50% 4px; transform: rotate(45deg);
+      background: #3b4475; border: 2px solid rgba(255,255,255,0.6);
+      box-shadow: 0 3px 9px rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .phus-pin::after {
+      content: 'P'; transform: rotate(-45deg); color: #fff; font: 800 15px 'Inter',sans-serif;
+    }
+    .phus-pin.active { background: #818cf8; border-color: #fff; box-shadow: 0 0 0 6px rgba(129,140,248,0.28), 0 5px 14px rgba(0,0,0,0.5); }
+    .phus-pin.active::after { color: #0c1030; }
+
+    #garage-list { display: none; }
+    .garage-head { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 0 8px; }
+    .garage-head h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+    .garage-head span { font-size: 12px; color: var(--muted); }
+    .garage-row .phus-ic {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      background: rgba(129,140,248,0.14); border: 1px solid rgba(129,140,248,0.35);
+      color: #818cf8; font-weight: 800; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sl-badge.phus-cap { background: rgba(129,140,248,0.12); border: 1px solid rgba(129,140,248,0.3); color: #c7d0ff; }
+    .garage-note { font-size: 11.5px; color: rgba(240,246,252,0.4); line-height: 1.5; padding: 12px 2px 4px; }
+    .garage-empty { font-size: 13px; color: var(--muted); line-height: 1.6; padding: 10px 2px 18px; }
+
     #gmaps-btn {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       background: linear-gradient(135deg, #22c55e, #15803d);
@@ -771,7 +814,13 @@
   <div id="bottom">
     <div id="sheet-handle"><div class="grabber"></div></div>
     <div id="sheet-body">
+    <button id="phus-btn" onclick="showGarageList()" style="display:none">
+      <span class="phus-p">P</span>
+      <span class="phus-label">Parkeringshus nära</span>
+      <span class="phus-arrow">›</span>
+    </button>
     <div id="hint">Sök en destination ovan — städgator i närheten visas på kartan.</div>
+    <div id="garage-list"></div>
     <div id="street-list"></div>
     <div id="street-panel">
       <div id="street-name"></div>
@@ -1250,6 +1299,138 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PARKERINGSHUS – sista utväg när gatorna är fulla (Stockholm Parkering öppet API)
+// Opt-in-steg i lådan. Egen indigo-identitet → krockar ej med gatufärgerna.
+// Ärligt: ingen live-tillgång finns → vi visar kapacitet + brasklapp.
+// ═══════════════════════════════════════════════════════════════════════════
+function escHtml(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function loadGarageData() {
+  if (!garageDataPromise) {
+    garageDataPromise = fetch('/phus')
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+      .catch(e => { garageDataPromise = null; throw e; });   // tillåt nytt försök
+  }
+  return garageDataPromise;
+}
+
+function garageTaxaText(a) {
+  const coll = a.BesokstaxaCollection || [];
+  if (!coll.length) return '';
+  const hourly = coll.find(t => /tim/i.test(t.Tidsenhet || ''));
+  const t = hourly || coll[0];
+  if (!t || t.Taxa == null) return '';
+  return /tim/i.test(t.Tidsenhet || '') ? `${t.Taxa} kr/tim` : `${t.Taxa} kr · ${t.Galler || t.Tidsenhet || ''}`;
+}
+
+async function fetchNearbyGarages(lat, lng, radius = 1000) {
+  const all = await loadGarageData();
+  return (all || [])
+    .filter(a => /garage/i.test(a.Anlaggningstyp || '') && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud)
+    .map(a => ({
+      name: a.Name || 'Parkeringshus', lat: a.AdressLatitud, lng: a.AdressLongitud,
+      spaces: a.AntalBesokPlatser, taxa: garageTaxaText(a),
+      dist: Math.round(map.distance([lat, lng], [a.AdressLatitud, a.AdressLongitud]))
+    }))
+    .filter(x => x.dist <= radius)
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, 12);
+}
+
+function garagePin(active) {
+  return L.divIcon({ className: 'phus-pin-wrap',
+    html: `<div class="phus-pin${active ? ' active' : ''}">P</div>`,
+    iconSize: [30, 38], iconAnchor: [15, 38], popupAnchor: [0, -34] });
+}
+
+function clearGarages() {
+  garageMarkers.forEach(m => m.remove());
+  garageMarkers = [];
+  const gl = document.getElementById('garage-list');
+  if (gl) { gl.innerHTML = ''; gl.style.display = 'none'; }
+}
+
+const distStr = d => d < 1000 ? `${d} m` : `${(d/1000).toFixed(1)} km`;
+
+async function showGarageList() {
+  if (!searchCenter) return;
+  const btn = document.getElementById('phus-btn');
+  const lbl = btn.querySelector('.phus-label');
+  btn.classList.add('loading'); lbl.textContent = 'Hämtar parkeringshus…';
+  try {
+    const gs = await fetchNearbyGarages(searchCenter.lat, searchCenter.lng, 1000);
+    clearGarages();
+    gs.forEach(g => {
+      const m = L.marker([g.lat, g.lng], { icon: garagePin(false) }).addTo(map);
+      m._g = g; m.on('click', () => selectGarage(g, m)); garageMarkers.push(m);
+    });
+    renderGarageRows(gs);
+  } catch (e) {
+    console.warn('[P-hus]', e.message);
+    showToast('Kunde inte hämta parkeringshus just nu. Försök igen om en stund.');
+  } finally {
+    btn.classList.remove('loading'); lbl.textContent = 'Parkeringshus nära';
+  }
+}
+
+function renderGarageRows(gs) {
+  const list = document.getElementById('garage-list');
+  document.getElementById('hint').style.display = 'none';
+  document.getElementById('street-list').style.display = 'none';
+  document.getElementById('street-panel').style.display = 'none';
+  if (!gs.length) {
+    list.innerHTML = `<div class="garage-empty">Inga parkeringshus inom 1 km. Prova en plats mer centralt.</div>`;
+    list.style.display = 'block'; sheetSnapTo('peek'); return;
+  }
+  list.innerHTML =
+    `<div class="garage-head"><h2>Parkeringshus nära</h2><span>${gs.length} inom 1 km</span></div>`
+    + gs.map((g, i) => `
+      <div class="sl-item garage-row" data-i="${i}">
+        <div class="phus-ic">P</div>
+        <div class="sl-info">
+          <div class="sl-name">${escHtml(g.name)}</div>
+          <div class="sl-sub">
+            <span class="sl-badge phus-cap">Garage · ${g.spaces} platser</span>
+            ${g.taxa ? `<span class="sl-badge sl-time">${escHtml(g.taxa)}</span>` : ''}
+            <span class="sl-dist">${distStr(g.dist)}</span>
+          </div>
+        </div>
+        <a class="sl-nav" href="https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving"
+           target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>
+      </div>`).join('')
+    + `<div class="garage-note">ⓘ Live-tillgång visas ej – antalet är husets kapacitet. Kontrollera skylten på plats.</div>`;
+  list.style.display = 'block';
+  list.querySelectorAll('.garage-row').forEach((el, i) => el.addEventListener('click', () => selectGarage(gs[i])));
+  sheetSnapTo('peek');
+}
+
+function selectGarage(g, marker) {
+  garageMarkers.forEach(m => m.setIcon(garagePin(false)));
+  const m = marker || garageMarkers.find(x => x._g === g);
+  if (m) m.setIcon(garagePin(true));
+
+  document.getElementById('street-name').textContent = g.name;
+  const bd = document.getElementById('badge-district');
+  bd.textContent = '🅿 Garage';
+  bd.style.background = 'rgba(129,140,248,.14)'; bd.style.borderColor = 'rgba(129,140,248,.4)'; bd.style.color = '#c7d0ff';
+  const bt = document.getElementById('badge-time');
+  bt.style.display = ''; bt.textContent = `${g.spaces} platser`;
+  bt.style.background = 'rgba(129,140,248,.1)'; bt.style.borderColor = 'rgba(129,140,248,.3)'; bt.style.color = '#c7d0ff';
+  const taxaRow = document.getElementById('taxa-row');
+  taxaRow.innerHTML = (g.taxa ? `💰 <b>${escHtml(g.taxa)}</b><br>` : '')
+    + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
+  taxaRow.style.display = 'block';
+  document.getElementById('gmaps-btn').href =
+    `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
+  document.getElementById('hint').style.display = 'none';
+  document.getElementById('garage-list').style.display = 'none';
+  document.getElementById('street-list').style.display = 'none';
+  document.getElementById('street-panel').style.display = 'block';
+  map.panTo([g.lat, g.lng]);
+  sheetSnapTo('peek');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // v2.0 DATAGRUND – strukturerad parkeringsdata (P_TILLATEN / P_FORBUD)
 // Byggs BREDVID befintlig kod. Anropas ännu inte av UC1/UC2 → noll risk.
 // Validerad modell (se ARKITEKTUR.md §2): förbud = P_FORBUD utan P_TILLATEN inom 12 m.
@@ -1600,6 +1781,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
 
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
+let garageMarkers = [], garageDataPromise = null;   // p-hus (sista utväg)
 let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
 // Smart standard (beslut UX §11.4): kväll/natt → Över natten, dagtid → Nu
@@ -1634,11 +1816,13 @@ function sheetCompute() {
   // peek = visa handtag + det innehåll som faktiskt syns (kort > lista > hint) exakt.
   // Självanpassar → lådan stannar lågt och skymmer inte kartan, i alla lägen.
   const handleH = (document.getElementById('sheet-handle')?.offsetHeight) || 34;
-  const vis = ['street-panel','street-list','hint']
+  const shown = id => { const el = document.getElementById(id); return (el && getComputedStyle(el).display !== 'none') ? el.offsetHeight : 0; };
+  const btnH = shown('phus-btn');
+  const vis = ['street-panel','garage-list','street-list','hint']
     .map(id => document.getElementById(id))
     .find(el => el && getComputedStyle(el).display !== 'none');
   const contentH = vis ? vis.offsetHeight : 90;
-  const wantVisible = handleH + contentH + 14;
+  const wantVisible = handleH + (btnH ? btnH + 8 : 0) + contentH + 14;
   // Tak: 50% av skärmen (kort ryms helt; lång lista scrollar i stället för att täcka kartan)
   sheetSnaps.peek = Math.max(0, sheetEl.offsetHeight - Math.min(wantVisible, Math.round(vh * 0.5)));
 }
@@ -1872,6 +2056,7 @@ function clearStreetsFromMap() {
   streetGroupLayers = [];
   allLayers = [];
   clearZonesFromMap();
+  clearGarages();
   const list = document.getElementById('street-list');
   if (list) { list.innerHTML = ''; list.style.display = 'none'; }
   document.getElementById('street-panel').style.display = 'none';
@@ -2021,6 +2206,7 @@ function selectStreet(feat, hitLayer, visualLayer) {
   bdEl.textContent = p.CITY_DISTRICT || p.PARKING_DISTRICT || 'Stockholm';
   const btEl = document.getElementById('badge-time');
   btEl.style.display = '';                                                          // visa tid-brickan igen
+  btEl.style.background = ''; btEl.style.borderColor = ''; btEl.style.color = '';   // återställ ev. garage-färg
   const from = p.START_TIME||'', to = p.END_TIME||'';
   btEl.textContent = (from&&to) ? `${from}–${to}` : 'Servicedag';
 
@@ -2108,6 +2294,7 @@ async function promptSetHome() {
 function flyToAndShow(lat, lng) {
   searchCenter = L.latLng(lat, lng);
   if (searchMarker) { searchMarker.remove(); searchMarker = null; }
+  document.getElementById('phus-btn').style.display = 'flex';   // sista utväg blir tillgänglig
   const uc2   = currentMode === 'uc2';
   const isNow = currentMode === 'now';
 
@@ -2370,6 +2557,7 @@ function setMode(mode) {
   inp.value = '';
   // Ingen auto-fokus: tangentbordet ska inte slå upp och dölja lägesförklaringen.
   // Användaren trycker själv i sökfältet när hen vill skriva.
+  document.getElementById('phus-btn').style.display = 'none';   // p-hus-steget gäller först efter en sökning
   sheetSnapTo('peek');   // mät peek mot den nya sammanfattningstexten
   refreshZones();        // visa taxa-zonernas färger direkt (vid start + lägesbyte), ej bara efter klick
 }

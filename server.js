@@ -42,6 +42,39 @@ function cacheSet(key, body, type) {
   cacheBytes += body.length;
 }
 
+// ── P-hus (Stockholm Parkering) – dedikerad förvärmd cache ────────────────────
+// Källan svarar extremt långsamt (~30s) och saknar CORS. Vi hämtar i bakgrunden
+// vid start + håller varmt i 6h. Single-flight: samtidiga väntare delar ett anrop.
+let phusBody = null, phusTs = 0, phusInflight = null;
+const phusType   = 'application/json; charset=utf-8';
+const PHUS_TTL   = 6 * 60 * 60 * 1000;   // 6 h
+const PHUS_FETCH_TIMEOUT = 60000;        // källan är seg – ge den 60s
+
+function fetchPhus() {
+  if (phusInflight) return phusInflight;
+  phusInflight = new Promise((resolve) => {
+    const t0 = Date.now();
+    const req = https.request({
+      hostname: 'api.stockholmparkering.se', port: 8084,
+      path: '/SparkInfartsParkeringService.svc/GetAllAnlaggningParkeringsInfo', method: 'GET'
+    }, (r) => {
+      const chunks = [];
+      r.on('data', c => chunks.push(c));
+      r.on('end', () => {
+        if (r.statusCode === 200) {
+          phusBody = Buffer.concat(chunks); phusTs = Date.now();
+          console.log(`[ParkSpot] P-hus hämtade ${Math.round(phusBody.length/1024)} kB på ${Date.now()-t0} ms`);
+        }
+        phusInflight = null; resolve(phusBody);
+      });
+    });
+    req.on('error', (e) => { console.warn('[ParkSpot] P-hus fel:', e.message); phusInflight = null; resolve(phusBody); });
+    req.setTimeout(PHUS_FETCH_TIMEOUT, () => req.destroy(new Error('phus timeout')));
+    req.end();
+  });
+  return phusInflight;
+}
+
 http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
@@ -63,6 +96,16 @@ http.createServer((req, res) => {
     }
     const target  = wfsPath + '?' + reqUrl.searchParams.toString();
     forward('openstreetgs.stockholm.se', target, res);
+
+  } else if (reqUrl.pathname === '/phus') {
+    // Stockholm Parkering (p-hus). Källan är MYCKET långsam (TTFB ~30s) + saknar CORS.
+    // Egen förvärmd cache (6h) + single-flight → användarna får alltid datan direkt.
+    const fresh = phusBody && (Date.now() - phusTs < PHUS_TTL);
+    if (fresh) { send(res, 200, phusType, phusBody, 'HIT'); }
+    else fetchPhus().then(body => {
+      if (body) send(res, 200, phusType, body, 'MISS');
+      else { res.setHeader('Access-Control-Allow-Origin','*'); res.writeHead(502); res.end(JSON.stringify({ error: 'p-hus otillgängligt just nu' })); }
+    });
 
   } else if (reqUrl.pathname === '/cache-stats') {
     res.setHeader('Content-Type', 'application/json');
@@ -102,7 +145,10 @@ http.createServer((req, res) => {
     });
   }
 
-}).listen(PORT, () => console.log(`Städgator: http://localhost:${PORT}`));
+}).listen(PORT, () => {
+  console.log(`Städgator: http://localhost:${PORT}`);
+  fetchPhus();   // förvärm p-hus-cachen i bakgrunden (källan är seg ~30s)
+});
 
 function send(res, status, type, body, cacheState) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -112,8 +158,8 @@ function send(res, status, type, body, cacheState) {
   res.end(body);
 }
 
-function forward(hostname, upstreamPath, res) {
-  const key = hostname + upstreamPath;
+function forward(hostname, upstreamPath, res, port = 443) {
+  const key = hostname + ':' + port + upstreamPath;
 
   // 1) Cache-träff → svara direkt
   const cached = cacheGet(key);
@@ -132,7 +178,7 @@ function forward(hostname, upstreamPath, res) {
   };
 
   // 3) Hämta upstream, buffra, cacha (om 200), svara alla väntande
-  const proxyReq = https.request({ hostname, path: upstreamPath, method: 'GET' }, (proxyRes) => {
+  const proxyReq = https.request({ hostname, port, path: upstreamPath, method: 'GET' }, (proxyRes) => {
     const chunks = [], type = proxyRes.headers['content-type'] || 'application/json';
     proxyRes.on('data', c => chunks.push(c));
     proxyRes.on('end', () => {
