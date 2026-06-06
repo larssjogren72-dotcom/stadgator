@@ -466,6 +466,9 @@
       font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     #phus-btn .phus-arrow { margin-left: auto; color: #9aa6ee; font-size: 18px; }
+    /* Tillbaka-läge: neutral, ej indigo CTA */
+    #phus-btn.back { background: rgba(255,255,255,0.05); border-color: var(--glass-border); color: var(--text); }
+    #phus-btn.back .phus-p { background: rgba(255,255,255,0.16); color: var(--text); font-size: 17px; }
 
     .phus-pin {
       width: 30px; height: 30px; border-radius: 50% 50% 50% 4px; transform: rotate(45deg);
@@ -814,7 +817,7 @@
   <div id="bottom">
     <div id="sheet-handle"><div class="grabber"></div></div>
     <div id="sheet-body">
-    <button id="phus-btn" onclick="showGarageList()" style="display:none">
+    <button id="phus-btn" onclick="phusToggle()" style="display:none">
       <span class="phus-p">P</span>
       <span class="phus-label">Parkeringshus nära</span>
       <span class="phus-arrow">›</span>
@@ -1352,6 +1355,33 @@ function clearGarages() {
 
 const distStr = d => d < 1000 ? `${d} m` : `${(d/1000).toFixed(1)} km`;
 
+let inGarageView = false;
+
+// #phus-btn är en VÄXEL: gatuvy → visa p-hus; p-hus-vy → tillbaka till gatorna.
+function phusToggle() { inGarageView ? backToStreets() : showGarageList(); }
+
+function setPhusBtn(back) {
+  const btn = document.getElementById('phus-btn');
+  if (!btn) return;
+  btn.classList.toggle('back', back);
+  btn.querySelector('.phus-p').textContent     = back ? '‹' : 'P';
+  btn.querySelector('.phus-label').textContent = back ? 'Tillbaka till gatorna' : 'Parkeringshus nära';
+  btn.querySelector('.phus-arrow').style.display = back ? 'none' : '';
+}
+
+// Tillbaka till destinationens gatuvy – behåll gatulagren, dölj p-hus, centrera om.
+function backToStreets() {
+  inGarageView = false;
+  clearGarages();
+  document.getElementById('street-panel').style.display = 'none';
+  const list = document.getElementById('street-list');
+  if (list && list.children.length) { list.style.display = 'block'; document.getElementById('hint').style.display = 'none'; }
+  else { document.getElementById('hint').style.display = 'block'; }
+  setPhusBtn(false);
+  if (searchCenter) map.panTo(searchCenter);
+  sheetSnapTo('peek');
+}
+
 async function showGarageList() {
   if (!searchCenter) return;
   const btn = document.getElementById('phus-btn');
@@ -1365,11 +1395,13 @@ async function showGarageList() {
       m._g = g; m.on('click', () => selectGarage(g, m)); garageMarkers.push(m);
     });
     renderGarageRows(gs);
+    inGarageView = true; setPhusBtn(true);   // knappen blir "‹ Tillbaka"
   } catch (e) {
     console.warn('[P-hus]', e.message);
     showToast('Kunde inte hämta parkeringshus just nu. Försök igen om en stund.');
   } finally {
-    btn.classList.remove('loading'); lbl.textContent = 'Parkeringshus nära';
+    btn.classList.remove('loading');
+    if (!inGarageView) lbl.textContent = 'Parkeringshus nära';
   }
 }
 
@@ -1825,6 +1857,7 @@ function sheetCompute() {
   const wantVisible = handleH + (btnH ? btnH + 8 : 0) + contentH + 14;
   // Tak: 50% av skärmen (kort ryms helt; lång lista scrollar i stället för att täcka kartan)
   sheetSnaps.peek = Math.max(0, sheetEl.offsetHeight - Math.min(wantVisible, Math.round(vh * 0.5)));
+  sheetSnaps.min  = Math.max(0, sheetEl.offsetHeight - handleH - 6);   // bara handtaget – dra ner för fri karta
 }
 function sheetSet(y, animate = true) {
   sheetEl.style.transition = animate ? 'transform .28s cubic-bezier(.16,1,.3,1)' : 'none';
@@ -1836,7 +1869,7 @@ function initSheet() {
   sheetEl = document.getElementById('bottom');
   const handle = document.getElementById('sheet-handle');
   sheetCompute(); sheetSet(sheetSnaps.peek, false);
-  window.addEventListener('resize', () => { sheetCompute(); sheetSet(Math.min(sheetCurY, sheetSnaps.peek), false); });
+  window.addEventListener('resize', () => { sheetCompute(); sheetSet(Math.min(sheetCurY, sheetSnaps.min), false); });
 
   let startY = 0, startT = 0, moved = 0, dragging = false;
   handle.addEventListener('pointerdown', e => {
@@ -1846,7 +1879,7 @@ function initSheet() {
   handle.addEventListener('pointermove', e => {
     if (!dragging) return;
     const dy = e.clientY - startY; moved = Math.max(moved, Math.abs(dy));
-    sheetSet(Math.max(0, Math.min(sheetSnaps.peek, startT + dy)), false);
+    sheetSet(Math.max(0, Math.min(sheetSnaps.min, startT + dy)), false);   // går att dra ända ner till min
   });
   const endDrag = () => {
     if (!dragging) return; dragging = false;
@@ -1854,8 +1887,8 @@ function initSheet() {
       const order = [sheetSnaps.peek, sheetSnaps.half, sheetSnaps.full];
       const i = order.findIndex(v => Math.abs(v - sheetCurY) < 2);
       sheetSet(order[(i + 1) % order.length]);
-    } else {                                          // släpp → snäpp till närmaste
-      const pts = [sheetSnaps.full, sheetSnaps.half, sheetSnaps.peek];
+    } else {                                          // släpp → snäpp till närmaste (inkl. min = fri karta)
+      const pts = [sheetSnaps.full, sheetSnaps.half, sheetSnaps.peek, sheetSnaps.min];
       sheetSet(pts.reduce((a, b) => Math.abs(b - sheetCurY) < Math.abs(a - sheetCurY) ? b : a));
     }
   };
@@ -2057,6 +2090,7 @@ function clearStreetsFromMap() {
   allLayers = [];
   clearZonesFromMap();
   clearGarages();
+  inGarageView = false; setPhusBtn(false);   // ny vy → lämna ev. p-hus-läge, återställ växeln
   const list = document.getElementById('street-list');
   if (list) { list.innerHTML = ''; list.style.display = 'none'; }
   document.getElementById('street-panel').style.display = 'none';
@@ -2560,6 +2594,8 @@ function setMode(mode) {
   document.getElementById('phus-btn').style.display = 'none';   // p-hus-steget gäller först efter en sökning
   sheetSnapTo('peek');   // mät peek mot den nya sammanfattningstexten
   refreshZones();        // visa taxa-zonernas färger direkt (vid start + lägesbyte), ej bara efter klick
+  // B: behåll destinationen vid lägesbyte → kör om för samma plats i det nya läget (linser på samma ankare)
+  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);
 }
 
 // ── UC2: Hitta säkra parkeringar nära hemmet ──────────────────────────────────
