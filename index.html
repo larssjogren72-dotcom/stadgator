@@ -390,7 +390,7 @@
     #sheet-handle .grabber {
       width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.25);
     }
-    #sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: env(safe-area-inset-bottom, 0px); }
+    #sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: env(safe-area-inset-bottom, 0px); scroll-padding-bottom: 70px; }
     #hint { font-size: 14px; color: var(--muted); padding: 6px 18px 24px; min-height: 60px; }
     .hint-main { display: block; margin-bottom: 8px; }
     .hint-disclaimer { display: block; font-size: 11px; color: rgba(240,246,252,0.30); line-height: 1.5; }
@@ -450,16 +450,37 @@
       font-size: 12px; line-height: 1.45; color: rgba(240,246,252,0.78);
     }
     #taxa-row b { color: var(--text); }
+    #clean-row {
+      background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.22);
+      border-radius: 9px; padding: 8px 10px; margin-bottom: 10px;
+      font-size: 12.5px; line-height: 1.5; color: #fde9c0;
+    }
+    #clean-row b { color: #fde68a; font-weight: 600; }
+    #clean-row .season { color: rgba(240,246,252,0.6); font-size: 11.5px; }
+
+    /* Tomt läge (I kväll – inga städgator imorgon) */
+    .empty-state { text-align: center; padding: 8px 8px 4px; }
+    .es-icon { font-size: 30px; margin-bottom: 8px; opacity: .9; }
+    .es-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .es-body { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 14px; }
+    .es-btn {
+      display: inline-block; background: var(--accent-dim); border: 1px solid var(--accent);
+      color: var(--accent); border-radius: 10px; padding: 10px 18px;
+      font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     /* ── Parkeringshus (sista utväg) – indigo-identitet ── */
+    /* Fast bottenrad i lådan – gatan är primär ovanför, p-hus är ett aktivt val (öppnas på klick) */
     #phus-btn {
+      position: sticky; bottom: 0; z-index: 2;
       display: flex; align-items: center; gap: 10px; width: 100%;
-      background: rgba(129,140,248,0.14); border: 1px solid rgba(129,140,248,0.4);
-      border-radius: 12px; padding: 11px 14px; margin-bottom: 12px;
+      background: #161b29; border: 1px solid rgba(129,140,248,0.45);
+      border-radius: 12px; padding: 11px 14px; margin: 8px 0 2px;
       color: #c7d0ff; font-size: 13.5px; font-weight: 600; font-family: inherit;
       cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .15s;
     }
-    #phus-btn:active { background: rgba(129,140,248,0.26); }
+    #phus-btn:active { background: #1d2335; }
     #phus-btn.loading { opacity: .7; pointer-events: none; }
     #phus-btn .phus-p {
       width: 24px; height: 24px; border-radius: 6px; background: #818cf8; color: #0c1030;
@@ -467,7 +488,7 @@
     }
     #phus-btn .phus-arrow { margin-left: auto; color: #9aa6ee; font-size: 18px; }
     /* Tillbaka-läge: neutral, ej indigo CTA */
-    #phus-btn.back { background: rgba(255,255,255,0.05); border-color: var(--glass-border); color: var(--text); }
+    #phus-btn.back { background: #181b22; border-color: var(--glass-border); color: var(--text); }
     #phus-btn.back .phus-p { background: rgba(255,255,255,0.16); color: var(--text); font-size: 17px; }
 
     .phus-pin {
@@ -817,11 +838,6 @@
   <div id="bottom">
     <div id="sheet-handle"><div class="grabber"></div></div>
     <div id="sheet-body">
-    <button id="phus-btn" onclick="phusToggle()" style="display:none">
-      <span class="phus-p">P</span>
-      <span class="phus-label">Parkeringshus nära</span>
-      <span class="phus-arrow">›</span>
-    </button>
     <div id="hint">Sök en destination ovan — städgator i närheten visas på kartan.</div>
     <div id="garage-list"></div>
     <div id="street-list"></div>
@@ -831,6 +847,7 @@
         <div class="sbadge sbadge-place" id="badge-district"></div>
         <div class="sbadge sbadge-time"  id="badge-time"></div>
       </div>
+      <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
       <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
@@ -840,6 +857,11 @@
         Navigera hit med Google Maps
       </a>
     </div>
+    <button id="phus-btn" onclick="phusToggle()" style="display:none">
+      <span class="phus-p">P</span>
+      <span class="phus-label">Parkeringshus nära</span>
+      <span class="phus-arrow">›</span>
+    </button>
     </div>
   </div>
 </div>
@@ -862,6 +884,10 @@ const SV_MONTHS = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','
 function tomorrow() { const d = new Date(); d.setDate(d.getDate()+1); return d; }
 function apiDay(d)  { return API_DAYS[d.getDay()]; }
 function fmtDate(d) { return `${SV_DAYS[d.getDay()]} ${d.getDate()} ${SV_MONTHS[d.getMonth()]}`; }
+// Klockslag: 800 → "08", 1630 → "16:30"
+function fmtClock(n) { if (n == null || n === '') return ''; const h = Math.floor(n/100), m = n%100; return m ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` : String(h).padStart(2,'0'); }
+// Säsong/datumintervall för städning – null = året runt
+function seasonText(p) { if (p.START_MONTH == null) return null; const sd = p.START_DAY||1, ed = p.END_DAY||1; return `${sd} ${SV_MONTHS[p.START_MONTH-1]}–${ed} ${SV_MONTHS[p.END_MONTH-1]}`; }
 
 // ── API-nyckel ───────────────────────────────────────────────────────────────
 // Servern håller numera nyckeln (env/.apikey). Klienten behöver ingen egen –
@@ -1295,10 +1321,21 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest) {
   else             { taxaRow.style.display = 'none'; }
   if (dest) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+  document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för v2-kort
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
   document.getElementById('street-panel').style.display = 'block';
   sheetSnapTo('peek');   // självanpassat lägsta läge – skymmer inte kartan
+}
+
+// Markera vald gata på kartan (ersätter den borttagna popupen) – tjockare, full opacitet, lyft fram.
+function selectV2Street(s, grp) {
+  grp.eachLayer(l => {
+    if (!l._base || !l.setStyle) return;
+    const sel = l._sid === s;
+    l.setStyle({ color: l._base, weight: sel ? 10 : 6, opacity: sel ? 1 : 0.9 });
+    if (sel && l.bringToFront) l.bringToFront();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1452,6 +1489,7 @@ function selectGarage(g, marker) {
   taxaRow.innerHTML = (g.taxa ? `💰 <b>${escHtml(g.taxa)}</b><br>` : '')
     + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
   taxaRow.style.display = 'block';
+  document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för garage
   document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
   document.getElementById('hint').style.display = 'none';
@@ -1676,12 +1714,10 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       if (cleans)                      { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else                             { color = '#4ade80'; txt = 'Trygg över natten'; safe++; }
-      const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
-      const popupHtml = () => `<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${taxaPopupLine(dest&&dest.lat, dest&&dest.lng, s.rate.taxa)}${nav}`;
       s.linesSweref.forEach(line => {
-        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
-          .bindPopup(popupHtml).addTo(grp);
-        pl.on('click', () => showPlaceCardV2(s.street || 'Parkering', txt, color, dest));   // fyll lådan med pris + status
+        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
+        pl._sid = s; pl._base = color;                 // för markering av vald gata
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest); });
       });
     });
 
@@ -1786,12 +1822,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       if (cleans)                      { color = '#fbbf24'; txt = 'Städas idag – kontrollera tid'; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else                             { color = '#4ade80'; txt = 'Får stå nu'; okNu++; }
-      const nav = dest ? `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving" target="_blank" rel="noopener" style="color:#60a5fa;font-size:13px">Kör hit ↗</a>` : '';
-      const popupHtml = () => `<b style="color:#f0f6fc">${s.street||'Parkering'}</b><br><span style="font-size:12px">${txt}</span>${taxaPopupLine(dest&&dest.lat, dest&&dest.lng, s.rate.taxa)}${nav}`;
       s.linesSweref.forEach(line => {
-        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 })
-          .bindPopup(popupHtml).addTo(grp);
-        pl.on('click', () => showPlaceCardV2(s.street || 'Parkering', txt, color, dest));   // fyll lådan med pris + status
+        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
+        pl._sid = s; pl._base = color;                 // för markering av vald gata
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest); });
       });
     });
 
@@ -1853,7 +1887,21 @@ function sheetCompute() {
   const vis = ['street-panel','garage-list','street-list','hint']
     .map(id => document.getElementById(id))
     .find(el => el && getComputedStyle(el).display !== 'none');
-  const contentH = vis ? vis.offsetHeight : 90;
+  // Enhetligt vilo-läge: en LISTA visar bara översta raden (närmaste) + en glimt → "dra för mer".
+  // Kort (street-panel) och hint är kompakta → visa helt.
+  let contentH = 90;
+  if (vis) {
+    if (vis.id === 'street-list' || vis.id === 'garage-list') {
+      // LISTA: visa ALDRIG hela listan i vila – bara översta raden + en glimt.
+      // Använd aldrig vis.offsetHeight (hela listan) → kan inte täcka kartan.
+      const head = vis.querySelector('.garage-head');
+      const item = vis.querySelector('.sl-item, .garage-row');
+      const rowH = item ? item.offsetHeight : 64;        // fast fallback om mätningen missar
+      contentH = (head ? head.offsetHeight : 0) + Math.round(rowH * 1.4);
+    } else {
+      contentH = vis.offsetHeight;                        // kort/hint är kompakta
+    }
+  }
   const wantVisible = handleH + (btnH ? btnH + 8 : 0) + contentH + 14;
   // Tak: 50% av skärmen (kort ryms helt; lång lista scrollar i stället för att täcka kartan)
   sheetSnaps.peek = Math.max(0, sheetEl.offsetHeight - Math.min(wantVisible, Math.round(vh * 0.5)));
@@ -2099,6 +2147,42 @@ function clearStreetsFromMap() {
   sheetSnapTo('peek');
 }
 
+// Säsongstips: finns gator i området som är säsongsstyrda men ur säsong just nu?
+// Returnerar vanligaste datumintervallet (t.ex. "1 nov–15 maj"), annars null.
+function seasonHintFor(viewportFeats) {
+  const off = (viewportFeats || []).filter(f => {
+    const p = f.properties || {};
+    return p.START_MONTH != null && !cleaningActiveOn(p, tomorrow());
+  });
+  if (!off.length) return null;
+  const counts = {};
+  off.forEach(f => { const s = seasonText(f.properties); if (s) counts[s] = (counts[s] || 0) + 1; });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : null;
+}
+
+// Snyggt tomt läge för "I kväll": säsong (ur säsong) > helg (städas aldrig) > vardag (inget i området).
+function showUc1EmptyState(seasonRange) {
+  const tom  = tomorrow();
+  const wknd = (tom.getDay() === 0 || tom.getDay() === 6);
+  const day  = SV_DAYS[tom.getDay()].toLowerCase();
+  const body = seasonRange
+    ? `Här städas bara <b>${seasonRange}</b> – inga städgator just nu. Leta en plats som håller över natten i stället.`
+    : wknd
+    ? `Imorgon är ${day} – gator städas bara på vardagar, så kvällsknepet funkar inte ikväll.`
+    : `Inga gator i området städas imorgon bitti. Prova ett annat område – eller leta en plats som håller över natten.`;
+  const hintEl = document.getElementById('hint');
+  hintEl.innerHTML =
+    `<div class="empty-state">
+       <div class="es-icon">🧹</div>
+       <div class="es-title">Inga städgator imorgon</div>
+       <div class="es-body">${body}</div>
+       <button class="es-btn" onclick="setMode('uc2')">Visa Över natten →</button>
+     </div>`;
+  hintEl.style.display = 'block';
+  sheetSnapTo('peek');
+}
+
 async function showStreetsNearViewport(foreskriftP = null) {
   clearStreetsFromMap();
   document.getElementById('hint').textContent = 'Hämtar städgator…';
@@ -2115,16 +2199,16 @@ async function showStreetsNearViewport(foreskriftP = null) {
     ]);
 
     // "I kväll" → städning gäller IMORGON. Filtrera bort poster ur säsong (per gata).
-    let features = (Array.isArray(data) ? data : (data.features || []))
-      .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
     const dbg = {}; // diagnostik
 
-    // Filtrera till synligt kartområde
-    const beforeViewport = features.length;
-    features = features.filter(f => {
+    // Först VIEWPORT, sen SÄSONG – ordningen låter oss upptäcka säsongsstyrda gator
+    // som är ur säsong just nu (de råa posterna bär START/END_MONTH även off-season).
+    const inViewport = (Array.isArray(data) ? data : (data.features || [])).filter(f => {
       const m = featureMidCoord(f);
       return m && bounds.contains(toLatLng(m[0], m[1]));
     });
+    let features = inViewport.filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
+    const beforeViewport = inViewport.length;
     dbg.viewport    = features.map(f => f.properties?.STREET_NAME).filter(Boolean);
     dbg.removedViewport = beforeViewport - features.length;
 
@@ -2164,7 +2248,7 @@ async function showStreetsNearViewport(foreskriftP = null) {
     console.groupEnd();
 
     if (!features.length) {
-      document.getElementById('hint').textContent = 'Inga städgator i det här området imorgon.';
+      showUc1EmptyState(seasonHintFor(inViewport));
     } else {
       renderFeatures({ type:'FeatureCollection', features });
     }
@@ -2214,7 +2298,13 @@ function renderFeatures(data) {
   badge.textContent = `${features.length} städgator i närheten`;
   badge.style.display = 'block';
 
-  buildStreetList(features);
+  // Som Nu/Över natten: ingen lista som styr lådan. Tryck på en grön gata → kort + navigering.
+  const hintEl = document.getElementById('hint');
+  hintEl.innerHTML = '<span class="hint-main">🟢 Gröna gator städas imorgon bitti – ofta lediga i kväll. Tryck på en gata för detaljer och vägbeskrivning.</span>';
+  hintEl.style.display = 'block';
+  document.getElementById('street-list').style.display = 'none';
+  document.getElementById('street-panel').style.display = 'none';
+  sheetSnapTo('peek');
 }
 
 // ── Val av gata ───────────────────────────────────────────────────────────────
@@ -2225,11 +2315,9 @@ function selectStreet(feat, hitLayer, visualLayer) {
   // Synka markering i listan om den är öppen
   const list = document.getElementById('street-list');
   if (list && list.style.display !== 'none') {
-    document.querySelectorAll('.sl-item').forEach(el => {
-      const selected = el._feat === feat;
-      el.classList.toggle('sl-selected', selected);
-      if (selected) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    });
+    document.querySelectorAll('.sl-item').forEach(el =>
+      el.classList.toggle('sl-selected', el._feat === feat));
+    // Ingen auto-scroll: lådan stannar nere (peek). Val sker på kartan; scrolla själv för att gå in.
     return; // behåll listan synlig, visa inte street-panel
   }
 
@@ -2238,11 +2326,16 @@ function selectStreet(feat, hitLayer, visualLayer) {
   const bdEl = document.getElementById('badge-district');
   bdEl.style.background = ''; bdEl.style.borderColor = ''; bdEl.style.color = '';   // återställ ev. v2-statusfärg
   bdEl.textContent = p.CITY_DISTRICT || p.PARKING_DISTRICT || 'Stockholm';
-  const btEl = document.getElementById('badge-time');
-  btEl.style.display = '';                                                          // visa tid-brickan igen
-  btEl.style.background = ''; btEl.style.borderColor = ''; btEl.style.color = '';   // återställ ev. garage-färg
-  const from = p.START_TIME||'', to = p.END_TIME||'';
-  btEl.textContent = (from&&to) ? `${from}–${to}` : 'Servicedag';
+  document.getElementById('badge-time').style.display = 'none';   // tid + säsong visas i clean-row nedan
+
+  // Städinfo: dag (= imorgon i "I kväll") + tid + ev. datumintervall (säsong)
+  const cr = document.getElementById('clean-row');
+  const from = fmtClock(p.START_TIME), to = fmtClock(p.END_TIME);
+  const timeStr = (from && to) ? ` ${from}–${to}` : '';
+  const season  = seasonText(p);
+  cr.innerHTML = `🧹 <b>Städas imorgon${timeStr}</b>`
+    + (season ? `<br><span class="season">📅 Gäller ${season}</span>` : '');
+  cr.style.display = 'block';
 
   const mid = featureMidCoord(feat);
   const c   = mid ? toLatLng(mid[0], mid[1]) : getCenter(hitLayer);
@@ -2339,12 +2432,15 @@ function flyToAndShow(lat, lng) {
   const foreskriftP = (useV2here || isNow) ? null : loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
   const parkV2P     = (useV2here || isNow) ? loadParkingV2(lat, lng, 500) : null;
 
-  searchMarker = L.circleMarker([lat, lng], {
-    radius: 10,
-    color:       uc2 ? '#ffffff' : '#4ade80',
-    fillColor:   uc2 ? '#1e3a8a' : '#4ade80',
-    fillOpacity: 0.95, weight: uc2 ? 2.5 : 2, pane: 'markerPane'
-  }).addTo(map);
+  // Destinationsnål: klassisk Google Maps-nål (röd droppe med vit kant). Samma i ALLA lägen.
+  const destIcon = L.divIcon({
+    className: 'dest-pin',
+    html: `<svg width="30" height="40" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">`
+        + `<path d="M12 1C6 1 1 5.9 1 12c0 8.2 11 19 11 19s11-10.8 11-19C23 5.9 18 1 12 1z" fill="#ea4335" stroke="#ffffff" stroke-width="2.2"/>`
+        + `<circle cx="12" cy="12" r="4.2" fill="#ffffff"/></svg>`,
+    iconSize: [30, 40], iconAnchor: [15, 40], popupAnchor: [0, -36]
+  });
+  searchMarker = L.marker([lat, lng], { icon: destIcon, pane: 'markerPane', interactive: false }).addTo(map);
   if (isNow) {
     map.once('moveend', () => showNowParkingV2Flow(lat, lng, parkV2P));
   } else if (useV2here) {
