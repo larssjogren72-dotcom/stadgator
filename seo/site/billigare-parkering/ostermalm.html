@@ -56,23 +56,24 @@
   </div>
   <section class="card">
   <h2>🧹 Städas här imorgon?</h2>
-  <p class="muted">Live ur Stockholms öppna data — säsongsjusterat (vintergator som inte gäller just nu räknas bort).</p>
+  <p class="muted">Live ur Stockholms öppna data, säsongsjusterat (vintergator som är ur säsong räknas bort).</p>
   <div class="live" id="live">Hämtar…</div>
+  <p style="margin-top:8px"><a href="/">Se exakt tid och hela kartan →</a></p>
   <script>(function(){
     var match=["östermalm"];
-    var API=['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
+    var API=["söndag","måndag","tisdag","onsdag","torsdag","fredag","lördag"];
     var d=new Date();d.setDate(d.getDate()+1);var day=API[d.getDay()];
     function active(p){if(p.START_MONTH==null)return true;var md=function(m,dd){return m*100+(dd||1)};var cur=md(d.getMonth()+1,d.getDate());var a=md(p.START_MONTH,p.START_DAY),b=md(p.END_MONTH,p.END_DAY);return a<=b?(cur>=a&&cur<=b):(cur>=a||cur<=b);}
-    var el=document.getElementById('live');
-    fetch('/proxy/servicedagar/weekday/'+encodeURIComponent(day)+'?outputFormat=json').then(function(r){return r.json();}).then(function(j){
+    var el=document.getElementById("live");
+    fetch("/proxy/servicedagar/weekday/"+encodeURIComponent(day)+"?outputFormat=json").then(function(r){return r.json();}).then(function(j){
       var f=Array.isArray(j)?j:(j.features||[]);
       var seen={},rows=[];
-      f.forEach(function(x){var p=x.properties||{};var cd=(p.CITY_DISTRICT||'').toLowerCase();
+      f.forEach(function(x){var p=x.properties||{};var cd=(p.CITY_DISTRICT||"").toLowerCase();
         if(!match.some(function(m){return cd.indexOf(m)>=0})) return;
         if(!active(p)) return; var n=p.STREET_NAME; if(!n||seen[n])return; seen[n]=1; rows.push(n);});
-      if(!rows.length){el.innerHTML='<p class="green">Inga städgator imorgon ('+day+') här – ofta lediga platser. <a href=\'/\'>Se kartan →</a></p>';return;}
-      el.innerHTML='<p class="muted">Imorgon ('+day+') städas bl.a.:</p>'+rows.slice(0,8).map(function(n){return '<div class="row"><span class="nm">'+n+'</span></div>';}).join('')+'<p style="margin-top:8px"><a href=\'/\'>Se exakt tid och hela kartan →</a></p>';
-    }).catch(function(){el.innerHTML='<p class="muted"><a href=\'/\'>Se städgator imorgon i appen →</a></p>';});
+      if(!rows.length){el.innerHTML='<p class="green">Inga städgator här imorgon ('+day+') — ofta lediga platser.</p>';return;}
+      el.innerHTML='<p class="muted">Imorgon ('+day+') städas bl.a.:</p>'+rows.slice(0,8).map(function(n){return '<div class="row"><span class="nm">'+n+'</span></div>';}).join('');
+    }).catch(function(){el.innerHTML='<p class="muted">—</p>';});
   })();</script>
 </section>
   
@@ -90,7 +91,7 @@
 </main>
 <footer><div class="wrap">
   <p><b style="color:#cfe3ff">Sluta cirkla. Vet var du får stå — innan du kör.</b><br>ParkSpot visar lagliga gatuplatser, billigast taxa och vilka gator som städas imorgon. Kör lugnt, slipp böter.</p>
-  <p style="margin-top:10px"><a href="/">Öppna ParkSpot-kartan</a> · <a href="/parkeringstaxor-stockholm">Taxor 1–5</a> · <a href="/stadgator-stockholm">Städgator</a> · <a href="/parkering-over-natten-stockholm">Över natten</a> · <a href="/sommar-parkering-stockholm">Sommar</a></p>
+  <p style="margin-top:10px"><a href="/">Öppna ParkSpot-kartan</a> · <a href="/parkeringstaxor-stockholm">Taxor 1–5</a> · <a href="/stadgator-stockholm">Städgator</a> · <a href="/parking-in-stockholm">English</a></p>
   <p style="margin-top:10px;color:#5f7088">Informationen bygger på Stockholms stads öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar. ParkSpot ansvarar inte för p-böter eller bogsering.</p>
 </div></footer>
 </body></html>

@@ -80,21 +80,32 @@ const nearestGarages = (lat, lng, n = 4, radius = 2000) => GARAGES
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const km = d => d < 1000 ? `${d} m` : `${(d/1000).toFixed(1)} km`;
 
+// ── Engelsk copy (turistsida) ────────────────────────────────────────────────
+const EN = {
+  sub: 'street parking map',
+  cta: '📍 Open the live map — see free spots →',
+  tagline: 'Stop circling. Know where you can park — before you drive.',
+  promise: 'ParkSpot shows legal on-street spots, the cheapest tariff and which streets are cleaned tomorrow. Drive calm, avoid fines.',
+  disclaimer: 'Based on the City of Stockholm open data and may be out of date. Always check the local signs. ParkSpot is not liable for parking fines or towing.',
+  relatedTitle: 'More about parking in Stockholm',
+  faqTitle: 'Frequently asked questions',
+};
+
 // ── Delad layout ─────────────────────────────────────────────────────────────
-function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match }) {
+function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false }) {
   const faqLd = faq && faq.length ? {
     '@context':'https://schema.org','@type':'FAQPage',
     mainEntity: faq.map(f => ({ '@type':'Question', name:f.q, acceptedAnswer:{ '@type':'Answer', text:f.a.replace(/<[^>]+>/g,'') } }))
   } : null;
   const pageLd = { '@context':'https://schema.org','@type':'WebPage', name:title, url:`${SITE}/${slug}`,
     description:desc, inLanguage:'sv', isPartOf:{ '@type':'WebSite', name:'ParkSpot Stockholm', url:SITE } };
-  const widget = (lat != null && match) ? cleaningWidget(lat, lng, match) : '';
-  const faqHtml = faq && faq.length ? `<section class="card"><h2>Vanliga frågor</h2>${faq.map(f =>
+  const widget = (lat != null && match) ? cleaningWidget(lat, lng, match, en) : '';
+  const faqHtml = faq && faq.length ? `<section class="card"><h2>${en ? EN.faqTitle : 'Vanliga frågor'}</h2>${faq.map(f =>
     `<h3>${esc(f.q)}</h3><p>${f.a}</p>`).join('')}</section>` : '';
-  const relHtml = related && related.length ? `<section class="card related"><h2>Mer om parkering i Stockholm</h2><ul>${
+  const relHtml = related && related.length ? `<section class="card related"><h2>${en ? EN.relatedTitle : 'Mer om parkering i Stockholm'}</h2><ul>${
     related.map(r => `<li><a href="/${r.href}">${esc(r.text)}</a></li>`).join('')}</ul></section>` : '';
 
-  return `<!DOCTYPE html><html lang="sv"><head>
+  return `<!DOCTYPE html><html lang="${en ? 'en' : 'sv'}"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
@@ -143,12 +154,12 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   footer a{color:#9fb3c8}
 </style></head>
 <body>
-<header class="top"><div class="wrap"><a class="brand" href="/"><span class="logo">P</span><span><b>ParkSpot Stockholm</b><span>parkering på karta</span></span></a></div></header>
+<header class="top"><div class="wrap"><a class="brand" href="/"><span class="logo">P</span><span><b>ParkSpot Stockholm</b><span>${en ? EN.sub : 'parkering på karta'}</span></span></a></div></header>
 <main class="wrap">
   <div class="hero">
     <h1>${esc(h1)}</h1>
     <p class="lead">${lead}</p>
-    <a class="cta" href="/">📍 Öppna kartan – se lediga platser live →</a>
+    <a class="cta" href="/">${en ? EN.cta : '📍 Öppna kartan – se lediga platser live →'}</a>
   </div>
   ${widget}
   ${sections}
@@ -156,35 +167,42 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   ${relHtml}
 </main>
 <footer><div class="wrap">
-  <p><b style="color:#cfe3ff">${esc(TAGLINE)}</b><br>${esc(PROMISE)}</p>
-  <p style="margin-top:10px"><a href="/">Öppna ParkSpot-kartan</a> · <a href="/parkeringstaxor-stockholm">Taxor 1–5</a> · <a href="/stadgator-stockholm">Städgator</a> · <a href="/parkering-over-natten-stockholm">Över natten</a> · <a href="/sommar-parkering-stockholm">Sommar</a></p>
-  <p style="margin-top:10px;color:#5f7088">${esc(DISCLAIMER)}</p>
+  <p><b style="color:#cfe3ff">${esc(en ? EN.tagline : TAGLINE)}</b><br>${esc(en ? EN.promise : PROMISE)}</p>
+  <p style="margin-top:10px"><a href="/">${en ? 'Open the ParkSpot map' : 'Öppna ParkSpot-kartan'}</a> · <a href="/parkeringstaxor-stockholm">${en ? 'Tariffs 1–5' : 'Taxor 1–5'}</a> · <a href="/stadgator-stockholm">${en ? 'Street cleaning' : 'Städgator'}</a> · <a href="/parking-in-stockholm">English</a></p>
+  <p style="margin-top:10px;color:#5f7088">${esc(en ? EN.disclaimer : DISCLAIMER)}</p>
 </div></footer>
 </body></html>`;
 }
 
-// Live-widget: städas imorgon i området (klientsida → alltid färsk, säsongssmart)
-function cleaningWidget(lat, lng, match) {
+// Live-widget: städas imorgon i området (klientsida → alltid färsk, säsongssmart).
+// Inga länkar inuti scriptet (statisk länk under) → ren escaping.
+function cleaningWidget(lat, lng, match, en = false) {
   const matchJson = JSON.stringify(match.map(m => m.toLowerCase()));
+  const T = en
+    ? { h:'🧹 Street cleaning here tomorrow?', sub:'Live from City of Stockholm open data, season-aware (winter-only streets that are out of season are excluded).', loading:'Loading…',
+        none:'No street cleaning here tomorrow', noneEnd:' — often free spots.', intro:'Tomorrow', introEnd:' these are cleaned, e.g.:', link:'See exact times and the full map →' }
+    : { h:'🧹 Städas här imorgon?', sub:'Live ur Stockholms öppna data, säsongsjusterat (vintergator som är ur säsong räknas bort).', loading:'Hämtar…',
+        none:'Inga städgator här imorgon', noneEnd:' — ofta lediga platser.', intro:'Imorgon', introEnd:' städas bl.a.:', link:'Se exakt tid och hela kartan →' };
   return `<section class="card">
-  <h2>🧹 Städas här imorgon?</h2>
-  <p class="muted">Live ur Stockholms öppna data — säsongsjusterat (vintergator som inte gäller just nu räknas bort).</p>
-  <div class="live" id="live">Hämtar…</div>
+  <h2>${T.h}</h2>
+  <p class="muted">${T.sub}</p>
+  <div class="live" id="live">${T.loading}</div>
+  <p style="margin-top:8px"><a href="/">${T.link}</a></p>
   <script>(function(){
     var match=${matchJson};
-    var API=['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
+    var API=["söndag","måndag","tisdag","onsdag","torsdag","fredag","lördag"];
     var d=new Date();d.setDate(d.getDate()+1);var day=API[d.getDay()];
     function active(p){if(p.START_MONTH==null)return true;var md=function(m,dd){return m*100+(dd||1)};var cur=md(d.getMonth()+1,d.getDate());var a=md(p.START_MONTH,p.START_DAY),b=md(p.END_MONTH,p.END_DAY);return a<=b?(cur>=a&&cur<=b):(cur>=a||cur<=b);}
-    var el=document.getElementById('live');
-    fetch('/proxy/servicedagar/weekday/'+encodeURIComponent(day)+'?outputFormat=json').then(function(r){return r.json();}).then(function(j){
+    var el=document.getElementById("live");
+    fetch("/proxy/servicedagar/weekday/"+encodeURIComponent(day)+"?outputFormat=json").then(function(r){return r.json();}).then(function(j){
       var f=Array.isArray(j)?j:(j.features||[]);
       var seen={},rows=[];
-      f.forEach(function(x){var p=x.properties||{};var cd=(p.CITY_DISTRICT||'').toLowerCase();
+      f.forEach(function(x){var p=x.properties||{};var cd=(p.CITY_DISTRICT||"").toLowerCase();
         if(!match.some(function(m){return cd.indexOf(m)>=0})) return;
         if(!active(p)) return; var n=p.STREET_NAME; if(!n||seen[n])return; seen[n]=1; rows.push(n);});
-      if(!rows.length){el.innerHTML='<p class="green">Inga städgator imorgon ('+day+') här – ofta lediga platser. <a href=\\'/\\'>Se kartan →</a></p>';return;}
-      el.innerHTML='<p class="muted">Imorgon ('+day+') städas bl.a.:</p>'+rows.slice(0,8).map(function(n){return '<div class="row"><span class="nm">'+n+'</span></div>';}).join('')+'<p style="margin-top:8px"><a href=\\'/\\'>Se exakt tid och hela kartan →</a></p>';
-    }).catch(function(){el.innerHTML='<p class="muted"><a href=\\'/\\'>Se städgator imorgon i appen →</a></p>';});
+      if(!rows.length){el.innerHTML='<p class="green">${T.none} ('+day+')${T.noneEnd}</p>';return;}
+      el.innerHTML='<p class="muted">${T.intro} ('+day+')${T.introEnd}</p>'+rows.slice(0,8).map(function(n){return '<div class="row"><span class="nm">'+n+'</span></div>';}).join('');
+    }).catch(function(){el.innerHTML='<p class="muted">—</p>';});
   })();</script>
 </section>`;
 }
@@ -478,11 +496,56 @@ function pillarGarages() {
     sections, faq, related, lat:null, lng:null, match:null }));
 }
 
+function pillarEnglish() {
+  const taxaEn = `<table><tr><th>Zone</th><th>Price</th><th>When</th></tr>
+    <tr><td>Taxa 1</td><td><b>55 SEK/h</b></td><td class="muted">all days 00–24 (city centre)</td></tr>
+    <tr><td>Taxa 2</td><td><b>31 SEK/h</b></td><td class="muted">weekdays 7–21, 20 SEK/h off-peak</td></tr>
+    <tr><td>Taxa 3</td><td><b>20 SEK/h</b></td><td class="muted">weekdays 7–19</td></tr>
+    <tr><td>Taxa 4</td><td><b>10 SEK/h</b></td><td class="muted">weekdays 7–19</td></tr>
+    <tr><td>Taxa 5</td><td><b>5 SEK/h</b></td><td class="muted">weekdays 7–19 (free other times)</td></tr></table>`;
+  const sections = `
+  <section class="card"><h2>Where can visitors park in Stockholm?</h2>
+    <p>You can park on most streets where there is no <b>parking ban</b> and no <b>cleaning day</b> ("städdag"). Pay by the hour via the sign's zone, or use a parking app. ParkSpot shows — on a map — exactly where you may stand right now, the price, and which streets are cleaned tomorrow.</p>
+    <a class="cta" href="/">📍 Open the live map →</a></section>
+  <section class="card"><h2>What does parking cost? (Tariff zones 1–5)</h2>
+    <p>Street parking price depends on the zone — most expensive in the centre, cheapest in the outer areas:</p>
+    ${taxaEn}
+    <p class="muted">Motorcycles have a lower tariff. Evenings and weekends are often free outside the charging hours.</p></section>
+  <section class="card"><h2>⚠️ Watch out: street cleaning days</h2>
+    <p>Each street has a weekly <b>cleaning day</b> when parking is forbidden — park there and you risk a fine and towing. Signs are in Swedish ("Servicedag" / day + time). ParkSpot shows tomorrow's cleaning streets on the map, so you can avoid them.</p></section>
+  <section class="card"><h2>Parking overnight</h2>
+    <p>On many streets it is legal (and often free at night) to park until the next morning — as long as the street is not cleaned the next day. ParkSpot's "Over natten" (overnight) mode highlights safe streets near you.</p></section>
+  <section class="card"><h2>Heading to the summer sights?</h2>
+    <ul>${DESTINATIONS.map(x => `<li><a href="/parkering-nara/${x.slug}">Parking near ${esc(x.name)}</a></li>`).join('')}</ul>
+    <p class="muted">Tip: in summer many outer-area streets are not cleaned (winter only, 1 Nov–15 May) — so there are often more free spots.</p></section>
+  ${garageSection({ name:'Stockholm' }, 59.331, 18.064)}`;
+  const faq = [
+    { q:'Where can I park in central Stockholm as a tourist?', a:'On legal street spots (pay by zone) or in a parking garage. ParkSpot shows where you may stand right now, the price, and the nearest garage.' },
+    { q:'How much is parking in Stockholm?', a:'From 5 SEK/hour (zone 5, outer) to 55 SEK/hour (zone 1, city centre). Evenings and weekends are often free.' },
+    { q:'What is a "städdag" / cleaning day?', a:'A weekly day when a street is cleaned and parking is banned. Parking on a cleaning day risks a fine and towing — ParkSpot shows tomorrow’s cleaning streets.' },
+    { q:'Can I park overnight in Stockholm?', a:'Yes, on many streets and often free at night — as long as the street is not cleaned the next morning. ParkSpot highlights safe overnight streets.' },
+    { q:'Is ParkSpot free?', a:'Yes, free and no login. It is based on the City of Stockholm open data.' },
+  ];
+  const related = [
+    { href:'parkering-nara/grona-lund', text:'Parking near Gröna Lund' },
+    { href:'parkering-nara/skansen', text:'Parking near Skansen' },
+    { href:'parkeringshus-stockholm', text:'Parking garages in Stockholm' },
+    { href:'sommar-parkering-stockholm', text:'Sommarparkering (summer, in Swedish)' },
+  ];
+  emit('parking-in-stockholm', layout({
+    slug:'parking-in-stockholm', en:true,
+    title:'Parking in Stockholm — a visitor’s guide (prices, rules, map) | ParkSpot',
+    desc:'Visiting Stockholm by car? Learn where to park, what it costs (tariff zones 1–5), how to avoid cleaning-day fines, and where to park near the sights. Free live map.',
+    h1:'Parking in Stockholm — a visitor’s guide',
+    lead:'Stop circling. Know where you can park — before you drive. Prices, rules and a live map that shows free legal spots near you.',
+    sections, faq, related, lat:59.331, lng:18.064, match:['Norrmalm','Östermalm','Södermalm','Vasastaden','Kungsholmen','Gamla Stan'] }));
+}
+
 // ── Generera ─────────────────────────────────────────────────────────────────
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
-pillarSummer(); pillarTaxa(); pillarStadgator(); pillarOverNatten(); pillarGarages();
+pillarSummer(); pillarTaxa(); pillarStadgator(); pillarOverNatten(); pillarGarages(); pillarEnglish();
 DISTRICTS.forEach(d => { districtHub(d); billigare(d); overNatten(d); stadgator(d); });
 DESTINATIONS.forEach(destination);
 
