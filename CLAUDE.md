@@ -1,0 +1,43 @@
+# ParkSpot Stockholm — projektregler
+
+Parkeringskarta för Stockholm (live på **parkspot.se** via Railway). Visar var man får parkera
+lagligt i tre lägen: **Nu / I kväll / Över natten**, + parkeringshus som sista utväg.
+(Globala arbetssättet gäller utöver detta — se ~/.claude/CLAUDE.md.)
+
+## Struktur
+- `index.html` — hela appen (HTML+CSS+JS i ett). `server.js` — proxy/statisk server, port 3456.
+- `seo/` — programmatisk SEO-generator (`build.js`) + genererade sidor (`site/`) + `pages.json`.
+- `.apikey` (gitignorerad) — Stockholms API-nyckel. **COMMITTA ALDRIG.**
+- Docs: `ARKITEKTUR.md`, `UX_DESIGN.md`.
+
+## Köra & testa (gör ALLTID efter ändring)
+- Server: `node server.js` (port 3456). Startas i bakgrunden; svarar på localhost:3456.
+- JS-syntax: extrahera `<script>`-blocken ur index.html → `node --check` (det finns inga byggsteg).
+- Verifiera mot **riktig data** via proxyn (`/proxy/servicedagar/weekday/{dag}`, `/wfs/server/wfs?...`, `/phus`).
+- SEO: `node seo/build.js` regenererar alla sidor; verifiera + committa de genererade filerna.
+
+## Workflow
+- Bygg lokalt → testa → **committa lokalt** → **pusha till Railway endast på explicit "pusha"**.
+- Railway deployar från GitHub `master`. Live-deploy = Lars beslut.
+- SEO byggdes additivt (rör ej app-routes); appen (index.html) ska aldrig brytas av sidoprojekt.
+
+## Datafakta att minnas (annars blir analyser fel)
+- ⚠️ **Koordinatsystem:** WFS/P_TILLATEN/P_FORBUD = **SWEREF99** (EPSG:3011, meter, abs>1000).
+  Servicedagar = **WGS84** (grader, [lng,lat]). `toLatLng(c[0],c[1])` i appen hanterar båda —
+  analys-skript måste göra det med (anta inte fel CRS).
+- **Taxa-zoner (LTFR_TAXA_VIEW):** Taxa **1–5 = bil** (55/31/20/10/5 kr/tim), **11–15 = mc/reducerad**
+  (ligger ovanpå bil-zonerna). Visa bara 1–5; vid zon-gräns välj lägst nr (dyrast, konservativt).
+- **Taxetider:** "vardagar"=mån–fre; "dag före (sön-/)helgdag"=lördag/helgafton. **Lördag 11–17 har
+  avgift i Taxa 1–4** (Taxa 5 fritt). Visa "lör/helgafton" (`clarifyTaxa`), inte rå jargong.
+- **Städgator:** servicedagar har säsong (START/END_MONTH+DAY); `cleaningActiveOn` filtrerar ur säsong
+  (årsskifts-wrap för vinter 1/11–15/5). Innerstadsgator kan ha TVÅ säsonger (vinter + sommar).
+- **P-hus-API** (api.stockholmparkering.se:8084) är MYCKET långsamt (~30s) → förvärmd cache i server.js;
+  kall ~30s efter varje deploy. Bara kapacitet, ingen realtid.
+- **Besöksfickor:** korta "endast besök" (≤30 m) = troliga 30-min-fickor → ej "trygg över natten"
+  (blå "kontrollera tid"). 30-min-gränsen finns EJ i öppen data → heuristik, ärlig etikett.
+
+## Designprinciper
+- **Gatufärg = laglighet, inte pris** (pris visas av zoner + kort). Undvik falsk trygghet.
+- **Destinationen = ankaret; lägena = linser.** Lådan stannar nere (peek), val sker på kartan.
+- **Verifiera brett — särskilt att innerstan inte bryts** vid varje ändring.
+- Uppdatera projektminnet (`project_stadgator.md`) efter varje ändring.
