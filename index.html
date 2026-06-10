@@ -1300,16 +1300,6 @@ function taxaZoneAt(lat, lng) {
 // som att lördag är gratis – det stämmer inte, lör 11–17 har avgift i Taxa 1–4).
 function clarifyTaxa(t) { return String(t || '').replace(/dag före helgdag/gi, 'lör/helgafton'); }
 
-// Pris-rad till popup: riktig taxa-text om zonen hittas, annars "Taxa N – pris enligt zon".
-function taxaPopupLine(lat, lng, fallbackTaxa) {
-  const z = taxaZoneAt(lat, lng);
-  if (z && z.taxa)
-    return `<br><small style="color:rgba(240,246,252,0.62);line-height:1.5">💰 <b>${z.name}</b> · ${clarifyTaxa(z.taxa)}</small>`;
-  if (fallbackTaxa)
-    return `<br><small style="color:rgba(240,246,252,0.5)">Taxa ${fallbackTaxa} – pris enligt zon</small>`;
-  return '';
-}
-
 // Visa platskort i nedre lådan för Nu/Över natten – pris + status utan att öppna popup.
 function showPlaceCardV2(name, statusTxt, statusColor, dest) {
   document.getElementById('street-name').textContent = name;
@@ -1321,7 +1311,7 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest) {
   document.getElementById('badge-time').style.display = 'none';   // ingen tid-bricka här
   const taxaRow = document.getElementById('taxa-row');
   const z = dest ? taxaZoneAt(dest.lat, dest.lng) : null;
-  if (z && z.taxa) { taxaRow.innerHTML = `💰 <b>${z.name}</b> · ${z.taxa}`; taxaRow.style.display = 'block'; }
+  if (z && z.taxa) { taxaRow.innerHTML = `💰 <b>${z.name}</b> · ${clarifyTaxa(z.taxa)}`; taxaRow.style.display = 'block'; }
   else             { taxaRow.style.display = 'none'; }
   if (dest) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
