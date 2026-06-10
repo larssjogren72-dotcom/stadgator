@@ -1296,11 +1296,15 @@ function taxaZoneAt(lat, lng) {
   return best;
 }
 
+// Förtydliga jargong i taxetexten: "dag före helgdag" = lördag/helgafton (lätt att missläsa
+// som att lördag är gratis – det stämmer inte, lör 11–17 har avgift i Taxa 1–4).
+function clarifyTaxa(t) { return String(t || '').replace(/dag före helgdag/gi, 'lör/helgafton'); }
+
 // Pris-rad till popup: riktig taxa-text om zonen hittas, annars "Taxa N – pris enligt zon".
 function taxaPopupLine(lat, lng, fallbackTaxa) {
   const z = taxaZoneAt(lat, lng);
   if (z && z.taxa)
-    return `<br><small style="color:rgba(240,246,252,0.62);line-height:1.5">💰 <b>${z.name}</b> · ${z.taxa}</small>`;
+    return `<br><small style="color:rgba(240,246,252,0.62);line-height:1.5">💰 <b>${z.name}</b> · ${clarifyTaxa(z.taxa)}</small>`;
   if (fallbackTaxa)
     return `<br><small style="color:rgba(240,246,252,0.5)">Taxa ${fallbackTaxa} – pris enligt zon</small>`;
   return '';
@@ -1622,58 +1626,6 @@ async function loadParkingV2(lat, lng, radius = 500) {
   return { allowed, forbiddenLines };
 }
 
-// Konsol-paritetstest mot gårdagens bevisade prototyp
-async function testV2(lat = 59.3386863, lng = 17.9872348) {
-  const t0 = performance.now();
-  const { allowed, forbiddenLines } = await loadParkingV2(lat, lng);
-  const fordon = allowed.filter(s => s.vehicle === 'fordon').length;
-  const fri    = allowed.filter(s => s.rate.freeAtNight).length;
-  console.log(`[v2] ${Math.round(performance.now()-t0)}ms | tillåtna=${allowed.length} (fordon=${fordon}, fri-natt=${fri}) | förbud-delsträckor=${forbiddenLines.length}`);
-  return { allowed, forbiddenLines };
-}
-
-// Lager 6 (prototyp) – rita v2-parkeringsbilden på kartan.
-// Konsol-anropbar: showSafeStreetsV2(lat,lng). Egen layer, rör ej UC1/UC2.
-let v2Layer = null;
-const V2_COLORS = {
-  blue:   '#60a5fa',  // fordon, fri på natten → säker nattparkering
-  orange: '#f97316',  // fordon, avgift dygnet runt (ovanligt)
-  purple: '#9333ea',  // ej för bil (mc/buss/rörelsehindrad)
-  red:    '#ef4444',  // förbud (P_FORBUD utan tillåten nära)
-};
-async function showSafeStreetsV2(lat = 59.3386863, lng = 17.9872348) {
-  if (v2Layer) { map.removeLayer(v2Layer); v2Layer = null; }
-  const { allowed, forbiddenLines } = await loadParkingV2(lat, lng);
-  const grp = L.layerGroup();
-
-  // Förbudssträckor (rött, underst)
-  forbiddenLines.forEach(line => {
-    L.polyline(line.map(c => toLatLng(c[0], c[1])),
-      { color: V2_COLORS.red, weight: 6, opacity: .9 }).addTo(grp);
-  });
-
-  // Tillåtna platser (färg efter villkor, överst)
-  let n = { blue:0, orange:0, purple:0 };
-  allowed.forEach(s => {
-    let color;
-    if (s.vehicle !== 'fordon')   { color = V2_COLORS.purple; n.purple++; }
-    else if (s.rate.freeAtNight)  { color = V2_COLORS.blue;   n.blue++;   }
-    else                          { color = V2_COLORS.orange; n.orange++; }
-    const villkor = s.vehicle !== 'fordon' ? `Ej för bil (${s.vehicle})`
-                  : s.rate.freeAtNight ? 'Säker – fri på natten'
-                  : 'Avgift dygnet runt';
-    const boende = s.rate.residentZone ? '<br><small>Boendezon (rabatt för boende)</small>' : '';
-    s.linesSweref.forEach(line => {
-      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight: 7, opacity: .95 })
-        .bindPopup(`<b>${s.street||'?'}</b><br>${villkor}${boende}`).addTo(grp);
-    });
-  });
-
-  grp.addTo(map); v2Layer = grp;
-  console.log(`[v2-vy] 🔵säker=${n.blue} 🟠avgift=${n.orange} 🟣ej-bil=${n.purple} 🔴förbud=${forbiddenLines.length}`);
-}
-function clearV2() { if (v2Layer) { map.removeLayer(v2Layer); v2Layer = null; } }
-
 // Punkt→segment-avstånd i lat/lng (meter), oberoende av källans koordinatsystem.
 function distPointToSegmentLL(p, a, b) {
   const mLat = 111320, mLng = 111320 * Math.cos(a.lat * Math.PI / 180);
@@ -1760,26 +1712,9 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
   }
 }
 
-// ── UC3 "Nu" – nulägesparkering (realtid) ────────────────────────────────────
-// Avgör om en plats är avgiftsbelagd JUST NU utifrån PARKING_RATE + aktuell tid.
-function feeStatusNow(raw) {
-  const rate = (raw || '').toLowerCase();
-  const taxa = (rate.match(/taxa\s*(\d+)/) || [])[1];
-  const paid = { paid:true,  label:'Avgift nu' + (taxa ? ` (taxa ${taxa})` : '') };
-  const free = { paid:false, label:'Får stå nu – gratis' };
-
-  if (rate.includes('avgiftsfri')) return free;
-  if (!rate) return paid;                      // okänt → konservativt avgift
-  if (paidAroundClock(rate)) return paid;      // alla dagar / dygnet / övrig-tid-avgift
-  if (rate.includes('klockan')) return paid;   // utförligt format – tolkas ej säkert → konservativt
-
-  // Endast rent "vardagar X-Y": avgift inom tiden, gratis utanför
-  const m = rate.match(/vardagar\s+(\d{1,2})\s*[-–]\s*(\d{1,2})/);
-  if (!m) return paid;                         // ingen tolkbar tid → konservativt avgift
-  const now = new Date(), day = now.getDay(), h = now.getHours();
-  const weekday = day >= 1 && day <= 5;
-  return (weekday && h >= +m[1] && h < +m[2]) ? paid : free;
-}
+// ── UC3 "Nu" – nulägesparkering ──────────────────────────────────────────────
+// (Tidigare feeStatusNow borttagen: död kod + felaktig "vardagar=mån–fre"-tolkning
+//  som missade lördagsavgift. Appen visar nu hela den riktiga taxetexten i stället.)
 
 // Säsongskoll per gata: är städposten aktiv på datumet? (58% av datan är säsong,
 // mest vinter 1/11–15/5 i ytterstaden.) Saknar START_MONTH → året runt → alltid aktiv.
@@ -1842,6 +1777,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       let color, txt;
       if (cleans)                      { color = '#fbbf24'; txt = 'Städas idag – kontrollera tid'; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
+      else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#4ade80'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
@@ -1987,6 +1923,7 @@ function updateLegend(mode) {
   const nowLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Får stå nu</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas idag – undvik</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
@@ -2189,17 +2126,17 @@ function showUc1EmptyState(seasonRange) {
   const wknd = (tom.getDay() === 0 || tom.getDay() === 6);
   const day  = SV_DAYS[tom.getDay()].toLowerCase();
   const body = seasonRange
-    ? `Här städas bara <b>${seasonRange}</b> – inga städgator just nu. Leta en plats som håller över natten i stället.`
+    ? `Här städas bara <b>${seasonRange}</b> – inga städgator just nu. Leta en plats som håller just nu i stället.`
     : wknd
     ? `Imorgon är ${day} – gator städas bara på vardagar, så kvällsknepet funkar inte ikväll.`
-    : `Inga gator i området städas imorgon bitti. Prova ett annat område – eller leta en plats som håller över natten.`;
+    : `Inga gator i området städas imorgon bitti. Prova ett annat område – eller leta en plats som håller just nu.`;
   const hintEl = document.getElementById('hint');
   hintEl.innerHTML =
     `<div class="empty-state">
        <div class="es-icon">🧹</div>
        <div class="es-title">Inga städgator imorgon</div>
        <div class="es-body">${body}</div>
-       <button class="es-btn" onclick="setMode('uc2')">Visa Över natten →</button>
+       <button class="es-btn" onclick="setMode('now')">Visa Nu →</button>
      </div>`;
   hintEl.style.display = 'block';
   sheetSnapTo('peek');
@@ -2223,11 +2160,18 @@ async function showStreetsNearViewport(foreskriftP = null) {
     // "I kväll" → städning gäller IMORGON. Filtrera bort poster ur säsong (per gata).
     const dbg = {}; // diagnostik
 
-    // Först VIEWPORT, sen SÄSONG – ordningen låter oss upptäcka säsongsstyrda gator
-    // som är ur säsong just nu (de råa posterna bär START/END_MONTH även off-season).
+    // Avgränsa till ~500 m runt destinationen (som Nu/Över natten) – INTE hela den breda
+    // padded-vyn. Annars dras in-säsong-gator långt bort (t.ex. tvärs över vattnet) in och
+    // gömmer säsongstexten för ditt närområde. Fallback: viewport om ingen sökpunkt (panorering).
+    // Först närområde, sen SÄSONG – ordningen låter oss upptäcka säsongsstyrda gator ur säsong.
+    const UC1_RADIUS_M = 500;
     const inViewport = (Array.isArray(data) ? data : (data.features || [])).filter(f => {
       const m = featureMidCoord(f);
-      return m && bounds.contains(toLatLng(m[0], m[1]));
+      if (!m) return false;
+      const ll = toLatLng(m[0], m[1]);
+      return searchCenter
+        ? map.distance([searchCenter.lat, searchCenter.lng], [ll.lat, ll.lng]) <= UC1_RADIUS_M
+        : bounds.contains(ll);
     });
     let features = inViewport.filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
     const beforeViewport = inViewport.length;
@@ -2368,7 +2312,7 @@ function selectStreet(feat, hitLayer, visualLayer) {
   const taxaRow = document.getElementById('taxa-row');
   const z = c ? taxaZoneAt(c.lat, c.lng) : null;
   if (z && z.taxa) {
-    taxaRow.innerHTML = `💰 <b>${z.name}</b> · ${z.taxa}`;
+    taxaRow.innerHTML = `💰 <b>${z.name}</b> · ${clarifyTaxa(z.taxa)}`;
     taxaRow.style.display = 'block';
   } else {
     taxaRow.style.display = 'none';
