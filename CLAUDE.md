@@ -33,8 +33,12 @@ lagligt i tre lägen: **Nu / I kväll / Över natten**, + parkeringshus som sist
   (årsskifts-wrap för vinter 1/11–15/5). Innerstadsgator kan ha TVÅ säsonger (vinter + sommar).
 - **P-hus-API** (api.stockholmparkering.se:8084) är MYCKET långsamt (~30s) → förvärmd cache i server.js;
   kall ~30s efter varje deploy. Bara kapacitet, ingen realtid.
-- **Besöksfickor:** korta "endast besök" (≤30 m) = troliga 30-min-fickor → ej "trygg över natten"
-  (blå "kontrollera tid"). 30-min-gränsen finns EJ i öppen data → heuristik, ärlig etikett.
+- **Besöksfickor:** "endast besök" finns i två former. Äkta korta tids-/meter-fickor bär **`VF_METER`**
+  ("X meter", t.ex. Svartviksslingan 10/15 m) → blå "kontrollera tid", ej "trygg över natten".
+  Normala besöksrutor (t.ex. Hammarby Allé) har `VF_METER`/`VF_PLATSER` **null** → behandlas som trygga.
+  Signalen är `VF_METER`, INTE geometrisk längd (markerade rutor är också korta → falsklarm).
+  `MAX_MINUTES/HOURS` är null även på äkta fickor → exakt minutgräns finns EJ i datan (ärlig etikett).
+  OBS fordon-filtret ligger FÖRE visitorShort → MC-fickor (VF_METER satt) blir lila, ej blå.
 
 ## Designprinciper
 - **Gatufärg = laglighet, inte pris** (pris visas av zoner + kort). Undvik falsk trygghet.

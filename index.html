@@ -1549,34 +1549,28 @@ function parseRate(raw) {
 }
 
 // Lager 3 – normalisera P_TILLATEN-feature → ParkingSegment
-// Segmentlängd i meter (SWEREF99 är redan meter).
-function segmentLengthM(lines) {
-  let L = 0;
-  lines.forEach(line => { for (let i = 0; i < line.length - 1; i++)
-    L += Math.hypot(line[i+1][0]-line[i][0], line[i+1][1]-line[i][1]); });
-  return L;
-}
-const SHORT_VISITOR_M = 30;   // besöksficka under detta = trolig 30-min-ficka (ej trygg natt)
+const SHORT_VISITOR_M = 30;   // uppmätt besöksficka under detta = trolig 30-min-ficka (ej trygg natt)
 
 function toAllowedSegment(f) {
   const p = f.properties || {};
   const platsTyp = p.VF_PLATS_TYP || '';
-  const lines = featureLines(f);
-  const lengthM = segmentLengthM(lines);
-  // Besöksplats ("P-avgift endast besök"): KORTA fickor (≤30 m) är de tidsbegränsade
-  // 30-min-fickorna → ej trygg över natten. LÅNGA besökssträckor (t.ex. Hornsgatan 271 m)
-  // är normal besöksparkering → behandlas som trygga. Exakt minutgräns finns EJ i öppen
-  // data (MAX_* tomt; "30 min" står bara på skylt + i RDT-dokumentet) → vi säger "kontrollera tid".
+  // Besöksplats ("P-avgift endast besök") finns i TVÅ former i datan:
+  //   • UPPMÄTT i meter (VF_METER, "X meter") = kort besöksficka, ofta tidsbegränsad
+  //     (t.ex. Svartviksslingan "0–10 m / 30 min") → EJ trygg över natten.
+  //   • MARKERADE rutor (VF_PLATSER, "X platser", t.ex. Hammarby Allé) = normal
+  //     besöksparkering utan tidsgräns → trygg.
+  // Längd ensam blandar ihop dem (markerade rutor är också korta). VF_METER är signalen.
+  // Exakt minutgräns finns ej i öppen data → ärlig etikett "kontrollera tid".
   const visitorOnly = /endast besök/i.test(platsTyp);
+  const vfMeter = p.VF_METER != null ? +p.VF_METER : null;
   return {
     kind: 'allowed',
     vehicle: (p.VEHICLE || 'fordon').toLowerCase(),
-    linesSweref: lines,                // [[x,y],…] SWEREF99 (EPSG:3011)
-    lengthM,
+    linesSweref: featureLines(f),      // [[x,y],…] SWEREF99 (EPSG:3011)
     rate: parseRate(p.PARKING_RATE),
     platsTyp,
     visitorOnly,
-    visitorShort: visitorOnly && lengthM <= SHORT_VISITOR_M,
+    visitorShort: visitorOnly && vfMeter != null && vfMeter <= SHORT_VISITOR_M,
     street: p.STREET_NAME || '',
     district: p.CITY_DISTRICT || '',
     citation: p.CITATION || ''
