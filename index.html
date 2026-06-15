@@ -256,13 +256,6 @@
     }
     .hd-left h1 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
     .hd-left p  { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .settings-btn {
-      width: 36px; height: 36px;
-      background: rgba(255,255,255,0.07); border: 1px solid var(--glass-border);
-      border-radius: 10px; color: var(--muted); font-size: 17px;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .settings-btn:active { background: rgba(255,255,255,0.15); }
 
     /* ── Sökrad ── */
     #search-row {
@@ -782,7 +775,6 @@
         <p id="header-date">Laddar…</p>
       </div>
     </div>
-    <button class="settings-btn" title="Byt API-nyckel" onclick="resetKey()">⚙</button>
   </div>
 
   <div id="mode-row">
@@ -950,11 +942,6 @@ function launchApp() {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   requestAnimationFrame(() => { initMap(); loadData(); });
-}
-
-function resetKey() {
-  if (!confirm('Byt API-nyckel?')) return;
-  clearKey(); location.reload();
 }
 
 // ── API ──────────────────────────────────────────────────────────────────────
