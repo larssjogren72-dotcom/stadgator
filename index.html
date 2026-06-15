@@ -1508,7 +1508,10 @@ const FORBID_THRESHOLD_M = 12;       // meter: P_FORBUD utan tillåten inom dett
                                      // förbudssidan på smala gator men ger falska röda i innerstan
                                      // (där avståndsfördelningen saknar gap). Smal-gata-miss är en
                                      // känd begränsning som disclaimern täcker ("kontrollera skylt").
-const GAGATA_TOL_M = 15;             // meter: parkering inom detta från en aktiv gågata flaggas gågata.
+const GAGATA_TOL_M = 10;             // meter: vinkelrätt avstånd till gågata-linjen → flaggas gågata.
+                                     // Gågator är SMALA → äkta kantparkering ligger ≤10 m. Lösare (15 m)
+                                     // gav 47 parallellgata-läckage + 50 ändpunkts-överflagg per 1 äkta.
+const GAGATA_END_TOL_M = 6;          // meter: strängare vid gågatans ändpunkt (ingen överflagg förbi slutet).
 const GAGATA_COLOR = '#ec4899';      // rosa – gågata (skild från lila "ej bil" och röd "förbud").
 // Gågata-etikett: visa säsongsslut när det finns (sommargågata), annars permanent.
 const GAGATA_MN = ['jan','feb','mars','apr','maj','juni','juli','aug','sep','okt','nov','dec'];
@@ -1680,22 +1683,30 @@ async function loadParkingV2(lat, lng, radius = 500) {
   });
   const gagataLines = gagataFeatures.map(f => ({ lines: featureLines(f), vt: f.properties.VALID_TO || null }));
 
-  // Grid-hash på gågate-punkter (cell = toleransen) → snabb närhetskoll per p-segment.
-  const ggrid = new Map();
-  const gkey = (x, y) => Math.floor(x / GAGATA_TOL_M) + '_' + Math.floor(y / GAGATA_TOL_M);
-  gagataFeatures.forEach(f => featureLines(f).forEach(line => line.forEach(pt => {
-    const k = gkey(pt[0], pt[1]); if (!ggrid.has(k)) ggrid.set(k, []);
-    ggrid.get(k).push([pt[0], pt[1], f.properties.VALID_TO || null, f.properties.VALID_FROM || null]);
-  })));
-  const gagataAt = (pt) => {
-    const cx = Math.floor(pt[0] / GAGATA_TOL_M), cy = Math.floor(pt[1] / GAGATA_TOL_M);
-    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
-      const a = ggrid.get((cx+dx) + '_' + (cy+dy));
-      if (a) for (const q of a) if (Math.hypot(pt[0]-q[0], pt[1]-q[1]) <= GAGATA_TOL_M) return { vt: q[2], vf: q[3] };
+  // Gågate-delsegment med ändpunkts-flagga. Vi mäter VINKELRÄTT mot linjen (ej till
+  // närmaste glesa punkt) och tillåter bara en KORT överskjutning förbi gågatans
+  // globala ändpunkt – annars "förlängs" rosa förbi slutet (t.ex. tvärs en korsning).
+  const gagataSegs = [];
+  gagataFeatures.forEach(f => {
+    const vt = f.properties.VALID_TO || null, vf = f.properties.VALID_FROM || null;
+    featureLines(f).forEach(line => {
+      for (let i = 0; i < line.length - 1; i++)
+        gagataSegs.push({ a: line[i], b: line[i+1], vt, vf, aEnd: i === 0, bEnd: i === line.length - 2 });
+    });
+  });
+  const gagataAt = (p) => {
+    let best = null;
+    for (const s of gagataSegs) {
+      const dx = s.b[0]-s.a[0], dy = s.b[1]-s.a[1], L2 = dx*dx + dy*dy || 1;
+      const tc = Math.max(0, Math.min(1, ((p[0]-s.a[0])*dx + (p[1]-s.a[1])*dy) / L2));
+      const d = Math.hypot(p[0]-(s.a[0]+tc*dx), p[1]-(s.a[1]+tc*dy));
+      const atEnd = (tc === 0 && s.aEnd) || (tc === 1 && s.bEnd);     // projektion vid gågatans globala ände
+      const limit = atEnd ? GAGATA_END_TOL_M : GAGATA_TOL_M;          // strängare vid änden → ingen överflagg
+      if (d <= limit && (!best || d < best.d)) best = { d, vt: s.vt, vf: s.vf };
     }
-    return null;
+    return best;
   };
-  if (gagataFeatures.length) allowed.forEach(s => {
+  if (gagataSegs.length) allowed.forEach(s => {
     for (const line of s.linesSweref) { for (const pt of line) { const g = gagataAt(pt); if (g) { s.gagata = true; s.gagataUntil = g.vt; s.gagataFrom = g.vf; break; } } if (s.gagata) break; }
   });
 
