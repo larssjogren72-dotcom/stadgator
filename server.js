@@ -155,7 +155,11 @@ http.createServer((req, res) => {
       const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
                       '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
                       '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon' };
-      res.setHeader('Content-Type', types[path.extname(filePath)] || 'text/plain');
+      const ext = path.extname(filePath);
+      res.setHeader('Content-Type', types[ext] || 'text/plain');
+      // App-skalet (index.html) får aldrig cachas hårt – annars kör webbläsaren kvar
+      // gammal kod efter en deploy (och efter lokala ändringar). must-revalidate.
+      if (ext === '.html' || reqUrl.pathname === '/') res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       res.writeHead(200);
       res.end(data);
     });
