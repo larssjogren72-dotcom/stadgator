@@ -40,6 +40,17 @@ lagligt i tre lägen: **Nu / I kväll / Över natten**, + parkeringshus som sist
   `MAX_MINUTES/HOURS` är null även på äkta fickor → exakt minutgräns finns EJ i datan (ärlig etikett).
   OBS fordon-filtret ligger FÖRE visitorShort → MC-fickor (VF_METER satt) blir lila, ej blå.
 
+- **Gågator (sommargågator):** beslut finns i `LTFR_FORESKRIFT(_GEOM)` (TITLE "gågata på …",
+  FORESKRIFTSTEXT, VALID_FROM/VALID_TO) – bättre än `od_gis:NVDB_Gagata`. Aktiv nu = VALID_FROM≤idag
+  och (VALID_TO tom el. ≥idag). Sommargågator HAR ofta VALID_TO (sep/okt); en del (Rörstrandsgatan)
+  saknar slut = permanent som skrivet. Appen flaggar överlappande p-segment rosa "Gågata – endast
+  markerad plats" (ej "trygg"). Flaggning: **vinkelrät** linje-distans, **ändpunktsgräns**, och
+  **täckningsgrad ≥50 %** (ej en spets). Tolerans 10 m interiört / 6 m vid änden (gågator är smala).
+
+## Återanvändbart vid kart-överlappning (alla lager)
+Vinkelrät distans (ej närmaste punkt) · strängare vid linjens ände · flagga på täckningsgrad ej en spets ·
+tolerans per gatutyp (smal ≤10 m, bred ~15 m) · testa HELA pipelinen (även förbud-härlett) · index.html no-cache.
+
 ## Designprinciper
 - **Gatufärg = laglighet, inte pris** (pris visas av zoner + kort). Undvik falsk trygghet.
 - **Destinationen = ankaret; lägena = linser.** Lådan stannar nere (peek), val sker på kartan.
