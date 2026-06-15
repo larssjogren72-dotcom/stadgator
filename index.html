@@ -1706,8 +1706,29 @@ async function loadParkingV2(lat, lng, radius = 500) {
     }
     return best;
   };
+  // Flagga bara om en REJÄL DEL av p-segmentets längd ligger på gågatan – inte om
+  // en enda spets nuddar den. (Annars målas en lång boende-parkering som börjar i
+  // gågate-hörnet men sträcker sig bort, t.ex. Rörstrandsgatan öster om Birkagatan,
+  // helt rosa.) Vi samplar längs linjen var ~3 m och mäter täckningsgraden.
+  const GAGATA_MIN_COVERAGE = 0.5;   // ≥50 % av längden på gågatan → flaggas
+  const gagataCoverage = (lines) => {
+    let total = 0, near = 0, vt = null, vf = null;
+    lines.forEach(line => {
+      for (let i = 0; i < line.length - 1; i++) {
+        const a = line[i], b = line[i+1], L = Math.hypot(b[0]-a[0], b[1]-a[1]);
+        const steps = Math.max(1, Math.ceil(L / 3)), seg = L / steps;
+        for (let k = 0; k < steps; k++) {
+          const t = (k + 0.5) / steps;
+          const g = gagataAt([a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1])]);
+          total += seg; if (g) { near += seg; vt = g.vt; vf = g.vf; }
+        }
+      }
+    });
+    return { ratio: total ? near / total : 0, vt, vf };
+  };
   if (gagataSegs.length) allowed.forEach(s => {
-    for (const line of s.linesSweref) { for (const pt of line) { const g = gagataAt(pt); if (g) { s.gagata = true; s.gagataUntil = g.vt; s.gagataFrom = g.vf; break; } } if (s.gagata) break; }
+    const cov = gagataCoverage(s.linesSweref);
+    if (cov.ratio >= GAGATA_MIN_COVERAGE) { s.gagata = true; s.gagataUntil = cov.vt; s.gagataFrom = cov.vf; }
   });
 
   return { allowed, forbiddenLines, gagataLines };
