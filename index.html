@@ -1598,7 +1598,9 @@ async function loadParkingV2(lat, lng, radius = 500) {
     return false;
   };
 
-  // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten
+  // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten.
+  // OBS: hasAllowedNear bygger på P_TILLATEN-punkterna ENBART (oförändrat) → de äkta
+  // röda påverkas aldrig av härledningen nedan.
   const forbiddenLines = [];
   forbRaw.forEach(f => featureLines(f).forEach(line => {
     for (let i = 0; i < line.length - 1; i++) {
@@ -1606,6 +1608,36 @@ async function loadParkingV2(lat, lng, radius = 500) {
       if (!hasAllowedNear(mid)) forbiddenLines.push([line[i], line[i+1]]);
     }
   }));
+
+  // P_FORBUD-lagret innehåller TVÅ saker: äkta förbud OCH tidsfönster-poster som
+  // i själva verket beskriver en laglig p-plats (besök/taxa, förbjuden bara t.ex.
+  // städnatt). På breda gator ligger sidornas geometrier isär: ena sidan finns i
+  // tillåten-lagret (grön), andra bara som sådan förbudspost → 12 m-dedupen släcker
+  // röd men inget grönt ritas → laglig parkering blir OSYNLIG (blank).
+  // Smal, säker fix: rita grönt för förbudsposter som (a) ÄR parkering (besök/taxa)
+  // OCH (b) redan är släckta (tillåten inom 12 m). Villkor (b) garanterar att de
+  // äkta röda (ingen tillåten inom 12 m) ALDRIG berörs. Klassas via samma
+  // toAllowedSegment → enhetligt beteende (besök/VF_METER, fordonsfilter, städning).
+  const isParkingForbud = (p) => {
+    const t = (p.VF_PLATS_TYP || '').toLowerCase();
+    const r = (p.PARKING_RATE || '').toLowerCase();
+    return /endast besök|reserverad/.test(t) || /taxa\s*\d/.test(r);
+  };
+  forbRaw.forEach(f => {
+    if (!isParkingForbud(f.properties || {})) return;       // äkta förbud → orört
+    const keepLines = [];
+    featureLines(f).forEach(line => {
+      for (let i = 0; i < line.length - 1; i++) {
+        const mid = [(line[i][0]+line[i+1][0])/2, (line[i][1]+line[i+1][1])/2];
+        if (hasAllowedNear(mid)) keepLines.push([line[i], line[i+1]]); // släckt → laglig p-plats
+      }
+    });
+    if (!keepLines.length) return;                          // inget släckt → låt röd-logiken råda
+    const seg = toAllowedSegment(f);
+    seg.linesSweref = keepLines;
+    seg.fromForbud = true;                                  // härledd ur förbudslagret (spårbarhet)
+    allowed.push(seg);
+  });
 
   return { allowed, forbiddenLines };
 }
