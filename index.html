@@ -1301,7 +1301,7 @@ function taxaZoneAt(lat, lng) {
 function clarifyTaxa(t) { return String(t || '').replace(/dag före helgdag/gi, 'lör/helgafton'); }
 
 // Visa platskort i nedre lådan för Nu/Över natten – pris + status utan att öppna popup.
-function showPlaceCardV2(name, statusTxt, statusColor, dest) {
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent     = statusTxt;
@@ -1315,7 +1315,9 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest) {
   else             { taxaRow.style.display = 'none'; }
   if (dest) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
-  document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för v2-kort
+  const cleanRow = document.getElementById('clean-row');
+  if (infoRow) { cleanRow.textContent = `📅 ${infoRow}`; cleanRow.style.display = 'block'; }
+  else         { cleanRow.style.display = 'none'; }   // ingen städinfo för v2-kort
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
   document.getElementById('street-panel').style.display = 'block';
@@ -1509,13 +1511,22 @@ const FORBID_THRESHOLD_M = 12;       // meter: P_FORBUD utan tillåten inom dett
 const GAGATA_TOL_M = 15;             // meter: parkering inom detta från en aktiv gågata flaggas gågata.
 const GAGATA_COLOR = '#ec4899';      // rosa – gågata (skild från lila "ej bil" och röd "förbud").
 // Gågata-etikett: visa säsongsslut när det finns (sommargågata), annars permanent.
+const GAGATA_MN = ['jan','feb','mars','apr','maj','juni','juli','aug','sep','okt','nov','dec'];
 function gagataTxt(vt) {
   if (vt) {
     const d = new Date(vt);
-    const mn = ['jan','feb','mars','apr','maj','juni','juli','aug','sep','okt','nov','dec'][d.getMonth()];
-    return `Gågata t.o.m. ${d.getDate()} ${mn} – endast markerad plats`;
+    return `Gågata t.o.m. ${d.getDate()} ${GAGATA_MN[d.getMonth()]} – endast markerad plats`;
   }
   return 'Gågata – endast markerad plats';
+}
+// Datumintervall för kortet i undre menyn (start–slut, eller "från X" om slut saknas).
+function gagataRange(vf, vt) {
+  const f = d => `${d.getDate()} ${GAGATA_MN[d.getMonth()]}`;
+  const a = vf ? new Date(vf) : null, b = vt ? new Date(vt) : null;
+  if (a && b) return `Gågata ${f(a)} – ${f(b)} ${b.getFullYear()}`;
+  if (b)      return `Gågata t.o.m. ${f(b)} ${b.getFullYear()}`;
+  if (a)      return `Gågata från ${f(a)} ${a.getFullYear()} · inget angivet slutdatum`;
+  return 'Gågata · datum ej angivet';
 }
 
 // Lager 2 – generisk WFS-källadapter (ett anrop för alla lager)
@@ -1674,18 +1685,18 @@ async function loadParkingV2(lat, lng, radius = 500) {
   const gkey = (x, y) => Math.floor(x / GAGATA_TOL_M) + '_' + Math.floor(y / GAGATA_TOL_M);
   gagataFeatures.forEach(f => featureLines(f).forEach(line => line.forEach(pt => {
     const k = gkey(pt[0], pt[1]); if (!ggrid.has(k)) ggrid.set(k, []);
-    ggrid.get(k).push([pt[0], pt[1], f.properties.VALID_TO || null]);
+    ggrid.get(k).push([pt[0], pt[1], f.properties.VALID_TO || null, f.properties.VALID_FROM || null]);
   })));
   const gagataAt = (pt) => {
     const cx = Math.floor(pt[0] / GAGATA_TOL_M), cy = Math.floor(pt[1] / GAGATA_TOL_M);
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
       const a = ggrid.get((cx+dx) + '_' + (cy+dy));
-      if (a) for (const q of a) if (Math.hypot(pt[0]-q[0], pt[1]-q[1]) <= GAGATA_TOL_M) return { vt: q[2] };
+      if (a) for (const q of a) if (Math.hypot(pt[0]-q[0], pt[1]-q[1]) <= GAGATA_TOL_M) return { vt: q[2], vf: q[3] };
     }
     return null;
   };
   if (gagataFeatures.length) allowed.forEach(s => {
-    for (const line of s.linesSweref) { for (const pt of line) { const g = gagataAt(pt); if (g) { s.gagata = true; s.gagataUntil = g.vt; break; } } if (s.gagata) break; }
+    for (const line of s.linesSweref) { for (const pt of line) { const g = gagataAt(pt); if (g) { s.gagata = true; s.gagataUntil = g.vt; s.gagataFrom = g.vf; break; } } if (s.gagata) break; }
   });
 
   return { allowed, forbiddenLines, gagataLines };
@@ -1760,7 +1771,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
         pl._sid = s; pl._base = color;                 // för markering av vald gata
-        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest); });
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil) : ''); });
       });
     });
 
@@ -1857,7 +1868,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
         pl._sid = s; pl._base = color;                 // för markering av vald gata
-        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest); });
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil) : ''); });
       });
     });
 
