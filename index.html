@@ -1684,9 +1684,23 @@ function cleaningActiveOn(p, date) {
 
 // Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
 // (latlng, gatunamn) → bool. Namn + geometri (lat/lng) hindrar granngata-läcka.
+// Var i städ-fönstret är vi NU? Tider = HHMM-int (800=08:00, 0=00:00, 600=06:00).
+// passed = fönstret är klart idag (→ ledig nu); active = pågår; upcoming = senare idag.
+function cleaningState(start, end, nowHM) {
+  if (start == null || end == null) return 'upcoming';     // okänt fönster → varna (säkrast)
+  if (start <= end) {
+    if (nowHM > end)   return 'passed';
+    if (nowHM >= start) return 'active';
+    return 'upcoming';
+  }
+  // fönster över midnatt (sällsynt, t.ex. 22–02)
+  if (nowHM >= start || nowHM <= end) return 'active';
+  return 'upcoming';
+}
 function buildCleaningMatcher(cleaningData, lat, lng, grp) {
-  // UC3 "Nu" → städning gäller IDAG. Filtrera bort poster ur säsong.
+  // UC3 "Nu" → städning gäller IDAG, och nu även KLOCKSLAG. Filtrera bort poster ur säsong.
   const today = new Date();
+  const nowHM = today.getHours() * 100 + today.getMinutes();
   const feats = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
     .filter(f => cleaningActiveOn(f.properties || {}, today));
   const segs = [];
@@ -1695,15 +1709,27 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp) {
     const mll = toLatLng(m[0], m[1]);
     if (map.distance([lat, lng], [mll.lat, mll.lng]) > 500) return;
     const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
-    L.geoJSON(f, { style:{ color:'#fbbf24', weight:5, opacity:.85, dashArray:'6 6' },
-      coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
+    const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
+    const state = cleaningState(start, end, nowHM);
+    // Rita gul streckad ENBART där städning är aktiv/kommande idag – passerat = ingen distraktion.
+    if (state !== 'passed')
+      L.geoJSON(f, { style:{ color:'#fbbf24', weight:5, opacity:.85, dashArray:'6 6' },
+        coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
     featureLines(f).forEach(line => {
       for (let i = 0; i < line.length - 1; i++)
-        segs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name });
+        segs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end, state });
     });
   });
-  return { count: segs.length, near: (ll, name) => !!name && segs.some(s =>
-    s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25) };
+  // near() → null (ej städgata nu) | { state, start, end }. Aktiv vinner, annars närmaste kommande.
+  return { count: segs.length, near: (ll, name) => {
+    if (!name) return null;
+    const ms = segs.filter(s => s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
+    if (!ms.length) return null;
+    if (ms.some(s => s.state === 'active')) return { state: 'active' };
+    const up = ms.filter(s => s.state === 'upcoming').sort((a, b) => (a.start||0) - (b.start||0))[0];
+    if (up) return { state: 'upcoming', start: up.start, end: up.end };
+    return { state: 'passed' };
+  } };
 }
 
 async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
@@ -1731,10 +1757,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     allowed.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
-      const cleans = dest && clean.near(dest, (s.street || '').toLowerCase().trim());
+      const cs = dest && clean.near(dest, (s.street || '').toLowerCase().trim());   // null | {state,start,end}
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
-      else if (cleans)                 { color = '#fbbf24'; txt = 'Städas idag – kontrollera tid'; }
+      else if (cs && cs.state === 'active')   { color = '#fbbf24'; txt = 'Städas just nu – undvik'; }
+      else if (cs && cs.state === 'upcoming') { color = '#fbbf24'; txt = `Får stå tills ${fmtClock(cs.start)} · städas ${fmtClock(cs.start)}–${fmtClock(cs.end)}`; okNu++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#4ade80'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
