@@ -1360,6 +1360,24 @@ function gagataRange(vf, vt) {
   if (a)      return `Gågata från ${f(a)} ${a.getFullYear()} · inget angivet slutdatum`;
   return 'Gågata · datum ej angivet';
 }
+// Är föreskriften en gågata som är AKTIV nu? (delas av alla lägen så de aldrig glider isär.)
+function isActiveGagata(p, now = Date.now()) {
+  if (!/gågat/i.test(p.TITLE || '')) return false;
+  const vf = p.VALID_FROM ? Date.parse(p.VALID_FROM) : null;
+  const vt = p.VALID_TO   ? Date.parse(p.VALID_TO)   : null;
+  return vf != null && vf <= now && (vt == null || vt >= now);
+}
+// Hämta aktiva gågate-linjer runt en punkt → [{ lines:[[ [x,y]… ]], vt }] (SWEREF99).
+// Används av "I kväll" (UC1) för att rita gågator rosa streckade som i Nu/Över natten.
+async function loadActiveGagataLines(lat, lng, radius = 700) {
+  const deg  = (radius / 111000) * 1.8;
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  try {
+    const fore = await fetchLayer('LTFR_FORESKRIFT_GEOM', bbox);
+    return fore.filter(f => isActiveGagata(f.properties || {}))
+               .map(f => ({ lines: featureLines(f), vt: f.properties.VALID_TO || null }));
+  } catch { return []; }
+}
 
 // Lager 2 – generisk WFS-källadapter (ett anrop för alla lager)
 async function fetchLayer(layer, bbox) {
@@ -1503,13 +1521,7 @@ async function loadParkingV2(lat, lng, radius = 500) {
   // OBS: säsongsslutet (VALID_TO) finns för många sommargågator men inte alla
   // (t.ex. Rörstrandsgatan saknar slut) → vi visar "t.o.m. {datum}" när det finns.
   const now = Date.now();
-  const gagataFeatures = (foreRaw || []).filter(f => {
-    const p = f.properties || {};
-    if (!/gågat/i.test(p.TITLE || '')) return false;
-    const vf = p.VALID_FROM ? Date.parse(p.VALID_FROM) : null;
-    const vt = p.VALID_TO   ? Date.parse(p.VALID_TO)   : null;
-    return vf != null && vf <= now && (vt == null || vt >= now);
-  });
+  const gagataFeatures = (foreRaw || []).filter(f => isActiveGagata(f.properties || {}, now));
   const gagataLines = gagataFeatures.map(f => ({ lines: featureLines(f), vt: f.properties.VALID_TO || null }));
 
   // Gågate-delsegment med ändpunkts-flagga. Vi mäter VINKELRÄTT mot linjen (ej till
@@ -2099,11 +2111,13 @@ async function showStreetsNearViewport(foreskriftP = null) {
     const bounds = map.getBounds().pad(0.12);
 
     // Använd pre-startad LTFR-hämtning om tillgänglig (startades i flyToAndShow)
-    const [data] = await Promise.all([
+    // Hämta även aktiva gågator parallellt → ritas rosa streckade som i Nu/Över natten.
+    const [data, , gagataLines] = await Promise.all([
       streetDataPromise,
       foreskriftP || (searchCenter
         ? loadForeskriftRestrictions(searchCenter.lat, searchCenter.lng, 700)
         : Promise.resolve()),
+      searchCenter ? loadActiveGagataLines(searchCenter.lat, searchCenter.lng, 700) : Promise.resolve([]),
     ]);
 
     // "I kväll" → städning gäller IMORGON. Filtrera bort poster ur säsong (per gata).
@@ -2166,6 +2180,17 @@ async function showStreetsNearViewport(foreskriftP = null) {
       showUc1EmptyState(seasonHintFor(inViewport));
     } else {
       renderFeatures({ type:'FeatureCollection', features });
+    }
+
+    // Gågator (rosa streckade) – samma visuella signal som Nu/Över natten, så användaren
+    // ser att en gata är gågata även i "I kväll". Läggs i streetGroupLayers → rensas korrekt.
+    if (gagataLines && gagataLines.length) {
+      const ggrp = L.layerGroup();
+      gagataLines.forEach(gl => gl.lines.forEach(line =>
+        L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7', interactive: false }).addTo(ggrp)));
+      streetGroupLayers.push(ggrp.addTo(map));
+      const hintEl = document.getElementById('hint');
+      if (hintEl) hintEl.innerHTML += ' <span class="hint-main">· 🚶 Rosa streckad = gågata (ej parkering)</span>';
     }
 
     // Ladda zoner för viewporten – körs parallellt, blockerar inte
