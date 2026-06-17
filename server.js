@@ -157,9 +157,11 @@ http.createServer((req, res) => {
                       '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon' };
       const ext = path.extname(filePath);
       res.setHeader('Content-Type', types[ext] || 'text/plain');
-      // App-skalet (index.html) får aldrig cachas hårt – annars kör webbläsaren kvar
-      // gammal kod efter en deploy (och efter lokala ändringar). must-revalidate.
-      if (ext === '.html' || reqUrl.pathname === '/') res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      // App-skalet (index.html) får ALDRIG cachas – annars kör webbläsaren kvar gammal
+      // kod efter en deploy/ändring (stale-JS-fällan slog till flera ggr trots no-cache).
+      // no-store = webbläsaren sparar aldrig svaret → omöjligt att servera gammal JS.
+      // Kostar försumbart: en liten single-file-HTML per laddning.
+      if (ext === '.html' || reqUrl.pathname === '/') res.setHeader('Cache-Control', 'no-store, must-revalidate');
       res.writeHead(200);
       res.end(data);
     });
