@@ -1613,17 +1613,21 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const mll = toLatLng(m[0], m[1]);
       if (map.distance([lat, lng], [mll.lat, mll.lng]) > 500) return;
       const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+      const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
       L.geoJSON(f, { style:{ color:'#fbbf24', weight:5, opacity:.85, dashArray:'6 6' },
         coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
       featureLines(f).forEach(line => {
         for (let i = 0; i < line.length - 1; i++)
-          cleaningSegs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name });
+          cleaningSegs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end });
       });
     });
     // Tillåten plats städas imorgon = samma gatunamn OCH ≤25 m från städgatans geometri (lat/lng)
-    // (namn-match hindrar att granngata vid korsning "läcker" gult)
-    const nearCleaning = (ll, name) => !!name && cleaningSegs.some(s =>
-      s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
+    // (namn-match hindrar att granngata vid korsning "läcker" gult). Returnerar fönstret för kortet.
+    const nearCleaning = (ll, name) => {
+      if (!name) return null;
+      const s = cleaningSegs.find(s => s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
+      return s ? { start: s.start, end: s.end } : null;
+    };
 
     // Förbudssträckor (rött, underst) – samma tjocklek som tillåtna
     forbiddenLines.forEach(line =>
@@ -1634,17 +1638,19 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     allowed.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
-      const cleans = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());
+      const cl = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());   // null | {start,end}
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
-      else if (cleans)                 { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
+      else if (cl)                     { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#4ade80'; txt = 'Trygg över natten'; safe++; }
+      const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
+                    : cl ? `Städas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}` : '';
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
         pl._sid = s; pl._base = color;                 // för markering av vald gata
-        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil) : ''); });
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
       });
     });
 
