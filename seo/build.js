@@ -99,7 +99,11 @@ const EN = {
 };
 
 // ── Delad layout ─────────────────────────────────────────────────────────────
-function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false }) {
+function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [] }) {
+  const hreflang = alts.length
+    ? alts.map(a => `<link rel="alternate" hreflang="${a.lang}" href="${SITE}/${a.slug}">`).join('')
+      + `<link rel="alternate" hreflang="x-default" href="${SITE}/${(alts.find(a => a.lang === 'sv') || alts[0]).slug}">`
+    : '';
   const faqLd = faq && faq.length ? {
     '@context':'https://schema.org','@type':'FAQPage',
     mainEntity: faq.map(f => ({ '@type':'Question', name:f.q, acceptedAnswer:{ '@type':'Answer', text:f.a.replace(/<[^>]+>/g,'') } }))
@@ -116,7 +120,7 @@ function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng,
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
-<link rel="canonical" href="${SITE}/${slug}">
+<link rel="canonical" href="${SITE}/${slug}">${hreflang}
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="article"><meta property="og:locale" content="sv_SE">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
@@ -375,7 +379,56 @@ function destination(x) {
     slug:`parkering-nara/${x.slug}`, title:`Parkering nära ${x.name} – platser & garage | ParkSpot`,
     desc:`Var parkerar du nära ${x.name}? Se lagliga gatuplatser, pris och närmaste parkeringshus. Kör lugnt till ${x.name}.`,
     h1:`Parkering nära ${x.name}`, lead:`Ska du till ${esc(x.name)}? Hitta lagliga platser och närmaste garage — utan att cirkla.`,
-    sections, faq, related, lat:x.lat, lng:x.lng, match:null }));
+    sections, faq, related, lat:x.lat, lng:x.lng, match:null,
+    alts:[{lang:'sv',slug:`parkering-nara/${x.slug}`},{lang:'en',slug:`en/parking-near-${x.slug}`}] }));
+}
+function destinationEN(x) {
+  const gs = nearestGarages(x.lat, x.lng, 5, 1500);
+  const whatEN = { 'grona-lund':'the Gröna Lund amusement park on Djurgården', 'skansen':'the Skansen open-air museum on Djurgården',
+    'djurgarden':'the museum island of Djurgården', 'stromkajen':'the archipelago boats at Strömkajen', 'langholmen':'the cliffs and park on Långholmen',
+    'globen':'events and concerts at the Avicii Arena (Globen)', 'centralstationen':'Stockholm Central Station', 'slussen':'Slussen between Södermalm and Gamla Stan' }[x.slug] || x.name;
+  const sections = `
+  <section class="card"><h2>Parking near ${esc(x.name)}</h2>
+    <p>Heading to ${whatEN}? On-street parking nearby can be limited, especially in summer. ParkSpot shows legal spots and the price on a map — plus the nearest garage if the streets are full.</p>
+    <a class="cta" href="/">📍 See free spots near ${esc(x.name)} →</a></section>
+  ${gs.length ? `<section class="card"><h2>🅿 Parking garages near ${esc(x.name)}</h2>
+    <table><tr><th>Garage</th><th>Spaces</th><th>Distance</th></tr>${gs.map(g=>`<tr><td>${esc(g.name)}</td><td>${g.spaces}</td><td class="muted">${km(g.d)}</td></tr>`).join('')}</table>
+    <p class="muted">Number = capacity (not live occupancy). Check on site.</p></section>` : ''}
+  <section class="card"><h2>Good to know</h2>
+    <ul><li>Staying overnight? Check tomorrow's <b>cleaning day</b> ("städdag") — parking is banned then.</li>
+    <li>Evenings, nights and Sundays are often free in outer zones (Saturday 11–17 usually has a charge).</li>
+    <li>Visiting in summer? Many outer-area streets are cleaned in winter only — so there are often more free spots.</li></ul></section>`;
+  const faq = [
+    { q:`Where can I park near ${x.name}?`, a:`On legal street spots in the area or in the nearest garage (see above). ParkSpot shows where you may stand right now and the price.` },
+    { q:`Is there a parking garage near ${x.name}?`, a:`${gs.length ? `Yes, e.g. ${esc(gs[0].name)} (${km(gs[0].d)}).` : 'Use ParkSpot to find the nearest garage.'}` },
+    { q:`Is it hard to park near ${x.name} in summer?`, a:`It can be busy at popular sights. ParkSpot shows free legal spots and garages as a backup.` },
+  ];
+  const related = [
+    { href:'parking-in-stockholm', text:'Parking in Stockholm — visitor’s guide' },
+    { href:'en', text:'Parking near Stockholm’s sights (overview)' },
+    { href:'parkeringshus-stockholm', text:'Parking garages in Stockholm' },
+  ].filter(r => r.href !== `en/parking-near-${x.slug}`);
+  emit(`en/parking-near-${x.slug}`, layout({
+    slug:`en/parking-near-${x.slug}`, en:true,
+    title:`Parking near ${x.name}, Stockholm — spots & garages | ParkSpot`,
+    desc:`Where to park near ${x.name} in Stockholm? See legal street spots, the price and the nearest parking garage. Drive calm — free live map.`,
+    h1:`Parking near ${x.name}`, lead:`Driving to ${esc(x.name)}? Find legal spots and the nearest garage — without circling.`,
+    sections, faq, related, lat:x.lat, lng:x.lng, match:null,
+    alts:[{lang:'sv',slug:`parkering-nara/${x.slug}`},{lang:'en',slug:`en/parking-near-${x.slug}`}] }));
+}
+function englishHub() {
+  const sections = `
+  <section class="card"><h2>Parking near Stockholm’s sights</h2>
+    <p>Driving to a popular destination? Pick your target below to see legal street parking, the price and the nearest garage.</p>
+    ${linkList(DESTINATIONS.map(x => ({ href:`en/parking-near-${x.slug}`, text:`Parking near ${x.name}` })))}</section>
+  <section class="card"><h2>More for visitors</h2>
+    ${linkList([{ href:'parking-in-stockholm', text:'Parking in Stockholm — full visitor’s guide (prices, rules, map)' }, { href:'parkeringshus-stockholm', text:'Parking garages in Stockholm' }])}</section>`;
+  emit('en', layout({
+    slug:'en', en:true,
+    title:'Parking in Stockholm for visitors — sights, prices & map | ParkSpot',
+    desc:'Visiting Stockholm by car? Find parking near Gröna Lund, Skansen, Djurgården and more — legal spots, prices (zones 1–5) and the nearest garage. Free live map.',
+    h1:'Parking in Stockholm — for visitors', lead:'Stop circling. Find parking near the sights, prices and a live map of free legal spots.',
+    sections, faq:null, related:null, lat:59.328, lng:18.09, match:['Norra Djurgården','Östermalm','Norrmalm'] }));
 }
 
 // ── Pelarsidor ───────────────────────────────────────────────────────────────
@@ -526,8 +579,8 @@ function pillarEnglish() {
     <p>Each street has a weekly <b>cleaning day</b> when parking is forbidden — park there and you risk a fine and towing. Signs are in Swedish ("Servicedag" / day + time). ParkSpot shows tomorrow's cleaning streets on the map, so you can avoid them.</p></section>
   <section class="card"><h2>Parking overnight</h2>
     <p>On many streets it is legal (and often free at night) to park until the next morning — as long as the street is not cleaned the next day. ParkSpot's "Over natten" (overnight) mode highlights safe streets near you.</p></section>
-  <section class="card"><h2>Heading to the summer sights?</h2>
-    <ul>${DESTINATIONS.map(x => `<li><a href="/parkering-nara/${x.slug}">Parking near ${esc(x.name)}</a></li>`).join('')}</ul>
+  <section class="card"><h2>Heading to the sights?</h2>
+    <ul>${DESTINATIONS.map(x => `<li><a href="/en/parking-near-${x.slug}">Parking near ${esc(x.name)}</a></li>`).join('')}</ul>
     <p class="muted">Tip: in summer many outer-area streets are not cleaned (winter only, 1 Nov–15 May) — so there are often more free spots.</p></section>
   ${garageSection({ name:'Stockholm' }, 59.331, 18.064)}`;
   const faq = [
@@ -538,10 +591,10 @@ function pillarEnglish() {
     { q:'Is ParkSpot free?', a:'Yes, free and no login. It is based on the City of Stockholm open data.' },
   ];
   const related = [
-    { href:'parkering-nara/grona-lund', text:'Parking near Gröna Lund' },
-    { href:'parkering-nara/skansen', text:'Parking near Skansen' },
+    { href:'en', text:'Parking near Stockholm’s sights (overview)' },
+    { href:'en/parking-near-grona-lund', text:'Parking near Gröna Lund' },
+    { href:'en/parking-near-skansen', text:'Parking near Skansen' },
     { href:'parkeringshus-stockholm', text:'Parking garages in Stockholm' },
-    { href:'sommar-parkering-stockholm', text:'Sommarparkering (summer, in Swedish)' },
   ];
   emit('parking-in-stockholm', layout({
     slug:'parking-in-stockholm', en:true,
@@ -706,9 +759,10 @@ fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
 pillarSummer(); pillarTaxa(); pillarStadgator(); pillarOverNatten(); pillarGarages(); pillarEnglish();
-pillarHubs();
+pillarHubs(); englishHub();
 DISTRICTS.forEach(d => { districtHub(d); billigare(d); overNatten(d); stadgator(d); });
 DESTINATIONS.forEach(destination);
+DESTINATIONS.forEach(destinationEN);
 STREETS.forEach(streetPage);
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
