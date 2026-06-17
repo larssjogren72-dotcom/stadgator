@@ -541,11 +541,106 @@ function pillarEnglish() {
     sections, faq, related, lat:59.331, lng:18.064, match:['Norrmalm','Östermalm','Södermalm','Vasastaden','Kungsholmen','Gamla Stan'] }));
 }
 
+// ── Kategori-hubbar (index per kategori → samlar under-sidorna, fixar 404) ────
+function linkList(items) {
+  return `<ul class="hublist">${items.map(i => `<li><a href="/${i.href}">${esc(i.text)}</a></li>`).join('')}</ul>`;
+}
+function categoryHub({ slug, title, desc, h1, lead, intro, areaH, areaItems, moreItems, related, match, lat, lng }) {
+  const sections = intro
+    + `<section class="card"><h2>${esc(areaH)}</h2>${linkList(areaItems)}</section>`
+    + (moreItems ? `<section class="card"><h2>Mer om parkering i Stockholm</h2>${linkList(moreItems)}</section>` : '');
+  emit(slug, layout({ slug, title, desc, h1, lead, sections, related, match, lat, lng }));
+}
+function pillarHubs() {
+  const all = DISTRICTS;
+  // 1) Parkering i Stockholm – bred ingångssida
+  categoryHub({
+    slug:'parkering',
+    title:'Parkering i Stockholm – karta, pris & städgator (alla stadsdelar) | ParkSpot',
+    desc:'Var får du parkera i Stockholm? Live-karta med lagliga platser, pris per zon (Taxa 1–5) och morgondagens städgator. Hitta parkering i din stadsdel.',
+    h1:'Parkering i Stockholm',
+    lead:`${TAGLINE} En live-karta som visar var du får stå just nu, vad det kostar och vilka gator som städas imorgon — i hela Stockholm.`,
+    intro:`<section class="card"><h2>Hitta parkering i Stockholm – så funkar det</h2>
+      <p>Gatuparkering i Stockholm styrs av tre saker: <b>taxezon</b> (priset, Taxa 1–5), <b>städdag</b> (veckodag då parkering är förbjuden) och <b>parkeringsförbud</b>. ParkSpot visar alla tre på en karta så du slipper cirkla och slipper böter.</p>
+      ${taxaTable([1,3,5])}
+      <p class="muted">Exakt pris och tid styrs av skylten — appen visar zonen direkt på kartan.</p></section>`,
+    areaH:'Parkering stadsdel för stadsdel',
+    areaItems: all.map(d => ({ href:`parkering/${d.slug}`, text:`Parkering i ${d.name}` })),
+    moreItems:[
+      { href:'parkeringstaxor-stockholm', text:'Parkeringstaxor (Taxa 1–5)' },
+      { href:'stadgator', text:'Städgator i Stockholm' },
+      { href:'parkering-over-natten', text:'Parkering över natten' },
+      { href:'billigare-parkering', text:'Billigare parkering' },
+      { href:'parkeringshus-stockholm', text:'Parkeringshus' },
+      { href:'sommar-parkering-stockholm', text:'Sommarparkering' },
+      { href:'parking-in-stockholm', text:'Parking in Stockholm (English)' },
+    ],
+    related: all.slice(0,6).map(d => ({ href:`parkering/${d.slug}`, text:`Parkering i ${d.name}` })),
+    match:['Södermalm','Östermalm','Kungsholmen','Vasastaden','Norrmalm'], lat:59.331, lng:18.064 });
+  // 2) Billigare parkering
+  categoryHub({
+    slug:'billigare-parkering',
+    title:'Billigare parkering i Stockholm – pris per zon & gratis-tider | ParkSpot',
+    desc:'Betala mindre för parkering i Stockholm. Jämför taxezoner (från 5 kr/tim) och se när det är avgiftsfritt – kvällar, nätter och söndagar. Stadsdel för stadsdel.',
+    h1:'Billigare parkering i Stockholm',
+    lead:'Betala mindre. Se vilka zoner som är billigast och när parkering är avgiftsfri — i din stadsdel.',
+    intro:`<section class="card"><h2>Så hittar du billigast parkering</h2>
+      <p>Priset styrs av <b>taxezonen</b>: Taxa 1 är dyrast (55 kr/tim i city), Taxa 5 billigast (5 kr/tim). Sikta på låga zoner i ytterstaden och avgiftsfria tider. <b>Obs:</b> lördag 11–17 har avgift i Taxa 1–4 (Taxa 5 fritt).</p>
+      ${taxaTable([1,3,5])}</section>`,
+    areaH:'Billigare parkering per stadsdel',
+    areaItems: all.map(d => ({ href:`billigare-parkering/${d.slug}`, text:`Billigare parkering i ${d.name}` })),
+    moreItems:[{href:'parkeringstaxor-stockholm',text:'Alla taxor 1–5 förklarade'},{href:'sommar-parkering-stockholm',text:'Sommarparkering'},{href:'parkering-over-natten',text:'Parkering över natten (ofta gratis)'}],
+    related:[{href:'parkeringstaxor-stockholm',text:'Stockholms parkeringstaxor'}],
+    match:['Hägersten','Aspudden','Midsommarkransen','Bromma','Årsta'], lat:59.301, lng:18.012 });
+  // 3) Parkering nära mål
+  categoryHub({
+    slug:'parkering-nara',
+    title:'Parkering nära populära platser i Stockholm | ParkSpot',
+    desc:'Var parkerar du nära Gröna Lund, Skansen, Globen och andra mål i Stockholm? Se lagliga platser, pris och närmaste parkeringshus.',
+    h1:'Parkering nära populära platser i Stockholm',
+    lead:'Ska du till ett populärt mål? Hitta lagliga platser och närmaste garage — utan att cirkla.',
+    intro:`<section class="card"><h2>Parkera smart vid målet</h2><p>Vid populära mål kan gatuparkeringen vara begränsad, särskilt sommartid. ParkSpot visar lediga lagliga platser, pris och närmaste parkeringshus — välj ditt mål nedan.</p></section>`,
+    areaH:'Populära mål',
+    areaItems: DESTINATIONS.map(x => ({ href:`parkering-nara/${x.slug}`, text:`Parkering nära ${x.name}` })),
+    moreItems:[{href:'parkeringshus-stockholm',text:'Parkeringshus i Stockholm'},{href:'sommar-parkering-stockholm',text:'Sommarparkering'}],
+    related:[{href:'parkeringshus-stockholm',text:'Parkeringshus i Stockholm'}],
+    match:null, lat:null, lng:null });
+  // 4) Städgator (index per stadsdel) – väver in "servicedag"-synonymen
+  categoryHub({
+    slug:'stadgator',
+    title:'Städgator i Stockholm – stadsdel för stadsdel (servicedagar) | ParkSpot',
+    desc:'Vilka gator städas i Stockholm och när? Se morgondagens städgator (servicedagar) live, stadsdel för stadsdel. Säsongssmart – undvik böter och bogsering.',
+    h1:'Städgator i Stockholm – per stadsdel',
+    lead:'Slipp städbil och böter. Se vilka gator som städas imorgon – välj din stadsdel.',
+    intro:`<section class="card"><h2>Städgator &amp; servicedagar – så funkar det</h2><p>Varje gata har en <b>städdag</b> (kallas även <b>servicedag</b>) – en veckodag då parkering är förbjuden för gatustädning. Står du fel blir det böter och ibland bogsering. Många gator i ytterstaden gäller <b>bara vintertid (${SEASON})</b>. ParkSpot visar morgondagens städgator live och säsongssmart.</p>
+      <p><a href="/stadgator-stockholm">Läs hela guiden om städgator i Stockholm →</a></p></section>`,
+    areaH:'Städgator stadsdel för stadsdel',
+    areaItems: all.map(d => ({ href:`stadgator/${d.slug}`, text:`Städgator i ${d.name}` })),
+    moreItems:[{href:'stadgator-stockholm',text:'Städgator – komplett guide'},{href:'parkering-over-natten',text:'Parkering över natten'},{href:'sommar-parkering-stockholm',text:'Sommarparkering'}],
+    related:[{href:'stadgator-stockholm',text:'Städgator i Stockholm (guide)'}],
+    match:['Södermalm','Östermalm','Kungsholmen','Vasastaden','Norrmalm'], lat:59.331, lng:18.064 });
+  // 5) Parkering över natten (index per stadsdel)
+  categoryHub({
+    slug:'parkering-over-natten',
+    title:'Parkering över natten i Stockholm – per stadsdel | ParkSpot',
+    desc:'Var får du stå över natten i Stockholm utan städgata, förbud eller böter? Se trygga nattgator stadsdel för stadsdel. Ofta avgiftsfritt nattetid.',
+    h1:'Parkering över natten i Stockholm – per stadsdel',
+    lead:'Sov lugnt – bilen står rätt. Se trygga nattgator utan städning eller förbud, i din stadsdel.',
+    intro:`<section class="card"><h2>Tryggt över natten – så väljer du gata</h2><p>Det säkra nattvalet är en gata <b>utan städgata imorgon</b> och utan parkeringsförbud — ofta avgiftsfritt nattetid. ParkSpot:s läge "Över natten" markerar dem gröna nära din adress.</p>
+      <p><a href="/parkering-over-natten-stockholm">Läs hela guiden om att parkera över natten →</a></p></section>`,
+    areaH:'Över natten stadsdel för stadsdel',
+    areaItems: all.map(d => ({ href:`parkering-over-natten/${d.slug}`, text:`Parkering över natten i ${d.name}` })),
+    moreItems:[{href:'parkering-over-natten-stockholm',text:'Över natten – komplett guide'},{href:'stadgator',text:'Städgator'},{href:'parkeringstaxor-stockholm',text:'Taxor 1–5'}],
+    related:[{href:'parkering-over-natten-stockholm',text:'Parkera över natten i Stockholm (guide)'}],
+    match:['Södermalm','Östermalm','Kungsholmen','Vasastaden','Norrmalm'], lat:59.331, lng:18.064 });
+}
+
 // ── Generera ─────────────────────────────────────────────────────────────────
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
 pillarSummer(); pillarTaxa(); pillarStadgator(); pillarOverNatten(); pillarGarages(); pillarEnglish();
+pillarHubs();
 DISTRICTS.forEach(d => { districtHub(d); billigare(d); overNatten(d); stadgator(d); });
 DESTINATIONS.forEach(destination);
 
