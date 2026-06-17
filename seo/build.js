@@ -67,6 +67,13 @@ try {
   console.log(`[seo] ${GARAGES.length} publika besöksgarage laddade`);
 } catch { console.warn('[seo] saknar garages.json – garage-sektioner utelämnas'); }
 
+// ── Gator (top per stadsdel ur P_TILLATEN, cachat) ───────────────────────────
+let STREETS = [];
+try {
+  STREETS = JSON.parse(fs.readFileSync(path.join(__dirname, 'streets.json'), 'utf8'));
+  console.log(`[seo] ${STREETS.length} gatu-sidor laddade`);
+} catch { console.warn('[seo] saknar streets.json – gatu-sidor utelämnas'); }
+
 function dist(aLat, aLng, bLat, bLng) {
   const R = 6371000, toR = x => x * Math.PI / 180;
   const dLa = toR(bLat - aLat), dLo = toR(bLng - aLng);
@@ -245,6 +252,9 @@ function districtHub(d) {
     <p>Kvällsknepet: en gata som städas imorgon bitti är ofta ledig redan ikväll — de som nattparkerar undviker den.</p></section>
   <section class="card"><h2>Parkera över natten i ${esc(d.name)}</h2>
     <p>I läget <b>Över natten</b> visar ParkSpot gröna gator nära dig där det är lagligt att stå till morgonen efter — utan städgata eller förbud. Avgift kan ändå gälla; kontrollera skylten.</p></section>
+  ${(() => { const st = STREETS.filter(x => x.districtSlug === d.slug);
+    return st.length ? `<section class="card"><h2>Populära gator i ${esc(d.name)}</h2>
+    <p>Hitta pris och städdag för en specifik gata:</p>${linkList(st.map(x => ({ href:`parkering/${x.slug}`, text:`Parkering på ${x.name}` })))}</section>` : ''; })()}
   ${garageSection(d, d.lat, d.lng)}`;
   const faq = [
     { q:`Vad kostar parkering i ${d.name}?`, a:`Från cirka <b>${pris} kr/tim</b> (${d.taxa.map(z=>'Taxa '+z).join('/')}). Priset bestäms av skylten; ParkSpot visar zonen på kartan.` },
@@ -636,6 +646,61 @@ function pillarHubs() {
     match:['Södermalm','Östermalm','Kungsholmen','Vasastaden','Norrmalm'], lat:59.331, lng:18.064 });
 }
 
+// ── Gatu-sidor ───────────────────────────────────────────────────────────────
+// Live-widget: hela veckans städschema för EN gata (matchar STREET_NAME, alla veckodagar).
+function streetCleaningWidget(name) {
+  const nameJson = JSON.stringify(name.toLowerCase());
+  return `<section class="card">
+  <h2>🧹 När städas ${esc(name)}?</h2>
+  <p class="muted">Live ur Stockholms öppna data, säsongsjusterat (vintergator ur säsong räknas bort).</p>
+  <div class="live" id="live">Hämtar…</div>
+  <p style="margin-top:8px"><a href="/">Se ${esc(name)} på kartan →</a></p>
+  <script>(function(){
+    var street=${nameJson};
+    var API=["söndag","måndag","tisdag","onsdag","torsdag","fredag","lördag"];
+    var now=new Date();
+    function active(p){if(p.START_MONTH==null)return true;var md=function(m,dd){return m*100+(dd||1)};var cur=md(now.getMonth()+1,now.getDate());var a=md(p.START_MONTH,p.START_DAY),b=md(p.END_MONTH,p.END_DAY);return a<=b?(cur>=a&&cur<=b):(cur>=a||cur<=b);}
+    function fc(t){t=+t||0;var h=Math.floor(t/100),m=t%100;return (h<10?'0':'')+h+(m?':'+(m<10?'0':'')+m:'');}
+    var el=document.getElementById("live");
+    Promise.all(API.map(function(day){return fetch("/proxy/servicedagar/weekday/"+encodeURIComponent(day)+"?outputFormat=json").then(function(r){return r.json();}).then(function(j){return {day:day,feats:(Array.isArray(j)?j:(j.features||[]))};}).catch(function(){return {day:day,feats:[]};});})).then(function(all){
+      var rows=[],seen={};
+      all.forEach(function(o){o.feats.forEach(function(x){var p=x.properties||{};if((p.STREET_NAME||"").toLowerCase()!==street)return;if(!active(p))return;var k=o.day+"_"+p.START_TIME+"_"+p.END_TIME;if(seen[k])return;seen[k]=1;rows.push({day:o.day,s:p.START_TIME,e:p.END_TIME});});});
+      if(!rows.length){el.innerHTML='<p class="green">Ingen registrerad städdag på '+street+' just nu (säsong kan påverka) — kontrollera alltid skylten.</p>';return;}
+      el.innerHTML=rows.map(function(w){return '<div class="row"><span class="nm">'+w.day.charAt(0).toUpperCase()+w.day.slice(1)+'</span> <span>'+fc(w.s)+'–'+fc(w.e)+'</span></div>';}).join('');
+    }).catch(function(){el.innerHTML='<p class="muted">—</p>';});
+  })();</script></section>`;
+}
+function streetPage(s) {
+  const cheapest = Math.max(...s.taxa), pris = TAXA[cheapest].pris;
+  const siblings = STREETS.filter(x => x.districtSlug === s.districtSlug && x.slug !== s.slug).slice(0, 4);
+  const sections = `
+  ${streetCleaningWidget(s.name)}
+  <section class="card"><h2>Vad kostar det att parkera på ${esc(s.name)}?</h2>
+    <p>${esc(s.name)} ligger i ${esc(s.districtName)} – ${s.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}. Exakt pris och tid styrs av skylten; ParkSpot visar zonen direkt på kartan.</p>
+    ${taxaTable(s.taxa)}
+    <p class="muted">💡 Avgiftsfritt är vanligt kvällar, nätter och söndagar i lägre zoner (obs: lördag 11–17 har ofta avgift).</p></section>
+  <section class="card"><h2>Parkera över natten på ${esc(s.name)}</h2>
+    <p>Vill du stå över natten? Det säkra är att gatan <b>inte städas imorgon bitti</b> och saknar parkeringsförbud. ParkSpot:s läge "Över natten" visar om ${esc(s.name)} är ett tryggt val just ikväll.</p></section>
+  ${garageSection({ name:s.name }, s.lat, s.lng)}`;
+  const faq = [
+    { q:`Får man parkera på ${s.name}?`, a:`Ja, på de delar utan parkeringsförbud. Pris enligt zon (${s.taxa.map(z=>'Taxa '+z).join('/')}). Kontrollera skylten och städdagen — ParkSpot visar allt på kartan.` },
+    { q:`Vad kostar parkering på ${s.name}?`, a:`Från cirka <b>${pris} kr/tim</b> (${s.taxa.map(z=>'Taxa '+z).join('/')}). Ofta avgiftsfritt kvällar, nätter och söndagar i lägre zoner.` },
+    { q:`Vilken städdag har ${s.name}?`, a:`Det visas live i rutan ovan (veckodag + tid), säsongsjusterat. Står du på städdagen riskerar du böter och bogsering.` },
+    { q:`Får man stå över natten på ${s.name}?`, a:`Ofta ja, om gatan inte städas imorgon bitti och saknar förbud. Använd läget "Över natten" i ParkSpot.` },
+  ];
+  const related = [
+    { href:`parkering/${s.districtSlug}`, text:`Parkering i ${s.districtName} (översikt)` },
+    { href:`stadgator/${s.districtSlug}`, text:`Städgator i ${s.districtName}` },
+  ].concat(siblings.map(x => ({ href:`parkering/${x.slug}`, text:`Parkering på ${x.name}` })));
+  emit(`parkering/${s.slug}`, layout({
+    slug:`parkering/${s.slug}`,
+    title:`Parkering på ${s.name}, ${s.districtName} – pris & städdag | ParkSpot`,
+    desc:`Var får du parkera på ${s.name} i ${s.districtName}? Se pris (Taxa ${s.taxa.join('/')}), vilken dag gatan städas och om du får stå över natten. Gratis live-karta.`,
+    h1:`Parkering på ${s.name}`,
+    lead:`Ska du parkera på ${esc(s.name)} i ${esc(s.districtName)}? Se pris, städdag och nattparkering — plus en live-karta som visar lediga platser.`,
+    sections, faq, related, lat:s.lat, lng:s.lng, match:null }));
+}
+
 // ── Generera ─────────────────────────────────────────────────────────────────
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
@@ -644,6 +709,7 @@ pillarSummer(); pillarTaxa(); pillarStadgator(); pillarOverNatten(); pillarGarag
 pillarHubs();
 DISTRICTS.forEach(d => { districtHub(d); billigare(d); overNatten(d); stadgator(d); });
 DESTINATIONS.forEach(destination);
+STREETS.forEach(streetPage);
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);
