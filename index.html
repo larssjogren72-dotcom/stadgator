@@ -1638,19 +1638,28 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp));
 
     // Gatufärg = trygg att stå över natten? (pris visas av zonerna + popupen, ej av färgen)
+    // Tidsmedveten: morgondagens städning tolkas efter när den börjar (beslut A 2026-06-17):
+    //   natt (<07) = du sover, kan ej flytta → undvik · morgon (07–10) = flytta innan start
+    //   sen (≥10)  = du har åkt på morgonen → trygg över natten ändå.
     let safe = 0, städas = 0;
     allowed.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
       const cl = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());   // null | {start,end}
+      const tier = cl ? overnightCleaningTier(cl.start) : null;                        // null|'natt'|'morgon'|'sen'
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
-      else if (cl)                     { color = '#fbbf24'; txt = 'Städas imorgon – undvik'; städas++; }
+      else if (tier === 'natt')        { color = '#fbbf24'; txt = `Städas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
+      else if (tier === 'morgon')      { color = '#fbbf24'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
+      else if (tier === 'sen')         { color = '#4ade80'; txt = `Trygg över natten · städas ${fmtClock(cl.start)}–${fmtClock(cl.end)}`; safe++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#4ade80'; txt = 'Trygg över natten'; safe++; }
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
-                    : cl ? `Städas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}` : '';
+                    : tier === 'natt'   ? `Städas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} · flytta bilen i kväll`
+                    : tier === 'morgon' ? `Städas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · flytta innan ${fmtClock(cl.start)}`
+                    : tier === 'sen'    ? `Städas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
+                    : '';
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
         pl._sid = s; pl._base = color;                 // för markering av vald gata
@@ -1664,7 +1673,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${safe} trygga platser i natt`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">🟢 Trygg över natten · 🚶 Gågata · 🟡 Städas imorgon · 🟣 Ej för bil · 🔴 Förbud</span>' +
+      '<span class="hint-main">🟢 Trygg över natten · 🚶 Gågata · 🟡 Städas natt/morgon · 🟣 Ej för bil · 🔴 Förbud</span>' +
       '<span class="hint-disclaimer">Pris visas av zonerna. Kontrollera alltid lokala skyltar.</span>';
 
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
@@ -1690,6 +1699,19 @@ function cleaningActiveOn(p, date) {
   const b   = md(p.END_MONTH, p.END_DAY);
   return a <= b ? (cur >= a && cur <= b)      // normalt intervall (t.ex. 16/5–31/10)
                 : (cur >= a || cur <= b);     // wrap över årsskifte (t.ex. 1/11–15/5)
+}
+
+// "Över natten": hur farlig är morgondagens städning för en som lämnar bilen i natt
+// och hämtar på morgonen? Klassas på START_TIME (HHMM-int). Beslut A (2026-06-17):
+//   natt  (<07:00) → du sover, kan ej flytta → undvik
+//   morgon (07–10) → du kan flytta först på morgonen → "flytta innan {start}"
+//   sen   (≥10:00) → du har åkt innan städningen → trygg över natten ändå.
+const ON_NIGHT_HM = 700, ON_SAFE_HM = 1000;
+function overnightCleaningTier(start) {
+  if (start == null) return 'morgon';                  // okänt fönster → behandla som varning
+  if (start < ON_NIGHT_HM) return 'natt';
+  if (start < ON_SAFE_HM)  return 'morgon';
+  return 'sen';
 }
 
 // Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
@@ -1950,7 +1972,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Trygg över natten</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksparkering – kontrollera tid</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas imorgon – undvik</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas i natt/morgon – flytta först</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const uc2LegendOld =
