@@ -436,9 +436,8 @@
       box-shadow: 0 4px 18px rgba(0,0,0,0.5);
       backdrop-filter: blur(12px);
       position: relative;
-      /* Bara så bred som färgraderna kräver – långa disclaimern radbryts i stället för
-         att sträcka panelen över halva skärmen. */
-      max-width: min(82vw, 270px);
+      /* Bara så bred som längsta färgraden kräver (ingen disclaimer som sträcker ut). */
+      max-width: min(78vw, 256px);
       transition: padding .5s ease, background .5s ease, border-color .5s ease;
     }
     .lgnd-row { display: flex; align-items: center; gap: 8px; }
@@ -2049,8 +2048,10 @@ function sheetSet(y, animate = true) {
 }
 function sheetSnapTo(state) { if (!sheetEl) return; sheetCompute(); sheetSet(sheetSnaps[state]); }
 // Minns om användaren själv dragit ner lådan → lägesförklaringen glider då inte upp av sig själv.
-function sheetCollapsed() { return localStorage.getItem('sheet_collapsed') === '1'; }
-function setSheetCollapsed(v) { try { localStorage.setItem('sheet_collapsed', v ? '1' : '0'); } catch {} }
+// Minns EXAKT vilket läge användaren senast drog/snäppte lådan till (upp som ner) →
+// lägesförklaringen återställer det i stället för att alltid hoppa till peek. Default = peek (visa text).
+function getSheetPref() { const p = localStorage.getItem('sheet_pref'); return ['full','half','peek','min'].includes(p) ? p : 'peek'; }
+function setSheetPref(state) { try { localStorage.setItem('sheet_pref', state); } catch {} }
 function initSheet() {
   sheetEl = document.getElementById('bottom');
   const handle = document.getElementById('sheet-handle');
@@ -2078,8 +2079,8 @@ function initSheet() {
       sheetSet(pts.reduce((a, b) => Math.abs(b - sheetCurY) < Math.abs(a - sheetCurY) ? b : a));
     }
     // Minns valet: nere (min) → kollapsad (visa ej info automatiskt); uppe (half/full) → ej kollapsad.
-    if (Math.abs(sheetCurY - sheetSnaps.min) < 2) setSheetCollapsed(true);
-    else if (Math.abs(sheetCurY - sheetSnaps.half) < 2 || Math.abs(sheetCurY - sheetSnaps.full) < 2) setSheetCollapsed(false);
+    const lvl = ['full','half','peek','min'].find(k => Math.abs(sheetCurY - sheetSnaps[k]) < 2);
+    if (lvl) setSheetPref(lvl);   // minns exakt nivå (upp som ner)
   };
   handle.addEventListener('pointerup', endDrag);
   handle.addEventListener('pointercancel', endDrag);
@@ -2134,7 +2135,7 @@ function updateLegend(mode) {
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${zoneRows}${modeRows}<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--glass-border);font-size:10.5px;color:var(--muted);line-height:1.45">Baseras på Stockholms öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar. ParkSpot tar inget ansvar för parkeringsböter eller bogsering.</div></div>`;
+     <div id="legend-content">${zoneRows}${modeRows}</div>`;
   applyLegendState();
 }
 
@@ -2930,7 +2931,7 @@ function setMode(mode) {
     // Ingen destination än → visa lägesförklaringen. 'peek' auto-anpassar höjden till exakt
     // textens höjd (åker upp bara så mycket att texten syns, inget tomrum). Har användaren
     // själv dragit ner lådan tidigare → respektera det (bara handtaget).
-    sheetSnapTo(sheetCollapsed() ? 'min' : 'peek');
+    sheetSnapTo(getSheetPref());
   }
 }
 
