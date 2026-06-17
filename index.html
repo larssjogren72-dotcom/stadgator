@@ -2797,10 +2797,10 @@ function setMode(mode) {
   const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   // Förklarar hur det VALDA läget fungerar (service-terminologi) + vägledning. Färger bor i Förklaring.
   const intro = {
-    now:    'Nu visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på en gata för tider och vägbeskrivning.',
-    morgon: 'Morgon visar gator som nyss servats klart i morse — oftast tömda och lediga förmiddagar. Tryck på en gata för info om tider och vägbeskrivning.',
-    uc1:    'I kväll visar gator som servas tidigt i morgon bitti — ofta mindre belastade ikväll. Tryck på en gata för detaljer och vägbeskrivning.',
-    uc2:    'Över natten visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på en gata för service-tider och vägbeskrivning.',
+    now:    '<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på en gata för tider och vägbeskrivning.',
+    morgon: '<b>"Morgon"</b> visar gator som nyss servats klart i morse — oftast tömda och lediga förmiddagar. Tryck på en gata för info om tider och vägbeskrivning.',
+    uc1:    '<b>"I kväll"</b> visar gator som servas tidigt i morgon bitti — ofta mindre belastade ikväll. Tryck på en gata för detaljer och vägbeskrivning.',
+    uc2:    '<b>"Över natten"</b> visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på en gata för service-tider och vägbeskrivning.',
   };
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
