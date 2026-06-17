@@ -471,6 +471,14 @@
     .legend.collapsed .lgnd-toggle .lt-label { display: inline; }
     .legend.collapsed .lgnd-toggle .lt-x { display: none; }
 
+    /* SEO-footer i lådan: intern länkning till områdes-/guidesidor. Crawlbar, syns
+       när lådan dras upp – stör inte peek-vyn (ligger sist i sheet-body). */
+    #seo-links { margin: 16px 2px 8px; padding-top: 12px; border-top: 1px solid var(--glass-border); }
+    #seo-links .seo-h { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 12px 0 6px; }
+    #seo-links .seo-grid { display: flex; flex-wrap: wrap; gap: 7px 12px; }
+    #seo-links a { font-size: 12.5px; color: #9db4d6; text-decoration: none; }
+    #seo-links a:active, #seo-links a:hover { color: var(--text); text-decoration: underline; }
+
     /* Leaflet overrides */
     .leaflet-control-attribution {
       background: rgba(8,12,28,0.75) !important; color: rgba(255,255,255,0.38) !important;
@@ -733,6 +741,36 @@
       <span class="phus-label">Parkeringshus nära</span>
       <span class="phus-arrow">›</span>
     </button>
+    <nav id="seo-links" aria-label="Parkering i Stockholm">
+      <div class="seo-h">Parkering i Stockholms områden</div>
+      <div class="seo-grid">
+        <a href="/parkering/sodermalm">Södermalm</a>
+        <a href="/parkering/norrmalm">Norrmalm</a>
+        <a href="/parkering/ostermalm">Östermalm</a>
+        <a href="/parkering/vasastan">Vasastan</a>
+        <a href="/parkering/kungsholmen">Kungsholmen</a>
+        <a href="/parkering/gamla-stan">Gamla Stan</a>
+        <a href="/parkering/gardet">Gärdet</a>
+        <a href="/parkering/liljeholmen">Liljeholmen</a>
+        <a href="/parkering/hammarby-sjostad">Hammarby Sjöstad</a>
+        <a href="/parkering/hagersten">Hägersten</a>
+        <a href="/parkering/aspudden">Aspudden</a>
+        <a href="/parkering/midsommarkransen">Midsommarkransen</a>
+        <a href="/parkering/arsta">Årsta</a>
+        <a href="/parkering/bromma">Bromma</a>
+        <a href="/parkering/traneberg">Traneberg</a>
+        <a href="/parkering/kista">Kista</a>
+      </div>
+      <div class="seo-h">Guider</div>
+      <div class="seo-grid">
+        <a href="/stadgator-stockholm">Städgator i Stockholm</a>
+        <a href="/parkering-over-natten-stockholm">Parkering över natten</a>
+        <a href="/parkeringshus-stockholm">Parkeringshus</a>
+        <a href="/parkeringstaxor-stockholm">Parkeringstaxor</a>
+        <a href="/sommar-parkering-stockholm">Sommarparkering</a>
+        <a href="/parking-in-stockholm">Parking (English)</a>
+      </div>
+    </nav>
     </div>
   </div>
 </div>
