@@ -436,6 +436,9 @@
       box-shadow: 0 4px 18px rgba(0,0,0,0.5);
       backdrop-filter: blur(12px);
       position: relative;
+      /* Bara så bred som färgraderna kräver – långa disclaimern radbryts i stället för
+         att sträcka panelen över halva skärmen. */
+      max-width: min(82vw, 270px);
       transition: padding .5s ease, background .5s ease, border-color .5s ease;
     }
     .lgnd-row { display: flex; align-items: center; gap: 8px; }
