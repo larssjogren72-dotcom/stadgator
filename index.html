@@ -2811,9 +2811,10 @@ function setMode(mode) {
   if (searchCenter) {
     flyToAndShow(searchCenter.lat, searchCenter.lng);   // resultatvy → flödet snäpper själv till peek
   } else {
-    // Ingen destination än → visa lägesförklaringen: glid upp till HALV höjd så användaren ser
-    // att här finns info. Har användaren själv dragit ner lådan tidigare → respektera det (bara handtaget).
-    sheetSnapTo(sheetCollapsed() ? 'min' : 'half');
+    // Ingen destination än → visa lägesförklaringen. 'peek' auto-anpassar höjden till exakt
+    // textens höjd (åker upp bara så mycket att texten syns, inget tomrum). Har användaren
+    // själv dragit ner lådan tidigare → respektera det (bara handtaget).
+    sheetSnapTo(sheetCollapsed() ? 'min' : 'peek');
   }
 }
 
