@@ -1735,7 +1735,8 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp) {
     if (!name) return null;
     const ms = segs.filter(s => s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
     if (!ms.length) return null;
-    if (ms.some(s => s.state === 'active')) return { state: 'active' };
+    const act = ms.find(s => s.state === 'active');
+    if (act) return { state: 'active', start: act.start, end: act.end };
     const up = ms.filter(s => s.state === 'upcoming').sort((a, b) => (a.start||0) - (b.start||0))[0];
     if (up) return { state: 'upcoming', start: up.start, end: up.end };
     return { state: 'passed' };
@@ -1806,7 +1807,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       const nx = dest && (!cs || cs.state === 'passed') ? nextClean(dest, name) : null;
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
-      else if (cs && cs.state === 'active')   { color = '#fbbf24'; txt = 'Städas just nu – undvik'; }
+      else if (cs && cs.state === 'active')   { color = '#fbbf24'; txt = `Städas just nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
       else if (cs && cs.state === 'upcoming') { color = '#fbbf24'; txt = `Får stå tills ${fmtClock(cs.start)} · städas ${fmtClock(cs.start)}–${fmtClock(cs.end)}`; okNu++; }
       else if (nx)                     { color = '#fbbf24'; txt = `Får stå nu · städas imorgon ${fmtClock(nx.start)}–${fmtClock(nx.end)}`; okNu++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
