@@ -1742,18 +1742,51 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp) {
   } };
 }
 
+// "Nu" tittar FRAMÅT: morgondagens städfönster som börjar inom HORIZON timmar (mest
+// natt-städning 00–06 på kvällen). Annars skulle en plats som städats idag (passerat)
+// visas grön på kvällen fast den städas igen i natt → bogseringsrisk. Returnerar
+// near(ll,name) → { start, end } för imminent städning, annars null. Ritar inget.
+function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH) {
+  const nowH = nowDate.getHours() + nowDate.getMinutes() / 60;
+  const feats = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
+    .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
+  const segs = [];
+  feats.forEach(f => {
+    const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
+    if (start == null) return;
+    const startH = Math.floor(start / 100) + (start % 100) / 60;
+    if ((24 - nowH) + startH > horizonH) return;        // inte nära nog → strunta
+    const m = featureMidCoord(f); if (!m) return;
+    const mll = toLatLng(m[0], m[1]);
+    if (map.distance([lat, lng], [mll.lat, mll.lng]) > 500) return;
+    const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+    featureLines(f).forEach(line => {
+      for (let i = 0; i < line.length - 1; i++)
+        segs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end });
+    });
+  });
+  return (ll, name) => {
+    if (!name) return null;
+    const s = segs.find(s => s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
+    return s ? { start: s.start, end: s.end } : null;
+  };
+}
+
 async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
   clearStreetsFromMap();
   document.getElementById('hint').innerHTML =
     `<div style="display:flex;align-items:center;gap:12px"><div class="mini-spinner"></div>
        <span style="color:var(--text);font-size:14px">Kollar var du får stå just nu…</span></div>`;
   try {
-    const [{ allowed, forbiddenLines, gagataLines }, cleaningToday] = await Promise.all([
+    const [{ allowed, forbiddenLines, gagataLines }, cleaningToday, cleaningTomorrow] = await Promise.all([
       parkPromise ? parkPromise : loadParkingV2(lat, lng),
-      fetchServicedays(getKey(), apiDay(new Date())),   // DAGENS städning
+      fetchServicedays(getKey(), apiDay(new Date())),    // DAGENS städning
+      fetchServicedays(getKey(), apiDay(tomorrow())),    // MORGONDAGENS (för imminent natt-städning)
     ]);
     const grp = L.layerGroup();
     const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp);
+    const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
+    const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
 
     // Gågator (rosa streckad, underst) – syns även där ingen parkering finns.
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
@@ -1767,18 +1800,26 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     allowed.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
-      const cs = dest && clean.near(dest, (s.street || '').toLowerCase().trim());   // null | {state,start,end}
+      const name = (s.street || '').toLowerCase().trim();
+      const cs = dest && clean.near(dest, name);                                     // dagens: null | {state,start,end}
+      // Imminent natt-/morgonstädning imorgon (bara relevant om dagens ej aktiv/kommande):
+      const nx = dest && (!cs || cs.state === 'passed') ? nextClean(dest, name) : null;
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       else if (cs && cs.state === 'active')   { color = '#fbbf24'; txt = 'Städas just nu – undvik'; }
       else if (cs && cs.state === 'upcoming') { color = '#fbbf24'; txt = `Får stå tills ${fmtClock(cs.start)} · städas ${fmtClock(cs.start)}–${fmtClock(cs.end)}`; okNu++; }
+      else if (nx)                     { color = '#fbbf24'; txt = `Får stå nu · städas imorgon ${fmtClock(nx.start)}–${fmtClock(nx.end)}`; okNu++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#4ade80'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
+      const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
+                    : (cs && cs.state === 'active')   ? `Städas just nu (${fmtClock(cs.start)}–${fmtClock(cs.end)})`
+                    : (cs && cs.state === 'upcoming') ? `Städas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
+                    : nx ? `Städas imorgon ${fmtClock(nx.start)}–${fmtClock(nx.end)}` : '';
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
         pl._sid = s; pl._base = color;                 // för markering av vald gata
-        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil) : ''); });
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
       });
     });
 
@@ -2277,7 +2318,7 @@ async function showMorningParkingFlow(lat, lng) {
       const name = f.properties?.STREET_NAME || 'Gata';
       const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
       const m = featureMidCoord(f); const dest = m && toLatLng(m[0], m[1]);
-      const info = `Städades idag ${fmtClock(start)}–${fmtClock(end)} · ofta ledig till nästa städdag · kontrollera skylt`;
+      const info = `Städades idag ${fmtClock(start)}–${fmtClock(end)} · ofta ledig resten av dagen · kontrollera skylt`;
       featureLines(f).forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: '#4ade80', weight: 6, opacity: .95 }).addTo(grp);
         pl.on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(name, 'Städat i morse – ofta ledig', '#4ade80', dest, info); });
