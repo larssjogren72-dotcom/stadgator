@@ -406,19 +406,20 @@ function pillarTaxa() {
     <ul><li>Sikta på låga zoner (Taxa 4–5) i ytterstaden.</li><li>Kvällar, nätter och söndagar är ofta avgiftsfria. <b>Lördag 11–17 har dock avgift</b> i Taxa 1–4 (Taxa 5 fritt).</li><li>Boende kan köpa boendeparkering (rabatt per månad).</li></ul>
     <p>ParkSpot färgar zonerna på kartan så du ser priset innan du parkerar.</p></section>`;
   const faq = [
-    { q:`Vad kostar parkering i Stockholm?`, a:`Från 5 kr/tim (Taxa 5) till 55 kr/tim (Taxa 1 i city). Zonen avgör — ParkSpot visar den på kartan.` },
-    { q:`Vad är skillnaden mellan Taxa 1 och Taxa 5?`, a:`Taxa 1 är dyrast (55 kr/tim, city, dygnet runt). Taxa 5 är billigast (5 kr/tim vardag 7–19, gratis övrig tid).` },
-    { q:`När är det avgiftsfritt?`, a:`Ofta kvällar, nätter och söndagar utanför taxetiden, särskilt i lägre zoner. Obs: lördag 11–17 har avgift i Taxa 1–4 (Taxa 5 fritt). Kontrollera skylten.` },
+    { q:`Vad kostar Taxa 1, 2, 3, 4 och 5 i Stockholm?`, a:`Taxa 1: <b>55 kr/tim</b> · Taxa 2: <b>31 kr/tim</b> · Taxa 3: <b>20 kr/tim</b> · Taxa 4: <b>10 kr/tim</b> · Taxa 5: <b>5 kr/tim</b> (pris per timme, besöksparkering). Se tabellen ovan för exakta tider per zon.` },
+    { q:`Vilken taxa är billigast – och vilken är dyrast?`, a:`Billigast är <b>Taxa 5</b> (5 kr/tim vardag 7–19, gratis övrig tid). Dyrast är <b>Taxa 1</b> (55 kr/tim dygnet runt i city).` },
+    { q:`Finns det Taxa 6, 7, 8 eller 9 i Stockholm?`, a:`Nej – bilparkeringen i Stockholm har <b>taxa 1–5</b>. Det finns en lägre taxa för <b>motorcykel</b> (ca 2,50–13,75 kr/tim beroende på zon). Står du i en mc-ruta gäller mc-taxan.` },
+    { q:`När är parkering avgiftsfri i Stockholm?`, a:`Ofta kvällar, nätter och söndagar utanför taxetiden, särskilt i lägre zoner. Obs: lördag 11–17 har avgift i Taxa 1–4 (Taxa 5 fritt). Kontrollera skylten.` },
   ];
   const related = [
-    { href:`billigare-parkering/sodermalm`, text:`Billigare parkering på Södermalm` },
-    { href:`sommar-parkering-stockholm`, text:`Sommarparkering i Stockholm` },
-    { href:`parkering-over-natten-stockholm`, text:`Parkera över natten` },
+    { href:`billigare-parkering`, text:`Billigare parkering i Stockholm` },
+    { href:`parkering`, text:`Parkering i Stockholm (alla stadsdelar)` },
+    { href:`parkering-over-natten`, text:`Parkera över natten` },
   ];
   emit('parkeringstaxor-stockholm', layout({
-    slug:'parkeringstaxor-stockholm', title:'Stockholms parkeringstaxor: Taxa 1–5 förklarade (pris/tim) | ParkSpot',
-    desc:'Vad kostar parkering i Stockholm? Taxa 1–5 förklarade: från 55 kr/tim i city till 5 kr/tim i ytterzon. Se zonen på kartan och betala minst.',
-    h1:'Stockholms parkeringstaxor (Taxa 1–5)', lead:'Vad kostar det egentligen? Här är alla zoner och priser — och hur du hittar de billigaste gatorna.',
+    slug:'parkeringstaxor-stockholm', title:'Parkeringstaxor Stockholm – Taxa 1–5, pris 5–55 kr/tim | ParkSpot',
+    desc:'Vad kostar parkering i Stockholm? Taxa 1: 55 kr/tim · Taxa 2: 31 · Taxa 3: 20 · Taxa 4: 10 · Taxa 5: 5 kr/tim. Plus mc-taxa, när det är gratis och vilken zon som gäller på kartan.',
+    h1:'Parkeringstaxor i Stockholm – Taxa 1–5 (pris per timme)', lead:'Vad kostar det egentligen? Här är alla zoner och priser per timme — och hur du hittar de billigaste gatorna.',
     sections, faq, related, lat:null, lng:null, match:null }));
 }
 
