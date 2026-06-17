@@ -1173,6 +1173,18 @@ function selectV2Street(s, grp) {
   });
 }
 
+// Orange klipp-overlay: ritar ENBART den del av p-segmentet som ligger i en aktiv
+// serveringsyta (resten behåller sin färg). Klickbar → "Uteservering – kontrollera skylt".
+function drawUteservering(s, grp, dest) {
+  if (!s.uteserveringClips) return;
+  s.uteserveringClips.forEach(clip => {
+    const opl = L.polyline(clip.map(c => toLatLng(c[0], c[1])), { color: UTESERVERING_COLOR, weight: 7, opacity: .97 }).addTo(grp);
+    opl._sid = s; opl._base = UTESERVERING_COLOR;
+    opl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp);
+      showPlaceCardV2(s.street || 'Parkering', 'Uteservering – kontrollera skylt', UTESERVERING_COLOR, dest, uteserveringTxt(s.uteserveringUntil)); });
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PARKERINGSHUS – sista utväg när gatorna är fulla (Stockholm Parkering öppet API)
 // Opt-in-steg i lådan. Egen indigo-identitet → krockar ej med gatufärgerna.
@@ -1370,6 +1382,65 @@ function gagataRange(vf, vt) {
   if (a)      return `Gågata från ${f(a)} ${a.getFullYear()} · inget angivet slutdatum`;
   return 'Gågata · datum ej angivet';
 }
+// ── Uteserveringar (od_gis:Markupplatelse_Yta) ──────────────────────────────
+// Tillfälliga serveringsytor som upplåtits på/intill p-platser. LÅG-RISK informativ
+// flagga: värsta fall = bortkastad sökning (ingen böter, till skillnad från förbud/gågata).
+// Vi flaggar bara där ytan FAKTISKT överlappar p-linjen (strikt) + ärlig "kontrollera skylt".
+// Känd begränsning: LTF-/markupplåtelse-data speglar inte alltid verkligheten (förhyrt m.m.).
+const UTESERVERING_COLOR = '#f97316';   // orange – skild från gul (städ) och rosa (gågata).
+function isActiveServering(p, todayInt) {
+  if (!/servering/i.test(p.Kategorityp || '')) return false;
+  const f = +p['Tillstånd_from'] || 0, t = +p['Tillstånd_tom'] || 0;   // YYYYMMDD; OBS per yta (CID), ej ärende
+  return f <= todayInt && t >= todayInt;
+}
+function uteserveringTxt(tomInt) {
+  const s = '' + (tomInt || '');
+  if (s.length >= 8) { const d = new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8));
+    return `Uteservering t.o.m. ${d.getDate()} ${GAGATA_MN[d.getMonth()]} ${d.getFullYear()} · kontrollera skylt`; }
+  return 'Uteservering beviljad · kontrollera skylt';
+}
+function pointInPoly(pt, ring) {
+  let c = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj-xi)*(pt[1]-yi)/(yj-yi) + xi)) c = !c;
+  }
+  return c;
+}
+function segCrossesRing(a, b, ring) {
+  const ccw = (p,q,r) => (r[1]-p[1])*(q[0]-p[0]) > (q[1]-p[1])*(r[0]-p[0]);
+  for (let j = 0; j < ring.length - 1; j++) {
+    const p3 = ring[j], p4 = ring[j+1];
+    if (ccw(a,p3,p4) !== ccw(b,p3,p4) && ccw(a,b,p3) !== ccw(a,b,p4)) return true;
+  }
+  return false;
+}
+// Hämta aktiva serveringsytor (od_gis) → [{ ring (SWEREF99), tom, bbox }]. Egen fetch (od_gis-prefix).
+// OBS: Markupplåtelse-lagret är FULLT av utgångna tillstånd. Med appens vanliga 900 m-ruta +
+// count 3000 kapas de AKTIVA ytorna bort (drunknar i gamla) → inget visas. Därför TIGHTARE ruta
+// (500 m radie, ingen ×1.8-marginal) + count 6000: tätaste City ~3047 < 6000 → aldrig trunkering.
+async function loadActiveServeringar(lat, lng, todayInt) {
+  const key = getKey();
+  const deg = 500 / 111000;
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  const url = `/wfs/${key}/wfs?service=WFS&version=2.0.0&request=GetFeature`
+    + `&typeNames=od_gis:Markupplatelse_Yta&outputFormat=application/json&count=6000&BBOX=${bbox}`;
+  try {
+    const r = await fetch(url); if (!r.ok) return [];
+    const feats = (await r.json()).features || [];
+    const out = [];
+    feats.forEach(f => {
+      if (!isActiveServering(f.properties || {}, todayInt)) return;
+      const g = f.geometry; if (!g) return;
+      const ring = g.type === 'Polygon' ? g.coordinates[0] : g.type === 'MultiPolygon' ? g.coordinates[0][0] : null;
+      if (!ring || ring.length < 3) return;
+      let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
+      ring.forEach(p => { if(p[0]<mnx)mnx=p[0]; if(p[0]>mxx)mxx=p[0]; if(p[1]<mny)mny=p[1]; if(p[1]>mxy)mxy=p[1]; });
+      out.push({ ring, tom: +f.properties['Tillstånd_tom'] || 0, bbox: [mnx, mny, mxx, mxy] });
+    });
+    return out;
+  } catch { return []; }
+}
 // Är föreskriften en gågata som är AKTIV nu? (delas av alla lägen så de aldrig glider isär.)
 function isActiveGagata(p, now = Date.now()) {
   if (!/gågat/i.test(p.TITLE || '')) return false;
@@ -1464,10 +1535,12 @@ function toAllowedSegment(f) {
 async function loadParkingV2(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const [tillRaw, forbRaw, foreRaw] = await Promise.all([
+  const tD = new Date(), todayInt = tD.getFullYear()*10000 + (tD.getMonth()+1)*100 + tD.getDate();
+  const [tillRaw, forbRaw, foreRaw, servPolys] = await Promise.all([
     fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
     fetchLayer('LTFR_P_FORBUD_GEOM',  bbox),
     fetchLayer('LTFR_FORESKRIFT_GEOM', bbox).catch(() => []),   // gågator m.m. (additivt – aldrig fatalt)
+    loadActiveServeringar(lat, lng, todayInt).catch(() => []),  // uteserveringar (egen tight ruta – ej fatalt)
   ]);
 
   const allowed = tillRaw.map(toAllowedSegment);
@@ -1582,6 +1655,38 @@ async function loadParkingV2(lat, lng, radius = 500) {
     if (cov.ratio >= GAGATA_MIN_COVERAGE) { s.gagata = true; s.gagataUntil = cov.vt; s.gagataFrom = cov.vf; }
   });
 
+  // ── Uteserveringar: KLIPP orange till bara den del av p-linjen som FAKTISKT ligger i
+  // en aktiv serveringsyta (resten behåller sin färg). Annars målas ett LÅNGT p-segment
+  // som ytan bara nuddar helt orange (Mäster Samuelsgatan: 12×8 m-yta → hela stråket).
+  // Samplar var ~2 m → kräver minst ett par punkter inuti (utesluter tangering/trottoar).
+  // Gågata har företräde.
+  const ptInAnyServ = (pt) => {
+    for (const sp of servPolys) {
+      if (pt[0] < sp.bbox[0] || pt[0] > sp.bbox[2] || pt[1] < sp.bbox[1] || pt[1] > sp.bbox[3]) continue;
+      if (pointInPoly(pt, sp.ring)) return sp.tom || 0;
+    }
+    return null;
+  };
+  if (servPolys.length) allowed.forEach(s => {
+    if (s.gagata) return;
+    const clips = []; let tom = 0;
+    s.linesSweref.forEach(line => {
+      for (let i = 0; i < line.length - 1; i++) {
+        const a = line[i], b = line[i+1], L = Math.hypot(b[0]-a[0], b[1]-a[1]);
+        const steps = Math.max(2, Math.ceil(L / 2));
+        let run = null;
+        for (let k = 0; k <= steps; k++) {
+          const t = k / steps, pt = [a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1])];
+          const it = ptInAnyServ(pt);
+          if (it != null) { if (it) tom = it; if (!run) run = [pt]; else run.push(pt); }
+          else { if (run && run.length >= 2) clips.push(run); run = null; }
+        }
+        if (run && run.length >= 2) clips.push(run);
+      }
+    });
+    if (clips.length) { s.uteserveringClips = clips; s.uteserveringUntil = tom; }
+  });
+
   return { allowed, forbiddenLines, gagataLines };
 }
 
@@ -1672,9 +1777,13 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
         pl._sid = s; pl._base = color;                 // för markering av vald gata
         pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
       });
+      drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
 
     streetGroupLayers.push(grp.addTo(map));
+    // Lyft varningsfärgerna (gågata/uteservering) överst – annars kan ett parallellt grönt
+    // segment ligga ovanpå och både dölja flaggan och fånga klicket.
+    grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
 
     const badge = document.getElementById('count-badge');
     badge.textContent = `${safe} trygga platser i natt`;
@@ -1851,9 +1960,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         pl._sid = s; pl._base = color;                 // för markering av vald gata
         pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
       });
+      drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
 
     streetGroupLayers.push(grp.addTo(map));
+    grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
     const badge = document.getElementById('count-badge');
     badge.textContent = `${okNu} gator där du får stå nu`;
     badge.style.display = 'block';
@@ -1984,6 +2095,7 @@ function updateLegend(mode) {
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Trygg över natten</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksparkering – kontrollera tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
@@ -1998,6 +2110,7 @@ function updateLegend(mode) {
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Får stå nu</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Servas idag – undvik</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
