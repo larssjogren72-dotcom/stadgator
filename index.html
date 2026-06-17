@@ -661,7 +661,7 @@
       </button>
       <button class="when-opt" data-mode="morgon" onclick="pickWhen('morgon')">
         <span class="when-opt-main">Morgon</span>
-        <span class="when-opt-sub">Nyss städat – ledigt för dagen</span>
+        <span class="when-opt-sub">Nyss servat – ledigt för dagen</span>
       </button>
       <button class="when-opt" data-mode="uc1" onclick="pickWhen('uc1')">
         <span class="when-opt-main">I kväll</span>
@@ -685,7 +685,7 @@
 
   <div id="map-wrap">
     <div id="map"></div>
-    <div id="loading"><div class="spinner"></div><span class="loading-lbl">Hämtar städgator…</span></div>
+    <div id="loading"><div class="spinner"></div><span class="loading-lbl">Hämtar servicegator…</span></div>
     <div id="count-badge"></div>
     <button id="locate-btn" title="Visa min plats" onclick="locateMe()">📍</button>
     <div id="toast"></div>
@@ -706,7 +706,7 @@
   <div id="bottom">
     <div id="sheet-handle"><div class="grabber"></div></div>
     <div id="sheet-body">
-    <div id="hint">Sök en destination ovan — städgator i närheten visas på kartan.</div>
+    <div id="hint">Sök en destination ovan — servicegator i närheten visas på kartan.</div>
     <div id="garage-list"></div>
     <div id="street-list"></div>
     <div id="street-panel">
@@ -1652,16 +1652,17 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const tier = cl ? overnightCleaningTier(cl.start) : null;                        // null|'natt'|'morgon'|'sen'
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
-      else if (tier === 'natt')        { color = '#fbbf24'; txt = `Städas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
+      else if (tier === 'natt')        { color = '#fbbf24'; txt = `Servas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
       else if (tier === 'morgon')      { color = '#fbbf24'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
-      else if (tier === 'sen')         { color = '#4ade80'; txt = `Trygg över natten · städas ${fmtClock(cl.start)}–${fmtClock(cl.end)}`; safe++; }
+      else if (tier === 'sen')         { color = '#4ade80'; txt = `Trygg över natten`; safe++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#4ade80'; txt = 'Trygg över natten'; safe++; }
+      // Detaljraden KOMPLETTERAR chipet (upprepar aldrig): har chipet tiden → ge handlingen; saknar tid → ge tiden.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
-                    : tier === 'natt'   ? `Städas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} · flytta bilen i kväll`
-                    : tier === 'morgon' ? `Städas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · flytta innan ${fmtClock(cl.start)}`
-                    : tier === 'sen'    ? `Städas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
+                    : tier === 'natt'   ? `Flytta bilen i kväll`
+                    : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
+                    : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
                     : '';
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
@@ -1676,8 +1677,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${safe} trygga platser i natt`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">🟢 Trygg över natten · 🚶 Gågata · 🟡 Städas natt/morgon · 🟣 Ej för bil · 🔴 Förbud</span>' +
-      '<span class="hint-disclaimer">Pris visas av zonerna. Kontrollera alltid lokala skyltar.</span>';
+      '<span class="hint-main">Tryck på en gata för service-tider och vägbeskrivning.</span>' +
+      '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
 
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
     sheetSnapTo('peek');   // mät peek mot färgraden
@@ -1832,16 +1833,16 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       const nx = dest && (!cs || cs.state === 'passed') ? nextClean(dest, name) : null;
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
-      else if (cs && cs.state === 'active')   { color = '#fbbf24'; txt = `Städas just nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
-      else if (cs && cs.state === 'upcoming') { color = '#fbbf24'; txt = `Får stå tills ${fmtClock(cs.start)} · städas ${fmtClock(cs.start)}–${fmtClock(cs.end)}`; okNu++; }
-      else if (nx)                     { color = '#fbbf24'; txt = `Får stå nu · städas imorgon ${fmtClock(nx.start)}–${fmtClock(nx.end)}`; okNu++; }
+      else if (cs && cs.state === 'active')   { color = '#fbbf24'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
+      else if (cs && cs.state === 'upcoming') { color = '#fbbf24'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
+      else if (nx)                     { color = '#fbbf24'; txt = `Får stå nu · servas i natt`; okNu++; }
       else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#4ade80'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
-                    : (cs && cs.state === 'active')   ? `Städas just nu (${fmtClock(cs.start)}–${fmtClock(cs.end)})`
-                    : (cs && cs.state === 'upcoming') ? `Städas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
-                    : nx ? `Städas imorgon ${fmtClock(nx.start)}–${fmtClock(nx.end)}` : '';
+                    : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
+                    : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
+                    : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · flytta i kväll` : '';
       s.linesSweref.forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
         pl._sid = s; pl._base = color;                 // för markering av vald gata
@@ -1854,8 +1855,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${okNu} gator där du får stå nu`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">🟢 Får stå nu · 🚶 Gågata · 🟡 Städas idag · 🟣 Ej för bil · 🔴 Förbud</span>' +
-      '<span class="hint-disclaimer">Pris visas av zonerna. Kontrollera alltid lokala skyltar.</span>';
+      '<span class="hint-main">Tryck på en gata för tider och vägbeskrivning.</span>' +
+      '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
     sheetSnapTo('peek');
     console.log(`[UC3-nu] får-stå=${okNu} | förbud=${forbiddenLines.length} | städsegment=${clean.count}`);
@@ -1873,7 +1874,7 @@ let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bo
 // Smart standard (beslut UX §11.4): kväll/natt → Över natten, dagtid → Nu
 let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'now'; })();
 const WHEN_LABELS = { now: 'Nu',  morgon: 'Morgon',  uc1: 'I kväll',      uc2: 'Över natten' };
-const WHEN_SUBS   = { now: 'Var får jag stå just nu?', morgon: 'Nyss städat – ledigt för dagen', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
+const WHEN_SUBS   = { now: 'Var får jag stå just nu?', morgon: 'Nyss servat – ledigt för dagen', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
 
 function toggleWhenMenu(e) { e && e.stopPropagation(); document.getElementById('mode-row').classList.toggle('open'); }
 function closeWhenMenu()    { document.getElementById('mode-row').classList.remove('open'); }
@@ -1933,6 +1934,9 @@ function sheetSet(y, animate = true) {
   sheetCurY = y;
 }
 function sheetSnapTo(state) { if (!sheetEl) return; sheetCompute(); sheetSet(sheetSnaps[state]); }
+// Minns om användaren själv dragit ner lådan → lägesförklaringen glider då inte upp av sig själv.
+function sheetCollapsed() { return localStorage.getItem('sheet_collapsed') === '1'; }
+function setSheetCollapsed(v) { try { localStorage.setItem('sheet_collapsed', v ? '1' : '0'); } catch {} }
 function initSheet() {
   sheetEl = document.getElementById('bottom');
   const handle = document.getElementById('sheet-handle');
@@ -1959,6 +1963,9 @@ function initSheet() {
       const pts = [sheetSnaps.full, sheetSnaps.half, sheetSnaps.peek, sheetSnaps.min];
       sheetSet(pts.reduce((a, b) => Math.abs(b - sheetCurY) < Math.abs(a - sheetCurY) ? b : a));
     }
+    // Minns valet: nere (min) → kollapsad (visa ej info automatiskt); uppe (half/full) → ej kollapsad.
+    if (Math.abs(sheetCurY - sheetSnaps.min) < 2) setSheetCollapsed(true);
+    else if (Math.abs(sheetCurY - sheetSnaps.half) < 2 || Math.abs(sheetCurY - sheetSnaps.full) < 2) setSheetCollapsed(false);
   };
   handle.addEventListener('pointerup', endDrag);
   handle.addEventListener('pointercancel', endDrag);
@@ -1975,7 +1982,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Trygg över natten</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksparkering – kontrollera tid</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas i natt/morgon – flytta först</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const uc2LegendOld =
@@ -1983,18 +1990,18 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Kontrollera skylt (P-förbud)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #c2410c"></div>Lastzon – parkera ej</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Städas imorgon – undvik</div>`;
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Servas imorgon – undvik</div>`;
   const nowLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Får stå nu</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas idag – undvik</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Servas idag – undvik</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const morgonLegend =
       `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städat i morse – ofta ledig för dagen</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Servat i morse – ofta ledig för dagen</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
   const modeRows = mode === 'now'
     ? nowLegend
@@ -2003,7 +2010,7 @@ function updateLegend(mode) {
     : mode === 'uc2'
     ? (v2Active ? uc2LegendV2 : uc2LegendOld)
     : `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Hög chans – städas imorgon</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Hög chans – servas imorgon</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
 
@@ -2011,7 +2018,7 @@ function updateLegend(mode) {
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${zoneRows}${modeRows}</div>`;
+     <div id="legend-content">${zoneRows}${modeRows}<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--glass-border);font-size:10.5px;color:var(--muted);line-height:1.45">Baseras på Stockholms öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar. ParkSpot tar inget ansvar för parkeringsböter eller bogsering.</div></div>`;
   applyLegendState();
 }
 
@@ -2198,15 +2205,15 @@ function showUc1EmptyState(seasonRange) {
   const wknd = (tom.getDay() === 0 || tom.getDay() === 6);
   const day  = SV_DAYS[tom.getDay()].toLowerCase();
   const body = seasonRange
-    ? `Här städas bara <b>${seasonRange}</b> – inga städgator just nu. Leta en plats som håller just nu i stället.`
+    ? `Här servas bara <b>${seasonRange}</b> – inga servicegator just nu. Leta en plats som håller just nu i stället.`
     : wknd
-    ? `Imorgon är ${day} – gator städas bara på vardagar, så kvällsknepet funkar inte ikväll.`
-    : `Inga gator i området städas imorgon bitti. Prova ett annat område – eller leta en plats som håller just nu.`;
+    ? `Imorgon är ${day} – gator servas bara på vardagar, så kvällsknepet funkar inte ikväll.`
+    : `Inga gator i området servas imorgon bitti. Prova ett annat område – eller leta en plats som håller just nu.`;
   const hintEl = document.getElementById('hint');
   hintEl.innerHTML =
     `<div class="empty-state">
        <div class="es-icon">🧹</div>
-       <div class="es-title">Inga städgator imorgon</div>
+       <div class="es-title">Inga servicegator imorgon</div>
        <div class="es-body">${body}</div>
        <button class="es-btn" onclick="setMode('now')">Visa Nu →</button>
      </div>`;
@@ -2216,7 +2223,7 @@ function showUc1EmptyState(seasonRange) {
 
 async function showStreetsNearViewport(foreskriftP = null) {
   clearStreetsFromMap();
-  document.getElementById('hint').textContent = 'Hämtar städgator…';
+  document.getElementById('hint').textContent = 'Hämtar servicegator…';
   try {
     const key    = getKey();
     const bounds = map.getBounds().pad(0.12);
@@ -2320,7 +2327,7 @@ async function showMorningParkingFlow(lat, lng) {
   clearStreetsFromMap();
   document.getElementById('hint').innerHTML =
     `<div style="display:flex;align-items:center;gap:12px"><div class="mini-spinner"></div>
-       <span style="color:var(--text);font-size:14px">Letar nyss städade gator…</span></div>`;
+       <span style="color:var(--text);font-size:14px">Letar nyss servade gator…</span></div>`;
   try {
     const today = new Date();
     const nowHM = today.getHours() * 100 + today.getMinutes();
@@ -2344,21 +2351,21 @@ async function showMorningParkingFlow(lat, lng) {
       const name = f.properties?.STREET_NAME || 'Gata';
       const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
       const m = featureMidCoord(f); const dest = m && toLatLng(m[0], m[1]);
-      const info = `Städades idag ${fmtClock(start)}–${fmtClock(end)} · ofta ledig resten av dagen · kontrollera skylt`;
+      const info = `Servades idag ${fmtClock(start)}–${fmtClock(end)} · ofta ledig resten av dagen · kontrollera skylt`;
       featureLines(f).forEach(line => {
         const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: '#4ade80', weight: 6, opacity: .95 }).addTo(grp);
-        pl.on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(name, 'Städat i morse – ofta ledig', '#4ade80', dest, info); });
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(name, 'Servat i morse – ofta ledig', '#4ade80', dest, info); });
       });
       n++;
     });
     streetGroupLayers.push(grp.addTo(map));
 
     const badge = document.getElementById('count-badge');
-    badge.textContent = `${n} nyss städade gator`;
+    badge.textContent = `${n} nyss servade gator`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">🟢 Städat i morse – ofta ledigt resten av dagen. Tryck på en gata för städtid och vägbeskrivning.</span>' +
-      '<span class="hint-disclaimer">Kontrollera alltid lokala skyltar.</span>';
+      '<span class="hint-main">Tryck på en gata för service-tid och vägbeskrivning.</span>' +
+      '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     document.getElementById('street-list').style.display = 'none';
     document.getElementById('street-panel').style.display = 'none';
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
@@ -2378,7 +2385,7 @@ const STYLE_HIT      = { weight:26, opacity:0, fillOpacity:0 };    // osynlig tr
 
 function renderFeatures(data) {
   const features = Array.isArray(data) ? data : (data.features||[]);
-  if (!features.length) { document.getElementById('hint').textContent = 'Inga städgator i området imorgon!'; return; }
+  if (!features.length) { document.getElementById('hint').textContent = 'Inga servicegator i området imorgon!'; return; }
 
   // Visuellt lager – bygg lista för att para ihop med hit-lager nedan
   const visualLayers = [];
@@ -2404,12 +2411,13 @@ function renderFeatures(data) {
   streetGroupLayers.push(gjH);
 
   const badge = document.getElementById('count-badge');
-  badge.textContent = `${features.length} städgator i närheten`;
+  badge.textContent = `${features.length} servicegator i närheten`;
   badge.style.display = 'block';
 
   // Som Nu/Över natten: ingen lista som styr lådan. Tryck på en grön gata → kort + navigering.
   const hintEl = document.getElementById('hint');
-  hintEl.innerHTML = '<span class="hint-main">🟢 Gröna gator städas imorgon bitti – ofta lediga i kväll. Tryck på en gata för detaljer och vägbeskrivning.</span>';
+  hintEl.innerHTML = '<span class="hint-main">Tryck på en gata för detaljer och vägbeskrivning.</span>' +
+    '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   hintEl.style.display = 'block';
   document.getElementById('street-list').style.display = 'none';
   document.getElementById('street-panel').style.display = 'none';
@@ -2431,7 +2439,7 @@ function selectStreet(feat, hitLayer, visualLayer) {
   }
 
   const p = feat.properties || {};
-  document.getElementById('street-name').textContent = p.STREET_NAME || p.ADDRESS || 'Städgata';
+  document.getElementById('street-name').textContent = p.STREET_NAME || p.ADDRESS || 'Servicegata';
   const bdEl = document.getElementById('badge-district');
   bdEl.style.background = ''; bdEl.style.borderColor = ''; bdEl.style.color = '';   // återställ ev. v2-statusfärg
   bdEl.textContent = p.CITY_DISTRICT || p.PARKING_DISTRICT || 'Stockholm';
@@ -2442,7 +2450,7 @@ function selectStreet(feat, hitLayer, visualLayer) {
   const from = fmtClock(p.START_TIME), to = fmtClock(p.END_TIME);
   const timeStr = (from && to) ? ` ${from}–${to}` : '';
   const season  = seasonText(p);
-  cr.innerHTML = `🧹 <b>Städas imorgon${timeStr}</b>`
+  cr.innerHTML = `🧹 <b>Servas imorgon${timeStr}</b>`
     + (season ? `<br><span class="season">📅 Gäller ${season}</span>` : '');
   cr.style.display = 'block';
 
@@ -2709,7 +2717,7 @@ function buildStreetList(features) {
   list.innerHTML = '';
   sorted.forEach(({ f, ll, dist }) => {
     const p       = f.properties || {};
-    const name    = p.STREET_NAME || p.ADDRESS || 'Städgata';
+    const name    = p.STREET_NAME || p.ADDRESS || 'Servicegata';
     const district= p.CITY_DISTRICT || p.PARKING_DISTRICT || '';
     const from    = p.START_TIME || '', to = p.END_TIME || '';
     const time    = (from && to) ? `${from}–${to}` : '';
@@ -2783,30 +2791,30 @@ function setMode(mode) {
 
   updateLegend(mode);
   clearStreetsFromMap();
-  const disclaimer = '<span class="hint-disclaimer">Informationen baseras på Stockholms öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar. ParkSpot tar inget ansvar för parkeringsböter eller bogsering.</span>';
+  const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
+  // Förklarar hur det VALDA läget fungerar (service-terminologi) + vägledning. Färger bor i Förklaring.
+  const intro = {
+    now:    'Nu visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på en gata för tider och vägbeskrivning.',
+    morgon: 'Morgon visar gator som nyss servats klart i morse — oftast tömda och lediga förmiddagar. Tryck på en gata för info om tider och vägbeskrivning.',
+    uc1:    'I kväll visar gator som servas tidigt i morgon bitti — ofta mindre belastade ikväll. Tryck på en gata för detaljer och vägbeskrivning.',
+    uc2:    'Över natten visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på en gata för service-tider och vägbeskrivning.',
+  };
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
-  if (mode === 'now') {
-    hintEl.innerHTML =
-      '<span class="hint-main">Var får du stå just nu? Tryck på kartan, sök en plats — eller 📍 för var du står.</span>' + disclaimer;
-  } else if (mode === 'morgon') {
-    hintEl.innerHTML =
-      '<span class="hint-main">Vart är du på väg? Sök eller tryck på kartan — gator som städats i morse är ofta nyss tömda och lediga för dagen.</span>' + disclaimer;
-  } else if (mode === 'uc1') {
-    hintEl.innerHTML =
-      '<span class="hint-main">Vart är du på väg? Tryck på kartan eller sök — gator som sopas imorgon bitti är ofta mindre belastade.</span>' + disclaimer;
-  } else {
-    hintEl.innerHTML =
-      '<span class="hint-main">Vart är du på väg? Tryck på kartan eller sök — hitta trygga gator utan städning eller förbud nära målet.</span>' + disclaimer;
-  }
+  hintEl.innerHTML = `<span class="hint-main">${intro[mode] || intro.uc2}</span>` + disclaimer;
   inp.value = '';
   // Ingen auto-fokus: tangentbordet ska inte slå upp och dölja lägesförklaringen.
   // Användaren trycker själv i sökfältet när hen vill skriva.
   document.getElementById('phus-btn').style.display = 'none';   // p-hus-steget gäller först efter en sökning
-  sheetSnapTo('peek');   // mät peek mot den nya sammanfattningstexten
   refreshZones();        // visa taxa-zonernas färger direkt (vid start + lägesbyte), ej bara efter klick
   // B: behåll destinationen vid lägesbyte → kör om för samma plats i det nya läget (linser på samma ankare)
-  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);
+  if (searchCenter) {
+    flyToAndShow(searchCenter.lat, searchCenter.lng);   // resultatvy → flödet snäpper själv till peek
+  } else {
+    // Ingen destination än → visa lägesförklaringen: glid upp till HALV höjd så användaren ser
+    // att här finns info. Har användaren själv dragit ner lådan tidigare → respektera det (bara handtaget).
+    sheetSnapTo(sheetCollapsed() ? 'min' : 'half');
+  }
 }
 
 // ── UC2: Hitta säkra parkeringar nära hemmet ──────────────────────────────────
