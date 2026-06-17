@@ -381,6 +381,10 @@
       font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     #phus-btn .phus-arrow { margin-left: auto; color: #9aa6ee; font-size: 18px; }
+    /* Under laddning: byt "P"-brickan mot appens enhetliga spinner (samma .mini-spinner) */
+    #phus-btn .phus-spin { display: none; width: 22px; height: 22px; border-width: 2.5px; }
+    #phus-btn.loading .phus-p { display: none; }
+    #phus-btn.loading .phus-spin { display: block; }
     /* Tillbaka-läge: neutral, ej indigo CTA */
     #phus-btn.back { background: #181b22; border-color: var(--glass-border); color: var(--text); }
     #phus-btn.back .phus-p { background: rgba(255,255,255,0.16); color: var(--text); font-size: 17px; }
@@ -722,6 +726,7 @@
     </div>
     <button id="phus-btn" onclick="phusToggle()" style="display:none">
       <span class="phus-p">P</span>
+      <span class="mini-spinner phus-spin"></span>
       <span class="phus-label">Parkeringshus nära</span>
       <span class="phus-arrow">›</span>
     </button>
