@@ -654,6 +654,10 @@
         <span class="when-opt-main">Nu</span>
         <span class="when-opt-sub">Var får jag stå just nu?</span>
       </button>
+      <button class="when-opt" data-mode="morgon" onclick="pickWhen('morgon')">
+        <span class="when-opt-main">Morgon</span>
+        <span class="when-opt-sub">Nyss städat – ledigt för dagen</span>
+      </button>
       <button class="when-opt" data-mode="uc1" onclick="pickWhen('uc1')">
         <span class="when-opt-main">I kväll</span>
         <span class="when-opt-sub">Störst chans till plats</span>
@@ -1801,8 +1805,8 @@ let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
 // Smart standard (beslut UX §11.4): kväll/natt → Över natten, dagtid → Nu
 let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'now'; })();
-const WHEN_LABELS = { now: 'Nu',  uc1: 'I kväll',      uc2: 'Över natten' };
-const WHEN_SUBS   = { now: 'Var får jag stå just nu?', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
+const WHEN_LABELS = { now: 'Nu',  morgon: 'Morgon',  uc1: 'I kväll',      uc2: 'Över natten' };
+const WHEN_SUBS   = { now: 'Var får jag stå just nu?', morgon: 'Nyss städat – ledigt för dagen', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
 
 function toggleWhenMenu(e) { e && e.stopPropagation(); document.getElementById('mode-row').classList.toggle('open'); }
 function closeWhenMenu()    { document.getElementById('mode-row').classList.remove('open'); }
@@ -1921,8 +1925,14 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #d97706"></div>Städas idag – undvik</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
+  const morgonLegend =
+      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #166534"></div>Städat i morse – ofta ledig för dagen</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#fbbf24;border:1px solid #92400e"></div>Vald gata</div>`;
   const modeRows = mode === 'now'
     ? nowLegend
+    : mode === 'morgon'
+    ? morgonLegend
     : mode === 'uc2'
     ? (v2Active ? uc2LegendV2 : uc2LegendOld)
     : `<hr class="lgnd-sep">
@@ -2235,6 +2245,64 @@ async function showStreetsNearViewport(foreskriftP = null) {
   }
 }
 
+// ── "Parkering morgon" ───────────────────────────────────────────────────────
+// Speglar "I kväll" men inverterat: visar gator som städats IDAG och vars fönster
+// PASSERAT → nyss tömda, ofta lediga resten av dagen. Använder DAGENS städdata +
+// klockslag (cleaningState). Ärlig ton ("ofta ledig · kontrollera skylt").
+async function showMorningParkingFlow(lat, lng) {
+  clearStreetsFromMap();
+  document.getElementById('hint').innerHTML =
+    `<div style="display:flex;align-items:center;gap:12px"><div class="mini-spinner"></div>
+       <span style="color:var(--text);font-size:14px">Letar nyss städade gator…</span></div>`;
+  try {
+    const today = new Date();
+    const nowHM = today.getHours() * 100 + today.getMinutes();
+    const [cleaningToday, gagataLines] = await Promise.all([
+      fetchServicedays(getKey(), apiDay(today)),
+      loadActiveGagataLines(lat, lng, 700).catch(() => []),
+    ]);
+    const grp = L.layerGroup();
+    // Gågator (rosa streckad) – samma signal som övriga lägen.
+    (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
+      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7', interactive: false }).addTo(grp)));
+
+    const feats = (Array.isArray(cleaningToday) ? cleaningToday : (cleaningToday?.features || []))
+      .filter(f => cleaningActiveOn(f.properties || {}, today))                                   // i säsong idag
+      .filter(f => { const m = featureMidCoord(f); if (!m) return false; const ll = toLatLng(m[0], m[1]);
+                     return map.distance([lat, lng], [ll.lat, ll.lng]) <= 500; })                 // ~500 m
+      .filter(f => cleaningState(f.properties?.START_TIME, f.properties?.END_TIME, nowHM) === 'passed'); // klart idag
+
+    let n = 0;
+    feats.forEach(f => {
+      const name = f.properties?.STREET_NAME || 'Gata';
+      const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
+      const m = featureMidCoord(f); const dest = m && toLatLng(m[0], m[1]);
+      const info = `Städades idag ${fmtClock(start)}–${fmtClock(end)} · ofta ledig till nästa städdag · kontrollera skylt`;
+      featureLines(f).forEach(line => {
+        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: '#4ade80', weight: 6, opacity: .95 }).addTo(grp);
+        pl.on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(name, 'Städat i morse – ofta ledig', '#4ade80', dest, info); });
+      });
+      n++;
+    });
+    streetGroupLayers.push(grp.addTo(map));
+
+    const badge = document.getElementById('count-badge');
+    badge.textContent = `${n} nyss städade gator`;
+    badge.style.display = 'block';
+    document.getElementById('hint').innerHTML =
+      '<span class="hint-main">🟢 Städat i morse – ofta ledigt resten av dagen. Tryck på en gata för städtid och vägbeskrivning.</span>' +
+      '<span class="hint-disclaimer">Kontrollera alltid lokala skyltar.</span>';
+    document.getElementById('street-list').style.display = 'none';
+    document.getElementById('street-panel').style.display = 'none';
+    loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
+    sheetSnapTo('peek');
+    console.log(`[Morgon] nyss städade=${n}`);
+  } catch(e) {
+    console.error('[Morgon]', e);
+    document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
+  }
+}
+
 // ── Rita gator ───────────────────────────────────────────────────────────────
 const STYLE_DEFAULT  = { color:'#2e7d32', weight:5, opacity:.95 };
 const STYLE_SELECTED = { color:'#f9a825', weight:7, opacity:1 };
@@ -2396,14 +2464,15 @@ function flyToAndShow(lat, lng) {
   searchCenter = L.latLng(lat, lng);
   if (searchMarker) { searchMarker.remove(); searchMarker = null; }
   document.getElementById('phus-btn').style.display = 'flex';   // sista utväg blir tillgänglig
-  const uc2   = currentMode === 'uc2';
-  const isNow = currentMode === 'now';
+  const uc2    = currentMode === 'uc2';
+  const isNow  = currentMode === 'now';
+  const isMorgon = currentMode === 'morgon';
 
   // Pre-starta tunga nätverksanrop under kartanimationen (~1.1 s).
   // v2/now använder P_TILLATEN-grunden (ej Overpass).
   const useV2here   = uc2 && v2Active;
   const overpassP   = (uc2 && !v2Active) ? fetchOverpassStreets(lat, lng, 500) : null;
-  const foreskriftP = (useV2here || isNow) ? null : loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
+  const foreskriftP = (useV2here || isNow || isMorgon) ? null : loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
   const parkV2P     = (useV2here || isNow) ? loadParkingV2(lat, lng, 500) : null;
 
   // Destinationsnål: klassisk Google Maps-nål (röd droppe med vit kant). Samma i ALLA lägen.
@@ -2415,7 +2484,9 @@ function flyToAndShow(lat, lng) {
     iconSize: [30, 40], iconAnchor: [15, 40], popupAnchor: [0, -36]
   });
   searchMarker = L.marker([lat, lng], { icon: destIcon, pane: 'markerPane', interactive: false }).addTo(map);
-  if (isNow) {
+  if (isMorgon) {
+    map.once('moveend', () => showMorningParkingFlow(lat, lng));
+  } else if (isNow) {
     map.once('moveend', () => showNowParkingV2Flow(lat, lng, parkV2P));
   } else if (useV2here) {
     map.once('moveend', () => showSafeStreetsV2Flow(lat, lng, parkV2P));
@@ -2635,7 +2706,7 @@ function setMode(mode) {
   if (mode === 'uc2') {
     app.classList.add('uc2-mode');
     inp.placeholder = 'Din hemadress, t.ex. Hornsgatan 10…';
-  } else if (mode === 'now') {
+  } else if (mode === 'now' || mode === 'morgon') {
     app.classList.remove('uc2-mode');
     inp.placeholder = 'Sök plats – eller tryck 📍 för din position';
   } else {
@@ -2651,6 +2722,9 @@ function setMode(mode) {
   if (mode === 'now') {
     hintEl.innerHTML =
       '<span class="hint-main">Var får du stå just nu? Tryck på kartan, sök en plats — eller 📍 för var du står.</span>' + disclaimer;
+  } else if (mode === 'morgon') {
+    hintEl.innerHTML =
+      '<span class="hint-main">Vart är du på väg? Sök eller tryck på kartan — gator som städats i morse är ofta nyss tömda och lediga för dagen.</span>' + disclaimer;
   } else if (mode === 'uc1') {
     hintEl.innerHTML =
       '<span class="hint-main">Vart är du på väg? Tryck på kartan eller sök — gator som sopas imorgon bitti är ofta mindre belastade.</span>' + disclaimer;
