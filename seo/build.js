@@ -225,6 +225,14 @@ function taxaTable(zones) {
   const rows = zones.map(z => `<tr><td>Taxa ${z}</td><td><b>${TAXA[z].pris} kr/tim</b></td><td class="muted">${TAXA[z].txt}</td></tr>`).join('');
   return `<table><tr><th>Zon</th><th>Pris</th><th>Gäller</th></tr>${rows}</table>`;
 }
+// Gratis/avgift – ÄRLIGT per zon: bara Taxa 3–5 har avgiftsfri natt/söndag. Taxa 1–2 (city)
+// är avgift DYGNET RUNT → påstå aldrig "gratis nattetid" på rena innerstadssidor (falsk trygghet → böter).
+const hasFreeZone = taxa => taxa.some(z => z >= 3);
+function freeTimesLine(taxa) {
+  return hasFreeZone(taxa)
+    ? 'Ofta <b>avgiftsfritt kvällar, nätter och söndagar</b> i de lägre zonerna (obs: lördag 11–17 har avgift i Taxa 3–4; Taxa 5 är fritt).'
+    : 'Här gäller <b>avgift dygnet runt</b> (Taxa 1–2 i city) – kontrollera skylten.';
+}
 function garageSection(d, lat, lng) {
   const gs = nearestGarages(lat, lng);
   if (!gs.length) return '';
@@ -290,13 +298,13 @@ function billigare(d) {
   <section class="card"><h2>Så hittar du billigast parkering i ${esc(d.name)}</h2>
     <p>Priset styrs av <b>taxezonen</b>. I Stockholm går det från Taxa 1 (dyrast, 55 kr/tim i city) ner till Taxa 5 (5 kr/tim). ${esc(d.name)} ligger i ${d.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')} — sikta på de lägre zonerna.</p>
     ${taxaTable(d.taxa)}
-    <p>💡 Knep för billigare/avgiftsfritt: många gator är <b>avgiftsfria kvällar, nätter och söndagar</b> (utanför taxetiden). Obs: <b>lördag 11–17 har ofta avgift</b> i Taxa 1–4 (Taxa 5 är fritt). ParkSpot visar zonen och tiden så du inte betalar i onödan.</p></section>
+    <p>💡 ${freeTimesLine(d.taxa)} ParkSpot visar zonen och tiden så du inte betalar i onödan.</p></section>
   ${d.seasonal ? `<section class="card"><h2>På sommaren: ännu fler platser</h2><p>I ${esc(d.name)} städas många gator bara vintertid (${SEASON}). På sommaren är de inte städgator — fler lediga, lagliga platser.</p></section>` : ''}
   ${garageSection(d, d.lat, d.lng)}`;
   const faq = [
     { q:`Var är parkering billigast i ${d.name}?`, a:`På gator i de lägre taxezonerna — ner mot <b>${pris} kr/tim</b>. ParkSpot färgar zonerna på kartan så du ser de billigaste direkt.` },
-    { q:`När är parkering avgiftsfri i ${d.name}?`, a:`Ofta kvällar, nätter och söndagar utanför taxetiden (t.ex. vardag efter 19). Obs: lördag 11–17 har avgift i de flesta zoner (utom Taxa 5). Kontrollera skylten; appen visar tiden.` },
-    { q:`Är det gratis att parkera i ${d.name}?`, a:`Sällan helt gratis dagtid, men billigt i låga zoner och ofta avgiftsfritt nattetid och söndagar. ParkSpot hjälper dig hitta det billigaste lagliga alternativet.` },
+    { q:`När är parkering avgiftsfri i ${d.name}?`, a:`${hasFreeZone(d.taxa) ? 'Ofta kvällar, nätter och söndagar i de lägre zonerna. Obs: lördag 11–17 har avgift i Taxa 3–4 (Taxa 5 fritt).' : `Sällan – ${d.name} ligger i city-zoner (Taxa 1–2) med avgift dygnet runt.`} Kontrollera skylten; appen visar tiden.` },
+    { q:`Är det gratis att parkera i ${d.name}?`, a:`${hasFreeZone(d.taxa) ? 'Sällan helt gratis dagtid, men ofta avgiftsfritt nattetid och söndagar i de lägre zonerna.' : `Nej – ${d.name} ligger i city-zoner (Taxa 1–2) med avgift dygnet runt.`} ParkSpot hjälper dig hitta det billigaste lagliga alternativet.` },
   ];
   const related = [
     { href:`parkering/${d.slug}`, text:`Parkering i ${d.name} (översikt)` },
@@ -305,8 +313,8 @@ function billigare(d) {
   ];
   emit(`billigare-parkering/${d.slug}`, layout({
     slug:`billigare-parkering/${d.slug}`, title:`Billigare parkering i ${d.name} – pris per zon | ParkSpot`,
-    desc:`Hitta billigast parkering i ${d.name}. Jämför taxezoner (från ${pris} kr/tim) och se när det är avgiftsfritt (kvällar, nätter, söndagar). Kör lugnt, betala mindre.`,
-    h1:`Billigare parkering i ${d.name}`, lead:`Betala mindre i ${esc(d.name)}. Se vilka zoner som är billigast och när det är avgiftsfritt — direkt på kartan.`,
+    desc:`Hitta billigast parkering i ${d.name}. Jämför taxezoner (från ${pris} kr/tim)${hasFreeZone(d.taxa) ? ' och se när det är avgiftsfritt (kvällar, nätter, söndagar)' : ''}. Kör lugnt, betala mindre.`,
+    h1:`Billigare parkering i ${d.name}`, lead:`Betala mindre i ${esc(d.name)}. Se vilka zoner som är billigast${hasFreeZone(d.taxa) ? ' och när det är avgiftsfritt' : ''} — direkt på kartan.`,
     sections, faq, related, lat:d.lat, lng:d.lng, match:d.match }));
 }
 
@@ -315,11 +323,11 @@ function overNatten(d) {
   <section class="card"><h2>Var står du tryggt över natten i ${esc(d.name)}?</h2>
     <p>Det säkra valet över natten är en gata <b>utan städgata imorgon</b> och utan parkeringsförbud. ParkSpot:s läge "Över natten" markerar dem gröna nära din adress.</p>
     <p>${d.seasonal ? `I ${esc(d.name)} städas många gator bara vintertid (${SEASON}) — på sommaren färre städgator, fler trygga nattplatser.` : `I ${esc(d.name)} städas gator året runt — kolla veckodagen så du inte vaknar till en bortbogserad bil.`}</p></section>
-  <section class="card"><h2>Avgift på natten?</h2><p>I ${d.taxa.map(z=>'Taxa '+z).join('/')}-zoner är det ofta <b>avgiftsfritt nattetid</b> (utanför taxetiden). Kontrollera alltid skylten — appen visar zon och tid.</p></section>
+  <section class="card"><h2>Avgift på natten?</h2><p>${freeTimesLine(d.taxa)} ParkSpot visar zon och tid på kartan.</p></section>
   ${garageSection(d, d.lat, d.lng)}`;
   const faq = [
     { q:`Får man parkera över natten i ${d.name}?`, a:`Ja, på många gator. Det säkra är en gata utan städning imorgon och utan förbud — ParkSpot visar dem.` },
-    { q:`Kostar det att stå över natten i ${d.name}?`, a:`Ofta avgiftsfritt nattetid i ${d.taxa.map(z=>'Taxa '+z).join('/')}-zoner. Kontrollera skylten.` },
+    { q:`Kostar det att stå över natten i ${d.name}?`, a:`${hasFreeZone(d.taxa) ? 'Ofta avgiftsfritt nattetid i de lägre zonerna (Taxa 3–5).' : `${d.name} ligger i city-zoner (Taxa 1–2) med avgift dygnet runt.`} Kontrollera skylten.` },
     { q:`Hur undviker jag städbil och böter på morgonen?`, a:`Välj en gata som inte städas imorgon bitti. ParkSpot:s "Över natten"-läge filtrerar bort morgondagens städgator${d.seasonal ? ' och vintergator som inte gäller på sommaren' : ''}.` },
   ];
   const related = [
@@ -362,7 +370,7 @@ function destination(x) {
   const gs = nearestGarages(x.lat, x.lng, 5, 1500);
   const inD = x.district ? DISTRICTS.find(d => d.slug === x.district) : null;
   const priceSection = inD ? `<section class="card"><h2>Vad kostar parkering vid ${esc(x.name)}?</h2>
-    <p>${esc(x.name)} ligger i ${esc(inD.name)} – gatuparkering här är ${inD.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}. Ofta <b>avgiftsfritt kvällar, nätter och söndagar</b> i lägre zoner. Parkeringshusets pris styrs av huset (se nedan).</p>${taxaTable(inD.taxa)}</section>` : '';
+    <p>${esc(x.name)} ligger i ${esc(inD.name)} – gatuparkering här är ${inD.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}. ${freeTimesLine(inD.taxa)} Parkeringshusets pris styrs av huset (se nedan).</p>${taxaTable(inD.taxa)}</section>` : '';
   const sections = `
   <section class="card"><h2>Parkera nära ${esc(x.name)}</h2>
     <p>Ska du till ${esc(x.what)}? Gatuparkering i området kan vara begränsad, särskilt sommartid. ParkSpot visar lagliga platser och pris på kartan — och närmaste garage om gatorna är fulla.</p>
@@ -740,13 +748,13 @@ function streetPage(s) {
   <section class="card"><h2>Vad kostar det att parkera på ${esc(s.name)}?</h2>
     <p>${esc(s.name)} ligger i ${esc(s.districtName)} – ${s.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}. Exakt pris och tid styrs av skylten; ParkSpot visar zonen direkt på kartan.</p>
     ${taxaTable(s.taxa)}
-    <p class="muted">💡 Avgiftsfritt är vanligt kvällar, nätter och söndagar i lägre zoner (obs: lördag 11–17 har ofta avgift).</p></section>
+    <p class="muted">💡 ${freeTimesLine(s.taxa)}</p></section>
   <section class="card"><h2>Parkera över natten på ${esc(s.name)}</h2>
     <p>Vill du stå över natten? Det säkra är att gatan <b>inte städas imorgon bitti</b> och saknar parkeringsförbud. ParkSpot:s läge "Över natten" visar om ${esc(s.name)} är ett tryggt val just ikväll.</p></section>
   ${garageSection({ name:s.name }, s.lat, s.lng)}`;
   const faq = [
     { q:`Får man parkera på ${s.name}?`, a:`Ja, på de delar utan parkeringsförbud. Pris enligt zon (${s.taxa.map(z=>'Taxa '+z).join('/')}). Kontrollera skylten och städdagen — ParkSpot visar allt på kartan.` },
-    { q:`Vad kostar parkering på ${s.name}?`, a:`Från cirka <b>${pris} kr/tim</b> (${s.taxa.map(z=>'Taxa '+z).join('/')}). Ofta avgiftsfritt kvällar, nätter och söndagar i lägre zoner.` },
+    { q:`Vad kostar parkering på ${s.name}?`, a:`Från cirka <b>${pris} kr/tim</b> (${s.taxa.map(z=>'Taxa '+z).join('/')}). ${hasFreeZone(s.taxa) ? 'Ofta avgiftsfritt kvällar, nätter och söndagar i de lägre zonerna.' : 'Avgift dygnet runt i city-zonerna (Taxa 1–2) – kontrollera skylten.'}` },
     { q:`Vilken städdag har ${s.name}?`, a:`Det visas live i rutan ovan (veckodag + tid), säsongsjusterat. Står du på städdagen riskerar du böter och bogsering.` },
     { q:`Får man stå över natten på ${s.name}?`, a:`Ofta ja, om gatan inte städas imorgon bitti och saknar förbud. Använd läget "Över natten" i ParkSpot.` },
   ];
