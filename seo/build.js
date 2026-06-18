@@ -55,6 +55,8 @@ const DESTINATIONS = [
   { slug:'globen', name:'Avicii Arena (Globen)', lat:59.2935, lng:18.0830, what:'evenemang och konserter vid Avicii Arena' },
   { slug:'centralstationen', name:'Centralstationen', lat:59.3300, lng:18.0580, what:'Stockholms Centralstation' },
   { slug:'slussen', name:'Slussen', lat:59.3200, lng:18.0720, what:'Slussen mellan Södermalm och Gamla Stan' },
+  { slug:'kista-galleria', name:'Kista Galleria', lat:59.4032, lng:17.9443, what:'köpcentret Kista Galleria', district:'kista', en:false },
+  { slug:'kistamassan', name:'Kistamässan', lat:59.4062, lng:17.9572, what:'mässor och event på Kistamässan', district:'kista', en:false },
 ];
 
 // ── Garage (cachad öppen data) ───────────────────────────────────────────────
@@ -259,6 +261,8 @@ function districtHub(d) {
   ${(() => { const st = STREETS.filter(x => x.districtSlug === d.slug);
     return st.length ? `<section class="card"><h2>Populära gator i ${esc(d.name)}</h2>
     <p>Hitta pris och städdag för en specifik gata:</p>${linkList(st.map(x => ({ href:`parkering/${x.slug}`, text:`Parkering på ${x.name}` })))}</section>` : ''; })()}
+  ${(() => { const dd = DESTINATIONS.filter(x => x.district === d.slug);
+    return dd.length ? `<section class="card"><h2>Parkering vid mål i ${esc(d.name)}</h2>${linkList(dd.map(x => ({ href:`parkering-nara/${x.slug}`, text:`Parkering vid ${x.name}` })))}</section>` : ''; })()}
   ${garageSection(d, d.lat, d.lng)}`;
   const faq = [
     { q:`Vad kostar parkering i ${d.name}?`, a:`Från cirka <b>${pris} kr/tim</b> (${d.taxa.map(z=>'Taxa '+z).join('/')}). Priset bestäms av skylten; ParkSpot visar zonen på kartan.` },
@@ -356,10 +360,14 @@ function stadgator(d) {
 
 function destination(x) {
   const gs = nearestGarages(x.lat, x.lng, 5, 1500);
+  const inD = x.district ? DISTRICTS.find(d => d.slug === x.district) : null;
+  const priceSection = inD ? `<section class="card"><h2>Vad kostar parkering vid ${esc(x.name)}?</h2>
+    <p>${esc(x.name)} ligger i ${esc(inD.name)} – gatuparkering här är ${inD.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}. Ofta <b>avgiftsfritt kvällar, nätter och söndagar</b> i lägre zoner. Parkeringshusets pris styrs av huset (se nedan).</p>${taxaTable(inD.taxa)}</section>` : '';
   const sections = `
   <section class="card"><h2>Parkera nära ${esc(x.name)}</h2>
     <p>Ska du till ${esc(x.what)}? Gatuparkering i området kan vara begränsad, särskilt sommartid. ParkSpot visar lagliga platser och pris på kartan — och närmaste garage om gatorna är fulla.</p>
     <a class="cta" href="/">📍 Se lediga platser nära ${esc(x.name)} →</a></section>
+  ${priceSection}
   ${gs.length ? `<section class="card"><h2>🅿 Parkeringshus nära ${esc(x.name)}</h2>
     <table><tr><th>Garage</th><th>Platser</th><th>Avstånd</th></tr>${gs.map(g=>`<tr><td>${esc(g.name)}</td><td>${g.spaces}</td><td class="muted">${km(g.d)}</td></tr>`).join('')}</table>
     <p class="muted">Antal = kapacitet (ej live). Kontrollera på plats.</p></section>` : ''}
@@ -371,6 +379,7 @@ function destination(x) {
     { q:`Är det svårt att parkera vid ${x.name} på sommaren?`, a:`Det kan vara fullt vid populära mål. ParkSpot visar lediga lagliga platser och garage som sista utväg.` },
   ];
   const related = [
+    ...(inD ? [{ href:`parkering/${inD.slug}`, text:`Parkering i ${inD.name}` }] : []),
     { href:`parkering-nara/grona-lund`, text:`Parkering nära Gröna Lund` },
     { href:`sommar-parkering-stockholm`, text:`Sommarparkering i Stockholm` },
     { href:`parkeringshus-stockholm`, text:`Parkeringshus i Stockholm` },
