@@ -879,24 +879,26 @@ function clearZonesFromMap() {
   zoneGroupLayers = [];
 }
 
+let zoneReqId = 0;
 async function loadZonesForViewport(apiKey, bounds) {
-  clearZonesFromMap();
-  taxaZones = [];
+  // ANTI-BLINK: rensa INTE i förväg. Hämta först, bygg nya lager, ta bort gamla EFTER (swap)
+  // → zonerna försvinner aldrig till tomt under hämtningen. + ignorera inaktuella svar (race vid pan).
+  const myReq = ++zoneReqId;
   try {
     const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()},EPSG:4326`;
     const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=ltfr:LTFR_TAXA_VIEW&outputFormat=application/json&BBOX=${bbox}`);
-    if (!r.ok) return;
+    if (!r.ok || myReq !== zoneReqId) return;        // fel ELLER inaktuell → behåll gamla zoner
     const data = await r.json();
+    if (myReq !== zoneReqId) return;                 // en nyare hämtning hann före → släng denna
+    const oldLayers = zoneGroupLayers;               // gamla kvar tills nya ligger på plats
+    zoneGroupLayers = []; taxaZones = [];
     (data.features||[]).forEach(feat => {
       const name = feat.properties?.DISTRICT_NAME || '';
       const taxa = feat.properties?.TAXA || '';
-      // Serien Taxa 11–15 = motorcykel-/reducerad taxa som ligger ovanpå bil-zonerna 1–5
-      // (verifierat: 11–15 förekommer aldrig ensamma). ParkSpot visar BILparkering →
-      // hoppa över dem, annars fel pris (Taxa 11 i stället för Taxa 1) + oförklarade grå zoner.
+      // Taxa 11–15 = mc/reducerad ovanpå bil-zonerna 1–5 → hoppa (annars fel pris + grå zoner).
       const num = +((name.match(/\d+/) || [])[0]);
       if (num > 5) return;
       const s    = ZONE_STYLES[name] || { color:'#555', fill:'#999', label:name };
-      // Spara för pris-uppslag i platspopup/kort
       if (feat.geometry) taxaZones.push({ name, taxa, geometry: feat.geometry });
       const lg = L.geoJSON(feat, {
         pane: 'zonesPane',
@@ -906,6 +908,7 @@ async function loadZonesForViewport(apiKey, bounds) {
       }).addTo(map);
       zoneGroupLayers.push(lg);
     });
+    oldLayers.forEach(lg => lg.remove());            // SWAP: ta bort gamla nu
   } catch(e) { console.warn('Zoner:', e.message); }
 }
 
