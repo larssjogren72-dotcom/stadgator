@@ -209,7 +209,9 @@
     #home-btn:active { opacity: .7; }
 
     #map-wrap { position: relative; flex: 1; overflow: hidden; }
-    #map      { position: absolute; inset: 0; }
+    /* Mörk bakgrund (matchar appen) i stället för Leaflets ljusa #ddd. Annars syns en ljus
+       blixt genom de translucenta taxa-zonerna när baskartans tiles laddar om vid platsbyte. */
+    #map      { position: absolute; inset: 0; background: #080c1c; }
 
     /* Loading */
     #loading {
@@ -1185,6 +1187,35 @@ function taxaZoneAt(lat, lng) {
 function clarifyTaxa(t) { return String(t || '').replace(/dag före helgdag/gi, 'lör/helgafton'); }
 
 // Visa platskort i nedre lådan för Nu/Över natten – pris + status utan att öppna popup.
+// Veckoschema i kortet: hämtar gatans faktiska städtider (per-segment) från servern
+// och formaterar "Servas onsdagar 09–14" / "… & lördagar 09–14" / flera fönster.
+let cardSeq = 0;
+async function fetchScheduleText(name, dest) {
+  const r = await fetch(`/schedule?lat=${dest.lat}&lng=${dest.lng}&name=${encodeURIComponent(name)}`);
+  if (!r.ok) throw new Error('schema');
+  const { schedule } = await r.json();
+  return scheduleText(schedule);
+}
+function scheduleText(schedule) {
+  if (!schedule || !schedule.length) return 'Ingen registrerad servicedag – kontrollera skylt';
+  const byWin = new Map();                       // "start_end" → [veckodagar]
+  schedule.forEach(x => {
+    if (x.s == null) return;
+    const k = x.s + '_' + x.e;
+    if (!byWin.has(k)) byWin.set(k, []);
+    byWin.get(k).push(x.day);
+  });
+  if (!byWin.size) return 'Servas (tid ej angiven) – kontrollera skylt';
+  const parts = [];
+  byWin.forEach((days, k) => {
+    const [s, e] = k.split('_').map(Number);
+    const ds = [...new Set(days)].sort((a, b) => a - b).map(d => SV_DAYS[d].toLowerCase() + 'ar');
+    const dl = ds.length === 1 ? ds[0] : ds.slice(0, -1).join(', ') + ' & ' + ds.slice(-1);
+    parts.push(`${dl} ${fmtClock(s)}–${fmtClock(e)}`);
+  });
+  return 'Servas ' + parts.join(' · ');
+}
+
 function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
@@ -1200,8 +1231,22 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
   if (dest) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
   const cleanRow = document.getElementById('clean-row');
-  if (infoRow) { cleanRow.textContent = `📅 ${infoRow}`; cleanRow.style.display = 'block'; }
-  else         { cleanRow.style.display = 'none'; }   // ingen städinfo för v2-kort
+  const isSpecial = (statusColor === GAGATA_COLOR || statusColor === UTESERVERING_COLOR);
+  const seq = ++cardSeq;   // guard: ett nyare kort ska inte skrivas över av ett gammalt svar
+  if (isSpecial) {
+    // Gågata/uteservering: behåll deras specifika info (inte ett städschema).
+    if (infoRow) { cleanRow.textContent = `📅 ${infoRow}`; cleanRow.style.display = 'block'; }
+    else         { cleanRow.style.display = 'none'; }
+  } else if (dest && name) {
+    // Normal gata: visa ALLTID gatans veckoschema (per-segment), oavsett läge/färg.
+    cleanRow.textContent = '📅 Hämtar städtider…';
+    cleanRow.style.display = 'block';
+    fetchScheduleText(name, dest)
+      .then(txt => { if (seq === cardSeq) cleanRow.textContent = `📅 ${txt}`; })
+      .catch(() => { if (seq === cardSeq) cleanRow.textContent = '📅 Kontrollera skylt på plats'; });
+  } else {
+    cleanRow.style.display = 'none';
+  }
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
   document.getElementById('street-panel').style.display = 'block';
@@ -2204,12 +2249,12 @@ function initMap() {
   // Bakgrundskarta utan text
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
     attribution:'© <a href="https://osm.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
-    maxZoom:19
+    maxZoom:19, keepBuffer:4          // behåll fler tiles runt vyn → färre färska fade-ins vid pan
   }).addTo(map);
 
   // Gatunamn som eget lager — alltid längst upp, ovanpå zoner och linjer
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
-    maxZoom:19, zIndex:650
+    maxZoom:19, zIndex:650, keepBuffer:4
   }).addTo(map);
 
   const legend = L.control({ position:'topright' });
@@ -2522,6 +2567,23 @@ async function showMorningParkingFlow(lat, lng) {
       n++;
     });
     streetGroupLayers.push(grp.addTo(map));
+
+    // Ingen nyss servad gata → led vidare till Nu (som "I kväll"-tomläget gör).
+    if (n === 0) {
+      document.getElementById('hint').innerHTML =
+        `<div class="empty-state">
+           <div class="es-icon">🧹</div>
+           <div class="es-title">Inga nyss servade gator här</div>
+           <div class="es-body">Ingen gata i området har servats klart i morse. Leta en plats som håller <b>just nu</b> i stället.</div>
+           <button class="es-btn" onclick="setMode('now')">Visa Nu →</button>
+         </div>`;
+      document.getElementById('hint').style.display = 'block';
+      document.getElementById('street-list').style.display = 'none';
+      document.getElementById('street-panel').style.display = 'none';
+      document.getElementById('count-badge').style.display = 'none';
+      sheetSnapTo('peek');
+      return;
+    }
 
     const badge = document.getElementById('count-badge');
     badge.textContent = `${n} nyss servade gator`;

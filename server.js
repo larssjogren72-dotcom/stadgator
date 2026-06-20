@@ -75,6 +75,86 @@ function fetchPhus() {
   return phusInflight;
 }
 
+// ── Städschema (alla 7 veckodagar, per-segment) ──────────────────────────────
+// Kortet ska ALLTID kunna visa "Servas onsdagar 09–14" på RÄTT sträcka. En lång gata
+// (t.ex. Dalagatan) har olika scheman på olika segment → vi matchar klientens klickade
+// punkt (lat/lng + gatunamn) mot cleaning-SEGMENT ≤25 m, EXAKT som flödenas clean.near().
+// De tunga ~14 MB (7 dagar) stannar server-side (cachat 6h); klienten får ett pyttesvar.
+const SCHED_API_DAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag']; // index = JS getDay()
+const SCHED_TTL = 6 * 60 * 60 * 1000;
+let schedFeats = null, schedTs = 0, schedInflight = null;
+
+function fetchServicedayJSON(apiDay) {
+  return new Promise((resolve) => {
+    let p = `/LTF-Tolken/v1/servicedagar/weekday/${encodeURIComponent(apiDay)}?outputFormat=json`;
+    if (API_KEY) p += `&apiKey=${encodeURIComponent(API_KEY)}`;
+    const chunks = [];
+    const r = https.request({ hostname: 'openparking.stockholm.se', port: 443, path: p, method: 'GET' }, (resp) => {
+      resp.on('data', c => chunks.push(c));
+      resp.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); } });
+    });
+    r.on('error', () => resolve(null));
+    r.setTimeout(20000, () => r.destroy());
+    r.end();
+  });
+}
+
+// Bygg feature-listan för alla 7 dagar (cachat 6h, single-flight). Säsong filtreras
+// vid REQUEST (med dagens datum) så cachen är datum-oberoende.
+function buildSchedule() {
+  if (schedFeats && Date.now() - schedTs < SCHED_TTL) return Promise.resolve(schedFeats);
+  if (schedInflight) return schedInflight;
+  schedInflight = (async () => {
+    const out = [];
+    for (let day = 0; day < 7; day++) {
+      const j = await fetchServicedayJSON(SCHED_API_DAYS[day]);
+      const feats = (j && (Array.isArray(j) ? j : j.features)) || [];
+      for (const f of feats) {
+        const p = f.properties || {}, g = f.geometry;
+        const name = (p.STREET_NAME || '').toLowerCase().trim();
+        if (!name || !g) continue;
+        const lines = g.type === 'LineString' ? [g.coordinates]
+                    : g.type === 'MultiLineString' ? g.coordinates : [];
+        if (!lines.length) continue;
+        let minLng=Infinity, minLat=Infinity, maxLng=-Infinity, maxLat=-Infinity;
+        for (const ln of lines) for (const c of ln) {
+          if (Math.abs(c[0]) > 1000) continue;   // servicedagar = WGS84; hoppa ev. avvikare
+          if (c[0]<minLng) minLng=c[0]; if (c[0]>maxLng) maxLng=c[0];
+          if (c[1]<minLat) minLat=c[1]; if (c[1]>maxLat) maxLat=c[1];
+        }
+        out.push({ name, day, s: p.START_TIME, e: p.END_TIME,
+                   sm: p.START_MONTH, sd: p.START_DAY, em: p.END_MONTH, ed: p.END_DAY,
+                   lines, bb: [minLng, minLat, maxLng, maxLat] });
+      }
+    }
+    schedFeats = out; schedTs = Date.now(); schedInflight = null;
+    console.log(`[ParkSpot] Städschema byggt: ${out.length} features (7 dagar)`);
+    return out;
+  })();
+  return schedInflight;
+}
+
+// Punkt→segment-distans i meter – IDENTISK med klientens distPointToSegment(LL).
+function distPtSeg(px, py, ax, ay, bx, by) {
+  const dx = bx-ax, dy = by-ay, lenSq = dx*dx + dy*dy;
+  if (lenSq === 0) return Math.hypot(px-ax, py-ay);
+  const t = Math.max(0, Math.min(1, ((px-ax)*dx + (py-ay)*dy) / lenSq));
+  return Math.hypot(px - (ax+t*dx), py - (ay+t*dy));
+}
+function segDistM(lat, lng, a, b) {   // a,b = [lng,lat] (WGS84); origo i a (= klientens metod)
+  const mLat = 111320, mLng = 111320 * Math.cos(a[1] * Math.PI / 180);
+  const px = (lng - a[0]) * mLng, py = (lat - a[1]) * mLat;
+  const bx = (b[0] - a[0]) * mLng, by = (b[1] - a[1]) * mLat;
+  return distPtSeg(px, py, 0, 0, bx, by);
+}
+function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
+  if (p.sm == null) return true;
+  const md = (m,d) => m*100 + (d||1);
+  const cur = md(date.getMonth()+1, date.getDate());
+  const a = md(p.sm, p.sd), b = md(p.em, p.ed);
+  return a <= b ? (cur >= a && cur <= b) : (cur >= a || cur <= b);
+}
+
 http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
@@ -105,6 +185,39 @@ http.createServer((req, res) => {
     else fetchPhus().then(body => {
       if (body) send(res, 200, phusType, body, 'MISS');
       else { res.setHeader('Access-Control-Allow-Origin','*'); res.writeHead(502); res.end(JSON.stringify({ error: 'p-hus otillgängligt just nu' })); }
+    });
+
+  } else if (reqUrl.pathname === '/schedule') {
+    // Veckoschema för EN klickad punkt: ?lat=&lng=&name= → { schedule:[{day,s,e}] }.
+    // Matchar punkt mot cleaning-segment ≤25 m med samma namn (= flödenas clean.near).
+    const lat  = parseFloat(reqUrl.searchParams.get('lat'));
+    const lng  = parseFloat(reqUrl.searchParams.get('lng'));
+    const name = (reqUrl.searchParams.get('name') || '').toLowerCase().trim();
+    if (!isFinite(lat) || !isFinite(lng) || !name) {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
+      res.end(JSON.stringify({ error: 'lat/lng/name krävs' })); return;
+    }
+    const warm = !!schedFeats;
+    buildSchedule().then(feats => {
+      const today = new Date();
+      const mLng  = 111320 * Math.cos(lat * Math.PI / 180);
+      const dLat  = 25/111320 + 1e-4, dLng = 25/mLng + 1e-4;   // bbox-marginal ~25 m
+      const seen = new Set(), schedule = [];
+      for (const f of (feats || [])) {
+        if (f.name !== name) continue;
+        const bb = f.bb;
+        if (lng < bb[0]-dLng || lng > bb[2]+dLng || lat < bb[1]-dLat || lat > bb[3]+dLat) continue;
+        if (!inSeasonNow(f, today)) continue;
+        let hit = false;
+        for (const ln of f.lines) { for (let i=0; i<ln.length-1; i++) { if (segDistM(lat, lng, ln[i], ln[i+1]) <= 25) { hit = true; break; } } if (hit) break; }
+        if (!hit) continue;
+        const k = f.day+'_'+f.s+'_'+f.e;
+        if (!seen.has(k)) { seen.add(k); schedule.push({ day: f.day, s: f.s, e: f.e }); }
+      }
+      send(res, 200, 'application/json; charset=utf-8', Buffer.from(JSON.stringify({ schedule })), warm ? 'HIT' : 'MISS');
+    }).catch(() => {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
+      res.end(JSON.stringify({ error: 'schema otillgängligt' }));
     });
 
   } else if (reqUrl.pathname === '/cache-stats') {
@@ -169,7 +282,8 @@ http.createServer((req, res) => {
 
 }).listen(PORT, () => {
   console.log(`Städgator: http://localhost:${PORT}`);
-  fetchPhus();   // förvärm p-hus-cachen i bakgrunden (källan är seg ~30s)
+  fetchPhus();        // förvärm p-hus-cachen i bakgrunden (källan är seg ~30s)
+  buildSchedule().catch(() => {});   // förvärm städschemat (7 dagar) → första kortet snabbt
 });
 
 function send(res, status, type, body, cacheState) {
