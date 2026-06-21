@@ -47,7 +47,7 @@ const DISTRICTS = [
 
 // ── Destinationer (sommar-/besöksintention) ──────────────────────────────────
 const DESTINATIONS = [
-  { slug:'grona-lund', name:'Gröna Lund', lat:59.3236, lng:18.0967, what:'nöjesparken Gröna Lund på Djurgården' },
+  { slug:'grona-lund', name:'Gröna Lund', lat:59.3236, lng:18.0967, what:'nöjesparken Gröna Lund på Djurgården', note:'Gröna Lund har öppet på sommarhalvåret och konserter många kvällar – då är gatorna nära Djurgården ofta fulla. Kom i god tid, sikta direkt på ett garage (nedan), eller ta spårvagn 7 / Djurgårdsfärjan. På sommaren vilar dessutom många vintergator i ytterstaden, vilket kan ge fler platser en bit bort.' },
   { slug:'skansen', name:'Skansen', lat:59.3265, lng:18.1045, what:'friluftsmuseet Skansen på Djurgården' },
   { slug:'djurgarden', name:'Djurgården', lat:59.3260, lng:18.1100, what:'museiön Djurgården' },
   { slug:'stromkajen', name:'Strömkajen', lat:59.3290, lng:18.0760, what:'skärgårdsbåtarnas avgångar vid Strömkajen' },
@@ -375,6 +375,7 @@ function destination(x) {
   <section class="card"><h2>Parkera nära ${esc(x.name)}</h2>
     <p>Ska du till ${esc(x.what)}? Gatuparkering i området kan vara begränsad, särskilt sommartid. ParkSpot visar lagliga platser och pris på kartan — och närmaste garage om gatorna är fulla.</p>
     <a class="cta" href="/">📍 Se lediga platser nära ${esc(x.name)} →</a></section>
+  ${x.note ? `<section class="card"><h2>Bra att veta inför besöket</h2><p>${x.note}</p></section>` : ''}
   ${priceSection}
   ${gs.length ? `<section class="card"><h2>🅿 Parkeringshus nära ${esc(x.name)}</h2>
     <table><tr><th>Garage</th><th>Platser</th><th>Avstånd</th></tr>${gs.map(g=>`<tr><td>${esc(g.name)}</td><td>${g.spaces}</td><td class="muted">${km(g.d)}</td></tr>`).join('')}</table>
@@ -484,7 +485,10 @@ function pillarTaxa() {
     <p class="muted">Motorcykel har egen, lägre taxa (serie 11–15, t.ex. 2,50 kr/tim i Taxa 5-områden).</p></section>
   <section class="card"><h2>Så betalar du minst</h2>
     <ul><li>Sikta på låga zoner (Taxa 4–5) i ytterstaden.</li><li>Kvällar, nätter och söndagar är ofta avgiftsfria. <b>Lördag 11–17 har dock avgift</b> i Taxa 1–4 (Taxa 5 fritt).</li><li>Boende kan köpa boendeparkering (rabatt per månad).</li></ul>
-    <p>ParkSpot färgar zonerna på kartan så du ser priset innan du parkerar.</p></section>`;
+    <p>ParkSpot färgar zonerna på kartan så du ser priset innan du parkerar.</p></section>
+  <section class="card"><h2>Pris per zon i detalj</h2>
+    <p>Djupdyk i en specifik taxa – pris, tider och var den gäller:</p>
+    ${linkList([1,2,3,4,5].map(z => ({ href:`parkeringstaxor-stockholm/taxa-${z}`, text:`Taxa ${z} – ${TAXA[z].pris} kr/tim` })))}</section>`;
   const faq = [
     { q:`Vad kostar Taxa 1, 2, 3, 4 och 5 i Stockholm?`, a:`Taxa 1: <b>55 kr/tim</b> · Taxa 2: <b>31 kr/tim</b> · Taxa 3: <b>20 kr/tim</b> · Taxa 4: <b>10 kr/tim</b> · Taxa 5: <b>5 kr/tim</b> (pris per timme, besöksparkering). Se tabellen ovan för exakta tider per zon.` },
     { q:`Vilken taxa är billigast – och vilken är dyrast?`, a:`Billigast är <b>Taxa 5</b> (5 kr/tim vardag 7–19, gratis övrig tid). Dyrast är <b>Taxa 1</b> (55 kr/tim dygnet runt i city).` },
@@ -500,6 +504,50 @@ function pillarTaxa() {
     slug:'parkeringstaxor-stockholm', title:'Parkeringstaxor Stockholm – Taxa 1–5, pris 5–55 kr/tim | ParkSpot',
     desc:'Vad kostar parkering i Stockholm? Taxa 1: 55 kr/tim · Taxa 2: 31 · Taxa 3: 20 · Taxa 4: 10 · Taxa 5: 5 kr/tim. Plus mc-taxa, när det är gratis och vilken zon som gäller på kartan.',
     h1:'Parkeringstaxor i Stockholm – Taxa 1–5 (pris per timme)', lead:'Vad kostar det egentligen? Här är alla zoner och priser per timme — och hur du hittar de billigaste gatorna.',
+    sections, faq, related, lat:null, lng:null, match:null }));
+}
+
+// Per-taxa-sidor: fokuserat svar på "taxa N stockholm pris" (snippet-vänligt). Undersidor till
+// taxa-pelaren → matchar serverns SEO-route utan ändring. All data ur TAXA (sanning, ej gissat).
+function taxaPage(n) {
+  const t = TAXA[n], free = n >= 3;
+  const inDistricts = DISTRICTS.filter(d => d.taxa.includes(n));
+  const freeTxt = n >= 3
+    ? (n === 5 ? 'Lördag, söndag och natt är det <b>gratis</b> – Taxa 5 är billigast.'
+               : 'Söndag och natt är <b>avgiftsfritt</b> (men lördag 11–17 har avgift, vardag 7–19 avgift).')
+    : 'Här gäller <b>avgift dygnet runt</b> – det blir aldrig gratis (city-zon).';
+  const sections = `
+  <section class="card"><h2>Vad kostar Taxa ${n} i Stockholm?</h2>
+    <p><b>Taxa ${n} kostar ${t.pris} kr/tim</b> — ${t.txt}. ${freeTxt}</p>
+    ${taxaTable([n])}
+    <a class="cta" href="/">📍 Se var Taxa ${n} gäller på kartan →</a></section>
+  <section class="card"><h2>Jämför med övriga zoner</h2>
+    <p>Stockholm har fem bil-taxor: Taxa 1 dyrast (city), Taxa 5 billigast (ytterstad).</p>
+    ${taxaTable([1,2,3,4,5])}
+    <p class="muted">Motorcykel har egen, lägre taxa (serie 11–15).</p></section>
+  ${inDistricts.length ? `<section class="card"><h2>Var i Stockholm gäller Taxa ${n}?</h2>
+    <p>Stadsdelar som helt eller delvis ligger i Taxa ${n}:</p>
+    ${linkList(inDistricts.slice(0, 12).map(d => ({ href:`parkering/${d.slug}`, text:`Parkering i ${d.name}` })))}
+    <p class="muted">Exakt zon styrs av skylten – ParkSpot färgar zonen på kartan.</p></section>` : ''}`;
+  const faq = [
+    { q:`Vad kostar Taxa ${n} i Stockholm?`, a:`<b>${t.pris} kr/tim</b> — ${t.txt}.` },
+    free
+      ? { q:`När är Taxa ${n} gratis?`, a:`${n === 5 ? 'Lördag, söndag och natt (avgift bara vardag 7–19).' : 'Söndag och natt är avgiftsfritt; lördag 11–17 och vardag 7–19 har avgift.'} Kontrollera alltid skylten.` }
+      : { q:`Är Taxa ${n} någonsin gratis?`, a:`Nej – Taxa ${n} ligger i city och har <b>avgift dygnet runt</b>. Kontrollera skylten.` },
+    { q:`Vilken taxa är billigast respektive dyrast?`, a:`Billigast är <b>Taxa 5</b> (5 kr/tim), dyrast är <b>Taxa 1</b> (55 kr/tim, dygnet runt).` },
+  ];
+  const related = [
+    { href:`parkeringstaxor-stockholm`, text:`Alla parkeringstaxor (Taxa 1–5)` },
+    ...(n > 1 ? [{ href:`parkeringstaxor-stockholm/taxa-${n-1}`, text:`Taxa ${n-1} (dyrare zon)` }] : []),
+    ...(n < 5 ? [{ href:`parkeringstaxor-stockholm/taxa-${n+1}`, text:`Taxa ${n+1} (billigare zon)` }] : []),
+    { href:`billigare-parkering`, text:`Billigare parkering i Stockholm` },
+  ];
+  emit(`parkeringstaxor-stockholm/taxa-${n}`, layout({
+    slug:`parkeringstaxor-stockholm/taxa-${n}`,
+    title:`Taxa ${n} Stockholm – ${t.pris} kr/tim (pris & tider) | ParkSpot`,
+    desc:`Vad kostar Taxa ${n} i Stockholm? ${t.txt}. Se var zonen gäller på kartan${free ? ' och när det är gratis' : ''}.`,
+    h1:`Taxa ${n} i Stockholm – ${t.pris} kr/tim`,
+    lead:`Vad kostar Taxa ${n}? Här är priset, tiderna och var zonen gäller — plus en karta som visar den live.`,
     sections, faq, related, lat:null, lng:null, match:null }));
 }
 
@@ -605,6 +653,7 @@ function pillarEnglish() {
     { q:'How much is parking in Stockholm?', a:'From 5 SEK/hour (zone 5, outer) to 55 SEK/hour (zone 1, city centre). Evenings and weekends are often free.' },
     { q:'What is a "städdag" / cleaning day?', a:'A weekly day when a street is cleaned and parking is banned. Parking on a cleaning day risks a fine and towing — ParkSpot shows tomorrow’s cleaning streets.' },
     { q:'Can I park overnight in Stockholm?', a:'Yes, on many streets and often free at night — as long as the street is not cleaned the next morning. ParkSpot highlights safe overnight streets.' },
+    { q:'Is parking free on Sundays in Stockholm?', a:'In many zones yes — tariff zones 3–5 are usually free on Sundays and at night (note: Saturday 11–17 is charged in zones 3–4; zone 5 is free). City zones (1–2) charge around the clock. Always check the sign.' },
     { q:'Is ParkSpot free?', a:'Yes, free and no login. It is based on the City of Stockholm open data.' },
   ];
   const related = [
@@ -775,7 +824,7 @@ function streetPage(s) {
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
-pillarSummer(); pillarTaxa(); pillarStadgator(); pillarOverNatten(); pillarGarages(); pillarEnglish();
+pillarSummer(); pillarTaxa(); [1,2,3,4,5].forEach(taxaPage); pillarStadgator(); pillarOverNatten(); pillarGarages(); pillarEnglish();
 pillarHubs(); englishHub();
 DISTRICTS.forEach(d => { districtHub(d); billigare(d); overNatten(d); stadgator(d); });
 DESTINATIONS.forEach(destination);
