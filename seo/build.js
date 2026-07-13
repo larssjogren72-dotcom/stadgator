@@ -101,7 +101,7 @@ const EN = {
 };
 
 // ── Delad layout ─────────────────────────────────────────────────────────────
-function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [] }) {
+function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [], extraLd = null }) {
   const hreflang = alts.length
     ? alts.map(a => `<link rel="alternate" hreflang="${a.lang}" href="${SITE}/${a.slug}">`).join('')
       + `<link rel="alternate" hreflang="x-default" href="${SITE}/${(alts.find(a => a.lang === 'sv') || alts[0]).slug}">`
@@ -111,7 +111,9 @@ function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng,
     mainEntity: faq.map(f => ({ '@type':'Question', name:f.q, acceptedAnswer:{ '@type':'Answer', text:f.a.replace(/<[^>]+>/g,'') } }))
   } : null;
   const pageLd = { '@context':'https://schema.org','@type':'WebPage', name:title, url:`${SITE}/${slug}`,
-    description:desc, inLanguage:'sv', isPartOf:{ '@type':'WebSite', name:'ParkSpot Stockholm', url:SITE } };
+    description:desc, inLanguage: en ? 'en' : 'sv',
+    isPartOf:{ '@type':'WebSite', '@id':`${SITE}/#website`, name:'ParkSpot Stockholm', url:SITE },
+    publisher:{ '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot' } };
   const widget = (lat != null && match) ? cleaningWidget(lat, lng, match, en) : '';
   const faqHtml = faq && faq.length ? `<section class="card"><h2>${en ? EN.faqTitle : 'Vanliga frågor'}</h2>${faq.map(f =>
     `<h3>${esc(f.q)}</h3><p>${f.a}</p>`).join('')}</section>` : '';
@@ -134,6 +136,7 @@ function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng,
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <script type="application/ld+json">${JSON.stringify(pageLd)}</script>
 ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>` : ''}
+${extraLd ? `<script type="application/ld+json">${JSON.stringify(extraLd)}</script>` : ''}
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Inter',sans-serif;background:#080c1c;color:#e8eef6;line-height:1.65;-webkit-font-smoothing:antialiased}
@@ -181,7 +184,7 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
 </main>
 <footer><div class="wrap">
   <p><b style="color:#cfe3ff">${esc(en ? EN.tagline : TAGLINE)}</b><br>${esc(en ? EN.promise : PROMISE)}</p>
-  <p style="margin-top:10px"><a href="/">${en ? 'Open the ParkSpot map' : 'Öppna ParkSpot-kartan'}</a> · <a href="/parkeringstaxor-stockholm">${en ? 'Tariffs 1–5' : 'Taxor 1–5'}</a> · <a href="/stadgator-stockholm">${en ? 'Street cleaning' : 'Städgator'}</a> · <a href="/parking-in-stockholm">English</a></p>
+  <p style="margin-top:10px"><a href="/">${en ? 'Open the ParkSpot map' : 'Öppna ParkSpot-kartan'}</a> · <a href="/parkeringstaxor-stockholm">${en ? 'Tariffs 1–5' : 'Taxor 1–5'}</a> · <a href="/stadgator-stockholm">${en ? 'Street cleaning' : 'Städgator'}</a> · <a href="/om-parkspot">${en ? 'About' : 'Om ParkSpot'}</a> · <a href="/parking-in-stockholm">English</a></p>
   <p style="margin-top:10px;color:#5f7088">${esc(en ? EN.disclaimer : DISCLAIMER)}</p>
 </div></footer>
 </body></html>`;
@@ -824,6 +827,53 @@ function streetPage(s) {
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
+// ── Om ParkSpot – entitetssida (talar om för AI/Google VAD ParkSpot är) ──────
+function aboutPage() {
+  const sections = `
+  <section class="card"><h2>Vad är ParkSpot?</h2>
+    <p><b>ParkSpot</b> är en <b>gratis webb-app</b> som visar var du får <b>parkera lagligt i Stockholm</b> – just nu, i kväll eller över natten. Appen färgar gatorna på en karta efter om du får stå, visar <b>pris per taxazon (Taxa 1–5)</b>, <b>städdagar per gata</b> och när det är <b>gratis eller avgiftsfritt</b>. Allt bygger på <b>Stockholms stads öppna data</b>.</p>
+    <a class="cta" href="/">📍 Öppna kartan →</a></section>
+  <section class="card"><h2>Vad gör ParkSpot unikt?</h2>
+    <ul>
+      <li><b>Städdagar per gata</b> – se exakt vilken veckodag och tid en specifik gata servas, säsongsjusterat.</li>
+      <li><b>Fyra lägen</b> – Nu, Morgon, I kväll och Över natten – anpassat efter när du parkerar.</li>
+      <li><b>Pris innan du parkerar</b> – taxazonen visas direkt på kartan.</li>
+      <li><b>Ingen inloggning, inga konton – helt gratis.</b></li>
+    </ul></section>
+  <section class="card"><h2>ParkSpot vs andra parkeringsappar</h2>
+    <p>ParkSpot <b>tar inte betalt för parkering</b> och ersätter inte betal-appar som EasyPark eller Parkster. ParkSpot svarar på en annan fråga: <b>var får jag stå – lagligt, billigt och utan att bli bogserad?</b> Själva betalningen sköter du som vanligt.</p>
+    <p class="muted">Obs: ParkSpot Stockholm är en tjänst för <b>gatuparkering i Stockholm</b> och är inte kopplad till flygplatsparkeringstjänster med liknande namn i andra länder.</p></section>
+  <section class="card"><h2>Datakälla &amp; ansvar</h2>
+    <p>ParkSpot bygger på <b>Stockholms stads öppna data</b> (parkeringsregler, servicedagar, taxazoner). Data kan vara inaktuell eller ha luckor – <b>kontrollera alltid skylten på plats</b>. ParkSpot ansvarar inte för p-böter eller bogsering.</p></section>`;
+  const faq = [
+    { q:'Vad är ParkSpot?', a:'En gratis webb-app som visar var du får parkera lagligt i Stockholm – pris per zon, städdagar per gata och nattparkering – på en live-karta, baserat på Stockholms stads öppna data.' },
+    { q:'Är ParkSpot gratis?', a:'Ja, helt gratis och utan inloggning. ParkSpot tar inte betalt och visar ingen reklam för parkering.' },
+    { q:'Vilken data bygger ParkSpot på?', a:'Stockholms stads öppna data: parkeringsregler, servicedagar (städdagar) och taxazoner. Kontrollera alltid skylten på plats.' },
+    { q:'Vad skiljer ParkSpot från EasyPark och Parkster?', a:'De är betal-appar för själva avgiften. ParkSpot visar i stället VAR du får stå lagligt, vad det kostar och när det städas – du betalar som vanligt via din vanliga app.' },
+    { q:'Täcker ParkSpot hela Stockholm?', a:'ParkSpot täcker Stockholms stad där öppna data finns – från innerstaden (Taxa 1–2) till ytterområden (Taxa 4–5).' },
+  ];
+  const related = [
+    { href:'parkeringstaxor-stockholm', text:'Stockholms parkeringstaxor (Taxa 1–5)' },
+    { href:'stadgator-stockholm', text:'Städgator i Stockholm' },
+    { href:'parkering-over-natten-stockholm', text:'Parkera över natten' },
+    { href:'parking-in-stockholm', text:'Parking in Stockholm (English)' },
+  ];
+  const extraLd = { '@context':'https://schema.org', '@graph':[
+    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:'ParkSpot Stockholm', url:SITE, logo:`${SITE}/og-image-v2.png`,
+      description:'ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.',
+      areaServed:{ '@type':'City', name:'Stockholm', sameAs:'https://sv.wikipedia.org/wiki/Stockholm' } },
+    { '@type':'WebApplication', '@id':`${SITE}/#app`, name:'ParkSpot Stockholm', alternateName:'ParkSpot', url:SITE,
+      applicationCategory:'TravelApplication', applicationSubCategory:'Parking', operatingSystem:'Web', inLanguage:'sv', isAccessibleForFree:true,
+      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:{ '@type':'City', name:'Stockholm' }, publisher:{ '@id':`${SITE}/#organization` },
+      description:'Visar var du får parkera lagligt just nu i Stockholm – pris per zon, städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning.' } ] };
+  emit('om-parkspot', layout({
+    slug:'om-parkspot', title:'Om ParkSpot – gratis parkeringsapp för Stockholm | ParkSpot',
+    desc:'Vad är ParkSpot? En gratis webb-app som visar var du får parkera lagligt i Stockholm – pris per zon, städdagar per gata och nattparkering, baserat på stadens öppna data.',
+    h1:'Om ParkSpot', lead:'ParkSpot är en gratis app som visar var du får parkera lagligt i Stockholm – nu, i kväll eller över natten. Här förklarar vi vad appen gör och varför.',
+    sections, faq, related, lat:null, lng:null, match:null, extraLd }));
+}
+
+aboutPage();
 pillarSummer(); pillarTaxa(); [1,2,3,4,5].forEach(taxaPage); pillarStadgator(); pillarOverNatten(); pillarGarages(); pillarEnglish();
 pillarHubs(); englishHub();
 DISTRICTS.forEach(d => { districtHub(d); billigare(d); overNatten(d); stadgator(d); });

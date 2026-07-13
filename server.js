@@ -158,6 +158,13 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
 http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
+  // www.parkspot.se → parkspot.se (301). Kanonisk är icke-www; undvik 404/duplicat på www.
+  const host = (req.headers.host || '').toLowerCase();
+  if (host.startsWith('www.')) {
+    res.writeHead(301, { Location: 'https://' + host.slice(4) + req.url });
+    return res.end();
+  }
+
   if (reqUrl.pathname.startsWith('/proxy/')) {
     // Proxy → openparking.stockholm.se (parkeringsregler). Nyckel = apiKey-param.
     const apiPath = reqUrl.pathname.replace('/proxy/', '/LTF-Tolken/v1/');
@@ -246,7 +253,7 @@ http.createServer((req, res) => {
     ).join('\n');
     res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n${seoXml}\n</urlset>`);
 
-  } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|en)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
+  } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|om-parkspot|en)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
     // SEO-sidor (statiska, genererade i seo/site/) – egna URL:er, rör ej appen.
     const rel = reqUrl.pathname.replace(/\/+$/, '');
     const seoFile = path.join(__dirname, 'seo', 'site', rel + '.html');

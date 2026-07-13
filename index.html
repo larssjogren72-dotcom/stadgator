@@ -41,36 +41,60 @@
   <meta name="twitter:image"       content="https://parkspot.se/og-image-v2.png">
   <meta name="twitter:image:alt"   content="ParkSpot Stockholm – parkeringskarta för nu, i kväll och över natten.">
 
-  <!-- Strukturerad data – Google förstår vad appen är -->
+  <!-- Strukturerad data – sammankopplad entitetsgraf (Organization + WebSite + WebApplication)
+       så att sökmotorer OCH AI-agenter förstår vad ParkSpot ÄR och kan citera rätt entitet. -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "ParkSpot Stockholm",
-    "alternateName": "ParkSpot",
-    "url": "https://parkspot.se/",
-    "description": "Visar morgondagens städgator i Stockholm och säkra gator för nattparkering. Gratis parkeringskarta med zoner och taxa.",
-    "applicationCategory": "TransportationApplication",
-    "applicationSubCategory": "Parking",
-    "operatingSystem": "Web",
-    "browserRequirements": "Requires JavaScript. Requires HTML5.",
-    "inLanguage": "sv",
-    "isAccessibleForFree": true,
-    "datePublished": "2026-06-03",
-    "image": "https://parkspot.se/og-image-v2.png",
-    "screenshot": "https://parkspot.se/og-image-v2.png",
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "SEK" },
-    "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
-    "publisher": {
-      "@type": "Organization",
-      "name": "ParkSpot Stockholm",
-      "url": "https://parkspot.se/"
-    },
-    "featureList": [
-      "Morgondagens städgator på karta",
-      "Säkra gator för nattparkering",
-      "Parkeringszoner och taxa",
-      "Navigering med Google Maps"
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://parkspot.se/#organization",
+        "name": "ParkSpot",
+        "alternateName": "ParkSpot Stockholm",
+        "url": "https://parkspot.se/",
+        "logo": "https://parkspot.se/og-image-v2.png",
+        "image": "https://parkspot.se/og-image-v2.png",
+        "description": "ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.",
+        "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
+        "knowsAbout": ["Gatuparkering i Stockholm", "Parkeringstaxor (Taxa 1–5)", "Städgator och servicedagar", "Nattparkering", "Boendeparkering"]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://parkspot.se/#website",
+        "url": "https://parkspot.se/",
+        "name": "ParkSpot Stockholm",
+        "inLanguage": "sv",
+        "publisher": { "@id": "https://parkspot.se/#organization" }
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://parkspot.se/#app",
+        "name": "ParkSpot Stockholm",
+        "alternateName": "ParkSpot",
+        "url": "https://parkspot.se/",
+        "description": "Visar på karta var du får parkera lagligt just nu i Stockholm – pris per zon (Taxa 1–5), städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning. Bygger på Stockholms stads öppna data.",
+        "applicationCategory": "TravelApplication",
+        "applicationSubCategory": "Parking",
+        "operatingSystem": "Web",
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "inLanguage": "sv",
+        "isAccessibleForFree": true,
+        "datePublished": "2026-06-03",
+        "image": "https://parkspot.se/og-image-v2.png",
+        "screenshot": "https://parkspot.se/og-image-v2.png",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "SEK" },
+        "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
+        "publisher": { "@id": "https://parkspot.se/#organization" },
+        "featureList": [
+          "Laglig gatuparkering i realtid (läget Nu)",
+          "Städdagar/servicedagar per gata",
+          "Parkeringstaxor per zon (Taxa 1–5)",
+          "Nattparkering (läget Över natten)",
+          "Gratis-parkering och avgiftsfria tider",
+          "Navigering med Google Maps"
+        ]
+      }
     ]
   }
   </script>
