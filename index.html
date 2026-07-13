@@ -858,6 +858,104 @@ function initCookieConsent() {
 function openPrivacy()  { document.getElementById('privacy-modal').style.display = 'flex'; }
 function closePrivacy() { document.getElementById('privacy-modal').style.display = 'none'; }
 
+// ── Recensions-/feedback-prompt (AEO + datakvalitet) ─────────────────────────
+// Policy-REN: INGEN review-gating. Alla kan recensera publikt; 👎 får dessutom en privat kanal.
+// Visas EFTER ett värde-ögonblick (öppnat gatukort) för ÅTERvändande användare – aldrig mitt i en
+// sökning, aldrig ovanpå ett öppet kort. Frekvens-kapad via localStorage. Additivt + stängbart.
+(function () {
+  // ⚙️ FYLL I NÄR DE FINNS (tomma = säkra fallbacks):
+  var REVIEW_URL = '';          // Product Hunt-länk (tom → "dela med vän"-fallback)
+  var FEEDBACK = {              // Google-formulär för privat 👎-feedback (tomt → bara "tack", inget skickas)
+    action: '',                 // https://docs.google.com/forms/d/e/XXXX/formResponse
+    entryMsg: '',               // t.ex. "entry.123456789"  (fältet för meddelandet)
+    entryCtx: ''                // t.ex. "entry.987654321"  (kontext, valfritt)
+  };
+
+  var KEY = 'ps_rev', shownThisSession = false;
+  function get() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function set(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+  function eligible() {
+    var s = get();
+    if (s.done) return false;                                              // recenserat / permanent nej
+    if (shownThisSession) return false;
+    if ((s.s || 0) < 2) return false;                                      // låt dem använda appen först
+    if ((s.shown || 0) >= 3) return false;                                 // nagga inte i evighet
+    if (s.last && Date.now() - s.last < 3 * 24 * 3600 * 1000) return false; // 3 dygns vila
+    return true;
+  }
+  function panelOpen() { var p = document.getElementById('street-panel'); return p && getComputedStyle(p).display !== 'none'; }
+
+  var box;
+  function ensureBox() {
+    if (box) return box;
+    var css = document.createElement('style');
+    css.textContent = '#ps-rev{position:fixed;left:12px;right:12px;bottom:14px;z-index:1200;max-width:440px;margin:0 auto;'
+      + 'background:#0d1426;border:1px solid rgba(129,140,248,.45);border-radius:14px;padding:14px 14px 12px;'
+      + 'box-shadow:0 10px 34px rgba(0,0,0,.5);color:#e8eef6;font-size:14px;transform:translateY(150%);transition:transform .3s ease}'
+      + '#ps-rev.show{transform:translateY(0)}#ps-rev h4{margin:0 0 10px;font-size:15px;font-weight:700}'
+      + '#ps-rev .row{display:flex;gap:8px}#ps-rev button{flex:1;border:0;border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}'
+      + '#ps-rev .yes{background:#22c55e;color:#062611}#ps-rev .no{background:#1b2236;color:#c4d1e0;border:1px solid rgba(255,255,255,.12)}'
+      + '#ps-rev .prim{background:#818cf8;color:#0c1030;display:block;text-align:center;text-decoration:none;width:100%;box-sizing:border-box}'
+      + '#ps-rev textarea{width:100%;box-sizing:border-box;background:#0b1120;border:1px solid rgba(255,255,255,.14);border-radius:10px;color:#e8eef6;padding:9px;font-size:14px;font-family:inherit;resize:vertical;min-height:60px;margin-bottom:8px}'
+      + '#ps-rev .x{position:absolute;top:8px;right:10px;background:none;border:0;color:#7e90a6;font-size:18px;cursor:pointer;padding:0;flex:none;width:auto}'
+      + '#ps-rev .mut{color:#8aa0b8;font-size:12px;margin-top:8px;text-align:center}#ps-rev .mut a{color:#9fb3c8}';
+    document.head.appendChild(css);
+    box = document.createElement('div'); box.id = 'ps-rev'; document.body.appendChild(box);
+    return box;
+  }
+  function close(markDone) { if (box) box.classList.remove('show'); if (markDone) { var s = get(); s.done = true; set(s); } }
+  function render(html) {
+    var b = ensureBox();
+    b.innerHTML = '<button class="x" aria-label="Stäng">✕</button>' + html;
+    b.querySelector('.x').onclick = function () { close(false); };
+    return b;
+  }
+  function step1() {
+    var b = render('<h4>Har ParkSpot hjälpt dig?</h4><div class="row"><button class="yes">👍 Ja</button><button class="no">👎 Inte helt</button></div>');
+    b.querySelector('.yes').onclick = stepYes;
+    b.querySelector('.no').onclick = stepNo;
+  }
+  function stepYes() {
+    var inner = REVIEW_URL
+      ? '<a class="prim" href="' + REVIEW_URL + '" target="_blank" rel="noopener">★ Lämna en recension →</a><div class="mut">Tar 20 sekunder och hjälper fler hitta appen 🙌</div>'
+      : '<button class="prim" id="ps-share">📤 Dela med en vän</button><div class="mut">Vi lanserar snart på Product Hunt – tack för att du gillar ParkSpot! 🙌</div>';
+    var b = render('<h4>Vad kul! 🙌</h4>' + inner);
+    var sh = b.querySelector('#ps-share');
+    if (sh) sh.onclick = function () {
+      try { if (navigator.share) navigator.share({ title: 'ParkSpot Stockholm', text: 'Gratis app som visar var du får parkera i Stockholm', url: 'https://parkspot.se/' }).catch(function () {}); else window.open('https://parkspot.se/', '_blank'); } catch (e) {}
+      close(true);
+    };
+    var a = b.querySelector('a.prim'); if (a) a.onclick = function () { setTimeout(function () { close(true); }, 400); };
+  }
+  function stepNo() {
+    var b = render('<h4>Tack för ärligheten – vad kan bli bättre?</h4><textarea id="ps-msg" placeholder="Vad var fel eller saknades?"></textarea><button class="prim" id="ps-send">Skicka</button>'
+      + (REVIEW_URL ? '<div class="mut"><a href="' + REVIEW_URL + '" target="_blank" rel="noopener">…eller lämna en publik recension →</a></div>' : ''));
+    b.querySelector('#ps-send').onclick = function () {
+      var msg = ((b.querySelector('#ps-msg').value || '') + '').slice(0, 500).trim();
+      if (FEEDBACK.action && FEEDBACK.entryMsg && msg) {
+        var ctx = ''; try { ctx = (typeof currentMode !== 'undefined' && currentMode) || (typeof mode !== 'undefined' && mode) || ''; } catch (e) {}
+        var body = {}; body[FEEDBACK.entryMsg] = msg; if (FEEDBACK.entryCtx) body[FEEDBACK.entryCtx] = ctx;
+        try { fetch(FEEDBACK.action, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() }).catch(function () {}); } catch (e) {}
+      }
+      render('<h4>Tack! Din feedback gör appen bättre. 🙏</h4>');
+      var s = get(); s.done = true; set(s);
+      setTimeout(function () { close(false); }, 1800);
+    };
+  }
+
+  // Räkna session vid start; visa ev. prompten (bara för återvändande som fått värde tidigare).
+  var st = get(); st.s = (st.s || 0) + 1; set(st);
+  if (eligible() && st.v) setTimeout(function () {
+    if (!eligible() || panelOpen()) return;                                // aldrig ovanpå ett öppet kort
+    shownThisSession = true;
+    var s = get(); s.shown = (s.shown || 0) + 1; s.last = Date.now(); set(s);
+    step1(); ensureBox().classList.add('show');
+  }, 7000);
+
+  // Värde-ögonblick (anropas från showPlaceCardV2) → markera att de fått nytta; prompten dyker upp NÄSTA gång.
+  window.__reviewValueMoment = function () { var s = get(); if (!s.v) { s.v = true; set(s); } };
+})();
+
 // ── Start ────────────────────────────────────────────────────────────────────
 // Hoppa direkt in i appen – ingen setup-skärm (servern sköter nyckeln).
 window.addEventListener('DOMContentLoaded', () => { launchApp(); initCookieConsent(); });
@@ -1275,6 +1373,7 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
   document.getElementById('street-list').style.display = 'none';
   document.getElementById('street-panel').style.display = 'block';
   sheetSnapTo('peek');   // självanpassat lägsta läge – skymmer inte kartan
+  if (window.__reviewValueMoment) window.__reviewValueMoment();   // värde-ögonblick → ev. recensions-prompt nästa gång
 }
 
 // Markera vald gata på kartan (ersätter den borttagna popupen) – tjockare, full opacitet, lyft fram.
@@ -2721,6 +2820,7 @@ function selectStreet(feat, hitLayer, visualLayer) {
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-panel').style.display = 'block';
   sheetSnapTo('peek');   // självanpassat lägsta läge – skymmer inte kartan
+  if (window.__reviewValueMoment) window.__reviewValueMoment();   // värde-ögonblick → ev. recensions-prompt nästa gång
 }
 
 function hideStreetPanel() {
