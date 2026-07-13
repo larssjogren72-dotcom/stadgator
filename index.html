@@ -866,9 +866,9 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   // ⚙️ FYLL I NÄR DE FINNS (tomma = säkra fallbacks):
   var REVIEW_URL = '';          // Product Hunt-länk (tom → "dela med vän"-fallback)
   var FEEDBACK = {              // Google-formulär för privat 👎-feedback (tomt → bara "tack", inget skickas)
-    action: '',                 // https://docs.google.com/forms/d/e/XXXX/formResponse
-    entryMsg: '',               // t.ex. "entry.123456789"  (fältet för meddelandet)
-    entryCtx: ''                // t.ex. "entry.987654321"  (kontext, valfritt)
+    action: 'https://docs.google.com/forms/d/e/1FAIpQLSc84U7R_96vNiV8sz0yUbFo4wnX48f74_pB6_EtMThpA_wR0A/formResponse',
+    entryMsg: 'entry.920951851', // fältet för meddelandet
+    entryCtx: ''                 // separat kontext-fält (saknas → kontext läggs i meddelandet)
   };
 
   var KEY = 'ps_rev', shownThisSession = false;
@@ -934,7 +934,9 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
       var msg = ((b.querySelector('#ps-msg').value || '') + '').slice(0, 500).trim();
       if (FEEDBACK.action && FEEDBACK.entryMsg && msg) {
         var ctx = ''; try { ctx = (typeof currentMode !== 'undefined' && currentMode) || (typeof mode !== 'undefined' && mode) || ''; } catch (e) {}
-        var body = {}; body[FEEDBACK.entryMsg] = msg; if (FEEDBACK.entryCtx) body[FEEDBACK.entryCtx] = ctx;
+        var body = {};
+        if (FEEDBACK.entryCtx) { body[FEEDBACK.entryMsg] = msg; body[FEEDBACK.entryCtx] = ctx; }
+        else { body[FEEDBACK.entryMsg] = msg + (ctx ? '  ·  läge: ' + ctx : ''); }   // kontext i samma fält
         try { fetch(FEEDBACK.action, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() }).catch(function () {}); } catch (e) {}
       }
       render('<h4>Tack! Din feedback gör appen bättre. 🙏</h4>');
