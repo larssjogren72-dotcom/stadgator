@@ -875,6 +875,14 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   function get() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
   function set(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
   function track(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review' }); } catch (e) {} }  // GA-händelse (bara om cookies accepterats)
+  function sendForm(msg) {   // logga reaktion/kommentar till Google-formuläret → räknebart i arket
+    if (!FEEDBACK.action || !FEEDBACK.entryMsg || !msg) return;
+    var ctx = ''; try { ctx = (typeof currentMode !== 'undefined' && currentMode) || (typeof mode !== 'undefined' && mode) || ''; } catch (e) {}
+    var body = {};
+    if (FEEDBACK.entryCtx) { body[FEEDBACK.entryMsg] = msg; body[FEEDBACK.entryCtx] = ctx; }
+    else { body[FEEDBACK.entryMsg] = msg + (ctx ? '  ·  läge: ' + ctx : ''); }   // kontext i samma fält
+    try { fetch(FEEDBACK.action, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() }).catch(function () {}); } catch (e) {}
+  }
   function eligible() {
     var s = get();
     if (s.done) return false;                                              // recenserat / permanent nej
@@ -918,6 +926,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   }
   function stepYes() {
     track('review_thumbs_up');
+    sendForm('👍 Gillade appen');   // logga gillningen i arket (räknebart) – Apps Script mejlar ej dessa
     var inner = REVIEW_URL
       ? '<a class="prim" href="' + REVIEW_URL + '" target="_blank" rel="noopener">★ Lämna en recension →</a><div class="mut">Tar 20 sekunder och hjälper fler hitta appen 🙌</div>'
       : '<button class="prim" id="ps-share">📤 Dela med en vän</button><div class="mut">Vi lanserar snart på Product Hunt – tack för att du gillar ParkSpot! 🙌</div>';
@@ -936,13 +945,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
       + (REVIEW_URL ? '<div class="mut"><a href="' + REVIEW_URL + '" target="_blank" rel="noopener">…eller lämna en publik recension →</a></div>' : ''));
     b.querySelector('#ps-send').onclick = function () {
       var msg = ((b.querySelector('#ps-msg').value || '') + '').slice(0, 500).trim();
-      if (FEEDBACK.action && FEEDBACK.entryMsg && msg) {
-        var ctx = ''; try { ctx = (typeof currentMode !== 'undefined' && currentMode) || (typeof mode !== 'undefined' && mode) || ''; } catch (e) {}
-        var body = {};
-        if (FEEDBACK.entryCtx) { body[FEEDBACK.entryMsg] = msg; body[FEEDBACK.entryCtx] = ctx; }
-        else { body[FEEDBACK.entryMsg] = msg + (ctx ? '  ·  läge: ' + ctx : ''); }   // kontext i samma fält
-        try { fetch(FEEDBACK.action, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() }).catch(function () {}); } catch (e) {}
-      }
+      sendForm(msg);
       track('feedback_sent');
       render('<h4>Tack! Din feedback gör appen bättre. 🙏</h4>');
       var s = get(); s.done = true; set(s);
