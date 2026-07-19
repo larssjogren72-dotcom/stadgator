@@ -941,6 +941,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   }
   function stepNo() {
     track('review_thumbs_down');
+    sendForm('👎 Inte helt');   // logga missnöjd-klicket i arket (även om ingen kommentar skrivs) – mejlas ej
     var b = render('<h4>Tack för ärligheten – vad kan bli bättre?</h4><textarea id="ps-msg" placeholder="Vad var fel eller saknades?"></textarea><button class="prim" id="ps-send">Skicka</button>'
       + (REVIEW_URL ? '<div class="mut"><a href="' + REVIEW_URL + '" target="_blank" rel="noopener">…eller lämna en publik recension →</a></div>' : ''));
     b.querySelector('#ps-send').onclick = function () {
