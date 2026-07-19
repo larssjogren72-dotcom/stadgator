@@ -874,6 +874,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   var KEY = 'ps_rev', shownThisSession = false;
   function get() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
   function set(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+  function track(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review' }); } catch (e) {} }  // GA-händelse (bara om cookies accepterats)
   function eligible() {
     var s = get();
     if (s.done) return false;                                              // recenserat / permanent nej
@@ -916,18 +917,21 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     b.querySelector('.no').onclick = stepNo;
   }
   function stepYes() {
+    track('review_thumbs_up');
     var inner = REVIEW_URL
       ? '<a class="prim" href="' + REVIEW_URL + '" target="_blank" rel="noopener">★ Lämna en recension →</a><div class="mut">Tar 20 sekunder och hjälper fler hitta appen 🙌</div>'
       : '<button class="prim" id="ps-share">📤 Dela med en vän</button><div class="mut">Vi lanserar snart på Product Hunt – tack för att du gillar ParkSpot! 🙌</div>';
     var b = render('<h4>Vad kul! 🙌</h4>' + inner);
     var sh = b.querySelector('#ps-share');
     if (sh) sh.onclick = function () {
+      track('review_shared');
       try { if (navigator.share) navigator.share({ title: 'ParkSpot Stockholm', text: 'Gratis app som visar var du får parkera i Stockholm', url: 'https://parkspot.se/' }).catch(function () {}); else window.open('https://parkspot.se/', '_blank'); } catch (e) {}
       close(true);
     };
-    var a = b.querySelector('a.prim'); if (a) a.onclick = function () { setTimeout(function () { close(true); }, 400); };
+    var a = b.querySelector('a.prim'); if (a) a.onclick = function () { track('review_clickout'); setTimeout(function () { close(true); }, 400); };
   }
   function stepNo() {
+    track('review_thumbs_down');
     var b = render('<h4>Tack för ärligheten – vad kan bli bättre?</h4><textarea id="ps-msg" placeholder="Vad var fel eller saknades?"></textarea><button class="prim" id="ps-send">Skicka</button>'
       + (REVIEW_URL ? '<div class="mut"><a href="' + REVIEW_URL + '" target="_blank" rel="noopener">…eller lämna en publik recension →</a></div>' : ''));
     b.querySelector('#ps-send').onclick = function () {
@@ -939,6 +943,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
         else { body[FEEDBACK.entryMsg] = msg + (ctx ? '  ·  läge: ' + ctx : ''); }   // kontext i samma fält
         try { fetch(FEEDBACK.action, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() }).catch(function () {}); } catch (e) {}
       }
+      track('feedback_sent');
       render('<h4>Tack! Din feedback gör appen bättre. 🙏</h4>');
       var s = get(); s.done = true; set(s);
       setTimeout(function () { close(false); }, 1800);
@@ -951,7 +956,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     if (!eligible() || panelOpen()) return;                                // aldrig ovanpå ett öppet kort
     shownThisSession = true;
     var s = get(); s.shown = (s.shown || 0) + 1; s.last = Date.now(); set(s);
-    step1(); ensureBox().classList.add('show');
+    track('review_prompt_shown'); step1(); ensureBox().classList.add('show');
   }, 7000);
 
   // Värde-ögonblick (anropas från showPlaceCardV2) → markera att de fått nytta; prompten dyker upp NÄSTA gång.
