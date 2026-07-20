@@ -1395,6 +1395,28 @@ function heroTextColor(c) {
             '#38bdf8':'#0369a1', '#9333ea':'#6b21a8', '#ec4899':'#9d174d', '#f97316':'#9a3412' })[c] || c;
 }
 
+// Gågata (rosa streckad) var tidigare interactive:false → man kunde inte klicka och därmed
+// inte förstå vad linjen betydde. Nu klickbar med förklaring.
+function bindGagata(pl) {
+  pl.on('click', e => {
+    L.DomEvent.stopPropagation(e);
+    const lls = pl.getLatLngs(); const mid = lls[Math.floor(lls.length / 2)];
+    showPlaceCardV2('Gågata', 'Gågata – endast markerad plats', GAGATA_COLOR, mid || null,
+      'På en gågata får du bara stå på särskilt markerad p-plats. Kontrollera skylten på plats.');
+  });
+  return pl;
+}
+// Röda förbudslinjer saknade klick-hantering. Nu går de att trycka på för att se vad som gäller.
+function bindForbud(pl) {
+  pl.on('click', e => {
+    L.DomEvent.stopPropagation(e);
+    const lls = pl.getLatLngs(); const mid = lls[Math.floor(lls.length / 2)];
+    showPlaceCardV2('Parkering förbjuden', 'Förbud – parkera ej', '#ef4444', mid || null,
+      'Stockholms stads data visar parkeringsförbud på den här sträckan. Kontrollera alltid skylten på plats.');
+  });
+  return pl;
+}
+
 function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
@@ -1994,7 +2016,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
     // Gågator (rosa streckad, underst) – syns även där ingen parkering finns.
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
-      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7', interactive: false }).addTo(grp)));
+      bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
     // Städgator imorgon inom 500 m: rita (gul streckad) + samla linjesegment + gatunamn (SWEREF99)
     // "Över natten" → städning gäller IMORGON. Filtrera bort poster ur säsong.
@@ -2024,7 +2046,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
     // Förbudssträckor (rött, underst) – samma tjocklek som tillåtna
     forbiddenLines.forEach(line =>
-      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp));
+      bindForbud(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp)));
 
     // Gatufärg = trygg att stå över natten? (pris visas av zonerna + popupen, ej av färgen)
     // Tidsmedveten: morgondagens städning tolkas efter när den börjar (beslut A 2026-06-17):
@@ -2207,10 +2229,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
 
     // Gågator (rosa streckad, underst) – syns även där ingen parkering finns.
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
-      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7', interactive: false }).addTo(grp)));
+      bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
     forbiddenLines.forEach(line =>
-      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp));
+      bindForbud(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp)));
 
     // Gatufärg = får jag stå här just nu? (pris visas av zonerna + popupen, ej av färgen)
     let okNu = 0;
@@ -2565,7 +2587,7 @@ function locateMe() {
 // ── Data ─────────────────────────────────────────────────────────────────────
 function loadData() {
   const tom = tomorrow();
-  document.getElementById('header-date').textContent = `Imorgon: ${fmtDate(tom)}`;
+  document.getElementById('header-date').textContent = fmtDate(new Date());
   const key = getKey();
 
   // Starta alla hämtningar i bakgrunden — ingen blockering
@@ -2713,7 +2735,7 @@ async function showStreetsNearViewport(foreskriftP = null) {
     if (gagataLines && gagataLines.length) {
       const ggrp = L.layerGroup();
       gagataLines.forEach(gl => gl.lines.forEach(line =>
-        L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7', interactive: false }).addTo(ggrp)));
+        bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(ggrp))));
       streetGroupLayers.push(ggrp.addTo(map));
       const hintEl = document.getElementById('hint');
       if (hintEl) hintEl.innerHTML += ' <span class="hint-main">· 🚶 Rosa streckad = gågata (ej parkering)</span>';
@@ -2746,7 +2768,7 @@ async function showMorningParkingFlow(lat, lng) {
     const grp = L.layerGroup();
     // Gågator (rosa streckad) – samma signal som övriga lägen.
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
-      L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7', interactive: false }).addTo(grp)));
+      bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
     const feats = (Array.isArray(cleaningToday) ? cleaningToday : (cleaningToday?.features || []))
       .filter(f => cleaningActiveOn(f.properties || {}, today))                                   // i säsong idag
@@ -3206,13 +3228,13 @@ function setMode(mode) {
 
   if (mode === 'uc2') {
     app.classList.add('uc2-mode');
-    inp.placeholder = 'Din hemadress, t.ex. Hornsgatan 10…';
+    inp.placeholder = 'Adress, t.ex. Hornsgatan 10';
   } else if (mode === 'now' || mode === 'morgon') {
     app.classList.remove('uc2-mode');
-    inp.placeholder = 'Sök plats – eller tryck 📍 för din position';
+    inp.placeholder = 'Adress, t.ex. Hornsgatan 10';
   } else {
     app.classList.remove('uc2-mode');
-    inp.placeholder = 'Sök gata du ska till, t.ex. Sveavägen…';
+    inp.placeholder = 'Adress, t.ex. Hornsgatan 10';
   }
 
   updateLegend(mode);
