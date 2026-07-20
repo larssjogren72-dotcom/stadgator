@@ -173,6 +173,14 @@
       flex-shrink: 0; user-select: none;
     }
     .hd-brand  { display: flex; align-items: center; gap: 10px; }
+    #veh-toggle { display: flex; gap: 3px; background: rgba(15,23,42,0.05); border-radius: 10px; padding: 3px; flex: none; }
+    .veh-opt {
+      width: 40px; height: 32px; border: 0; border-radius: 8px; background: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; color: var(--muted);
+      -webkit-tap-highlight-color: transparent; transition: background .15s, color .15s;
+    }
+    .veh-opt svg { width: 21px; height: 21px; }
+    .veh-opt.on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
     .hd-icon   {
       width: 36px; height: 36px; background: var(--accent-dim);
       border: 1px solid rgba(74,222,128,0.28); border-radius: 10px;
@@ -693,6 +701,10 @@
         <p id="header-date">Laddar…</p>
       </div>
     </div>
+    <div id="veh-toggle" role="group" aria-label="Fordon">
+      <button id="veh-bil" class="veh-opt" onclick="setVehicle('bil')" aria-label="Bil"></button>
+      <button id="veh-mc"  class="veh-opt" onclick="setVehicle('mc')"  aria-label="Motorcykel"></button>
+    </div>
   </div>
 
   <div id="mode-row">
@@ -725,7 +737,7 @@
   </div>
 
   <div id="search-row">
-    <input type="text" id="search-input" placeholder="Sök gata du ska till, t.ex. Sveavägen…" autocomplete="off" autocorrect="off" spellcheck="false">
+    <input type="text" id="search-input" placeholder="Adress, t.ex. Hornsgatan 10" autocomplete="off" autocorrect="off" spellcheck="false">
     <button id="home-btn" title="Spara hemadress"
       onpointerdown="homePressStart()" onpointerup="homePressEnd()"
       onpointerleave="homePressCancel()">🏠</button>
@@ -992,6 +1004,8 @@ window.addEventListener('DOMContentLoaded', () => { launchApp(); initCookieConse
 function launchApp() {
   document.getElementById('app').style.display = 'flex';
   updateWhenChip(currentMode);   // klockan har redan valt läge – visa vilket, och varför
+  renderVehicleToggle();         // visa Bil/MC-väljaren (sparat val)
+  document.getElementById('header-date').textContent = fmtDate(new Date());   // dagens datum direkt
   requestAnimationFrame(() => { initMap(); loadData(); });
 }
 
@@ -1378,6 +1392,8 @@ function svgIcon(n) {
     calendar: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>',
     cash:     '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
     warn:     '<path d="M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    car:      '<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v4a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/>',
+    motorcycle:'<circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/><path d="M7.2 17h8.6l-2.8-4H9"/><path d="M13 13l2-3h3"/><path d="M5 13h3l1.5 2"/>',
   }[n] || '';
   return '<svg ' + a + '>' + p + '</svg>';
 }
@@ -1437,8 +1453,13 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
 
   const taxaRow = document.getElementById('taxa-row');
   const z = dest ? taxaZoneAt(dest.lat, dest.lng) : null;
-  if (z && z.taxa) { taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa)}</span>`; taxaRow.style.display = 'flex'; }
-  else             { taxaRow.style.display = 'none'; }
+  if (vehicleMode === 'mc') {
+    // MC har egen, lägre taxa (serie 11–15, ~2,50–13,75 kr/tim). Vi har inte mc-zonen per gata,
+    // så vi är ärliga: intervall + "kontrollera skylt" i stället för ett falskt exakt bil-pris.
+    taxaRow.innerHTML = svgIcon('cash') + '<span><b>MC-taxa</b> · ofta 2,50–13,75 kr/tim (lägre än bil) – kontrollera skylt</span>';
+    taxaRow.style.display = 'flex';
+  } else if (z && z.taxa) { taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa)}</span>`; taxaRow.style.display = 'flex'; }
+  else                    { taxaRow.style.display = 'none'; }
   if (dest) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
 
@@ -2063,7 +2084,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else if (tier === 'natt')        { color = '#f59e0b'; txt = `Servas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
       else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
-      else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
+      else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
       // Detaljraden KOMPLETTERAR chipet (upprepar aldrig): har chipet tiden → ge handlingen; saknar tid → ge tiden.
@@ -2248,7 +2269,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
       else if (cs && cs.state === 'upcoming') { color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
       else if (nx)                     { color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++; }
-      else if (s.vehicle !== 'fordon') { color = '#9333ea'; txt = `Ej för bil (${s.vehicle})`; }
+      else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
@@ -2287,6 +2308,20 @@ let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
 // Smart standard (beslut UX §11.4): kväll/natt → Över natten, dagtid → Nu
 let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'now'; })();
+
+// ── Fordonsprofil: Bil eller MC ──────────────────────────────────────────────
+// Datan (VEHICLE) har bl.a. 'fordon'/'personbil' (bil) och 'motorcykel'/'moped-klass1/2' (mc).
+// Bil-läge: fordon+personbil = grönt. MC-läge: mc/moped = grönt (då är de guldet, inte hinder).
+let vehicleMode = localStorage.getItem('vehicle_mode') === 'mc' ? 'mc' : 'bil';
+const CAR_VEHICLES = new Set(['fordon', 'personbil']);
+const MC_VEHICLES  = new Set(['motorcykel', 'moped-klass1', 'moped-klass2', 'mc']);
+// Får det VALDA fordonet stå på segmentet? (bil ser bil-platser, mc ser mc-platser)
+function vehicleAllowed(v) {
+  v = (v || 'fordon').toLowerCase();
+  return vehicleMode === 'mc' ? MC_VEHICLES.has(v) : CAR_VEHICLES.has(v);
+}
+// Etikett för segment som inte gäller det valda fordonet (för "ej för dig"-lila).
+function otherVehicleLabel(v) { return vehicleMode === 'mc' ? `Endast ${v}` : `Ej för bil (${v})`; }
 const WHEN_LABELS = { now: 'Nu',  morgon: 'Morgon',  uc1: 'Kväll',      uc2: 'Natt' };
 const WHEN_SUBS   = { now: 'Var får jag stå just nu?', morgon: 'Nyss servat – ledigt för dagen', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
 
@@ -2402,6 +2437,7 @@ function initSheet() {
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
   if (!legendDiv) return;
+  const otherLabel = vehicleMode === 'mc' ? 'Endast bil/annat fordon' : 'Ej för bil (mc/buss)';
   const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
     `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
   ).join('');
@@ -2412,7 +2448,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksparkering – kontrollera tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const uc2LegendOld =
       `<hr class="lgnd-sep">
@@ -2427,7 +2463,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas idag – undvik</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>Ej för bil (mc/buss)</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const morgonLegend =
       `<hr class="lgnd-sep">
@@ -3219,6 +3255,26 @@ function getCenter(layer) {
 }
 
 // ── Lägesväljare ─────────────────────────────────────────────────────────────
+// Fyll toggle-knapparna med ikoner + markera aktivt fordon.
+function renderVehicleToggle() {
+  const bil = document.getElementById('veh-bil'), mc = document.getElementById('veh-mc');
+  if (!bil || !mc) return;
+  bil.innerHTML = svgIcon('car'); mc.innerHTML = svgIcon('motorcycle');
+  bil.classList.toggle('on', vehicleMode === 'bil');
+  mc.classList.toggle('on', vehicleMode === 'mc');
+}
+// Byt fordon → spara, markera, rita om Förklaring och kör om flödet för samma plats.
+function setVehicle(v) {
+  v = v === 'mc' ? 'mc' : 'bil';
+  if (v === vehicleMode) return;
+  vehicleMode = v;
+  try { localStorage.setItem('vehicle_mode', v); } catch (e) {}
+  renderVehicleToggle();
+  updateLegend(currentMode);
+  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);   // kör om i samma läge, nytt fordon
+  else refreshZones();
+}
+
 function setMode(mode) {
   currentMode = mode;
   const app = document.getElementById('app');
