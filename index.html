@@ -2084,6 +2084,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else if (tier === 'natt')        { color = '#f59e0b'; txt = `Servas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
       else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
+      else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#0d9488'; txt = 'MC-ruta · bara MC'; }
       else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
@@ -2269,6 +2270,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
       else if (cs && cs.state === 'upcoming') { color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
       else if (nx)                     { color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++; }
+      else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#0d9488'; txt = 'MC-ruta · bara MC'; }
       else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
@@ -2314,12 +2316,16 @@ let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h
 // Bil-läge: fordon+personbil = grönt. MC-läge: mc/moped = grönt (då är de guldet, inte hinder).
 let vehicleMode = localStorage.getItem('vehicle_mode') === 'mc' ? 'mc' : 'bil';
 const CAR_VEHICLES = new Set(['fordon', 'personbil']);
-const MC_VEHICLES  = new Set(['motorcykel', 'moped-klass1', 'moped-klass2', 'mc']);
-// Får det VALDA fordonet stå på segmentet? (bil ser bil-platser, mc ser mc-platser)
+const MC_VEHICLES  = new Set(['motorcykel', 'moped-klass1', 'moped-klass2', 'mc']);   // EXKLUSIVA mc-rutor
+// Får det VALDA fordonet stå? ASYMMETRISKT: en MC får stå på vanliga fordon-platser OCH på mc-rutor;
+// en bil får stå på fordon + personbil men INTE på en mc-ruta. (Regel-heuristik – appen säger ändå
+// "kontrollera skylt".)
 function vehicleAllowed(v) {
   v = (v || 'fordon').toLowerCase();
-  return vehicleMode === 'mc' ? MC_VEHICLES.has(v) : CAR_VEHICLES.has(v);
+  if (vehicleMode === 'mc') return v === 'fordon' || MC_VEHICLES.has(v);
+  return CAR_VEHICLES.has(v);
 }
+function isMcExclusive(v) { return MC_VEHICLES.has((v || 'fordon').toLowerCase()); }   // ruta bara MC får ta
 // Etikett för segment som inte gäller det valda fordonet (för "ej för dig"-lila).
 function otherVehicleLabel(v) { return vehicleMode === 'mc' ? `Endast ${v}` : `Ej för bil (${v})`; }
 const WHEN_LABELS = { now: 'Nu',  morgon: 'Morgon',  uc1: 'Kväll',      uc2: 'Natt' };
@@ -2438,12 +2444,15 @@ function initSheet() {
 function updateLegend(mode) {
   if (!legendDiv) return;
   const otherLabel = vehicleMode === 'mc' ? 'Endast bil/annat fordon' : 'Ej för bil (mc/buss)';
+  const mcRow = vehicleMode === 'mc'
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#0d9488;border:1px solid #0f766e"></div>MC-ruta – bara MC</div>` : '';
   const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
     `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
   ).join('');
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Trygg över natten</div>
+       ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksparkering – kontrollera tid</div>
@@ -2459,6 +2468,7 @@ function updateLegend(mode) {
   const nowLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>
+       ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
