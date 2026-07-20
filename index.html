@@ -16,7 +16,7 @@
   <link rel="canonical" href="https://parkspot.se/">
 
   <!-- Mobil/PWA -->
-  <meta name="theme-color" content="#080c1c">
+  <meta name="theme-color" content="#f4f6f9">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -147,12 +147,12 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
     :root {
-      --glass-border: rgba(255,255,255,0.12);
+      --glass-border: rgba(15,23,42,0.10);
       --accent:       #16a34a;
-      --accent-dim:   rgba(74,222,128,0.14);
-      --accent-glow:  rgba(74,222,128,0.35);
-      --text:         #f0f6fc;
-      --muted:        rgba(240,246,252,0.50);
+      --accent-dim:   rgba(22,163,74,0.10);
+      --accent-glow:  rgba(22,163,74,0.22);
+      --text:         #0f172a;
+      --muted:        rgba(15,23,42,0.55);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -163,10 +163,10 @@
     /* (Setup-skärmen borttagen – servern håller API-nyckeln, ingen onboarding behövs.) */
 
     /* ═══════════════ MAIN APP (mörkt tema) ═══════════════ */
-    #app { height: 100%; display: none; flex-direction: column; background: #080c1c; position: relative; }
+    #app { height: 100%; display: none; flex-direction: column; background: #f4f6f9; position: relative; }
 
     #header {
-      background: #080c1c;
+      background: #f4f6f9;
       border-bottom: 1px solid var(--glass-border);
       color: var(--text); padding: 14px 16px 13px;
       display: flex; align-items: center; justify-content: space-between;
@@ -184,7 +184,7 @@
 
     /* ── Sökrad ── */
     #search-row {
-      background: #080c1c; border-bottom: 1px solid var(--glass-border);
+      background: #f4f6f9; border-bottom: 1px solid var(--glass-border);
       padding: 9px 14px; display: flex; gap: 8px; flex-shrink: 0;
       position: relative;
     }
@@ -192,7 +192,7 @@
     /* ── Sökförslag ── */
     #search-suggestions {
       position: absolute; top: 100%; left: 0; right: 0; z-index: 600;
-      background: #0d1117; border: 1px solid var(--glass-border);
+      background: #ffffff; border: 1px solid var(--glass-border);
       border-top: none; border-radius: 0 0 14px 14px;
       overflow: hidden; box-shadow: 0 14px 36px rgba(0,0,0,0.65);
       display: none;
@@ -200,7 +200,7 @@
     .sg-item {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 14px; cursor: pointer;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(15,23,42,0.04);
       transition: background .1s; -webkit-tap-highlight-color: transparent;
     }
     .sg-item:last-child { border-bottom: none; }
@@ -213,12 +213,12 @@
                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #search-input {
       flex: 1; padding: 10px 14px;
-      background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
+      background: rgba(15,23,42,0.05); border: 1px solid var(--glass-border);
       border-radius: 10px; color: var(--text); font-size: 14px;
       font-family: 'Inter', sans-serif; outline: none;
       transition: border-color .2s, box-shadow .2s;
     }
-    #search-input::placeholder { color: rgba(240,246,252,0.28); }
+    #search-input::placeholder { color: rgba(15,23,42,0.42); }
     #search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
     #search-btn, #home-btn {
       width: 42px; height: 42px; flex-shrink: 0;
@@ -228,7 +228,7 @@
     }
     #search-btn { background: var(--accent-dim); color: var(--accent); }
     #search-btn:active { background: rgba(74,222,128,0.28); }
-    #home-btn { background: rgba(255,255,255,0.07); border-color: var(--glass-border); color: var(--muted); }
+    #home-btn { background: rgba(15,23,42,0.06); border-color: var(--glass-border); color: var(--muted); }
     #home-btn.home-set { background: var(--accent-dim); border-color: rgba(74,222,128,0.28); color: var(--accent); }
     #home-btn:active { opacity: .7; }
 
@@ -239,7 +239,7 @@
 
     /* Loading */
     #loading {
-      position: absolute; inset: 0; background: rgba(8,12,28,0.85);
+      position: absolute; inset: 0; background: rgba(255,255,255,0.90);
       backdrop-filter: blur(6px);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 14px; z-index: 500;
@@ -271,7 +271,7 @@
     #locate-btn {
       position: absolute; top: 88px; left: 11px; z-index: 600;
       width: 38px; height: 38px; border-radius: 10px;
-      background: rgba(8,12,28,0.88); border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.92); border: 1px solid var(--glass-border);
       color: var(--text); font-size: 17px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 3px 14px rgba(0,0,0,0.45); -webkit-tap-highlight-color: transparent;
@@ -284,7 +284,7 @@
     #toast {
       position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
       z-index: 1200; max-width: 86%; text-align: center;
-      background: rgba(13,17,23,0.96); border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.97); border: 1px solid var(--glass-border);
       color: var(--text); font-size: 13px; line-height: 1.45;
       padding: 11px 16px; border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,0.6);
       opacity: 0; pointer-events: none; transition: opacity .25s;
@@ -294,7 +294,7 @@
     #bottom {
       position: absolute; left: 0; right: 0; bottom: 0;
       height: 85vh; max-height: 85vh;
-      background: #0d1117;
+      background: #ffffff;
       border-top: 1px solid var(--glass-border);
       border-radius: 18px 18px 0 0;
       box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
@@ -308,12 +308,12 @@
       display: flex; justify-content: center; touch-action: none; user-select: none;
     }
     #sheet-handle .grabber {
-      width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.25);
+      width: 40px; height: 5px; border-radius: 3px; background: rgba(15,23,42,0.18);
     }
     #sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: env(safe-area-inset-bottom, 0px); scroll-padding-bottom: 70px; }
     #hint { font-size: 14px; color: var(--muted); padding: 6px 18px 24px; min-height: 60px; }
     .hint-main { display: block; margin-bottom: 8px; }
-    .hint-disclaimer { display: block; font-size: 11px; color: rgba(240,246,252,0.30); line-height: 1.5; }
+    .hint-disclaimer { display: block; font-size: 11px; color: rgba(15,23,42,0.45); line-height: 1.5; }
     #street-panel { display: none; padding: 4px 18px 16px; }
 
     /* Gatulista */
@@ -321,7 +321,7 @@
     .sl-item {
       display: flex; align-items: center; gap: 12px;
       padding: 11px 18px; cursor: pointer;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(15,23,42,0.04);
       transition: background .15s; -webkit-tap-highlight-color: transparent;
     }
     .sl-item:active { background: rgba(74,222,128,0.06); }
@@ -336,8 +336,8 @@
     }
     .sl-sub { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .sl-badge { padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; }
-    .sl-place { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25); color: #bfdbfe; }
-    .sl-time  { background: rgba(251,191,36,0.12);  border: 1px solid rgba(251,191,36,0.25);  color: #fde68a; }
+    .sl-place { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25); color: #1e40af; }
+    .sl-time  { background: rgba(251,191,36,0.12);  border: 1px solid rgba(251,191,36,0.25);  color: #b45309; }
     .sl-dist  { font-size: 11px; color: var(--muted); }
     .sl-nav {
       width: 38px; height: 38px; flex-shrink: 0;
@@ -358,25 +358,25 @@
     }
     .sbadge-place {
       background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.28);
-      color: #bfdbfe;
+      color: #1e40af;
     }
     .sbadge-time {
       background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);
-      color: #fde68a;
+      color: #b45309;
     }
     #taxa-row {
-      background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
+      background: rgba(15,23,42,0.04); border: 1px solid var(--glass-border);
       border-radius: 9px; padding: 8px 10px; margin-bottom: 10px;
-      font-size: 12px; line-height: 1.45; color: rgba(240,246,252,0.78);
+      font-size: 12px; line-height: 1.45; color: rgba(15,23,42,0.75);
     }
     #taxa-row b { color: var(--text); }
     #clean-row {
       background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.22);
       border-radius: 9px; padding: 8px 10px; margin-bottom: 10px;
-      font-size: 12.5px; line-height: 1.5; color: #fde9c0;
+      font-size: 12.5px; line-height: 1.5; color: #b45309;
     }
-    #clean-row b { color: #fde68a; font-weight: 600; }
-    #clean-row .season { color: rgba(240,246,252,0.6); font-size: 11.5px; }
+    #clean-row b { color: #b45309; font-weight: 600; }
+    #clean-row .season { color: rgba(15,23,42,0.58); font-size: 11.5px; }
 
     /* Tomt läge (I kväll – inga städgator imorgon) */
     .empty-state { text-align: center; padding: 8px 8px 4px; }
@@ -395,12 +395,12 @@
     #phus-btn {
       position: sticky; bottom: 0; z-index: 2;
       display: flex; align-items: center; gap: 10px; width: 100%;
-      background: #161b29; border: 1px solid rgba(129,140,248,0.45);
+      background: #eef1f6; border: 1px solid rgba(129,140,248,0.45);
       border-radius: 12px; padding: 11px 14px; margin: 8px 0 2px;
-      color: #c7d0ff; font-size: 13.5px; font-weight: 600; font-family: inherit;
+      color: #3730a3; font-size: 13.5px; font-weight: 600; font-family: inherit;
       cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .15s;
     }
-    #phus-btn:active { background: #1d2335; }
+    #phus-btn:active { background: #e4e9f0; }
     #phus-btn.loading { opacity: .7; pointer-events: none; }
     #phus-btn .phus-p {
       width: 24px; height: 24px; border-radius: 6px; background: #818cf8; color: #0c1030;
@@ -413,12 +413,12 @@
     #phus-btn.loading .phus-p { display: none; }
     #phus-btn.loading .phus-spin { display: block; }
     /* Tillbaka-läge: neutral, ej indigo CTA */
-    #phus-btn.back { background: #181b22; border-color: var(--glass-border); color: var(--text); }
-    #phus-btn.back .phus-p { background: rgba(255,255,255,0.16); color: var(--text); font-size: 17px; }
+    #phus-btn.back { background: #eef1f6; border-color: var(--glass-border); color: var(--text); }
+    #phus-btn.back .phus-p { background: rgba(15,23,42,0.12); color: var(--text); font-size: 17px; }
 
     .phus-pin {
       width: 30px; height: 30px; border-radius: 50% 50% 50% 4px; transform: rotate(45deg);
-      background: #3b4475; border: 2px solid rgba(255,255,255,0.6);
+      background: #3b4475; border: 2px solid rgba(15,23,42,0.60);
       box-shadow: 0 3px 9px rgba(0,0,0,0.45);
       display: flex; align-items: center; justify-content: center;
     }
@@ -438,8 +438,8 @@
       color: #818cf8; font-weight: 800; font-size: 16px;
       display: flex; align-items: center; justify-content: center;
     }
-    .sl-badge.phus-cap { background: rgba(129,140,248,0.12); border: 1px solid rgba(129,140,248,0.3); color: #c7d0ff; }
-    .garage-note { font-size: 11.5px; color: rgba(240,246,252,0.4); line-height: 1.5; padding: 12px 2px 4px; }
+    .sl-badge.phus-cap { background: rgba(129,140,248,0.12); border: 1px solid rgba(129,140,248,0.3); color: #3730a3; }
+    .garage-note { font-size: 11.5px; color: rgba(15,23,42,0.50); line-height: 1.5; padding: 12px 2px 4px; }
     .garage-empty { font-size: 13px; color: var(--muted); line-height: 1.6; padding: 10px 2px 18px; }
 
     #gmaps-btn {
@@ -456,7 +456,7 @@
 
     /* Legend */
     .legend {
-      background: rgba(8,12,28,0.88); border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.92); border: 1px solid var(--glass-border);
       border-radius: 12px; padding: 8px 12px;
       font-size: 12px; color: var(--text); line-height: 1.9;
       box-shadow: 0 4px 18px rgba(0,0,0,0.5);
@@ -500,36 +500,36 @@
     /* SEO-footer: intern länkning till områdes-/guidesidor. Positionerad precis under
        vyn (body overflow:hidden klipper) → ALDRIG synlig för användaren, men i DOM och
        crawlbar (ej display:none). Absolut → blinkar ej fram innan #app visas. */
-    #seo-links { position: absolute; top: 100vh; left: 0; right: 0; padding: 16px; background: #080c1c; }
+    #seo-links { position: absolute; top: 100vh; left: 0; right: 0; padding: 16px; background: #f4f6f9; }
     #seo-links .seo-h { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 12px 0 6px; }
     #seo-links .seo-grid { display: flex; flex-wrap: wrap; gap: 7px 12px; }
     #seo-links a { font-size: 12.5px; color: #9db4d6; text-decoration: none; }
 
     /* Leaflet overrides */
     .leaflet-control-attribution {
-      background: rgba(8,12,28,0.75) !important; color: rgba(255,255,255,0.38) !important;
+      background: rgba(255,255,255,0.85) !important; color: rgba(15,23,42,0.42) !important;
     }
-    .leaflet-control-attribution a { color: rgba(255,255,255,0.5) !important; }
+    .leaflet-control-attribution a { color: rgba(15,23,42,0.50) !important; }
     .leaflet-control-zoom a {
-      background: rgba(8,12,28,0.88) !important; color: var(--text) !important;
+      background: rgba(255,255,255,0.92) !important; color: var(--text) !important;
       border-color: var(--glass-border) !important;
     }
     .leaflet-popup-content-wrapper {
-      background: rgba(13,17,23,0.95) !important; border: 1px solid var(--glass-border) !important;
+      background: rgba(255,255,255,0.96) !important; border: 1px solid var(--glass-border) !important;
       color: var(--text) !important; border-radius: 12px !important;
       box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
     }
-    .leaflet-popup-tip { background: rgba(13,17,23,0.95) !important; }
+    .leaflet-popup-tip { background: rgba(255,255,255,0.96) !important; }
     .leaflet-popup-close-button { color: var(--muted) !important; }
 
     /* ── "När"-väljare (sentence-stil, ej flikar) ── */
     #mode-row {
-      background: #080c1c; border-bottom: 1px solid var(--glass-border);
+      background: #f4f6f9; border-bottom: 1px solid var(--glass-border);
       padding: 8px 14px; flex-shrink: 0; position: relative; z-index: 1100;
     }
     #when-chip {
       display: flex; align-items: center; justify-content: space-between; width: 100%;
-      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+      background: rgba(15,23,42,0.04); border: 1px solid var(--glass-border);
       border-radius: 10px; padding: 10px 14px; cursor: pointer; color: var(--text);
       font-family: 'Inter', sans-serif; font-size: 14px;
       -webkit-tap-highlight-color: transparent; transition: border-color .15s;
@@ -542,7 +542,7 @@
     #mode-row.open .when-caret { transform: rotate(180deg); }
     #when-menu {
       position: absolute; top: calc(100% - 1px); left: 14px; right: 14px; z-index: 700;
-      background: #0d1117; border: 1px solid var(--glass-border);
+      background: #ffffff; border: 1px solid var(--glass-border);
       border-radius: 0 0 14px 14px; box-shadow: 0 14px 36px rgba(0,0,0,.65);
       overflow: hidden; display: none;
     }
@@ -550,7 +550,7 @@
     .when-opt {
       display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
       padding: 12px 16px; background: transparent; border: none; cursor: pointer;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(15,23,42,0.04);
       -webkit-tap-highlight-color: transparent;
     }
     .when-opt:last-child { border-bottom: none; }
@@ -573,10 +573,10 @@
     .uc2-mode #count-badge { color: #082044; }
 
     /* Säker-badge (UC2-lista) */
-    .sl-safe { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25); color: #bfdbfe; }
-    .sl-warn { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.28); color: #fcd34d; }
+    .sl-safe { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25); color: #1e40af; }
+    .sl-warn { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.28); color: #b45309; }
     /* Städar-badge (UC2 varningsrad) */
-    .sl-danger { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.28); color: #fca5a5; }
+    .sl-danger { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.28); color: #b91c1c; }
 
     /* Mini-spinner för UC2-laddning */
     .mini-spinner {
@@ -591,12 +591,12 @@
     #cookie-banner {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 4000;
       display: none; flex-direction: column; gap: 10px;
-      background: #0d1117; border-top: 1px solid var(--glass-border);
+      background: #ffffff; border-top: 1px solid var(--glass-border);
       padding: 16px 18px calc(16px + env(safe-area-inset-bottom, 0px));
       box-shadow: 0 -8px 32px rgba(0,0,0,0.6);
       font-family: 'Inter', sans-serif;
     }
-    .cookie-text { font-size: 13px; color: rgba(240,246,252,0.80); line-height: 1.55; }
+    .cookie-text { font-size: 13px; color: rgba(15,23,42,0.78); line-height: 1.55; }
     .cookie-link {
       background: none; border: none; color: var(--accent); cursor: pointer;
       font-size: 13px; padding: 0; text-decoration: underline; font-family: inherit;
@@ -606,24 +606,24 @@
       flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 600;
       cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent;
     }
-    .cookie-decline { background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: var(--text); }
+    .cookie-decline { background: rgba(15,23,42,0.05); border: 1px solid var(--glass-border); color: var(--text); }
     .cookie-accept  { background: linear-gradient(135deg,#22c55e,#15803d); border: none; color: #fff; }
 
     /* ── Integritets-/ansvarsruta ── */
     #privacy-modal {
       position: fixed; inset: 0; z-index: 4100; display: none;
       align-items: center; justify-content: center; padding: 20px;
-      background: rgba(8,12,28,0.75); backdrop-filter: blur(6px);
+      background: rgba(255,255,255,0.85); backdrop-filter: blur(6px);
     }
     .privacy-card {
-      background: #0d1117; border: 1px solid var(--glass-border); border-radius: 18px;
+      background: #ffffff; border: 1px solid var(--glass-border); border-radius: 18px;
       max-width: 420px; width: 100%; max-height: 80vh; overflow-y: auto;
       padding: 24px; color: var(--text); font-family: 'Inter', sans-serif;
       box-shadow: 0 32px 80px rgba(0,0,0,0.6);
     }
     .privacy-card h2 { font-size: 18px; margin-bottom: 12px; }
     .privacy-card h3 { font-size: 14px; margin: 16px 0 4px; color: var(--accent); }
-    .privacy-card p  { font-size: 13px; color: rgba(240,246,252,0.72); line-height: 1.6; margin-bottom: 10px; }
+    .privacy-card p  { font-size: 13px; color: rgba(15,23,42,0.70); line-height: 1.6; margin-bottom: 10px; }
     .privacy-card strong { color: var(--text); }
     .privacy-close {
       margin-top: 8px; width: 100%; padding: 12px; border-radius: 10px;
@@ -735,7 +735,7 @@
         <button onclick="document.getElementById('diag-panel').style.display='none'"
                 style="background:#ef4444;border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">✕ Stäng</button>
       </div>
-      <div id="diag-output" style="white-space:pre-wrap;font-family:monospace;font-size:11px;line-height:1.5;color:#bfdbfe;"></div>
+      <div id="diag-output" style="white-space:pre-wrap;font-family:monospace;font-size:11px;line-height:1.5;color:#1e40af;"></div>
     </div>
   </div>
 
@@ -1038,7 +1038,7 @@ async function loadZonesForViewport(apiKey, bounds) {
       const lg = L.geoJSON(feat, {
         pane: 'zonesPane',
         interactive: false,            // klick går till kartan (= sätt destination); pris visas i platspopup/kort
-        style: { color:s.color, weight:2, fillColor:s.fill, fillOpacity:0.40 },
+        style: { color:s.color, weight:2, fillColor:s.fill, fillOpacity:0.30 },
         coordsToLatLng: c => toLatLng(c[0],c[1])
       }).addTo(map);
       zoneGroupLayers.push(lg);
@@ -1552,10 +1552,10 @@ function selectGarage(g, marker) {
   document.getElementById('street-name').textContent = g.name;
   const bd = document.getElementById('badge-district');
   bd.textContent = '🅿 Garage';
-  bd.style.background = 'rgba(129,140,248,.14)'; bd.style.borderColor = 'rgba(129,140,248,.4)'; bd.style.color = '#c7d0ff';
+  bd.style.background = 'rgba(129,140,248,.14)'; bd.style.borderColor = 'rgba(129,140,248,.4)'; bd.style.color = '#3730a3';
   const bt = document.getElementById('badge-time');
   bt.style.display = ''; bt.textContent = `${g.spaces} platser`;
-  bt.style.background = 'rgba(129,140,248,.1)'; bt.style.borderColor = 'rgba(129,140,248,.3)'; bt.style.color = '#c7d0ff';
+  bt.style.background = 'rgba(129,140,248,.1)'; bt.style.borderColor = 'rgba(129,140,248,.3)'; bt.style.color = '#3730a3';
   const taxaRow = document.getElementById('taxa-row');
   taxaRow.innerHTML = (g.taxa ? `💰 <b>${escHtml(g.taxa)}</b><br>` : '')
     + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
@@ -3333,7 +3333,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     const SAFE_LINE = { color: '#60a5fa', weight: 5, opacity: .95 };
     const SAFE_SEL  = { color: '#93c5fd', weight: 7, opacity: 1  };
     const WARN_LINE = { color: '#f59e0b', weight: 5, opacity: .95 };
-    const WARN_SEL  = { color: '#fcd34d', weight: 7, opacity: 1  };
+    const WARN_SEL  = { color: '#b45309', weight: 7, opacity: 1  };
     const allPolylines = [];
 
     safe.forEach(s => {
