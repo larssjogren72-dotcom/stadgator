@@ -57,7 +57,7 @@
         "image": "https://parkspot.se/og-image-v2.png",
         "description": "ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.",
         "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
-        "knowsAbout": ["Gatuparkering i Stockholm", "Parkeringstaxor (Taxa 1–5)", "Städgator och servicedagar", "Nattparkering", "Boendeparkering"]
+        "knowsAbout": ["Gatuparkering i Stockholm", "Parkeringstaxor (Taxa 1–5)", "Städgator och servicedagar", "Nattparkering", "Boendeparkering", "MC-parkering (motorcykel)"]
       },
       {
         "@type": "WebSite",
@@ -92,6 +92,7 @@
           "Parkeringstaxor per zon (Taxa 1–5)",
           "Nattparkering (läget Över natten)",
           "Gratis-parkering och avgiftsfria tider",
+          "MC-parkering i alla lägen (dedikerade mc-rutor)",
           "Navigering med Google Maps"
         ]
       }
@@ -135,6 +136,14 @@
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Nej. ParkSpot är gratis, kräver ingen inloggning och ingen egen API-nyckel. Appen bygger på Stockholms stads öppna data."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Var får jag parkera med MC i Stockholm?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Växla till MC-läge (fordonsväljaren i headern) så visar ParkSpot både dedikerade MC-rutor och vanliga bilplatser där en MC också får stå – i alla lägen (Nu, Kväll, Natt och Morgon). På en vanlig gata betalar en MC samma taxa som en bil; på en dedikerad MC-ruta gäller en lägre taxa – kontrollera alltid skylten."
         }
       }
     ]
