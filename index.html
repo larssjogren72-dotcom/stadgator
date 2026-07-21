@@ -2180,7 +2180,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${safe} trygga platser i natt`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">Tryck på en gata för service-tider och vägbeskrivning.</span>' +
+      '<span class="hint-main">Tryck på en grön gata för service-tider och vägbeskrivning.</span>' +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
 
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
@@ -2357,7 +2357,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${okNu} gator där du får stå nu`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">Tryck på en gata för tider och vägbeskrivning.</span>' +
+      '<span class="hint-main">Tryck på en grön gata för tider och vägbeskrivning.</span>' +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
     sheetSnapTo('peek');
@@ -2955,7 +2955,7 @@ async function showMorningParkingFlow(lat, lng) {
     badge.textContent = `${n} nyss servade gator`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">Tryck på en gata för service-tid och vägbeskrivning.</span>' +
+      '<span class="hint-main">Tryck på en grön gata för service-tid och vägbeskrivning.</span>' +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     document.getElementById('street-list').style.display = 'none';
     document.getElementById('street-panel').style.display = 'none';
@@ -3007,7 +3007,7 @@ function renderFeatures(data) {
 
   // Som Nu/Över natten: ingen lista som styr lådan. Tryck på en grön gata → kort + navigering.
   const hintEl = document.getElementById('hint');
-  hintEl.innerHTML = '<span class="hint-main">Tryck på en gata för detaljer och vägbeskrivning.</span>' +
+  hintEl.innerHTML = '<span class="hint-main">Tryck på en grön gata för detaljer och vägbeskrivning.</span>' +
     '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   hintEl.style.display = 'block';
   document.getElementById('street-list').style.display = 'none';
@@ -3407,10 +3407,10 @@ function setMode(mode) {
   const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   // Förklarar hur det VALDA läget fungerar (service-terminologi) + vägledning. Färger bor i Förklaring.
   const intro = {
-    now:    '<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på en gata för tider och vägbeskrivning.',
-    morgon: '<b>"Morgon"</b> visar gator som nyss servats klart i morse — oftast tömda och lediga förmiddagar. Tryck på en gata för info om tider och vägbeskrivning.',
-    uc1:    '<b>"Kväll"</b> visar gator som servas tidigt i morgon bitti — ofta mindre belastade ikväll. Tryck på en gata för detaljer och vägbeskrivning.',
-    uc2:    '<b>"Natt"</b> visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på en gata för service-tider och vägbeskrivning.',
+    now:    '<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på en grön gata för tider och vägbeskrivning.',
+    morgon: '<b>"Morgon"</b> visar gator som nyss servats klart i morse — oftast tömda och lediga förmiddagar. Tryck på en grön gata för info om tider och vägbeskrivning.',
+    uc1:    '<b>"Kväll"</b> visar gator som servas tidigt i morgon bitti — ofta mindre belastade ikväll. Tryck på en grön gata för detaljer och vägbeskrivning.',
+    uc2:    '<b>"Natt"</b> visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på en grön gata för service-tider och vägbeskrivning.',
   };
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
