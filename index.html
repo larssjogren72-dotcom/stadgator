@@ -176,13 +176,6 @@
     .mc-pin-b { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #fff; display: flex;
       align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,.5); }
     .mc-pin-b svg { width: 15px; height: 15px; color: #fff; }
-    #mc-only-row { align-items: center; gap: 9px; margin: 8px 14px 0; font-size: 12.5px; color: var(--muted); cursor: pointer; user-select: none; }
-    #mc-only-row span:first-child { flex: 1; }
-    #mc-only-cb { display: none; }
-    .mc-only-track { width: 38px; height: 22px; border-radius: 12px; background: #cbd5e1; position: relative; flex: none; transition: background .15s; }
-    .mc-only-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
-    #mc-only-cb:checked + .mc-only-track { background: #2563eb; }
-    #mc-only-cb:checked + .mc-only-track::after { transform: translateX(16px); }
     #veh-toggle { display: flex; gap: 3px; background: rgba(15,23,42,0.05); border-radius: 10px; padding: 3px; flex: none; }
     .veh-opt {
       width: 40px; height: 32px; border: 0; border-radius: 8px; background: none; cursor: pointer;
@@ -726,11 +719,6 @@
       </span>
       <span class="when-change">Byt<span class="when-caret">▾</span></span>
     </button>
-    <label id="mc-only-row" style="display:none">
-      <span>Visa endast MC-rutor</span>
-      <input type="checkbox" id="mc-only-cb" onchange="toggleMcOnly(this.checked)">
-      <span class="mc-only-track"></span>
-    </label>
     <div id="when-menu">
       <button class="when-opt" data-mode="now" onclick="pickWhen('now')">
         <span class="when-opt-main">Nu</span>
@@ -1469,7 +1457,6 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
   if (mc) {
     if (color === '#9333ea')      { drawColor = '#c3ccd6'; weight = 4; opacity = 0.55; }   // icke-MC → tyst grått
     else if (color === '#16a34a') { opacity = 0.38; weight = 5; }                           // bilgata MC får nyttja → dämpad
-    if (mcOnly && color !== '#f59e0b' && color !== '#ef4444') return;                       // Endast MC: dölj allt utom pins + städ/förbud
   }
   s.linesSweref.forEach(line => {
     const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: drawColor, weight, opacity }).addTo(grp);
@@ -1498,13 +1485,18 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
 
   const taxaRow = document.getElementById('taxa-row');
   const z = dest ? taxaZoneAt(dest.lat, dest.lng) : null;
-  if (vehicleMode === 'mc') {
-    // MC har egen, lägre taxa (serie 11–15, ~2,50–13,75 kr/tim). Vi har inte mc-zonen per gata,
-    // så vi är ärliga: intervall + "kontrollera skylt" i stället för ett falskt exakt bil-pris.
+  const isMcRuta = statusColor === '#2563eb';
+  if (isMcRuta) {
+    // Dedikerad MC-ruta → egen, lägre taxa (serie 11–15, ~2,50–13,75). Vi har inte mc-zonen per gata,
+    // så vi är ärliga: intervall + "kontrollera skylt", inte ett falskt exakt pris.
     taxaRow.innerHTML = svgIcon('cash') + '<span><b>MC-taxa</b> · ofta 2,50–13,75 kr/tim (lägre än bil) – kontrollera skylt</span>';
     taxaRow.style.display = 'flex';
-  } else if (z && z.taxa) { taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa)}</span>`; taxaRow.style.display = 'flex'; }
-  else                    { taxaRow.style.display = 'none'; }
+  } else if (z && z.taxa) {
+    // Vanlig gata = zonens (bil-)taxa. En MC som ställer sig här betalar bil-taxan, inte mc-taxan.
+    const mcNote = vehicleMode === 'mc' ? ` <span style="color:rgba(15,23,42,.5)">· på vanlig gata betalar MC bil-taxan</span>` : '';
+    taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa)}${mcNote}</span>`;
+    taxaRow.style.display = 'flex';
+  } else { taxaRow.style.display = 'none'; }
   if (dest) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
 
@@ -2352,7 +2344,6 @@ let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h
 // Datan (VEHICLE) har bl.a. 'fordon'/'personbil' (bil) och 'motorcykel'/'moped-klass1/2' (mc).
 // Bil-läge: fordon+personbil = grönt. MC-läge: mc/moped = grönt (då är de guldet, inte hinder).
 let vehicleMode = localStorage.getItem('vehicle_mode') === 'mc' ? 'mc' : 'bil';
-let mcOnly = false;   // "Visa endast MC-rutor" – döljer allt utom MC-pins (+ städ/förbud)
 const CAR_VEHICLES = new Set(['fordon', 'personbil']);
 const MC_VEHICLES  = new Set(['motorcykel', 'moped-klass1', 'moped-klass2', 'mc']);   // EXKLUSIVA mc-rutor
 // Får det VALDA fordonet stå? ASYMMETRISKT: en MC får stå på vanliga fordon-platser OCH på mc-rutor;
@@ -3312,8 +3303,6 @@ function renderVehicleToggle() {
   bil.innerHTML = svgIcon('car'); mc.innerHTML = svgIcon('motorcycle');
   bil.classList.toggle('on', vehicleMode === 'bil');
   mc.classList.toggle('on', vehicleMode === 'mc');
-  const row = document.getElementById('mc-only-row');
-  if (row) row.style.display = vehicleMode === 'mc' ? 'flex' : 'none';
 }
 // Byt fordon → spara, markera, rita om Förklaring och kör om flödet för samma plats.
 function setVehicle(v) {
@@ -3321,15 +3310,10 @@ function setVehicle(v) {
   if (v === vehicleMode) return;
   vehicleMode = v;
   try { localStorage.setItem('vehicle_mode', v); } catch (e) {}
-  if (v === 'bil') { mcOnly = false; const cb = document.getElementById('mc-only-cb'); if (cb) cb.checked = false; }
   renderVehicleToggle();
   updateLegend(currentMode);
   if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);   // kör om i samma läge, nytt fordon
   else refreshZones();
-}
-function toggleMcOnly(on) {
-  mcOnly = !!on;
-  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);
 }
 
 function setMode(mode) {
