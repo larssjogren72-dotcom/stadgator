@@ -482,9 +482,23 @@
       max-width: min(78vw, 256px);
       transition: padding .5s ease, background .5s ease, border-color .5s ease;
     }
-    .lgnd-row { display: flex; align-items: center; gap: 8px; }
+    .lgnd-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
     .lgnd-sw  { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
     .lgnd-sep { border: none; border-top: 1px solid var(--glass-border); margin: 6px 0; }
+    .lgnd-taxa-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .lgnd-taxa-bar   { display: flex; height: 16px; border-radius: 4px; overflow: hidden;
+      border: 1px solid var(--glass-border); margin-bottom: 4px; }
+    .lgnd-taxa-seg   { flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 600; }
+    .lgnd-switch       { position: relative; display: inline-block; width: 30px; height: 17px; flex-shrink: 0; }
+    .lgnd-switch input { opacity: 0; width: 0; height: 0; position: absolute; margin: 0; }
+    .lgnd-switch-track { position: absolute; inset: 0; background: rgba(15,23,42,0.18);
+      border-radius: 17px; transition: background .15s; pointer-events: none; }
+    .lgnd-switch input:checked + .lgnd-switch-track { background: var(--accent); }
+    .lgnd-switch-thumb { position: absolute; width: 13px; height: 13px; left: 2px; top: 2px;
+      background: #fff; border-radius: 50%; transition: left .15s; pointer-events: none; }
+    .lgnd-switch input:checked ~ .lgnd-switch-thumb { left: 15px; }
+    .lgnd-hidden-note { font-size: 10px; color: var(--muted); line-height: 1.4; margin-top: 4px; }
 
     /* Toggle: ✕ när öppen, tydlig pill "🗺 Förklaring" när minimerad */
     .lgnd-toggle {
@@ -2094,8 +2108,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     ]);
     const grp = L.layerGroup();
 
-    // Gågator (rosa streckad, underst) – syns även där ingen parkering finns.
-    (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
+    // Gågator (rosa streckad, underst) – syns även där ingen parkering finns. Kan döljas i Förklaring.
+    if (!hideGagator) (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
       bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
     // Städgator imorgon inom 500 m: rita (gul streckad) + samla linjesegment + gatunamn (SWEREF99)
@@ -2124,8 +2138,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       return s ? { start: s.start, end: s.end } : null;
     };
 
-    // Förbudssträckor (rött, underst) – samma tjocklek som tillåtna
-    forbiddenLines.forEach(line =>
+    // Förbudssträckor (rött, underst) – samma tjocklek som tillåtna. Kan döljas i Förklaring.
+    if (!hideForbud) forbiddenLines.forEach(line =>
       bindForbud(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp)));
 
     // Gatufärg = trygg att stå över natten? (pris visas av zonerna + popupen, ej av färgen)
@@ -2304,11 +2318,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
     const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
 
-    // Gågator (rosa streckad, underst) – syns även där ingen parkering finns.
-    (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
+    // Gågator/förbud (rosa streckad/röd, underst) – syns även där ingen parkering finns. Kan döljas i Förklaring.
+    if (!hideGagator) (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
       bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
-    forbiddenLines.forEach(line =>
+    if (!hideForbud) forbiddenLines.forEach(line =>
       bindForbud(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp)));
 
     // Gatufärg = får jag stå här just nu? (pris visas av zonerna + popupen, ej av färgen)
@@ -2366,6 +2380,22 @@ let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h
 // Datan (VEHICLE) har bl.a. 'fordon'/'personbil' (bil) och 'motorcykel'/'moped-klass1/2' (mc).
 // Bil-läge: fordon+personbil = grönt. MC-läge: mc/moped = grönt (då är de guldet, inte hinder).
 let vehicleMode = localStorage.getItem('vehicle_mode') === 'mc' ? 'mc' : 'bil';
+// Gågator/förbudslinjer har ingen parkeringsfunktion – rent informativa. Valfritt att dölja
+// (Förklaring-panelen), sparas per användare. Osynligt segment ≠ "ok att stå" (bara ohittat/dolt).
+let hideGagator = localStorage.getItem('hide_gagata') === '1';
+let hideForbud  = localStorage.getItem('hide_forbud') === '1';
+function toggleGagata() {
+  hideGagator = !hideGagator;
+  try { localStorage.setItem('hide_gagata', hideGagator ? '1' : '0'); } catch (e) {}
+  updateLegend(currentMode);
+  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);
+}
+function toggleForbud() {
+  hideForbud = !hideForbud;
+  try { localStorage.setItem('hide_forbud', hideForbud ? '1' : '0'); } catch (e) {}
+  updateLegend(currentMode);
+  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);
+}
 const CAR_VEHICLES = new Set(['fordon', 'personbil']);
 const MC_VEHICLES  = new Set(['motorcykel', 'moped-klass1', 'moped-klass2', 'mc']);   // EXKLUSIVA mc-rutor
 // Får det VALDA fordonet stå? ASYMMETRISKT: en MC får stå på vanliga fordon-platser OCH på mc-rutor;
@@ -2499,9 +2529,24 @@ function updateLegend(mode) {
   const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
   const mcRow = vehicleMode === 'mc'
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>` : '';
-  const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
-    `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
-  ).join('');
+  // Taxa 1–5 är en ORDNAD prisskala (dyrast→billigast), inte fem fristående kategorier →
+  // en kompakt färgstege i stället för fem staplade rader (samma info, en fjärdedel av höjden).
+  const taxaScale =
+    `<div class="lgnd-taxa-label">Taxa · dyrast → billigast</div>
+     <div class="lgnd-taxa-bar">${Object.values(ZONE_STYLES).map((s, i) =>
+       `<div class="lgnd-taxa-seg" style="background:${s.fill};color:${s.color}">${i + 1}</div>`
+     ).join('')}</div>`;
+  // Gågator/förbud har ingen parkeringsfunktion – valfritt att dölja, minns valet.
+  const hiddenParts = [];
+  if (hideGagator) hiddenParts.push('gågator');
+  if (hideForbud) hiddenParts.push('förbud');
+  const layerToggles =
+    `<hr class="lgnd-sep">
+     <div class="lgnd-row"><div class="lgnd-sw" style="background:${GAGATA_COLOR};border:1px solid #9d174d"></div><span style="flex:1">Gågator</span>
+       <label class="lgnd-switch"><input type="checkbox" ${hideGagator ? '' : 'checked'} onchange="toggleGagata()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
+     <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div><span style="flex:1">Förbud</span>
+       <label class="lgnd-switch"><input type="checkbox" ${hideForbud ? '' : 'checked'} onchange="toggleForbud()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
+     ${hiddenParts.length ? `<div class="lgnd-hidden-note">${hiddenParts.join(' och ')} dolda på kartan – sparat till nästa gång.</div>` : ''}`;
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Trygg över natten</div>
@@ -2547,7 +2592,7 @@ function updateLegend(mode) {
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${zoneRows}${modeRows}</div>`;
+     <div id="legend-content">${taxaScale}${modeRows}${layerToggles}</div>`;
   applyLegendState();
 }
 
@@ -2831,7 +2876,7 @@ async function showStreetsNearViewport(foreskriftP = null) {
 
     // Gågator (rosa streckade) – samma visuella signal som Nu/Över natten, så användaren
     // ser att en gata är gågata även i "I kväll". Läggs i streetGroupLayers → rensas korrekt.
-    if (gagataLines && gagataLines.length) {
+    if (!hideGagator && gagataLines && gagataLines.length) {
       const ggrp = L.layerGroup();
       gagataLines.forEach(gl => gl.lines.forEach(line =>
         bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(ggrp))));
@@ -2865,8 +2910,8 @@ async function showMorningParkingFlow(lat, lng) {
       loadActiveGagataLines(lat, lng, 700).catch(() => []),
     ]);
     const grp = L.layerGroup();
-    // Gågator (rosa streckad) – samma signal som övriga lägen.
-    (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
+    // Gågator (rosa streckad) – samma signal som övriga lägen. Kan döljas i Förklaring.
+    if (!hideGagator) (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
       bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
     const feats = (Array.isArray(cleaningToday) ? cleaningToday : (cleaningToday?.features || []))
