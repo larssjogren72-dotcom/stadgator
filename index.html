@@ -1422,8 +1422,8 @@ function bindGagata(pl) {
   pl.on('click', e => {
     L.DomEvent.stopPropagation(e);
     const lls = pl.getLatLngs(); const mid = lls[Math.floor(lls.length / 2)];
-    showPlaceCardV2('Gågata', 'Gågata – endast markerad plats', GAGATA_COLOR, mid || null,
-      'På en gågata får du bara stå på särskilt markerad p-plats. Kontrollera skylten på plats.');
+    showPlaceCardV2('Gågata', 'Gågata – motortrafik förbjuden', GAGATA_COLOR, mid || null,
+      'Permanent gågata (gäller året runt). Du får bara stå på särskilt markerad p-plats – kontrollera skylten.');
   });
   return pl;
 }
@@ -1448,6 +1448,7 @@ function mcPinIcon(color) {
 // "Endast MC" → dölj allt utom pins + städ/förbud (som gäller MC med).
 function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
   const mc = vehicleMode === 'mc';
+  if (s.gagata) return;                          // gågata ritas som streckad linje (FORESKRIFT) – ej dubbel heldragen
   if (mc && isMcExclusive(s.vehicle)) return;   // MC-rutor ritas av mcRutorOverlay (samma i alla lägen)
   let weight = 6, opacity = 0.95, drawColor = color;
   if (mc) {
