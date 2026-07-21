@@ -173,6 +173,16 @@
       flex-shrink: 0; user-select: none;
     }
     .hd-brand  { display: flex; align-items: center; gap: 10px; }
+    .mc-pin-b { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #fff; display: flex;
+      align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,.5); }
+    .mc-pin-b svg { width: 15px; height: 15px; color: #fff; }
+    #mc-only-row { align-items: center; gap: 9px; margin: 8px 14px 0; font-size: 12.5px; color: var(--muted); cursor: pointer; user-select: none; }
+    #mc-only-row span:first-child { flex: 1; }
+    #mc-only-cb { display: none; }
+    .mc-only-track { width: 38px; height: 22px; border-radius: 12px; background: #cbd5e1; position: relative; flex: none; transition: background .15s; }
+    .mc-only-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
+    #mc-only-cb:checked + .mc-only-track { background: #2563eb; }
+    #mc-only-cb:checked + .mc-only-track::after { transform: translateX(16px); }
     #veh-toggle { display: flex; gap: 3px; background: rgba(15,23,42,0.05); border-radius: 10px; padding: 3px; flex: none; }
     .veh-opt {
       width: 40px; height: 32px; border: 0; border-radius: 8px; background: none; cursor: pointer;
@@ -716,6 +726,11 @@
       </span>
       <span class="when-change">Byt<span class="when-caret">▾</span></span>
     </button>
+    <label id="mc-only-row" style="display:none">
+      <span>Visa endast MC-rutor</span>
+      <input type="checkbox" id="mc-only-cb" onchange="toggleMcOnly(this.checked)">
+      <span class="mc-only-track"></span>
+    </label>
     <div id="when-menu">
       <button class="when-opt" data-mode="now" onclick="pickWhen('now')">
         <span class="when-opt-main">Nu</span>
@@ -1400,6 +1415,7 @@ function svgIcon(n) {
 // Hjälte-ikon per LÄGE: Nu = grind (bock) · Morgon/Kväll = chans (staplar) · Natt = trygghet (måne).
 // Varning (gul/röd status) vinner alltid över lägesikonen.
 function heroIconFor(statusColor) {
+  if (statusColor === '#2563eb') return 'motorcycle';   // MC-ruta
   if (statusColor === '#f59e0b' || statusColor === '#ef4444' || statusColor === '#dc2626') return 'warn';
   if (currentMode === 'morgon' || currentMode === 'uc1') return 'bars';
   if (currentMode === 'uc2') return 'moon';
@@ -1408,7 +1424,8 @@ function heroIconFor(statusColor) {
 // Mörkare ton av statusfärgen så texten läser mot den ljusa plattan.
 function heroTextColor(c) {
   return ({ '#16a34a':'#15803d', '#f59e0b':'#b45309', '#ef4444':'#b91c1c', '#dc2626':'#b91c1c',
-            '#38bdf8':'#0369a1', '#9333ea':'#6b21a8', '#ec4899':'#9d174d', '#f97316':'#9a3412' })[c] || c;
+            '#38bdf8':'#0369a1', '#9333ea':'#6b21a8', '#ec4899':'#9d174d', '#f97316':'#9a3412',
+            '#2563eb':'#1d4ed8' })[c] || c;
 }
 
 // Gågata (rosa streckad) var tidigare interactive:false → man kunde inte klicka och därmed
@@ -1431,6 +1448,34 @@ function bindForbud(pl) {
       'Stockholms stads data visar parkeringsförbud på den här sträckan. Kontrollera alltid skylten på plats.');
   });
   return pl;
+}
+
+// MC-pin: markör med fast skärmstorlek → en 5 m MC-ruta syns på alla zoom (löser gyttret).
+function mcPinIcon(color) {
+  return L.divIcon({ className: 'mc-pin', iconSize: [26, 26], iconAnchor: [13, 13],
+    html: '<div class="mc-pin-b" style="background:' + (color || '#2563eb') + '">' + svgIcon('motorcycle') + '</div>' });
+}
+// Ritar ETT parkeringssegment. Bil-läge: oförändrat (vanlig linje). MC-läge (fokus/deklutter):
+// exklusiv MC-ruta → PIN; bilgata MC får nyttja → dämpad grön; icke-MC → tyst grått;
+// "Endast MC" → dölj allt utom pins + städ/förbud (som gäller MC med).
+function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
+  const mc = vehicleMode === 'mc';
+  if (mc && isMcExclusive(s.vehicle) && dest) {
+    const m = L.marker(dest, { icon: mcPinIcon(color), pane: 'markerPane', riseOnHover: true }).addTo(grp);
+    m.on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', txt, color, dest, infoRow); });
+    return;
+  }
+  let weight = 6, opacity = 0.95, drawColor = color;
+  if (mc) {
+    if (color === '#9333ea')      { drawColor = '#c3ccd6'; weight = 4; opacity = 0.55; }   // icke-MC → tyst grått
+    else if (color === '#16a34a') { opacity = 0.38; weight = 5; }                           // bilgata MC får nyttja → dämpad
+    if (mcOnly && color !== '#f59e0b' && color !== '#ef4444') return;                       // Endast MC: dölj allt utom pins + städ/förbud
+  }
+  s.linesSweref.forEach(line => {
+    const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: drawColor, weight, opacity }).addTo(grp);
+    pl._sid = s; pl._base = drawColor;
+    pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
+  });
 }
 
 function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
@@ -2094,11 +2139,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
                     : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
                     : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
                     : '';
-      s.linesSweref.forEach(line => {
-        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
-        pl._sid = s; pl._base = color;                 // för markering av vald gata
-        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
-      });
+      drawParkingSegment(s, color, txt, dest, infoRow, grp);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
 
@@ -2278,11 +2319,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
                     : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
                     : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · flytta i kväll` : '';
-      s.linesSweref.forEach(line => {
-        const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color, weight:6, opacity:.95 }).addTo(grp);
-        pl._sid = s; pl._base = color;                 // för markering av vald gata
-        pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
-      });
+      drawParkingSegment(s, color, txt, dest, infoRow, grp);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
 
@@ -2315,6 +2352,7 @@ let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h
 // Datan (VEHICLE) har bl.a. 'fordon'/'personbil' (bil) och 'motorcykel'/'moped-klass1/2' (mc).
 // Bil-läge: fordon+personbil = grönt. MC-läge: mc/moped = grönt (då är de guldet, inte hinder).
 let vehicleMode = localStorage.getItem('vehicle_mode') === 'mc' ? 'mc' : 'bil';
+let mcOnly = false;   // "Visa endast MC-rutor" – döljer allt utom MC-pins (+ städ/förbud)
 const CAR_VEHICLES = new Set(['fordon', 'personbil']);
 const MC_VEHICLES  = new Set(['motorcykel', 'moped-klass1', 'moped-klass2', 'mc']);   // EXKLUSIVA mc-rutor
 // Får det VALDA fordonet stå? ASYMMETRISKT: en MC får stå på vanliga fordon-platser OCH på mc-rutor;
@@ -2443,9 +2481,11 @@ function initSheet() {
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
   if (!legendDiv) return;
-  const otherLabel = vehicleMode === 'mc' ? 'Endast bil/annat fordon' : 'Ej för bil (mc/buss)';
+  const otherLabel = vehicleMode === 'mc' ? 'Övrigt (ej MC)' : 'Ej för bil (mc/buss)';
+  const otherColor = vehicleMode === 'mc' ? '#c3ccd6' : '#9333ea';
+  const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
   const mcRow = vehicleMode === 'mc'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:1px solid #1e40af"></div>MC-ruta – bara MC</div>` : '';
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>` : '';
   const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
     `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
   ).join('');
@@ -2457,7 +2497,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksparkering – kontrollera tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>${otherLabel}</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const uc2LegendOld =
       `<hr class="lgnd-sep">
@@ -2473,7 +2513,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas idag – undvik</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#9333ea;border:1px solid #6b21a8"></div>${otherLabel}</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const morgonLegend =
       `<hr class="lgnd-sep">
@@ -3265,13 +3305,15 @@ function getCenter(layer) {
 }
 
 // ── Lägesväljare ─────────────────────────────────────────────────────────────
-// Fyll toggle-knapparna med ikoner + markera aktivt fordon.
+// Fyll toggle-knapparna med ikoner + markera aktivt fordon + visa "Endast MC" bara i MC-läge.
 function renderVehicleToggle() {
   const bil = document.getElementById('veh-bil'), mc = document.getElementById('veh-mc');
   if (!bil || !mc) return;
   bil.innerHTML = svgIcon('car'); mc.innerHTML = svgIcon('motorcycle');
   bil.classList.toggle('on', vehicleMode === 'bil');
   mc.classList.toggle('on', vehicleMode === 'mc');
+  const row = document.getElementById('mc-only-row');
+  if (row) row.style.display = vehicleMode === 'mc' ? 'flex' : 'none';
 }
 // Byt fordon → spara, markera, rita om Förklaring och kör om flödet för samma plats.
 function setVehicle(v) {
@@ -3279,10 +3321,15 @@ function setVehicle(v) {
   if (v === vehicleMode) return;
   vehicleMode = v;
   try { localStorage.setItem('vehicle_mode', v); } catch (e) {}
+  if (v === 'bil') { mcOnly = false; const cb = document.getElementById('mc-only-cb'); if (cb) cb.checked = false; }
   renderVehicleToggle();
   updateLegend(currentMode);
   if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);   // kör om i samma läge, nytt fordon
   else refreshZones();
+}
+function toggleMcOnly(on) {
+  mcOnly = !!on;
+  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);
 }
 
 function setMode(mode) {
