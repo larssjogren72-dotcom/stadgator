@@ -139,35 +139,35 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
 ${extraLd ? `<script type="application/ld+json">${JSON.stringify(extraLd)}</script>` : ''}
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',sans-serif;background:#080c1c;color:#e8eef6;line-height:1.65;-webkit-font-smoothing:antialiased}
-  a{color:#7dd3fc;text-decoration:none}a:hover{text-decoration:underline}
+  body{font-family:'Inter',sans-serif;background:#f4f6f9;color:#0f172a;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:#16a34a;text-decoration:none}a:hover{text-decoration:underline}
   .wrap{max-width:760px;margin:0 auto;padding:0 18px}
-  header.top{background:#0b1222;border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0}
+  header.top{background:#ffffff;border-bottom:1px solid rgba(15,23,42,.10);padding:14px 0}
   .brand{display:flex;align-items:center;gap:10px}
-  .logo{width:34px;height:34px;border-radius:9px;background:rgba(74,222,128,.16);border:1px solid rgba(74,222,128,.4);display:flex;align-items:center;justify-content:center;font-weight:800;color:#4ade80}
-  .brand b{font-size:15px}.brand span{display:block;font-size:11px;color:#8aa0b8}
+  .logo{width:34px;height:34px;border-radius:9px;background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.28);display:flex;align-items:center;justify-content:center;font-weight:800;color:#16a34a}
+  .brand b{font-size:15px}.brand span{display:block;font-size:11px;color:rgba(15,23,42,.55)}
   .hero{padding:30px 0 8px}
   h1{font-size:27px;line-height:1.18;letter-spacing:-.02em;margin-bottom:10px;font-weight:800}
-  .lead{font-size:16px;color:#b9c6d6;margin-bottom:18px}
-  .cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;font-weight:700;padding:12px 20px;border-radius:12px;box-shadow:0 4px 18px rgba(34,197,94,.32);margin:6px 0 8px}
-  .cta:hover{text-decoration:none;filter:brightness(1.05)}
-  .card{background:#0d1426;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 18px;margin:16px 0}
+  .lead{font-size:16px;color:rgba(15,23,42,.70);margin-bottom:18px}
+  .cta{display:inline-flex;align-items:center;gap:8px;background:#16a34a;color:#fff;font-weight:700;padding:12px 20px;border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.15);margin:6px 0 8px}
+  .cta:hover{text-decoration:none;background:#15803d}
+  .card{background:#ffffff;border:1px solid rgba(15,23,42,.10);border-radius:14px;padding:18px 18px;margin:16px 0}
   h2{font-size:19px;margin-bottom:10px;letter-spacing:-.01em}
-  h3{font-size:15px;margin:14px 0 4px;color:#cfe3ff}
-  p{margin-bottom:10px;color:#c4d1e0}
-  ul{margin:6px 0 6px 18px}li{margin:4px 0;color:#c4d1e0}
+  h3{font-size:15px;margin:14px 0 4px;color:#334155}
+  p{margin-bottom:10px;color:#334155}
+  ul{margin:6px 0 6px 18px}li{margin:4px 0;color:#334155}
   table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}
-  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.07)}
-  th{color:#8aa0b8;font-weight:600}
-  .pill{display:inline-block;font-size:12px;padding:3px 9px;border-radius:20px;background:rgba(125,211,252,.12);border:1px solid rgba(125,211,252,.3);color:#bae6fd;margin:2px 4px 2px 0}
-  .green{color:#86efac}.muted{color:#8aa0b8;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid rgba(15,23,42,.10)}
+  th{color:rgba(15,23,42,.55);font-weight:600}
+  .pill{display:inline-block;font-size:12px;padding:3px 9px;border-radius:20px;background:rgba(15,23,42,.05);border:1px solid rgba(15,23,42,.14);color:#0f172a;margin:2px 4px 2px 0}
+  .green{color:#16a34a}.muted{color:rgba(15,23,42,.55);font-size:13px}
   .live{min-height:24px}
-  .live .row{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-  .live .nm{font-weight:600;color:#fde68a}
+  .live .row{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(15,23,42,.08)}
+  .live .nm{font-weight:600;color:#b45309}
   .related ul{list-style:none;margin-left:0}
-  .related li{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-  footer{border-top:1px solid rgba(255,255,255,.08);margin-top:24px;padding:22px 0 40px;color:#7e90a6;font-size:12px}
-  footer a{color:#9fb3c8}
+  .related li{padding:6px 0;border-bottom:1px solid rgba(15,23,42,.08)}
+  footer{border-top:1px solid rgba(15,23,42,.10);margin-top:24px;padding:22px 0 40px;color:rgba(15,23,42,.55);font-size:12px}
+  footer a{color:#16a34a}
 </style></head>
 <body>
 <header class="top"><div class="wrap"><a class="brand" href="/"><span class="logo">P</span><span><b>ParkSpot Stockholm</b><span>${en ? EN.sub : 'parkering på karta'}</span></span></a></div></header>
@@ -183,9 +183,9 @@ ${extraLd ? `<script type="application/ld+json">${JSON.stringify(extraLd)}</scri
   ${relHtml}
 </main>
 <footer><div class="wrap">
-  <p><b style="color:#cfe3ff">${esc(en ? EN.tagline : TAGLINE)}</b><br>${esc(en ? EN.promise : PROMISE)}</p>
+  <p><b style="color:#0f172a">${esc(en ? EN.tagline : TAGLINE)}</b><br>${esc(en ? EN.promise : PROMISE)}</p>
   <p style="margin-top:10px"><a href="/">${en ? 'Open the ParkSpot map' : 'Öppna ParkSpot-kartan'}</a> · <a href="/parkeringstaxor-stockholm">${en ? 'Tariffs 1–5' : 'Taxor 1–5'}</a> · <a href="/stadgator-stockholm">${en ? 'Street cleaning' : 'Städgator'}</a> · <a href="/om-parkspot">${en ? 'About' : 'Om ParkSpot'}</a> · <a href="/parking-in-stockholm">English</a></p>
-  <p style="margin-top:10px;color:#5f7088">${esc(en ? EN.disclaimer : DISCLAIMER)}</p>
+  <p style="margin-top:10px;color:rgba(15,23,42,.45)">${esc(en ? EN.disclaimer : DISCLAIMER)}</p>
 </div></footer>
 </body></html>`;
 }
