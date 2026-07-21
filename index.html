@@ -2391,8 +2391,11 @@ let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bo
 let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'now'; })();
 
 // ── Fordonsprofil: Bil eller MC ──────────────────────────────────────────────
-// Datan (VEHICLE) har bl.a. 'fordon'/'personbil' (bil) och 'motorcykel'/'moped-klass1/2' (mc).
-// Bil-läge: fordon+personbil = grönt. MC-läge: mc/moped = grönt (då är de guldet, inte hinder).
+// Datan (VEHICLE) har bl.a. 'fordon'/'personbil' (bil) och 'motorcykel' (mc).
+// Bil-läge: fordon+personbil = grönt. MC-läge: mc/motorcykel = grönt (då är de guldet, inte hinder).
+// OBS moped-klass1/2 är MEDVETET uteslutna ur MC-rutorna (verifierat mot riktig WFS-data 2026-07-21:
+// deras platser är taggade VF_PLATS_TYP "Reserverad p-plats cykel", inte motorcykel – en riktig MC
+// får inte stå där, så de ska inte visas/räknas som "MC-ruta").
 let vehicleMode = localStorage.getItem('vehicle_mode') === 'mc' ? 'mc' : 'bil';
 // Gågator/förbudslinjer har ingen parkeringsfunktion – rent informativa. Valfritt att dölja
 // (Förklaring-panelen), sparas per användare. Osynligt segment ≠ "ok att stå" (bara ohittat/dolt).
@@ -2411,7 +2414,7 @@ function toggleForbud() {
   if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);
 }
 const CAR_VEHICLES = new Set(['fordon', 'personbil']);
-const MC_VEHICLES  = new Set(['motorcykel', 'moped-klass1', 'moped-klass2', 'mc']);   // EXKLUSIVA mc-rutor
+const MC_VEHICLES  = new Set(['motorcykel', 'mc']);   // EXKLUSIVA mc-rutor (ej moped-klass1/2, se ovan)
 // Får det VALDA fordonet stå? ASYMMETRISKT: en MC får stå på vanliga fordon-platser OCH på mc-rutor;
 // en bil får stå på fordon + personbil men INTE på en mc-ruta. (Regel-heuristik – appen säger ändå
 // "kontrollera skylt".)
