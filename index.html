@@ -2084,7 +2084,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else if (tier === 'natt')        { color = '#f59e0b'; txt = `Servas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
       else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
-      else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#0d9488'; txt = 'MC-ruta · bara MC'; }
+      else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
@@ -2270,7 +2270,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
       else if (cs && cs.state === 'upcoming') { color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
       else if (nx)                     { color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++; }
-      else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#0d9488'; txt = 'MC-ruta · bara MC'; }
+      else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
@@ -2445,7 +2445,7 @@ function updateLegend(mode) {
   if (!legendDiv) return;
   const otherLabel = vehicleMode === 'mc' ? 'Endast bil/annat fordon' : 'Ej för bil (mc/buss)';
   const mcRow = vehicleMode === 'mc'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#0d9488;border:1px solid #0f766e"></div>MC-ruta – bara MC</div>` : '';
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:1px solid #1e40af"></div>MC-ruta – bara MC</div>` : '';
   const zoneRows = Object.entries(ZONE_STYLES).map(([,s]) =>
     `<div class="lgnd-row"><div class="lgnd-sw" style="background:${s.fill};border:1px solid ${s.color}"></div>${s.label}</div>`
   ).join('');
