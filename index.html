@@ -1448,11 +1448,7 @@ function mcPinIcon(color) {
 // "Endast MC" → dölj allt utom pins + städ/förbud (som gäller MC med).
 function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
   const mc = vehicleMode === 'mc';
-  if (mc && isMcExclusive(s.vehicle) && dest) {
-    const m = L.marker(dest, { icon: mcPinIcon(color), pane: 'markerPane', riseOnHover: true }).addTo(grp);
-    m.on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', txt, color, dest, infoRow); });
-    return;
-  }
+  if (mc && isMcExclusive(s.vehicle)) return;   // MC-rutor ritas av mcRutorOverlay (samma i alla lägen)
   let weight = 6, opacity = 0.95, drawColor = color;
   if (mc) {
     if (color === '#9333ea')      { drawColor = '#c3ccd6'; weight = 4; opacity = 0.55; }   // icke-MC → tyst grått
@@ -1463,6 +1459,31 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
     pl._sid = s; pl._base = drawColor;
     pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
   });
+}
+
+// MC-rutorna som ETT eget lager – visas i ALLA lägen (Nu/Morgon/Kväll/Natt) när MC är valt,
+// oberoende av vilket flöde som ritar gatorna. Återanvänder P_TILLATEN-hämtaren.
+async function fetchMcRutor(lat, lng, radius = 500) {
+  const deg  = (radius / 111000) * 1.8;
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
+  return tillRaw.map(toAllowedSegment).filter(s => isMcExclusive(s.vehicle));
+}
+async function mcRutorOverlay(lat, lng) {
+  if (vehicleMode !== 'mc') return;
+  try {
+    const segs = await fetchMcRutor(lat, lng);
+    const grp = L.layerGroup();
+    segs.forEach(s => {
+      const first = s.linesSweref[0] && s.linesSweref[0][0];
+      const dest = first && toLatLng(first[0], first[1]);
+      if (!dest) return;
+      L.marker(dest, { icon: mcPinIcon('#2563eb'), pane: 'markerPane', riseOnHover: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', 'MC-ruta · bara MC får stå', '#2563eb', dest, 'Dedikerad MC-plats – bilister får inte ta den.'); })
+        .addTo(grp);
+    });
+    streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
+  } catch (e) { console.warn('[Städgator] MC-lager:', e.message); }
 }
 
 function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
@@ -3095,6 +3116,7 @@ function flyToAndShow(lat, lng) {
   } else {
     map.once('moveend', () => showStreetsNearViewport(foreskriftP));
   }
+  if (vehicleMode === 'mc') map.once('moveend', () => mcRutorOverlay(lat, lng));   // MC-rutor i ALLA lägen
   map.flyTo([lat, lng], 15, { duration: 1.1 });
 }
 
