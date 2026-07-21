@@ -1493,10 +1493,15 @@ async function fetchMcRutor(lat, lng, radius = 500) {
   const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
   return tillRaw.map(toAllowedSegment).filter(s => isMcExclusive(s.vehicle));
 }
+let mcOverlayReqId = 0;
 async function mcRutorOverlay(lat, lng) {
   if (vehicleMode !== 'mc') return;
+  const myReqId = ++mcOverlayReqId;
   try {
     const segs = await fetchMcRutor(lat, lng);
+    // Läget/sökningen kan ha bytts UNDER hämtningen (t.ex. bil→mc→bil snabbt) – kolla igen,
+    // annars kan gamla MC-pins ritas ut ovanpå bil-läget och kapa klick från gatorna under.
+    if (vehicleMode !== 'mc' || myReqId !== mcOverlayReqId) return;
     const grp = L.layerGroup();
     segs.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
