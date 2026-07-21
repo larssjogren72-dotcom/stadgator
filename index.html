@@ -3165,19 +3165,19 @@ function flyToAndShow(lat, lng) {
     iconSize: [30, 40], iconAnchor: [15, 40], popupAnchor: [0, -36]
   });
   searchMarker = L.marker([lat, lng], { icon: destIcon, pane: 'markerPane', interactive: false }).addTo(map);
-  if (isMorgon) {
-    map.once('moveend', () => showMorningParkingFlow(lat, lng));
-  } else if (isNow) {
-    map.once('moveend', () => showNowParkingV2Flow(lat, lng, parkV2P));
-  } else if (useV2here) {
-    map.once('moveend', () => showSafeStreetsV2Flow(lat, lng, parkV2P));
-  } else if (uc2) {
-    map.once('moveend', () => showSafeStreetsNearby(lat, lng, overpassP, foreskriftP));
-  } else {
-    map.once('moveend', () => showStreetsNearViewport(foreskriftP));
-  }
-  if (vehicleMode === 'mc') map.once('moveend', () => mcRutorOverlay(lat, lng));   // MC-rutor i ALLA lägen
-  map.flyTo([lat, lng], 15, { duration: 1.1 });
+  const startFlow = () => {
+    if (isMorgon) showMorningParkingFlow(lat, lng);
+    else if (isNow) showNowParkingV2Flow(lat, lng, parkV2P);
+    else if (useV2here) showSafeStreetsV2Flow(lat, lng, parkV2P);
+    else if (uc2) showSafeStreetsNearby(lat, lng, overpassP, foreskriftP);
+    else showStreetsNearViewport(foreskriftP);
+    if (vehicleMode === 'mc') mcRutorOverlay(lat, lng);   // MC-rutor i ALLA lägen
+  };
+  // Redan på plats (t.ex. fordonsbyte på samma destination) → kör flödet direkt, ingen flyTo.
+  // Leaflet animerar zoom-transformen även för en flygning på 0 meter → syns som en "skakning".
+  const alreadyThere = map.getZoom() === 15 && map.getCenter().distanceTo([lat, lng]) < 1;
+  if (alreadyThere) startFlow();
+  else { map.once('moveend', startFlow); map.flyTo([lat, lng], 15, { duration: 1.1 }); }
 }
 
 // ── Sök gata ─────────────────────────────────────────────────────────────────
