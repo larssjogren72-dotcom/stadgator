@@ -2194,7 +2194,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${safe} trygga platser i natt`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">Tryck på en grön gata för service-tider och vägbeskrivning.</span>' +
+      `<span class="hint-main">Tryck på ${tapTargetPhrase()} för service-tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
 
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
@@ -2371,7 +2371,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${okNu} gator där du får stå nu`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">Tryck på en grön gata för tider och vägbeskrivning.</span>' +
+      `<span class="hint-main">Tryck på ${tapTargetPhrase()} för tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     loadZonesForViewport(getKey(), map.getBounds().pad(0.12));
     sheetSnapTo('peek');
@@ -2426,6 +2426,9 @@ function vehicleAllowed(v) {
 function isMcExclusive(v) { return MC_VEHICLES.has((v || 'fordon').toLowerCase()); }   // ruta bara MC får ta
 // Etikett för segment som inte gäller det valda fordonet (för "ej för dig"-lila).
 function otherVehicleLabel(v) { return vehicleMode === 'mc' ? `Endast ${v}` : `Ej för bil (${v})`; }
+// I MC-läge visas riktiga MC-rutor som EGNA nålar (pins), inte som gatlinjer – hint-texten måste
+// säga det, annars missar användaren att trycka på nålen (bara "grön gata" räcker inte i mc-läge).
+function tapTargetPhrase() { return vehicleMode === 'mc' ? 'en grön gata eller MC-ikonen' : 'en grön gata'; }
 const WHEN_LABELS = { now: 'Nu',  morgon: 'Morgon',  uc1: 'Kväll',      uc2: 'Natt' };
 const WHEN_SUBS   = { now: 'Var får jag stå just nu?', morgon: 'Nyss servat – ledigt för dagen', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
 
@@ -2975,7 +2978,7 @@ async function showMorningParkingFlow(lat, lng) {
     badge.textContent = `${n} nyss servade gator`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      '<span class="hint-main">Tryck på en grön gata för service-tid och vägbeskrivning.</span>' +
+      `<span class="hint-main">Tryck på ${tapTargetPhrase()} för service-tid och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     document.getElementById('street-list').style.display = 'none';
     document.getElementById('street-panel').style.display = 'none';
@@ -3025,9 +3028,9 @@ function renderFeatures(data) {
   badge.textContent = `${features.length} servicegator i närheten`;
   badge.style.display = 'block';
 
-  // Som Nu/Över natten: ingen lista som styr lådan. Tryck på en grön gata → kort + navigering.
+  // Som Nu/Över natten: ingen lista som styr lådan. Tryck på grön gata (eller MC-ikonen i mc-läge) → kort + navigering.
   const hintEl = document.getElementById('hint');
-  hintEl.innerHTML = '<span class="hint-main">Tryck på en grön gata för detaljer och vägbeskrivning.</span>' +
+  hintEl.innerHTML = `<span class="hint-main">Tryck på ${tapTargetPhrase()} för detaljer och vägbeskrivning.</span>` +
     '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   hintEl.style.display = 'block';
   document.getElementById('street-list').style.display = 'none';
@@ -3427,10 +3430,10 @@ function setMode(mode) {
   const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   // Förklarar hur det VALDA läget fungerar (service-terminologi) + vägledning. Färger bor i Förklaring.
   const intro = {
-    now:    '<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på en grön gata för tider och vägbeskrivning.',
-    morgon: '<b>"Morgon"</b> visar gator som nyss servats klart i morse — oftast tömda och lediga förmiddagar. Tryck på en grön gata för info om tider och vägbeskrivning.',
-    uc1:    '<b>"Kväll"</b> visar gator som servas tidigt i morgon bitti — ofta mindre belastade ikväll. Tryck på en grön gata för detaljer och vägbeskrivning.',
-    uc2:    '<b>"Natt"</b> visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på en grön gata för service-tider och vägbeskrivning.',
+    now:    `<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på ${tapTargetPhrase()} för tider och vägbeskrivning.`,
+    morgon: `<b>"Morgon"</b> visar gator som nyss servats klart i morse — oftast tömda och lediga förmiddagar. Tryck på ${tapTargetPhrase()} för info om tider och vägbeskrivning.`,
+    uc1:    `<b>"Kväll"</b> visar gator som servas tidigt i morgon bitti — ofta mindre belastade ikväll. Tryck på ${tapTargetPhrase()} för detaljer och vägbeskrivning.`,
+    uc2:    `<b>"Natt"</b> visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhrase()} för service-tider och vägbeskrivning.`,
   };
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
