@@ -2457,7 +2457,7 @@ let legendCollapsed = false;
 let sgTimer = null, sgIndex = -1;
 
 // ── Bottensheet (draggbar: peek / halv / full) ───────────────────────────────
-let sheetEl = null, sheetSnaps = { full:0, half:0, peek:0 }, sheetCurY = 0;
+let sheetEl = null, sheetSnaps = { full:0, half:0, peek:0 }, sheetCurY = 0, sheetDragging = false;
 function sheetCompute() {
   const vh = window.innerHeight;
   const appH   = document.getElementById('app').offsetHeight || vh;
@@ -2498,7 +2498,10 @@ function sheetSet(y, animate = true) {
   sheetEl.style.transform  = `translateY(${y}px)`;
   sheetCurY = y;
 }
-function sheetSnapTo(state) { if (!sheetEl) return; sheetCompute(); sheetSet(sheetSnaps[state]); }
+// Rör ALDRIG lådan medan användaren aktivt drar den – annars kan ett sent async-svar (flöde/
+// fordonsbyte som svarar medan man drar) rycka undan lådan mitt i gesten ("åker upp och fastnar",
+// eftersom pointermove sedan räknar från ett läge lådan inte längre är i).
+function sheetSnapTo(state) { if (!sheetEl || sheetDragging) return; sheetCompute(); sheetSet(sheetSnaps[state]); }
 // Minns om användaren själv dragit ner lådan → lägesförklaringen glider då inte upp av sig själv.
 // Minns EXAKT vilket läge användaren senast drog/snäppte lådan till (upp som ner) →
 // lägesförklaringen återställer det i stället för att alltid hoppa till peek. Default = peek (visa text).
@@ -2510,18 +2513,18 @@ function initSheet() {
   sheetCompute(); sheetSet(sheetSnaps.peek, false);
   window.addEventListener('resize', () => { sheetCompute(); sheetSet(Math.min(sheetCurY, sheetSnaps.min), false); });
 
-  let startY = 0, startT = 0, moved = 0, dragging = false;
+  let startY = 0, startT = 0, moved = 0;
   handle.addEventListener('pointerdown', e => {
-    dragging = true; startY = e.clientY; startT = sheetCurY; moved = 0;
+    sheetDragging = true; startY = e.clientY; startT = sheetCurY; moved = 0;
     sheetEl.style.transition = 'none'; handle.setPointerCapture(e.pointerId);
   });
   handle.addEventListener('pointermove', e => {
-    if (!dragging) return;
+    if (!sheetDragging) return;
     const dy = e.clientY - startY; moved = Math.max(moved, Math.abs(dy));
     sheetSet(Math.max(0, Math.min(sheetSnaps.min, startT + dy)), false);   // går att dra ända ner till min
   });
   const endDrag = () => {
-    if (!dragging) return; dragging = false;
+    if (!sheetDragging) return; sheetDragging = false;
     if (moved < 6) {                                  // tap → cykla peek→halv→full
       const order = [sheetSnaps.peek, sheetSnaps.half, sheetSnaps.full];
       const i = order.findIndex(v => Math.abs(v - sheetCurY) < 2);
