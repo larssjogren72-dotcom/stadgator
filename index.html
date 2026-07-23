@@ -508,6 +508,8 @@
       background: #fff; border-radius: 50%; transition: left .15s; pointer-events: none; }
     .lgnd-switch input:checked ~ .lgnd-switch-thumb { left: 15px; }
     .lgnd-hidden-note { font-size: 10px; color: var(--muted); line-height: 1.4; margin-top: 4px; }
+    .lgnd-feedback { font-size: 11px; margin-top: 6px; text-align: center; }
+    .lgnd-feedback a { color: var(--accent); }
 
     /* Toggle: ✕ när öppen, tydlig pill "🗺 Förklaring" när minimerad */
     .lgnd-toggle {
@@ -1043,6 +1045,13 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
 
   // Värde-ögonblick (anropas från showPlaceCardV2) → markera att de fått nytta; prompten dyker upp NÄSTA gång.
   window.__reviewValueMoment = function () { var s = get(); if (!s.v) { s.v = true; set(s); } };
+  // Manuell öppning (länk i Förklaring) – kringgår frekvens-spärrarna (de finns för att inte
+  // tjata i onödan, inte för att stoppa någon som SJÄLV söker upp vägen att ge feedback).
+  window.__openFeedback = function () {
+    if (panelOpen()) return;
+    shownThisSession = true;
+    track('feedback_manual_open'); step1(); ensureBox().classList.add('show');
+  };
 })();
 
 // ── Start ────────────────────────────────────────────────────────────────────
@@ -2591,7 +2600,8 @@ function updateLegend(mode) {
        <label class="lgnd-switch"><input type="checkbox" ${hideGagator ? '' : 'checked'} onchange="toggleGagata()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
      <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div><span style="flex:1">Förbud</span>
        <label class="lgnd-switch"><input type="checkbox" ${hideForbud ? '' : 'checked'} onchange="toggleForbud()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
-     ${hiddenParts.length ? `<div class="lgnd-hidden-note">${hiddenParts.join(' och ')} dolda på kartan – sparat till nästa gång.</div>` : ''}`;
+     ${hiddenParts.length ? `<div class="lgnd-hidden-note">${hiddenParts.join(' och ')} dolda på kartan – sparat till nästa gång.</div>` : ''}
+     <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Trygg över natten</div>
