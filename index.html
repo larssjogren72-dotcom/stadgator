@@ -986,6 +986,12 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     var inner = REVIEW_URL
       ? '<a class="prim" href="' + REVIEW_URL + '" target="_blank" rel="noopener">★ Lämna en recension →</a><div class="mut">Tar 20 sekunder och hjälper fler hitta appen 🙌</div>'
       : '<button class="prim" id="ps-share">📤 Dela med en vän</button><div class="mut">Vi lanserar snart på Product Hunt – tack för att du gillar ParkSpot! 🙌</div>';
+    // Frivillig kommentar – dold bakom en länk, tar ingen plats om man inte vill (Lars: "bara om man vill").
+    inner += '<div class="mut" style="margin-top:6px"><a href="#" id="ps-comment-toggle">💬 Lägg till en kommentar (frivilligt)</a></div>'
+      + '<div id="ps-comment-wrap" style="display:none;margin-top:8px">'
+      +   '<textarea id="ps-comment-msg" placeholder="Vad gillar du mest med ParkSpot?"></textarea>'
+      +   '<button class="prim" id="ps-comment-send">Skicka kommentar</button>'
+      + '</div>';
     var b = render('<h4>Vad kul! 🙌</h4>' + inner);
     var sh = b.querySelector('#ps-share');
     if (sh) sh.onclick = function () {
@@ -994,6 +1000,22 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
       close(true);
     };
     var a = b.querySelector('a.prim'); if (a) a.onclick = function () { track('review_clickout'); setTimeout(function () { close(true); }, 400); };
+    var ct = b.querySelector('#ps-comment-toggle');
+    ct.onclick = function (e) {
+      e.preventDefault();
+      ct.parentElement.style.display = 'none';                        // dölj länken
+      b.querySelector('#ps-comment-wrap').style.display = 'block';     // visa fältet
+      b.querySelector('#ps-comment-msg').focus();
+    };
+    b.querySelector('#ps-comment-send').onclick = function () {
+      var msg = ((b.querySelector('#ps-comment-msg').value || '') + '').slice(0, 500).trim();
+      if (!msg) return;
+      sendForm('👍💬 ' + msg);   // egen prefix – skiljs från 👎-feedbacken i arket
+      track('review_comment_sent');
+      render('<h4>Tack för dina ord! 🙏</h4>');
+      var s = get(); s.done = true; set(s);
+      setTimeout(function () { close(false); }, 1800);
+    };
   }
   function stepNo() {
     track('review_thumbs_down');
