@@ -166,6 +166,12 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%; overflow: hidden;
+      /* position:fixed + width:100% – overflow:hidden ENSAMT stoppar inte iOS Safari: fokuserar man
+         ett textfält inuti ett position:fixed-element (t.ex. feedback-rutans kommentarfält) scrollar
+         iOS sidan för att visa fältet ovanför tangentbordet, och återställer den inte pålitligt när
+         tangentbordet stängs – sidan blir kvar förskjuten, och den dolda SEO-footern (top:100vh) blir
+         synlig. position:fixed gör body fysiskt oscrollbart, inte bara visuellt klippt. */
+      position: fixed; width: 100%;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
@@ -970,7 +976,20 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     box = document.createElement('div'); box.id = 'ps-rev'; document.body.appendChild(box);
     return box;
   }
-  function close(markDone) { if (box) box.classList.remove('show'); if (markDone) { var s = get(); s.done = true; set(s); } }
+  // iOS Safari: att fokusera ett textfält i en position:fixed-ruta kan scrolla SIDAN (inte bara
+  // rutan) för att visa fältet ovanför tangentbordet, och återställer inte alltid pålitligt när
+  // tangentbordet stängs – sidan blir kvar förskjuten (avslöjar den dolda SEO-footern). Anropas
+  // både när rutan stängs OCH direkt när ett textfält tappar fokus (täcker "tap bort utan skicka").
+  function resetPageScroll() {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+  function close(markDone) {
+    if (box) box.classList.remove('show');
+    if (markDone) { var s = get(); s.done = true; set(s); }
+    resetPageScroll();
+  }
   function render(html) {
     var b = ensureBox();
     b.innerHTML = '<button class="x" aria-label="Stäng">✕</button>' + html;
@@ -1007,13 +1026,16 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
       e.preventDefault();
       ct.parentElement.style.display = 'none';                        // dölj länken
       b.querySelector('#ps-comment-wrap').style.display = 'block';     // visa fältet
-      b.querySelector('#ps-comment-msg').focus();
+      var msgEl = b.querySelector('#ps-comment-msg');
+      msgEl.focus();
+      msgEl.addEventListener('blur', resetPageScroll);   // täcker "tap bort utan skicka"
     };
     b.querySelector('#ps-comment-send').onclick = function () {
       var msg = ((b.querySelector('#ps-comment-msg').value || '') + '').slice(0, 500).trim();
       if (!msg) return;
       sendForm('👍💬 ' + msg);   // egen prefix – skiljs från 👎-feedbacken i arket
       track('review_comment_sent');
+      resetPageScroll();   // direkt, inte efter close() – inget gap där sidan hänger förskjuten
       render('<h4>Tack för dina ord! 🙏</h4>');
       var s = get(); s.done = true; set(s);
       setTimeout(function () { close(false); }, 1800);
@@ -1024,10 +1046,12 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     sendForm('👎 Inte helt');   // logga missnöjd-klicket i arket (även om ingen kommentar skrivs) – mejlas ej
     var b = render('<h4>Tack för ärligheten – vad kan bli bättre?</h4><textarea id="ps-msg" placeholder="Vad var fel eller saknades?"></textarea><button class="prim" id="ps-send">Skicka</button>'
       + (REVIEW_URL ? '<div class="mut"><a href="' + REVIEW_URL + '" target="_blank" rel="noopener">…eller lämna en publik recension →</a></div>' : ''));
+    b.querySelector('#ps-msg').addEventListener('blur', resetPageScroll);   // täcker "tap bort utan skicka"
     b.querySelector('#ps-send').onclick = function () {
       var msg = ((b.querySelector('#ps-msg').value || '') + '').slice(0, 500).trim();
       sendForm(msg);
       track('feedback_sent');
+      resetPageScroll();   // direkt, inte efter close() – inget gap där sidan hänger förskjuten
       render('<h4>Tack! Din feedback gör appen bättre. 🙏</h4>');
       var s = get(); s.done = true; set(s);
       setTimeout(function () { close(false); }, 1800);
