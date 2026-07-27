@@ -2305,17 +2305,38 @@ function cleaningState(start, end, nowHM) {
   if (nowHM >= start || nowHM <= end) return 'active';
   return 'upcoming';
 }
+// ── 500 m-GLAPPET ────────────────────────────────────────────────────────────
+// Parkering hämtas i en BBOX (loadParkingV2: ±0,0081° ⇒ ±900 m N/S, ±460 m Ö/V, och
+// WFS returnerar HELA segment som skär rutan – uppmätt ritad parkering ända ut till
+// 1006 m). Städmatchningen filtrerade i stället på segmentets MITTPUNKT inom en
+// 500 m-CIRKEL. All parkering mellan cirkeln och bbox-kanten fick därför ALDRIG någon
+// städmatchning och föll igenom till grön = falsk trygghet.
+// Mätt 2026-07-27: 7,1 % av segmenten bytte färg beroende på var användaren sökt ifrån.
+// Två fel rättas: (1) räckvidden täcker nu hela hämtningsytan, (2) HELA segmentet
+// prövas, inte bara mittpunkten (ett långt städsegment kan ha mittpunkten utanför
+// men sträcka sig rakt in i vyn).
+// OBS: detta är bara ett GROVFILTER. Grinden som avgör gult är oförändrad – exakt
+// gatunamn + 25 m i near(). Vidgad räckvidd kan alltså inte färga grannggator.
+const CLEAN_REACH_M = 1500;
+function cleaningFeatureInReach(f, lat, lng) {
+  for (const line of featureLines(f)) {
+    for (const c of line) {
+      const ll = toLatLng(c[0], c[1]);
+      if (map.distance([lat, lng], [ll.lat, ll.lng]) <= CLEAN_REACH_M) return true;
+    }
+  }
+  return false;
+}
+
 function buildCleaningMatcher(cleaningData, lat, lng, grp) {
   // UC3 "Nu" → städning gäller IDAG, och nu även KLOCKSLAG. Filtrera bort poster ur säsong.
   const today = new Date();
   const nowHM = today.getHours() * 100 + today.getMinutes();
   const feats = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
     .filter(f => cleaningActiveOn(f.properties || {}, today));
-  const segs = [];
+  const segs = [], byName = new Map();
   feats.forEach(f => {
-    const m = featureMidCoord(f); if (!m) return;
-    const mll = toLatLng(m[0], m[1]);
-    if (map.distance([lat, lng], [mll.lat, mll.lng]) > 500) return;
+    if (!cleaningFeatureInReach(f, lat, lng)) return;
     const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
     const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
     const state = cleaningState(start, end, nowHM);
@@ -2324,14 +2345,22 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp) {
       L.geoJSON(f, { style:{ color:'#f59e0b', weight:5, opacity:.85, dashArray:'6 6' },
         coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
     featureLines(f).forEach(line => {
-      for (let i = 0; i < line.length - 1; i++)
-        segs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end, state });
+      for (let i = 0; i < line.length - 1; i++) {
+        const seg = { a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end, state };
+        segs.push(seg);
+        if (!byName.has(name)) byName.set(name, []);
+        byName.get(name).push(seg);
+      }
     });
   });
   // near() → null (ej städgata nu) | { state, start, end }. Aktiv vinner, annars närmaste kommande.
+  // Indexerat på gatunamn: räckvidden ovan är större än förr, och en osorterad filter()
+  // över ALLA städsegment blir O(gröna × städsegment) – märks på mobil. Samma villkor,
+  // bara färre kandidater att pröva.
   return { count: segs.length, near: (ll, name) => {
     if (!name) return null;
-    const ms = segs.filter(s => s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
+    const kand = byName.get(name); if (!kand) return null;
+    const ms = kand.filter(s => distPointToSegmentLL(ll, s.a, s.b) <= 25);
     if (!ms.length) return null;
     const act = ms.find(s => s.state === 'active');
     if (act) return { state: 'active', start: act.start, end: act.end };
@@ -2349,24 +2378,27 @@ function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH) {
   const nowH = nowDate.getHours() + nowDate.getMinutes() / 60;
   const feats = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
     .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
-  const segs = [];
+  const segs = [], byName = new Map();
   feats.forEach(f => {
     const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
     if (start == null) return;
     const startH = Math.floor(start / 100) + (start % 100) / 60;
     if ((24 - nowH) + startH > horizonH) return;        // inte nära nog → strunta
-    const m = featureMidCoord(f); if (!m) return;
-    const mll = toLatLng(m[0], m[1]);
-    if (map.distance([lat, lng], [mll.lat, mll.lng]) > 500) return;
+    if (!cleaningFeatureInReach(f, lat, lng)) return;   // samma räckvidd som parkeringen (se 500 m-glappet)
     const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
     featureLines(f).forEach(line => {
-      for (let i = 0; i < line.length - 1; i++)
-        segs.push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end });
+      for (let i = 0; i < line.length - 1; i++) {
+        const seg = { a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end };
+        segs.push(seg);
+        if (!byName.has(name)) byName.set(name, []);
+        byName.get(name).push(seg);
+      }
     });
   });
   return (ll, name) => {
     if (!name) return null;
-    const s = segs.find(s => s.name === name && distPointToSegmentLL(ll, s.a, s.b) <= 25);
+    const kand = byName.get(name); if (!kand) return null;
+    const s = kand.find(s => distPointToSegmentLL(ll, s.a, s.b) <= 25);
     return s ? { start: s.start, end: s.end } : null;
   };
 }
