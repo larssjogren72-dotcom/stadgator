@@ -196,9 +196,29 @@
       width: 40px; height: 32px; border: 0; border-radius: 8px; background: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center; color: var(--muted);
       -webkit-tap-highlight-color: transparent; transition: background .15s, color .15s;
+      position: relative;
     }
+    /* Träffytan lyfts till 44x44 UTAN att ändra hur knappen ser ut – annars hade hela
+       rubrikraden behövt byggas om. Riktvärdet gäller särskilt när appen har ett läge
+       för rörelsehindrade. */
+    .veh-opt::after { content: ""; position: absolute; top: 50%; left: 50%;
+      width: 44px; height: 44px; transform: translate(-50%, -50%); }
     .veh-opt svg { width: 21px; height: 21px; }
     .veh-opt.on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+    .veh-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    /* Nål för reserverad plats: rundad FYRKANT (MC:s är rund) i turkos (MC:s är blå) */
+    .rh-pin { filter: drop-shadow(0 2px 5px rgba(14,116,144,.45)); }
+    .rh-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
+      background: #0e7490; display: flex; align-items: center; justify-content: center; }
+    .rh-pin-b svg { width: 17px; height: 17px; color: #fff; }
+    /* Rättighetsrutan på platskortet */
+    #rh-rights { margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+      background: rgba(14,116,144,.07); border: 1px solid rgba(14,116,144,.22); }
+    #rh-rights h4 { margin: 0 0 7px; font-size: 11.5px; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    #rh-rights ul { margin: 0 0 8px; padding-left: 18px; font-size: 13.5px; color: var(--text); }
+    #rh-rights li { margin-bottom: 4px; }
+    #rh-rights p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
     .hd-icon   {
       width: 36px; height: 36px; background: var(--accent-dim);
       border: 1px solid rgba(74,222,128,0.28); border-radius: 10px;
@@ -739,6 +759,7 @@
     <div id="veh-toggle" role="group" aria-label="Fordon">
       <button id="veh-bil" class="veh-opt" onclick="setVehicle('bil')" aria-label="Bil"></button>
       <button id="veh-mc"  class="veh-opt" onclick="setVehicle('mc')"  aria-label="Motorcykel"></button>
+      <button id="veh-rh"  class="veh-opt" onclick="setVehicle('rh')"  aria-label="Rörelsehindrad – parkeringstillstånd"></button>
     </div>
   </div>
 
@@ -818,6 +839,16 @@
       </div>
       <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
+      <div id="rh-rights" style="display:none">
+        <h4>Med tillstånd får du också</h4>
+        <ul>
+          <li>stå <b>högst 3 tim</b> där parkering är förbjuden</li>
+          <li>stå <b>högst 3 tim</b> på gågata</li>
+          <li>stå <b>högst 24 tim</b> där parkering är tillåten 3–24 tim</li>
+        </ul>
+        <p>Gäller inte där det är förbud att <b>stanna</b>, eller på lastplats, taxiplats,
+           vändplats och busshållplats. Kontrollera skylten på plats.</p>
+      </div>
       <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5
@@ -1509,6 +1540,9 @@ function svgIcon(n) {
     warn:     '<path d="M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     car:      '<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v4a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/>',
     motorcycle:'<circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/><path d="M7.2 17h8.6l-2.8-4H9"/><path d="M13 13l2-3h3"/><path d="M5 13h3l1.5 2"/>',
+    // Internationella tillgänglighetssymbolen – samma märke som på skylten och målat på asfalten.
+    wheelchair:'<circle cx="10.6" cy="4.3" r="1.6" fill="currentColor" stroke="none"/><path d="M8.6 8v5h5l3 5"/><path d="M15 10.4a6.6 6.6 0 1 1-8.4 3.2"/>',
+    clock:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
   }[n] || '';
   return '<svg ' + a + '>' + p + '</svg>';
 }
@@ -1560,6 +1594,7 @@ function mcPinIcon(color) {
 // "Endast MC" → dölj allt utom pins + städ/förbud (som gäller MC med).
 function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
   const mc = vehicleMode === 'mc';
+  if (vehicleMode === 'rh' && isRhPlats(s)) return;   // ritas som nål av rhPlatserOverlay
   if (s.gagata) return;                          // gågata ritas som streckad linje (FORESKRIFT) – ej dubbel heldragen
   if (mc && isMcExclusive(s.vehicle)) return;   // MC-rutor ritas av mcRutorOverlay (samma i alla lägen)
   let weight = 6, opacity = 0.95, drawColor = color;
@@ -1605,11 +1640,55 @@ async function mcRutorOverlay(lat, lng) {
   } catch (e) { console.warn('[Städgator] MC-lager:', e.message); }
 }
 
+// ── Reserverade platser för rörelsehindrade som egna nålar ──────────────────
+// Samma grepp som MC-rutorna: platserna är 5–11 m och försvinner som linje på en telefon.
+// Nålen är en rundad FYRKANT i turkos – skild från MC:s runda blå på både form och kulör,
+// och läser som en skylt. Symbolen är den internationella tillgänglighetssymbolen.
+// BONUS: överlägget går utanför drawParkingSegment, som hoppar över gågator. Två uppmätta
+// platser (Sabbatsbergsvägen + en i Gamla Stan) låg på gågata och ritades därför inte alls –
+// och just på gågata GÄLLER tillståndet. De kommer med här.
+function rhPinIcon() {
+  return L.divIcon({ className: 'rh-pin', iconSize: [28, 28], iconAnchor: [14, 14],
+    html: '<div class="rh-pin-b">' + svgIcon('wheelchair') + '</div>' });
+}
+async function fetchRhPlatser(lat, lng, radius = 500) {
+  const deg  = (radius / 111000) * 1.8;
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
+  return tillRaw.map(toAllowedSegment).filter(s => isRhPlats(s) && s.linesSweref.length);
+}
+let rhOverlayReqId = 0;
+async function rhPlatserOverlay(lat, lng) {
+  if (vehicleMode !== 'rh') return;
+  const myReqId = ++rhOverlayReqId;
+  try {
+    const segs = await fetchRhPlatser(lat, lng);
+    if (vehicleMode !== 'rh' || myReqId !== rhOverlayReqId) return;   // läget bytt under hämtningen
+    const grp = L.layerGroup();
+    segs.forEach(s => {
+      const first = s.linesSweref[0] && s.linesSweref[0][0];
+      const dest = first && toLatLng(first[0], first[1]);
+      if (!dest) return;
+      L.marker(dest, { icon: rhPinIcon(), pane: 'markerPane', riseOnHover: true,
+                       alt: 'Reserverad plats för rörelsehindrade' + (s.street ? ' på ' + s.street : ''),
+                       keyboard: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e);
+          showPlaceCardV2(s.street || 'Reserverad plats', 'Reserverad plats', RH_COLOR, dest,
+                          'Kräver parkeringstillstånd för rörelsehindrade', false, true); })
+        .addTo(grp);
+    });
+    streetGroupLayers.push(grp.addTo(map));
+    const b = document.getElementById('count-badge');
+    if (b) { b.textContent = `${segs.length} reserverade platser här`; b.style.display = 'block'; }
+  } catch (e) { console.warn('[Städgator] Rörelsehindrad-lager:', e.message); }
+}
+
 // doljTaxa: sant för en ändamålsplats som gäller NU. Zonens taxa beskriver vad det kostar att
 // PARKERA – på en aktiv lastplats får man inte parkera alls, och taxatexten råkar dessutom ofta
 // ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
 // skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa) {
+// visaRattigheter: sant för en reserverad plats i rörelsehindrad-läget → visa rättighetsrutan.
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -1660,6 +1739,13 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa) 
       .then(txt => { if (seq === cardSeq) setClean(txt); })
       .catch(() => { if (seq === cardSeq) setClean('Kontrollera skylt på plats'); });
   }
+  // ── Rättighetsruta: vad tillståndet ger UTÖVER den här platsen ──
+  // Ordagrant ur Stockholms stads regler (mars 2021). Ligger på KORTET och aldrig som färg på
+  // kartan: API:et skiljer inte "förbud att parkera" (3 h tillåtet) från "förbud att stanna"
+  // (inte alls tillåtet), så en omfärgning av rött skulle kunna skicka någon till en hållplats.
+  const rights = document.getElementById('rh-rights');
+  if (rights) rights.style.display = visaRattigheter ? 'block' : 'none';
+
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
   document.getElementById('street-panel').style.display = 'block';
@@ -1868,6 +1954,9 @@ const GAGATA_TOL_M = 10;             // meter: vinkelrätt avstånd till gågata
                                      // gav 47 parallellgata-läckage + 50 ändpunkts-överflagg per 1 äkta.
 const GAGATA_END_TOL_M = 6;          // meter: strängare vid gågatans ändpunkt (ingen överflagg förbi slutet).
 const GAGATA_COLOR = '#ec4899';      // rosa – gågata (skild från lila "ej bil" och röd "förbud").
+// Turkos – reserverad plats för rörelsehindrade. Skild från MC:s blå #2563eb på BÅDE kulör och
+// form (MC = rund nål, denna = rundad fyrkant som läser som en skylt).
+const RH_COLOR = '#0e7490';
 // Gågata-etikett: visa säsongsslut när det finns (sommargågata), annars permanent.
 const GAGATA_MN = ['jan','feb','mars','apr','maj','juni','juli','aug','sep','okt','nov','dec'];
 function gagataTxt(vt) {
@@ -2356,6 +2445,9 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const tier = cl ? overnightCleaningTier(cl.start) : null;                        // null|'natt'|'morgon'|'sen'
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
+      // Före städbedömningen, av samma skäl som i Nu-flödet: annars blir en reserverad plats
+      // "Trygg över natten" och räknas som en trygg plats i badgen.
+      else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
       else if (tier === 'natt')        { color = '#f59e0b'; txt = `Servas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
       else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
@@ -2576,6 +2668,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       else if (anda)                   { color = '#ef4444'; txt = andamalTxt(s); }
+      // MÅSTE ligga före städgrenarna: "får jag stå här överhuvudtaget" besvaras före "när städas
+      // det". Låg den efter, tog en städvarning över och platsen fick texten "Får stå nu · servas
+      // i natt" + räknades i badgen – uppmätt 17 platser i Vasastan, 45 på Östermalm.
+      else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
       else if (cs && cs.state === 'upcoming') { color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
       else if (nx)                     { color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++; }
@@ -2628,7 +2724,10 @@ let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h
 // OBS moped-klass1/2 är MEDVETET uteslutna ur MC-rutorna (verifierat mot riktig WFS-data 2026-07-21:
 // deras platser är taggade VF_PLATS_TYP "Reserverad p-plats cykel", inte motorcykel – en riktig MC
 // får inte stå där, så de ska inte visas/räknas som "MC-ruta").
-let vehicleMode = localStorage.getItem('vehicle_mode') === 'mc' ? 'mc' : 'bil';
+// Läs tillbaka sparat fordonsval. OBS: måste känna igen ALLA lägen – låg 'rh' kvar utanför
+// listan föll ett sparat rörelsehindrad-läge tillbaka till bil vid varje omladdning.
+let vehicleMode = ['mc', 'rh'].includes(localStorage.getItem('vehicle_mode'))
+  ? localStorage.getItem('vehicle_mode') : 'bil';
 // ── Dämpa gator man inte får stå på ──────────────────────────────────────────
 // Ersätter de två separata switcharna för gågata/förbud (som dessutom inte täckte
 // lila "ej för bil"). Mätt i en Vasastan-vy 2026-07-27: 188 av 255 ritade linjer
@@ -2667,12 +2766,27 @@ function toggleDim() {
 }
 const CAR_VEHICLES = new Set(['fordon', 'personbil']);
 const MC_VEHICLES  = new Set(['motorcykel', 'mc']);   // EXKLUSIVA mc-rutor (ej moped-klass1/2, se ovan)
+const RH_VEHICLES  = new Set(['rörelsehindrade', 'rörelsehindrad']);
+
+// ── Reserverad plats för rörelsehindrade ────────────────────────────────────
+// MÄTT 2026-07-28: 8 av 675 platser (1,2 %) bär VEHICLE = "fordon" i stället för
+// "rörelsehindrade" (Vasastan 3, Östermalm 3, Södermalm 1, Kungsholmen 1). De passerade
+// därför fordonsgrinden och ritades GRÖNA – appen sa "Får stå nu" på en reserverad plats,
+// vilket ger kontrollavgift. Därför avgör PLATSTYPEN, inte fordonsfältet.
+const RH_PLATS_RE = /rörelsehindrad/i;
+function isRhPlats(s) {
+  return RH_PLATS_RE.test(s.platsTyp || '') || RH_VEHICLES.has((s.vehicle || '').toLowerCase());
+}
 // Får det VALDA fordonet stå? ASYMMETRISKT: en MC får stå på vanliga fordon-platser OCH på mc-rutor;
 // en bil får stå på fordon + personbil men INTE på en mc-ruta. (Regel-heuristik – appen säger ändå
 // "kontrollera skylt".)
+// Rörelsehindrad-läget är INTE ett fordon utan "bil + tillstånd": personen kör fortfarande bil och
+// behåller varje rätt en bilist har, PLUS rätten till de reserverade platserna. Därför bil-mängden
+// plus rh – aldrig i stället för.
 function vehicleAllowed(v) {
   v = (v || 'fordon').toLowerCase();
   if (vehicleMode === 'mc') return v === 'fordon' || MC_VEHICLES.has(v);
+  if (vehicleMode === 'rh') return CAR_VEHICLES.has(v) || RH_VEHICLES.has(v);
   return CAR_VEHICLES.has(v);
 }
 function isMcExclusive(v) { return MC_VEHICLES.has((v || 'fordon').toLowerCase()); }   // ruta bara MC får ta
@@ -2680,7 +2794,11 @@ function isMcExclusive(v) { return MC_VEHICLES.has((v || 'fordon').toLowerCase()
 function otherVehicleLabel(v) { return vehicleMode === 'mc' ? `Endast ${v}` : `Ej för bil (${v})`; }
 // I MC-läge visas riktiga MC-rutor som EGNA nålar (pins), inte som gatlinjer – hint-texten måste
 // säga det, annars missar användaren att trycka på nålen (bara "grön gata" räcker inte i mc-läge).
-function tapTargetPhrase() { return vehicleMode === 'mc' ? 'en grön gata eller MC-ikonen' : 'en grön gata'; }
+function tapTargetPhrase() {
+  if (vehicleMode === 'mc') return 'en grön gata eller MC-ikonen';
+  if (vehicleMode === 'rh') return 'en grön gata eller en reserverad plats';
+  return 'en grön gata';
+}
 const WHEN_LABELS = { now: 'Nu',  morgon: 'Morgon',  uc1: 'Kväll',      uc2: 'Natt' };
 const WHEN_SUBS   = { now: 'Var får jag stå just nu?', morgon: 'Nyss servat – ledigt för dagen', uc1: 'Störst chans till plats', uc2: 'Tryggt till imorgon bitti' };
 
@@ -2803,7 +2921,9 @@ function updateLegend(mode) {
   const otherColor = vehicleMode === 'mc' ? '#c3ccd6' : '#9333ea';
   const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
   const mcRow = vehicleMode === 'mc'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>` : '';
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>`
+    : vehicleMode === 'rh'
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #0c5a70;border-radius:5px"></div>Reserverad plats – tillstånd krävs</div>` : '';
   // Taxa 1–5 är en ORDNAD prisskala (dyrast→billigast), inte fem fristående kategorier →
   // en kompakt färgstege i stället för fem staplade rader (samma info, en fjärdedel av höjden).
   const taxaScale =
@@ -2816,6 +2936,7 @@ function updateLegend(mode) {
   // Färgerna förklaras redan en gång i modeRows ovan – därför inga färgrutor här, bara reglaget.
   const dimEtikett = vehicleMode === 'mc' ? 'Tona ner där MC inte får stå' : 'Tona ner där bilen inte får stå';
   const dimVilka   = vehicleMode === 'mc' ? 'Förbud, gågator och platser för andra fordon'
+                   : vehicleMode === 'rh' ? 'Förbud, gågator och platser för mc/buss'
                                           : 'Förbud, gågator och platser för mc/buss';
   const layerToggles =
     `<hr class="lgnd-sep">
@@ -3460,6 +3581,7 @@ function flyToAndShow(lat, lng) {
     else if (uc2) showSafeStreetsNearby(lat, lng, overpassP, foreskriftP);
     else showStreetsNearViewport(foreskriftP);
     if (vehicleMode === 'mc') mcRutorOverlay(lat, lng);   // MC-rutor i ALLA lägen
+    if (vehicleMode === 'rh') rhPlatserOverlay(lat, lng); // reserverade platser i ALLA lägen
   };
   // Redan på plats (t.ex. fordonsbyte på samma destination) → kör flödet direkt, ingen flyTo.
   // Leaflet animerar zoom-transformen även för en flygning på 0 meter → syns som en "skakning".
@@ -3668,15 +3790,20 @@ function getCenter(layer) {
 // ── Lägesväljare ─────────────────────────────────────────────────────────────
 // Fyll toggle-knapparna med ikoner + markera aktivt fordon + visa "Endast MC" bara i MC-läge.
 function renderVehicleToggle() {
-  const bil = document.getElementById('veh-bil'), mc = document.getElementById('veh-mc');
+  const bil = document.getElementById('veh-bil'), mc = document.getElementById('veh-mc'),
+        rh = document.getElementById('veh-rh');
   if (!bil || !mc) return;
   bil.innerHTML = svgIcon('car'); mc.innerHTML = svgIcon('motorcycle');
+  if (rh) { rh.innerHTML = svgIcon('wheelchair'); rh.classList.toggle('on', vehicleMode === 'rh');
+            rh.setAttribute('aria-pressed', vehicleMode === 'rh'); }
   bil.classList.toggle('on', vehicleMode === 'bil');
   mc.classList.toggle('on', vehicleMode === 'mc');
+  bil.setAttribute('aria-pressed', vehicleMode === 'bil');
+  mc.setAttribute('aria-pressed', vehicleMode === 'mc');
 }
 // Byt fordon → spara, markera, rita om Förklaring och kör om flödet för samma plats.
 function setVehicle(v) {
-  v = v === 'mc' ? 'mc' : 'bil';
+  v = (v === 'mc' || v === 'rh') ? v : 'bil';
   if (v === vehicleMode) return;
   vehicleMode = v;
   try { localStorage.setItem('vehicle_mode', v); } catch (e) {}
