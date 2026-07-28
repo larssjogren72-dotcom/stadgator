@@ -15,6 +15,34 @@ if (!API_KEY) {
 console.log(API_KEY ? '[ParkSpot] Server-API-nyckel laddad – användare behöver ingen egen.'
                     : '[ParkSpot] Ingen server-nyckel – faller tillbaka på klientens nyckel.');
 
+// ── Appversion ───────────────────────────────────────────────────────────────
+// Stämplas in i index.html vid SERVERING. Filen skickas redan med no-store, så
+// stämpeln är alltid färsk och kräver inget byggsteg.
+// Varför: en användarrapport måste gå att knyta till exakt den kod personen såg.
+// Innan detta fanns bara ett sätt att veta vad som låg live – hämta parkspot.se och
+// söka efter funktionsnamn i HTML:en.
+// Källa i tur och ordning: plattformens env-variabel → lokal git → okänd.
+// (Flera namn provas: vi vet inte säkert vilken Railway sätter, och det ska inte
+// spela roll. Startloggen nedan visar vilken som faktiskt användes.)
+const VERSION_ENV = ['RAILWAY_GIT_COMMIT_SHA', 'RAILWAY_GIT_COMMIT', 'SOURCE_VERSION',
+                     'GIT_COMMIT', 'COMMIT_SHA', 'HEROKU_SLUG_COMMIT'];
+let APP_SHA = '', APP_SRC = '';
+for (const k of VERSION_ENV) {
+  const v = (process.env[k] || '').trim();
+  if (v) { APP_SHA = v; APP_SRC = 'env:' + k; break; }
+}
+if (!APP_SHA) {
+  try {
+    APP_SHA = require('child_process')
+      .execSync('git rev-parse HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim();
+    APP_SRC = 'git';
+  } catch { APP_SRC = 'okänd'; }
+}
+const APP_VERSION = APP_SHA ? APP_SHA.slice(0, 7) : 'okänd';
+const APP_BUILT   = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+console.log(`[ParkSpot] Version ${APP_VERSION} (${APP_SRC}) · server startad ${APP_BUILT}`);
+
 // ── Server-side cache (TTL + minnesgräns + single-flight) ────────────────────
 // Stockholms data ändras långsamt och är identisk för alla användare → cacha
 // upstream-svar så N användares identiska anrop blir 1 anrop. Skyddar API-nyckeln.
@@ -264,6 +292,14 @@ http.createServer((req, res) => {
       res.end(data);
     });
 
+  } else if (reqUrl.pathname === '/version') {
+    // Vilken kod kör just nu? Läsbart för både människa och skript (deploy-kontroll).
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store');
+    res.writeHead(200);
+    res.end(JSON.stringify({ version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT }));
+
   } else {
     // Servera statiska filer (index.html)
     const filePath = path.join(
@@ -281,9 +317,16 @@ http.createServer((req, res) => {
       // kod efter en deploy/ändring (stale-JS-fällan slog till flera ggr trots no-cache).
       // no-store = webbläsaren sparar aldrig svaret → omöjligt att servera gammal JS.
       // Kostar försumbart: en liten single-file-HTML per laddning.
-      if (ext === '.html' || reqUrl.pathname === '/') res.setHeader('Cache-Control', 'no-store, must-revalidate');
+      let body = data;
+      if (ext === '.html' || reqUrl.pathname === '/') {
+        res.setHeader('Cache-Control', 'no-store, must-revalidate');
+        // Stämpla in versionen. Går bara på HTML och bara på platshållarna – inget byggsteg.
+        body = Buffer.from(String(data)
+          .split('__APP_VERSION__').join(APP_VERSION)
+          .split('__APP_BUILT__').join(APP_BUILT), 'utf8');
+      }
       res.writeHead(200);
-      res.end(data);
+      res.end(body);
     });
   }
 

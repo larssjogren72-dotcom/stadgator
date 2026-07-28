@@ -720,6 +720,7 @@
     <p><strong>Ansvar:</strong> informationen kan vara inaktuell eller felaktig. Kontrollera alltid lokala skyltar. ParkSpot ansvarar inte för parkeringsböter eller bogsering.</p>
     <p><strong>Din data:</strong> vi lagrar ingen personlig information på server. Hemadress och inställningar sparas bara lokalt i din webbläsare. Din GPS-position används enbart i din enhet för att visa var du är – den skickas aldrig till oss.</p>
     <p><strong>Statistik:</strong> om du accepterar används Google Analytics med anonymiserad IP för att förstå hur appen används. Du kan avböja – appen fungerar lika bra ändå.</p>
+    <p id="privacy-version" style="font-size:11px;opacity:.6;margin-top:4px">Version <span id="app-version-txt">–</span></p>
     <button class="privacy-close" onclick="closePrivacy()">Stäng</button>
   </div>
 </div>
@@ -881,6 +882,13 @@ function toLatLng(x, y) {
   return L.latLng(y, x);
 }
 
+// ── Appversion ───────────────────────────────────────────────────────────────
+// Platshållarna nedan byts ut av server.js vid servering. Öppnas filen direkt från
+// disk (utan servern) står de kvar orörda → visa "lokal" i stället för rå platshållare.
+// Regexen matchar bara prefixet, så den blir inte själv utbytt.
+const APP_VERSION = (function (v) { return /^__APP/.test(v) ? 'lokal' : v; })('__APP_VERSION__');
+const APP_BUILT   = (function (v) { return /^__APP/.test(v) ? ''      : v; })('__APP_BUILT__');
+
 // ── Datum ────────────────────────────────────────────────────────────────────
 const SV_DAYS   = ['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
 const API_DAYS  = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
@@ -919,7 +927,13 @@ function initCookieConsent() {
   if (c === 'accepted') loadGA();
   else if (c !== 'declined') document.getElementById('cookie-banner').style.display = 'flex';
 }
-function openPrivacy()  { document.getElementById('privacy-modal').style.display = 'flex'; }
+function openPrivacy()  {
+  // Versionen skrivs vid öppning – syns bara för den som letar, men gör en användarrapport
+  // knytbar till exakt den kod personen körde.
+  const v = document.getElementById('app-version-txt');
+  if (v) v.textContent = APP_VERSION + (APP_BUILT ? ' · ' + APP_BUILT : '');
+  document.getElementById('privacy-modal').style.display = 'flex';
+}
 function closePrivacy() { document.getElementById('privacy-modal').style.display = 'none'; }
 
 // ── Recensions-/feedback-prompt (AEO + datakvalitet) ─────────────────────────
@@ -941,7 +955,10 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   function track(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review' }); } catch (e) {} }  // GA-händelse (bara om cookies accepterats)
   function sendForm(msg) {   // logga reaktion/kommentar till Google-formuläret → räknebart i arket
     if (!FEEDBACK.action || !FEEDBACK.entryMsg || !msg) return;
+    // Kontext = läge + APPVERSION. Utan version går en rapport inte att knyta till den kod
+    // personen faktiskt såg, så snart vi släpper oftare än användaren hör av sig.
     var ctx = ''; try { ctx = (typeof currentMode !== 'undefined' && currentMode) || (typeof mode !== 'undefined' && mode) || ''; } catch (e) {}
+    try { if (typeof APP_VERSION !== 'undefined' && APP_VERSION) ctx = (ctx ? ctx + ' · ' : '') + 'ver ' + APP_VERSION; } catch (e) {}
     var body = {};
     if (FEEDBACK.entryCtx) { body[FEEDBACK.entryMsg] = msg; body[FEEDBACK.entryCtx] = ctx; }
     else { body[FEEDBACK.entryMsg] = msg + (ctx ? '  ·  läge: ' + ctx : ''); }   // kontext i samma fält
