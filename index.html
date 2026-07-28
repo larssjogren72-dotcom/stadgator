@@ -2443,20 +2443,25 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const dest  = first && toLatLng(first[0], first[1]);
       const cl = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());   // null | {start,end}
       const tier = cl ? overnightCleaningTier(cl.start) : null;                        // null|'natt'|'morgon'|'sen'
+      // Se Nu-flödet: "får jag stå här alls" före "när städas det". En MC-ruta i MC-läget är
+      // tillåten och behåller därför sin städvarning (grenen nedan ligger kvar efter tier).
+      const ejForDig = !vehicleAllowed(s.vehicle);
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       // Före städbedömningen, av samma skäl som i Nu-flödet: annars blir en reserverad plats
       // "Trygg över natten" och räknas som en trygg plats i badgen.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
+      else if (ejForDig)               { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (tier === 'natt')        { color = '#f59e0b'; txt = `Servas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
       else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
-      else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
       // Detaljraden KOMPLETTERAR chipet (upprepar aldrig): har chipet tiden → ge handlingen; saknar tid → ge tiden.
+      // Ingen städinstruktion för platser man inte får använda.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
+                    : (isRhPlats(s) || ejForDig) ? ''
                     : tier === 'natt'   ? `Flytta bilen i kväll`
                     : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
                     : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
@@ -2665,6 +2670,12 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // städgrenarna, annars räknas den som "får stå" i badgen. Utanför fönstret faller
       // den igenom till vanlig logik – "övrig tid får fordon parkeras" (föreskrifterna).
       const anda = andamalActiveAt(s, new Date()) === true;
+      // "Får jag stå här överhuvudtaget?" måste besvaras FÖRE "när städas det". Låg grenen efter
+      // städgrenarna tog en städvarning över och en busshållplats fick texten "Får stå nu · servas
+      // i natt" + räknades i badgen – uppmätt 304 sträckor i Vasastan (buss, cykel, beskickning,
+      // MC-rutor). OBS: en MC-ruta i MC-läget är en plats man FÅR använda – där är städvarningen
+      // relevant och grenen `mc && isMcExclusive` ligger därför kvar efter städningen.
+      const ejForDig = !vehicleAllowed(s.vehicle);
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       else if (anda)                   { color = '#ef4444'; txt = andamalTxt(s); }
@@ -2672,15 +2683,18 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // det". Låg den efter, tog en städvarning över och platsen fick texten "Får stå nu · servas
       // i natt" + räknades i badgen – uppmätt 17 platser i Vasastan, 45 på Östermalm.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
+      else if (ejForDig)               { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
       else if (cs && cs.state === 'upcoming') { color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
       else if (nx)                     { color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++; }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
-      else if (!vehicleAllowed(s.vehicle)) { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
+      // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
+      // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : anda ? `Parkering tillåten övrig tid`
+                    : (isRhPlats(s) || ejForDig) ? ''
                     : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
                     : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
                     : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · flytta i kväll` : '';
