@@ -2699,7 +2699,7 @@ function updateLegend(mode) {
     `<hr class="lgnd-sep">
      <div class="lgnd-row"><span style="flex:1">${dimEtikett}</span>
        <label class="lgnd-switch"><input type="checkbox" ${dimBlocked ? 'checked' : ''} onchange="toggleDim()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
-     ${dimBlocked ? `<div class="lgnd-hidden-note">${dimVilka} visas svagt – de är kvar på kartan, för en tom gata betyder "ingen data", inte "fritt". Sparat till nästa gång.</div>` : ''}
+     ${dimBlocked ? `<div class="lgnd-hidden-note">Nedtonade, inte dolda – tomt betyder «ingen data», inte «fritt».</div>` : ''}
      <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
@@ -2753,7 +2753,32 @@ function updateLegend(mode) {
 function applyLegendState() {
   if (!legendDiv) return;
   legendDiv.classList.toggle('collapsed', legendCollapsed);   // CSS sköter mjuk uttoning + pill
+  fitLegendHeight();
 }
+
+// Legenden växer med läge + fordon + nedtoningsnotisen, och bottenpanelen (#bottom, z-index 1050)
+// ritas OVANPÅ den (legenden har 800). På låga mobilskärmar hamnade därför legendens nedre del
+// under menyn – uppmätt på 375×667: 77 px dolt redan före 2026-07-28, 96 px med nedtoningsnotisen.
+// Ge legenden ett tak = avståndet ner till bottenpanelen, och låt den skrolla i stället för att
+// försvinna. Räknas om vid varje render och vid resize/orientationsbyte, eftersom bottenpanelen
+// flyttar sig med appens tillstånd (uppmätt topp 494 respektive 640 i olika lägen).
+function fitLegendHeight() {
+  if (!legendDiv) return;
+  const inner = document.getElementById('legend-content');
+  if (!inner) return;
+  if (legendCollapsed) { inner.style.maxHeight = ''; inner.style.overflowY = ''; return; }
+  const bot = document.getElementById('bottom');
+  const golv = bot ? bot.getBoundingClientRect().top : window.innerHeight;
+  const ir = inner.getBoundingClientRect();
+  // Legendrutan har egen padding/kant UNDER innehållet – räkna bort den, annars
+  // sticker de sista pixlarna ändå in under menyn.
+  const krom = Math.max(0, legendDiv.getBoundingClientRect().bottom - ir.bottom);
+  const plats = Math.round(golv - ir.top - krom - 12);   // 12 px luft ner till menyn
+  inner.style.maxHeight = Math.max(120, plats) + 'px';   // aldrig så litet att det blir oläsligt
+  inner.style.overflowY = 'auto';
+}
+window.addEventListener('resize', fitLegendHeight);
+window.addEventListener('orientationchange', () => setTimeout(fitLegendHeight, 250));
 
 function toggleLegend() {
   legendCollapsed = !legendCollapsed;
