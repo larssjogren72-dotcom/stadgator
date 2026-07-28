@@ -2053,6 +2053,33 @@ function andamalTxt(s) {
   return `${namn} ${nar} ${fmtClock(s.andamalStart)}–${fmtClock(s.andamalEnd)}`.replace(/\s+/g, ' ').trim();
 }
 
+// ── P-fickor som lagras som YTA i stället för linje ─────────────────────────
+// featureLines() returnerar [] för Polygon/MultiPolygon → sådana poster ritas inte alls.
+// Uppmätt 2026-07-28: ALLA 24 rörelsehindrade-ytor i fem områden är avlånga fickor
+// (bredd median 2,8 m, max 4,1 m) ⇒ ytans längsta diagonal sammanfaller i praktiken med
+// långsidan och är därför en korrekt representativ linje. Hela den befintliga kedjan
+// (färgkaskad, städmatchning, nedtoning, platskort) fungerar då oförändrad.
+// ⚠️ AVGRÄNSNING (Lars beslut 2026-07-28): ENBART reserverade platser för rörelsehindrade.
+// Att rita ALLA ytor skulle lägga till 3 061 m nytt grönt i Hässelby där 94 % bär en säsong
+// och 46 % en maxtid som appen ännu inte läser – det väntar på säsong/maxtid-fixen.
+const BAY_MIN_M = 2;          // uppmätt en degenererad yta på 0,3 m → för kort att rita
+function polygonRings(g) {
+  if (!g) return [];
+  return g.type === 'Polygon'      ? [g.coordinates[0]]
+       : g.type === 'MultiPolygon' ?  g.coordinates.map(p => p[0]) : [];
+}
+function bayLines(f) {
+  return polygonRings(f.geometry).map(r => {
+    let bäst = 0, a = null, b = null;
+    for (let i = 0; i < r.length; i++)
+      for (let j = i + 1; j < r.length; j++) {
+        const d = Math.hypot(r[j][0] - r[i][0], r[j][1] - r[i][1]);
+        if (d > bäst) { bäst = d; a = r[i]; b = r[j]; }
+      }
+    return bäst >= BAY_MIN_M ? [a, b] : null;
+  }).filter(Boolean);
+}
+
 // Lager 3 – normalisera P_TILLATEN-feature → ParkingSegment
 const SHORT_VISITOR_M = 30;   // uppmätt besöksficka under detta = trolig 30-min-ficka (ej trygg natt)
 
@@ -2068,10 +2095,16 @@ function toAllowedSegment(f) {
   // Exakt minutgräns finns ej i öppen data → ärlig etikett "kontrollera tid".
   const visitorOnly = /endast besök/i.test(platsTyp);
   const vfMeter = p.VF_METER != null ? +p.VF_METER : null;
+  // Ytor räddas bara för rörelsehindrade-platser (se bayLines ovan) – övriga ytor
+  // förblir oritade tills säsong/maxtid läses, annars blir appen för generös.
+  const linjer = featureLines(f);
+  const linesSweref = linjer.length ? linjer
+                    : (/rörelsehindrad/i.test(platsTyp) ? bayLines(f) : []);
   return {
     kind: 'allowed',
     vehicle: (p.VEHICLE || 'fordon').toLowerCase(),
-    linesSweref: featureLines(f),      // [[x,y],…] SWEREF99 (EPSG:3011)
+    linesSweref,                       // [[x,y],…] SWEREF99 (EPSG:3011)
+    fromBay: !linjer.length && linesSweref.length > 0,   // härledd ur en yta (spårbarhet)
     rate: parseRate(p.PARKING_RATE),
     platsTyp,
     visitorOnly,
