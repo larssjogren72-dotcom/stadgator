@@ -1570,7 +1570,8 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
   s.linesSweref.forEach(line => {
     const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: drawColor, weight, opacity }).addTo(grp);
     pl._sid = s; pl._base = drawColor;
-    pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp); showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow); });
+    pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp);
+      showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow, color === '#ef4444' && !!s.andamal); });
   });
 }
 
@@ -1604,7 +1605,11 @@ async function mcRutorOverlay(lat, lng) {
   } catch (e) { console.warn('[Städgator] MC-lager:', e.message); }
 }
 
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
+// doljTaxa: sant för en ändamålsplats som gäller NU. Zonens taxa beskriver vad det kostar att
+// PARKERA – på en aktiv lastplats får man inte parkera alls, och taxatexten råkar dessutom ofta
+// ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
+// skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -1625,7 +1630,9 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow) {
   const taxaRow = document.getElementById('taxa-row');
   const z = dest ? taxaZoneAt(dest.lat, dest.lng) : null;
   const isMcRuta = statusColor === '#2563eb';
-  if (isMcRuta) {
+  if (doljTaxa) {
+    taxaRow.style.display = 'none';
+  } else if (isMcRuta) {
     // Dedikerad MC-ruta → egen, lägre taxa (serie 11–15, ~2,50–13,75). Vi har inte mc-zonen per gata,
     // så vi är ärliga: intervall + "kontrollera skylt", inte ett falskt exakt pris.
     taxaRow.innerHTML = svgIcon('cash') + '<span><b>MC-taxa</b> · ofta 2,50–13,75 kr/tim (lägre än bil) – kontrollera skylt</span>';
@@ -1998,6 +2005,54 @@ function parseRate(raw) {
   };
 }
 
+// ── Ändamålsplatser (lastplats, taxi, på-/avstigning) ───────────────────────
+// P_TILLATEN bär dem med egen geometri och NUMERISK VF_PLATS_TYP. Koden är stadens
+// interna platstyps-id (inte lagrummet – kod 7 förekommer med lagrum "7", "7+16",
+// "7+16+17"). Alla fem koder är verifierade mot föreskrift i original och betyder
+// samma sak för appens fråga: INOM fönstret är detta inte vanlig parkering.
+// "Övrig tid får fordon parkeras" står ordagrant i föreskrifterna (3/3 lästa 2026-07-28)
+// → utanför fönstret faller posten igenom till vanlig logik, precis som i dag.
+const ANDAMAL_LABELS = { '7': 'Lastplats', '17': 'På-/avstigning', '18': 'Lastplats',
+                         '20': 'Taxiplats', '22': 'Skolskjuts' };
+const andamalKod = (t) => { const s = String(t == null ? '' : t).trim();
+                            return /^\d+$/.test(s) && ANDAMAL_LABELS[s] ? s : null; };
+
+// Gäller ändamålsplatsen vid tidpunkten `d`? null = fönstret går inte att tolka
+// (då rör vi inte segmentet – en otolkbar regel får aldrig färga om något).
+// Tre mönster täcker 180/180 poster i fem områden, mätt 2026-07-28.
+const SV_WEEKDAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
+function andamalActiveAt(s, d) {
+  if (!s.andamal || s.andamalStart == null || s.andamalEnd == null) return null;
+  const min = h => Math.floor(h / 100) * 60 + (h % 100);
+  const nu = d.getHours() * 60 + d.getMinutes(), a = min(s.andamalStart), b = min(s.andamalEnd);
+  if (!(a <= b ? (nu >= a && nu < b) : (nu >= a || nu < b))) return false;   // utanför klockslaget
+  const dag = d.getDay(), dt = (s.andamalDayType || '').toLowerCase();
+  // "vardag utom vardag före sön- och helgdag" = mån–fre. Dagen före helgdag kan vi inte
+  // avgöra utan helgdagskalender → vi behandlar den som vardag (försiktigt håll: vi
+  // flaggar hellre en lastplats för mycket än släpper igenom en aktiv).
+  if (dt.includes('utom vardag före')) return dag >= 1 && dag <= 5;
+  if (dt.includes('vardag före'))      return dag === 6;
+  if (dt.includes('vardag'))           return dag >= 1 && dag <= 5;
+  // Tom DAY_TYPE + START_WEEKDAY = EXAKT den veckodagen. Verifierat 3/3 mot föreskrift
+  // i original ("…ska vara ändamålsplats … måndag klockan 07.00 - 16.00", 0180 2017:11256).
+  // OBS: detta är INTE veckospann – jfr START_WEEKDAY på städ-/förbudsposter.
+  // ⚠️ KÄND LUCKA: API:et tappar bevisat den andra veckodagen (Ormängsgatan säger
+  // "måndag OCH torsdag", API:et har måndag två gånger; Norrtullsgatan "tisdag OCH
+  // onsdag", API:et bara tisdag). Vi visar den dag datan har – aldrig fler.
+  if (s.andamalWeekday) return SV_WEEKDAYS[dag] === String(s.andamalWeekday).toLowerCase();
+  return null;
+}
+// Chip: bär tiden (detaljraden ger då handlingen – se dedup-regeln i Nu-flödet).
+function andamalTxt(s) {
+  const namn = ANDAMAL_LABELS[s.andamal] || 'Ändamålsplats';
+  const dt = (s.andamalDayType || '').toLowerCase();
+  const nar = dt.includes('utom vardag före') ? 'vardag'
+            : dt.includes('vardag före')      ? 'dag före helgdag'
+            : dt.includes('vardag')           ? 'vardag'
+            : s.andamalWeekday                ? String(s.andamalWeekday) : '';
+  return `${namn} ${nar} ${fmtClock(s.andamalStart)}–${fmtClock(s.andamalEnd)}`.replace(/\s+/g, ' ').trim();
+}
+
 // Lager 3 – normalisera P_TILLATEN-feature → ParkingSegment
 const SHORT_VISITOR_M = 30;   // uppmätt besöksficka under detta = trolig 30-min-ficka (ej trygg natt)
 
@@ -2021,6 +2076,13 @@ function toAllowedSegment(f) {
     platsTyp,
     visitorOnly,
     visitorShort: visitorOnly && vfMeter != null && vfMeter <= SHORT_VISITOR_M,
+    // Ändamålsplats: spara RÅDATAN, aldrig utfallet – aktiv/inaktiv beror på klockan
+    // och måste räknas om vid varje rendering (jfr cache-regeln för säsong/dagtyp).
+    andamal: andamalKod(p.VF_PLATS_TYP),
+    andamalStart: p.START_TIME != null ? +p.START_TIME : null,
+    andamalEnd:   p.END_TIME   != null ? +p.END_TIME   : null,
+    andamalDayType: p.DAY_TYPE || '',
+    andamalWeekday: p.START_WEEKDAY || '',
     street: p.STREET_NAME || '',
     district: p.CITY_DISTRICT || '',
     citation: p.CITATION || ''
@@ -2474,8 +2536,13 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       const cs = dest && clean.near(dest, name);                                     // dagens: null | {state,start,end}
       // Imminent natt-/morgonstädning imorgon (bara relevant om dagens ej aktiv/kommande):
       const nx = dest && (!cs || cs.state === 'passed') ? nextClean(dest, name) : null;
+      // Ändamålsplats aktiv just nu = inte parkering (röd, som förbud). Måste ligga FÖRE
+      // städgrenarna, annars räknas den som "får stå" i badgen. Utanför fönstret faller
+      // den igenom till vanlig logik – "övrig tid får fordon parkeras" (föreskrifterna).
+      const anda = andamalActiveAt(s, new Date()) === true;
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
+      else if (anda)                   { color = '#ef4444'; txt = andamalTxt(s); }
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
       else if (cs && cs.state === 'upcoming') { color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
       else if (nx)                     { color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++; }
@@ -2484,6 +2551,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
+                    : anda ? `Parkering tillåten övrig tid`
                     : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
                     : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
                     : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · flytta i kväll` : '';
@@ -2493,6 +2561,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
 
     streetGroupLayers.push(grp.addTo(map));
     applyDimAll();
+    // Ändamålsplatserna är KORTA (median 13 m) och ligger inklämda i längre p-sträckor →
+    // utan detta kan en grön linje som ritas senare täcka dem helt. Bara VÅRA röda lyfts:
+    // förbudslinjerna saknar _sid och ska medvetet ligga underst (oförändrat).
+    grp.eachLayer(l => { if (l._base === '#ef4444' && l._sid && l._sid.andamal && l.bringToFront) l.bringToFront(); });
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
     const badge = document.getElementById('count-badge');
     badge.textContent = `${okNu} gator där du får stå nu`;
