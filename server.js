@@ -247,12 +247,19 @@ http.createServer((req, res) => {
     // Städdata för EN veckodag, begränsat till sökrutan. Svarar i samma GeoJSON-form som
     // /proxy/servicedagar/weekday/{dag}, så klienten kan byta URL utan att röra sin logik.
     // ?dag=<0-6 eller svenskt namn>&bbox=minLng,minLat,maxLng,maxLat
-    const dagParam = (reqUrl.searchParams.get('dag') || '').toLowerCase().trim();
-    const dagIdx = /^\d$/.test(dagParam) ? +dagParam : SCHED_API_DAYS.indexOf(dagParam);
+    // ?dag=  → EN veckodag, svar = FeatureCollection (samma form som gamla proxyn)
+    // ?dagar=→ FLERA veckodagar i ETT anrop, svar = { dagar: { "1": FeatureCollection, … } }
+    //          Sju separata anrop för "nästa städning inom en vecka" vore sju rundturer.
+    const tolkaDag = s => { s = (s || '').toLowerCase().trim();
+      return /^\d$/.test(s) ? +s : SCHED_API_DAYS.indexOf(s); };
+    const flera = reqUrl.searchParams.has('dagar');
+    const dagar = flera ? (reqUrl.searchParams.get('dagar') || '').split(',').map(tolkaDag)
+                        : [tolkaDag(reqUrl.searchParams.get('dag'))];
     const bbox = (reqUrl.searchParams.get('bbox') || '').split(',').map(Number);
-    if (dagIdx < 0 || dagIdx > 6 || bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
+    if (!dagar.length || dagar.some(d => !(d >= 0 && d <= 6)) ||
+        bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
       res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
-      res.end(JSON.stringify({ error: 'dag (0-6 eller veckodagsnamn) och bbox=minLng,minLat,maxLng,maxLat krävs' }));
+      res.end(JSON.stringify({ error: 'dag/dagar (0-6 eller veckodagsnamn) och bbox=minLng,minLat,maxLng,maxLat krävs' }));
       return;
     }
     const warm = !!schedGeo;
@@ -260,11 +267,15 @@ http.createServer((req, res) => {
       const [aLng, aLat, bLng, bLat] = bbox;
       // Behåll varje feature vars egen bbox SKÄR rutan – samma semantik som WFS BBOX, så en
       // gata som sträcker sig ut ur rutan följer med i sin helhet (viktigt för 25 m-matchningen).
-      const features = (schedGeo && schedGeo[dagIdx] || [])
-        .filter(f => !(f._bb[2] < aLng || f._bb[0] > bLng || f._bb[3] < aLat || f._bb[1] > bLat))
-        .map(f => ({ type: f.type, properties: f.properties, geometry: f.geometry }));
+      const utsnitt = d => ({ type: 'FeatureCollection',
+        features: (schedGeo && schedGeo[d] || [])
+          .filter(f => !(f._bb[2] < aLng || f._bb[0] > bLng || f._bb[3] < aLat || f._bb[1] > bLat))
+          .map(f => ({ type: f.type, properties: f.properties, geometry: f.geometry })) });
+      const kropp = flera
+        ? { dagar: Object.fromEntries(dagar.map(d => [d, utsnitt(d)])) }
+        : utsnitt(dagar[0]);
       send(res, 200, 'application/json; charset=utf-8',
-           Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), warm ? 'HIT' : 'MISS');
+           Buffer.from(JSON.stringify(kropp)), warm ? 'HIT' : 'MISS');
     }).catch(() => {
       res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
       res.end(JSON.stringify({ error: 'städschema otillgängligt' }));

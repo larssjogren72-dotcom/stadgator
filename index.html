@@ -417,14 +417,17 @@
     #hero-why { font-size: 12px; line-height: 1.5; color: rgba(15,23,42,0.62); margin-top: 6px; }
 
     /* Metarader – lugna rader, ingen tung box */
-    #clean-row, #taxa-row {
+    #clean-row, #taxa-row, #next-clean-row {
       display: flex; align-items: flex-start; gap: 8px;
       background: none; border: 0; padding: 0;
       font-size: 12.5px; line-height: 1.5; margin-bottom: 7px;
     }
     #clean-row { color: #b45309; }
     #taxa-row  { color: rgba(15,23,42,0.62); }
-    #clean-row svg, #taxa-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
+    /* Nästa städning – en sakuppgift, inte en varning. Mörkare än taxaraden men utan
+       städradens orange, som betyder "akta dig". */
+    #next-clean-row { color: var(--text); font-weight: 500; }
+    #clean-row svg, #taxa-row svg, #next-clean-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
     #taxa-row b  { color: var(--text); font-weight: 600; }
     #clean-row b { color: #b45309; font-weight: 600; }
     #clean-row .season { color: rgba(15,23,42,0.58); font-size: 11.5px; }
@@ -837,6 +840,7 @@
         <div id="hero-main"></div>
         <div id="hero-why"></div>
       </div>
+      <div id="next-clean-row" style="display:none"></div>
       <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
       <div id="rh-rights" style="display:none">
@@ -1633,7 +1637,11 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
     const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: drawColor, weight, opacity }).addTo(grp);
     pl._sid = s; pl._base = drawColor;
     pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp);
-      showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow, color === '#ef4444' && !!s.andamal); });
+      const nasta = (s.visaNastaStad && nastaStadUppslag && dest)
+        ? nastaStadTxt(nastaStadUppslag(dest, (s.street || '').toLowerCase().trim(), new Date()), new Date())
+        : null;
+      showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow,
+                      color === '#ef4444' && !!s.andamal, false, nasta); });
   });
 }
 
@@ -1715,7 +1723,7 @@ async function rhPlatserOverlay(lat, lng) {
 // ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
 // skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
 // visaRattigheter: sant för en reserverad plats i rörelsehindrad-läget → visa rättighetsrutan.
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter) {
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -1772,6 +1780,14 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   // (inte alls tillåtet), så en omfärgning av rött skulle kunna skicka någon till en hållplats.
   const rights = document.getElementById('rh-rights');
   if (rights) rights.style.display = visaRattigheter ? 'block' : 'none';
+
+  // Nästa städning – sakuppgift, bara där den är relevant (platser man får använda).
+  const ncr = document.getElementById('next-clean-row');
+  if (ncr) {
+    if (nastaStad) { ncr.innerHTML = svgIcon('clock') + '<span>' + escHtml(nastaStad) + '</span>';
+                     ncr.style.display = 'flex'; }
+    else ncr.style.display = 'none';
+  }
 
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
@@ -2661,19 +2677,116 @@ function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH) {
   };
 }
 
+// Sätts av Nu-flödet, läses av platskortet vid klick. Null = raden visas inte.
+let nastaStadUppslag = null;
+
+// ── Nästa städning inom en vecka ────────────────────────────────────────────
+// Hela veckans städdata i ETT bbox-anrop (sju separata vore sju rundturer).
+// Uppmätt: hela veckan = 104 kB i Vasastan, mot 4 046 kB för TVÅ dagar tidigare.
+async function fetchServicedaysWeek(lat, lng) {
+  try {
+    const r = await fetch(`/servicedagar-bbox?dagar=0,1,2,3,4,5,6&bbox=${servicedagarBbox(lat, lng).join(',')}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return (await r.json()).dagar || null;
+  } catch (e) {
+    console.warn('[Städgator] veckoschema misslyckades:', e.message);
+    return null;      // → raden utelämnas; resten av flödet är opåverkat
+  }
+}
+
+// Ger (latlng, gatunamn) → { when, start, end, dagar } för nästa städstart efter `now`,
+// eller null om ingen inom 7 dygn. Samma grindar som övriga städmatchningar:
+// cleaningFeatureInReach + gatunamn + 25 m.
+// ⚠️ SÄSONG prövas mot VARJE kandidatdatum, inte mot dagens. En post kan vara ur säsong i dag
+// och i säsong om tre dagar (vinterstädning 1/11–15/5). Därför får utfallet ALDRIG cachas
+// över ett dygnsskifte – bara indatan får cachas.
+// ⚠️ Uppslaget är PER SEGMENT, inte per gatunamn: uppmätt har 22 av 612 gator flera städfönster
+// samma dag, och 13 av dem ligger på olika sträckor (Dalagatan: 32 m isär).
+function buildNextCleaningWeek(veckoData, lat, lng) {
+  if (!veckoData) return () => null;
+  const perDag = [];
+  for (let d = 0; d < 7; d++) {
+    const fc = veckoData[d] || veckoData[String(d)];
+    const byName = new Map();
+    ((fc && fc.features) || []).forEach(f => {
+      const p = f.properties || {};
+      if (p.START_TIME == null) return;
+      if (!cleaningFeatureInReach(f, lat, lng)) return;
+      const name = (p.STREET_NAME || '').toLowerCase().trim();
+      featureLines(f).forEach(line => {
+        for (let i = 0; i < line.length - 1; i++) {
+          if (!byName.has(name)) byName.set(name, []);
+          byName.get(name).push({ a: toLatLng(line[i][0], line[i][1]),
+                                  b: toLatLng(line[i+1][0], line[i+1][1]),
+                                  start: p.START_TIME, end: p.END_TIME, p });
+        }
+      });
+    });
+    perDag.push(byName);
+  }
+  return (ll, name, now) => {
+    if (!name || !ll) return null;
+    // i går till 7, inte 6. Annars får en gata som städas EN gång i veckan fel svar exakt på
+    // sin egen städdag: onsdag 09:10 har onsdagsfönstret 00–06 passerat, och nästa tillfälle
+    // är nästa onsdag = i+7. Med i<=6 blev svaret felaktigt "ingen städning den närmaste veckan"
+    // samtidigt som schemaraden bredvid sa "Servas onsdagar 00–06". Uppmätt på Ynglingagatan.
+    for (let i = 0; i <= 7; i++) {
+      const dat = new Date(now); dat.setDate(now.getDate() + i);
+      const kand = perDag[dat.getDay()].get(name);
+      if (!kand) continue;
+      let bast = null;
+      for (const s of kand) {
+        if (!cleaningActiveOn(s.p, dat)) continue;
+        if (distPointToSegmentLL(ll, s.a, s.b) > 25) continue;
+        const st = new Date(dat);
+        st.setHours(Math.floor(s.start / 100), s.start % 100, 0, 0);
+        if (st <= now) continue;
+        if (!bast || st < bast.when) bast = { when: st, start: s.start, end: s.end, dagar: i };
+      }
+      if (bast) return bast;
+    }
+    return null;
+  };
+}
+
+// Ren SAKUPPGIFT, inget löfte. Vi säger när städningen kommer – inte att platsen "håller"
+// till dess: maxtid (MAX_HOURS/MINUTES/DAYS) läses ännu inte, så ett "håller till"-påstående
+// vore för generöst. Den formuleringen kan användas först när maxtid är inbyggd.
+function nastaStadTxt(n, now) {
+  if (!n) return 'Ingen städning de närmaste 8 dygnen';
+  const h = (n.when - now) / 3600000;
+  // Hela dygn räcker – "om 1,6 dygn" är falsk precision när klockslaget ändå står bredvid.
+  const om = h < 1  ? `om ${Math.max(1, Math.round(h * 60))} min`
+           : h < 24 ? `om ${Math.round(h)} tim`
+           : `om ${Math.round(h / 24)} dygn`;
+  const nar = n.dagar === 0 ? 'i dag' : n.dagar === 1 ? 'i morgon'
+            : 'på ' + SV_DAYS[n.when.getDay()].toLowerCase();
+  // Alltid HH:MM här. fmtClock ger "00" för midnatt, vilket läser fel i en lös tidsangivelse
+  // ("på fredag 00") även om det fungerar i ett intervall ("00–06").
+  const kl = `${String(Math.floor(n.start/100)).padStart(2,'0')}:${String(n.start%100).padStart(2,'0')}`;
+  return `Nästa städning ${nar} ${kl} · ${om}`;
+}
+
 async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
   clearStreetsFromMap();
   document.getElementById('hint').innerHTML =
     `<div style="display:flex;align-items:center;gap:12px"><div class="mini-spinner"></div>
        <span style="color:var(--text);font-size:14px">Kollar var du får stå just nu…</span></div>`;
   try {
-    const [{ allowed, forbiddenLines, gagataLines }, cleaningToday, cleaningTomorrow] = await Promise.all([
-      parkPromise ? parkPromise : loadParkingV2(lat, lng),
-      fetchServicedays(getKey(), apiDay(new Date()), servicedagarBbox(lat, lng)),   // DAGENS städning
-      fetchServicedays(getKey(), apiDay(tomorrow()), servicedagarBbox(lat, lng)),   // MORGONDAGENS (för imminent natt-städning)
+    // Hela veckan i ETT anrop – den innehåller redan i dag och i morgon, så de hämtas inte
+    // separat (gav 3 anrop / 504 kB mot 1 anrop / 104 kB). Faller veckoanropet bort används
+    // de gamla endagsanropen, så flödet aldrig blir utan städdata.
+    const veckoP = fetchServicedaysWeek(lat, lng);
+    const [{ allowed, forbiddenLines, gagataLines }, veckoData] = await Promise.all([
+      parkPromise ? parkPromise : loadParkingV2(lat, lng), veckoP,
     ]);
+    const dagUr = d => (veckoData && (veckoData[d.getDay()] || veckoData[String(d.getDay())])) || null;
+    const cleaningToday    = dagUr(new Date())  || await fetchServicedays(getKey(), apiDay(new Date()), servicedagarBbox(lat, lng));
+    const cleaningTomorrow = dagUr(tomorrow())  || await fetchServicedays(getKey(), apiDay(tomorrow()), servicedagarBbox(lat, lng));
     const grp = L.layerGroup();
     const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp);
+    // Indexet byggs en gång; själva uppslaget sker vid klick (se s.visaNastaStad).
+    nastaStadUppslag = buildNextCleaningWeek(veckoData, lat, lng);
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
     const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
 
@@ -2725,6 +2838,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
                     : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
                     : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · flytta i kväll` : '';
+      // Flagga bara – uppslaget görs LAT vid klick. Att beräkna det för alla segment i förväg
+      // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
+      // "Nästa städning" är dessutom irrelevant på platser man inte får använda.
+      s.visaNastaStad = !anda && !ejForDig && !isRhPlats(s) && !s.gagata;
       drawParkingSegment(s, color, txt, dest, infoRow, grp);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
