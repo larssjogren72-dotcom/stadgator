@@ -190,6 +190,8 @@
     .hd-brand  { display: flex; align-items: center; gap: 10px; }
     .mc-pin-b { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #fff; display: flex;
       align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,.5); }
+    /* Städas nu / i dag → gul som gatorna. Skuggan är hårdkodad i grundfärgen och måste följa med. */
+    .mc-pin-b.stad { box-shadow: 0 2px 6px rgba(245,158,11,.55); }
     .mc-pin-b svg { width: 15px; height: 15px; color: #fff; }
     #veh-toggle { display: flex; gap: 3px; background: rgba(15,23,42,0.05); border-radius: 10px; padding: 3px; flex: none; }
     .veh-opt {
@@ -217,6 +219,7 @@
     .forslag-pin-b svg { width: 19px; height: 19px; display: block; }
     /* Nål för reserverad plats: rundad FYRKANT (MC:s är rund) i turkos (MC:s är blå) */
     .rh-pin { filter: drop-shadow(0 2px 5px rgba(14,116,144,.45)); }
+    .rh-pin.stad { filter: drop-shadow(0 2px 5px rgba(245,158,11,.5)); }
     .rh-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
       background: #0e7490; display: flex; align-items: center; justify-content: center; }
     .rh-pin-b svg { width: 17px; height: 17px; color: #fff; }
@@ -1626,8 +1629,9 @@ function bindForbud(pl) {
 
 // MC-pin: markör med fast skärmstorlek → en 5 m MC-ruta syns på alla zoom (löser gyttret).
 function mcPinIcon(color) {
+  const stad = color === STAD_COLOR ? ' stad' : '';
   return L.divIcon({ className: 'mc-pin', iconSize: [26, 26], iconAnchor: [13, 13],
-    html: '<div class="mc-pin-b" style="background:' + (color || '#2563eb') + '">' + svgIcon('motorcycle') + '</div>' });
+    html: '<div class="mc-pin-b' + stad + '" style="background:' + (color || '#2563eb') + '">' + svgIcon('motorcycle') + '</div>' });
 }
 // Ritar ETT parkeringssegment. Bil-läge: oförändrat (vanlig linje). MC-läge (fokus/deklutter):
 // exklusiv MC-ruta → PIN; bilgata MC får nyttja → dämpad grön; icke-MC → tyst grått;
@@ -1656,10 +1660,19 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
 
 // MC-rutorna som ETT eget lager – visas i ALLA lägen (Nu/Morgon/Kväll/Natt) när MC är valt,
 // oberoende av vilket flöde som ritar gatorna. Återanvänder P_TILLATEN-hämtaren.
+// Sökruta i METER runt punkten – samma fel som servicedagarBbox varnar för, och här slog det
+// dubbelt: `(radius/111000) * 1.8` la SAMMA gradtal på lat och lng, så rutan blev dubbelt så hög
+// som bred, och 1,8-faktorn blåste dessutom upp radien till 900 m. En "500 m-sökning" hämtade
+// i praktiken 1 800 × 921 m. Uppmätt 2026-07-29 vid Stadshuset: 14 av 19 MC-nålar låg utanför
+// 500 m och medianen 788 m – platser en halv kilometer bortom måladressen.
+function platsBbox(lat, lng, radius) {
+  const dLat = radius / 111320;
+  const dLng = radius / (111320 * Math.cos(lat * Math.PI / 180));
+  return `${lng-dLng},${lat-dLat},${lng+dLng},${lat+dLat},EPSG:4326`;
+}
+
 async function fetchMcRutor(lat, lng, radius = 500) {
-  const deg  = (radius / 111000) * 1.8;
-  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
+  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', platsBbox(lat, lng, radius));
   return tillRaw.map(toAllowedSegment).filter(s => isMcExclusive(s.vehicle));
 }
 let mcOverlayReqId = 0;
@@ -1667,17 +1680,26 @@ async function mcRutorOverlay(lat, lng) {
   if (vehicleMode !== 'mc') return;
   const myReqId = ++mcOverlayReqId;
   try {
-    const segs = await fetchMcRutor(lat, lng);
+    // Städindexet parallellt med rutorna – nästan alltid redan i cache från Nu-flödet.
+    const [segs, uppslag] = await Promise.all([fetchMcRutor(lat, lng), veckoUppslagFor(lat, lng)]);
     // Läget/sökningen kan ha bytts UNDER hämtningen (t.ex. bil→mc→bil snabbt) – kolla igen,
     // annars kan gamla MC-pins ritas ut ovanpå bil-läget och kapa klick från gatorna under.
     if (vehicleMode !== 'mc' || myReqId !== mcOverlayReqId) return;
     const grp = L.layerGroup();
+    const nu = new Date();
     segs.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      L.marker(dest, { icon: mcPinIcon('#2563eb'), pane: 'markerPane', riseOnHover: true })
-        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', 'MC-ruta · bara MC får stå', '#2563eb', dest, 'Dedikerad MC-plats – bilister får inte ta den.'); })
+      // Kaskaden räknade redan ut detta för gatorna, men drawParkingSegment lämnar över MC-rutan
+      // hit och svaret nådde aldrig fram. Nu läses det på plats i stället.
+      const st = stadStatusVid(uppslag, dest, (s.street || '').trim().toLowerCase(), nu);
+      const v  = platsStadStil(st, 'MC-ruta · bara MC får stå',
+                               'Dedikerad MC-plats – bilister får inte ta den.', '#2563eb');
+      L.marker(dest, { icon: mcPinIcon(v.color), pane: 'markerPane', riseOnHover: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e);
+          showPlaceCardV2(s.street || 'MC-ruta', v.txt, v.color, dest, v.info, false, false,
+                          v.nasta ? nastaStadTxt(v.nasta, new Date()) : null); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
@@ -1691,14 +1713,14 @@ async function mcRutorOverlay(lat, lng) {
 // BONUS: överlägget går utanför drawParkingSegment, som hoppar över gågator. Två uppmätta
 // platser (Sabbatsbergsvägen + en i Gamla Stan) låg på gågata och ritades därför inte alls –
 // och just på gågata GÄLLER tillståndet. De kommer med här.
-function rhPinIcon() {
-  return L.divIcon({ className: 'rh-pin', iconSize: [28, 28], iconAnchor: [14, 14],
-    html: '<div class="rh-pin-b">' + svgIcon('wheelchair') + '</div>' });
+function rhPinIcon(color) {
+  const stad = color === STAD_COLOR;
+  const bg = stad ? ` style="background:${STAD_COLOR}"` : '';
+  return L.divIcon({ className: 'rh-pin' + (stad ? ' stad' : ''), iconSize: [28, 28], iconAnchor: [14, 14],
+    html: `<div class="rh-pin-b"${bg}>` + svgIcon('wheelchair') + '</div>' });
 }
 async function fetchRhPlatser(lat, lng, radius = 500) {
-  const deg  = (radius / 111000) * 1.8;
-  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
+  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', platsBbox(lat, lng, radius));
   return tillRaw.map(toAllowedSegment).filter(s => isRhPlats(s) && s.linesSweref.length);
 }
 let rhOverlayReqId = 0;
@@ -1706,19 +1728,25 @@ async function rhPlatserOverlay(lat, lng) {
   if (vehicleMode !== 'rh') return;
   const myReqId = ++rhOverlayReqId;
   try {
-    const segs = await fetchRhPlatser(lat, lng);
+    const [segs, uppslag] = await Promise.all([fetchRhPlatser(lat, lng), veckoUppslagFor(lat, lng)]);
     if (vehicleMode !== 'rh' || myReqId !== rhOverlayReqId) return;   // läget bytt under hämtningen
     const grp = L.layerGroup();
+    const nu = new Date();
     segs.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      L.marker(dest, { icon: rhPinIcon(), pane: 'markerPane', riseOnHover: true,
+      // Städningen gäller även en reserverad plats – tillståndet ger rätt att STÅ där, inte rätt
+      // att stå kvar under städning. Platsen döljs aldrig, den märks.
+      const st = stadStatusVid(uppslag, dest, (s.street || '').trim().toLowerCase(), nu);
+      const v  = platsStadStil(st, 'Reserverad plats',
+                               'Kräver parkeringstillstånd för rörelsehindrade', RH_COLOR);
+      L.marker(dest, { icon: rhPinIcon(v.color), pane: 'markerPane', riseOnHover: true,
                        alt: 'Reserverad plats för rörelsehindrade' + (s.street ? ' på ' + s.street : ''),
                        keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Reserverad plats', 'Reserverad plats', RH_COLOR, dest,
-                          'Kräver parkeringstillstånd för rörelsehindrade', false, true); })
+          showPlaceCardV2(s.street || 'Reserverad plats', v.txt, v.color, dest, v.info, false, true,
+                          v.nasta ? nastaStadTxt(v.nasta, new Date()) : null); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
@@ -2009,6 +2037,9 @@ const GAGATA_COLOR = '#ec4899';      // rosa – gågata (skild från lila "ej b
 // Turkos – reserverad plats för rörelsehindrade. Skild från MC:s blå #2563eb på BÅDE kulör och
 // form (MC = rund nål, denna = rundad fyrkant som läser som en skylt).
 const RH_COLOR = '#0e7490';
+// Gul = städning, samma kulör som gatornas "Servas nu"/"Får stå tills" i färgkaskaden. Ett eget
+// namn eftersom både MC- och rh-nålarna nu måste kunna byta till den (och tillbaka).
+const STAD_COLOR = '#f59e0b';
 // Gågata-etikett: visa säsongsslut när det finns (sommargågata), annars permanent.
 const GAGATA_MN = ['jan','feb','mars','apr','maj','juni','juli','aug','sep','okt','nov','dec'];
 function gagataTxt(vt) {
@@ -2689,6 +2720,61 @@ function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH) {
 // Sätts av Nu-flödet, läses av platskortet vid klick. Null = raden visas inte.
 let nastaStadUppslag = null;
 
+// Delas av Nu-flödet och av MC-/rh-överläggen. Överläggen körs i ALLA lägen – även Morgon,
+// Kväll och Natt, som inte bygger något veckoindex – så utan denna cache hade de behövt en egen
+// hämtning per sökning. Nu-flödet fyller cachen (se nedan) och överläggen återanvänder den.
+// Bara INDATAN lever i uppslagets closure: säsong prövas per anropsdatum inuti sok(), så
+// funktionen får leva över ett dygnsskifte. Nyckeln är positionen, eftersom
+// cleaningFeatureInReach filtrerar redan vid bygget.
+let veckoUppslagCache = { nyckel: null, uppslag: null };
+function veckoNyckel(lat, lng) { return lat.toFixed(3) + ',' + lng.toFixed(3); }
+async function veckoUppslagFor(lat, lng) {
+  const nyckel = veckoNyckel(lat, lng);
+  if (veckoUppslagCache.nyckel === nyckel && veckoUppslagCache.uppslag) return veckoUppslagCache.uppslag;
+  const data = await fetchServicedaysWeek(lat, lng);
+  if (!data) return null;                       // hämtningen loggar själv – platsen ritas utan städtext
+  const u = buildNextCleaningWeek(data, lat, lng);
+  veckoUppslagCache = { nyckel, uppslag: u };
+  return u;
+}
+
+// Städstatus för EN plats vid en tidpunkt.
+// ⚠️ `buildNextCleaningWeek` ger nästa START och förra SLUTET – ett PÅGÅENDE fönster är osynligt
+// för båda, eftersom sok() hoppar över `t <= now` framåt och `t >= now` bakåt. En mätning som
+// litade på f.senaste() rapporterade därför 0 % pågående städning under en HEL vecka, samtidigt
+// som 100 % av platserna låg på städgator (2026-07-29). Rätt metod: stega fram fönstren från ett
+// dygn bakåt och pröva start <= nu < slut.
+function stadStatusVid(uppslag, ll, key, nu) {
+  if (!uppslag || !ll || !key) return null;
+  let cur = new Date(nu.getTime() - 24 * 3600000);
+  for (let i = 0; i < 4; i++) {
+    const n = uppslag(ll, key, cur);
+    if (!n) return null;
+    const start = new Date(n.when);
+    const slut  = new Date(start);
+    slut.setHours(Math.floor(n.end / 100), n.end % 100, 0, 0);
+    if (slut <= start) slut.setDate(slut.getDate() + 1);         // fönster över midnatt
+    if (nu >= start && nu < slut) return { state: 'active',   start: n.start, end: n.end, nasta: null };
+    if (start > nu) return { state: start.toDateString() === nu.toDateString() ? 'upcoming' : null,
+                             start: n.start, end: n.end, nasta: n };
+    cur = new Date(start.getTime() + 60000);                     // strax efter denna start → nästa fönster
+  }
+  return null;
+}
+
+// Samma språk som gatorna använder i färgkaskaden: pågående städning är gul "undvik", kommande
+// samma dag är gul "får stå tills". Platsen DÖLJS aldrig – en tom karta betyder redan "vi har
+// ingen data här", så att dölja en plats som finns vore att byta ett känt problem mot ett okänt.
+function platsStadStil(st, basTxt, basInfo, basColor) {
+  if (st && st.state === 'active')
+    return { color: STAD_COLOR, txt: `Servas nu ${fmtClock(st.start)}–${fmtClock(st.end)} – undvik`,
+             info: 'Pågår – flytta fordonet', nasta: null };
+  if (st && st.state === 'upcoming')
+    return { color: STAD_COLOR, txt: `Får stå tills ${fmtClock(st.start)}`,
+             info: `Servas idag ${fmtClock(st.start)}–${fmtClock(st.end)}`, nasta: st.nasta };
+  return { color: basColor, txt: basTxt, info: basInfo, nasta: st ? st.nasta : null };
+}
+
 // ── Nästa städning inom en vecka ────────────────────────────────────────────
 // Hela veckans städdata i ETT bbox-anrop (sju separata vore sju rundturer).
 // Uppmätt: hela veckan = 104 kB i Vasastan, mot 4 046 kB för TVÅ dagar tidigare.
@@ -2945,6 +3031,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp);
     // Indexet byggs en gång; själva uppslaget sker vid klick (se s.visaNastaStad).
     nastaStadUppslag = buildNextCleaningWeek(veckoData, lat, lng);
+    // Dela indexet med MC-/rh-överläggen så de slipper en egen veckohämtning per sökning.
+    veckoUppslagCache = { nyckel: veckoNyckel(lat, lng), uppslag: nastaStadUppslag };
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
     const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
 
