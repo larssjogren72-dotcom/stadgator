@@ -1139,11 +1139,26 @@ function launchApp() {
 }
 
 // ── API ──────────────────────────────────────────────────────────────────────
-async function fetchServicedays(apiKey, day) {
-  const url = `/proxy/servicedagar/weekday/${day}?outputFormat=json&apiKey=${encodeURIComponent(apiKey)}`;
+// Städdata för en veckodag. Med `bbox` hämtas bara sökrutan via /servicedagar-bbox –
+// hela stadens schema var uppmätt 1962 + 2084 kB för Nu-lägets två dagar, mot 51 kB
+// bbox-filtrerat i Vasastan. Svarsformen är IDENTISK (GeoJSON med samma fältnamn), så
+// cleaningActiveOn / buildCleaningMatcher / 25 m-matchningen är helt orörda.
+// Utan bbox, eller om den nya vägen fallerar, används den gamla hela-staden-hämtningen.
+async function fetchServicedays(apiKey, day, bbox = null) {
+  const nyUrl  = bbox ? `/servicedagar-bbox?dag=${encodeURIComponent(day)}&bbox=${bbox.join(',')}` : null;
+  const gammal = `/proxy/servicedagar/weekday/${day}?outputFormat=json&apiKey=${encodeURIComponent(apiKey)}`;
+  if (nyUrl) {
+    try {
+      const r = await fetch(nyUrl);
+      if (r.ok) return await r.json();
+      throw new Error('HTTP ' + r.status);
+    } catch (e) {
+      console.warn('[Städgator] bbox-städdata misslyckades, faller tillbaka på hela staden:', e.message);
+    }
+  }
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const r = await fetch(url);
+      const r = await fetch(gammal);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return await r.json();
     } catch(e) {
@@ -1155,6 +1170,18 @@ async function fetchServicedays(apiKey, day) {
       await new Promise(res => setTimeout(res, 800 * attempt));
     }
   }
+}
+// Städrutan = exakt matcharens räckvidd (CLEAN_REACH_M) runt sökpunkten, i METER.
+// Nödvändig OCH tillräcklig: en städpost längre bort än så ignoreras ändå av
+// cleaningFeatureInReach, och en närmare får aldrig saknas – då återuppstår 500 m-glappet.
+// ⚠️ cos(lat) MÅSTE med. Första versionen la samma gradtal i båda riktningar
+// (CLEAN_REACH_M/111000) vilket ger 1500 m norrut men bara 767 m österut på Stockholms
+// breddgrad ⇒ städdata i öst-väst hade fallit bort. Det är samma fel som gör appens
+// parkeringsruta 1803 × 919 m i stället för kvadratisk.
+function servicedagarBbox(lat, lng) {
+  const dLat = CLEAN_REACH_M / 111320;
+  const dLng = CLEAN_REACH_M / (111320 * Math.cos(lat * Math.PI / 180));
+  return [lng - dLng, lat - dLat, lng + dLng, lat + dLat];
 }
 
 // ── Zoner ────────────────────────────────────────────────────────────────────
@@ -2642,8 +2669,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
   try {
     const [{ allowed, forbiddenLines, gagataLines }, cleaningToday, cleaningTomorrow] = await Promise.all([
       parkPromise ? parkPromise : loadParkingV2(lat, lng),
-      fetchServicedays(getKey(), apiDay(new Date())),    // DAGENS städning
-      fetchServicedays(getKey(), apiDay(tomorrow())),    // MORGONDAGENS (för imminent natt-städning)
+      fetchServicedays(getKey(), apiDay(new Date()), servicedagarBbox(lat, lng)),   // DAGENS städning
+      fetchServicedays(getKey(), apiDay(tomorrow()), servicedagarBbox(lat, lng)),   // MORGONDAGENS (för imminent natt-städning)
     ]);
     const grp = L.layerGroup();
     const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp);
@@ -3343,7 +3370,7 @@ async function showMorningParkingFlow(lat, lng) {
     const today = new Date();
     const nowHM = today.getHours() * 100 + today.getMinutes();
     const [cleaningToday, gagataLines] = await Promise.all([
-      fetchServicedays(getKey(), apiDay(today)),
+      fetchServicedays(getKey(), apiDay(today), servicedagarBbox(lat, lng)),
       loadActiveGagataLines(lat, lng, 700).catch(() => []),
     ]);
     const grp = L.layerGroup();

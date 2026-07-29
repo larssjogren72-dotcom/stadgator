@@ -111,6 +111,14 @@ function fetchPhus() {
 const SCHED_API_DAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag']; // index = JS getDay()
 const SCHED_TTL = 6 * 60 * 60 * 1000;
 let schedFeats = null, schedTs = 0, schedInflight = null;
+// Samma 7 dagar en gång till, men i GeoJSON-form med ENBART de fält klienten läser.
+// Byggs i samma loop som schedFeats (ingen extra hämtning) och serveras bbox-filtrerat
+// av /servicedagar-bbox. Klienten hämtade tidigare HELA stadens schema per veckodag:
+// uppmätt 1962 + 2084 kB för Nu-lägets två dagar. Bbox-filtrerat blir samma två dagar
+// 51 kB i Vasastan, och hela veckan 104 kB.
+let schedGeo = null;
+const SCHED_GEO_FALT = ['STREET_NAME','START_TIME','END_TIME',
+                        'START_MONTH','START_DAY','END_MONTH','END_DAY','ADDRESS'];
 
 function fetchServicedayJSON(apiDay) {
   return new Promise((resolve) => {
@@ -134,13 +142,14 @@ function buildSchedule() {
   if (schedInflight) return schedInflight;
   schedInflight = (async () => {
     const out = [];
+    const geo = [[], [], [], [], [], [], []];   // per veckodag, trimmad GeoJSON
     for (let day = 0; day < 7; day++) {
       const j = await fetchServicedayJSON(SCHED_API_DAYS[day]);
       const feats = (j && (Array.isArray(j) ? j : j.features)) || [];
       for (const f of feats) {
         const p = f.properties || {}, g = f.geometry;
         const name = (p.STREET_NAME || '').toLowerCase().trim();
-        if (!name || !g) continue;
+        if (!g) continue;
         const lines = g.type === 'LineString' ? [g.coordinates]
                     : g.type === 'MultiLineString' ? g.coordinates : [];
         if (!lines.length) continue;
@@ -150,12 +159,24 @@ function buildSchedule() {
           if (c[0]<minLng) minLng=c[0]; if (c[0]>maxLng) maxLng=c[0];
           if (c[1]<minLat) minLat=c[1]; if (c[1]>maxLat) maxLat=c[1];
         }
+        const bb = [minLng, minLat, maxLng, maxLat];
+        // GeoJSON-formen först, och UTAN namnkravet. Egenskaperna behåller ORIGINALNAMN och
+        // versaler så att klientens befintliga städlogik (cleaningActiveOn, buildCleaningMatcher,
+        // 25 m-matchningen) fungerar helt orörd – det är den beprövade koden.
+        // ⚠️ Namnlösa städposter MÅSTE med: Morgon-flödet ritar dem ("Gata" som reservnamn) och
+        // cleaningFeatureInReach bryr sig inte om namn. Att ärva /schedule:s namnkrav gav en
+        // uppmätt regression på 2 features i Gamla Stan.
+        const props = {};
+        for (const k of SCHED_GEO_FALT) if (p[k] != null) props[k] = p[k];
+        geo[day].push({ type: 'Feature', properties: props, geometry: g, _bb: bb });
+        // schedFeats används av /schedule, som slår upp på gatunamn → namnlösa är oanvändbara där.
+        if (!name) continue;
         out.push({ name, day, s: p.START_TIME, e: p.END_TIME,
                    sm: p.START_MONTH, sd: p.START_DAY, em: p.END_MONTH, ed: p.END_DAY,
-                   lines, bb: [minLng, minLat, maxLng, maxLat] });
+                   lines, bb });
       }
     }
-    schedFeats = out; schedTs = Date.now(); schedInflight = null;
+    schedFeats = out; schedGeo = geo; schedTs = Date.now(); schedInflight = null;
     console.log(`[ParkSpot] Städschema byggt: ${out.length} features (7 dagar)`);
     return out;
   })();
@@ -220,6 +241,33 @@ http.createServer((req, res) => {
     else fetchPhus().then(body => {
       if (body) send(res, 200, phusType, body, 'MISS');
       else { res.setHeader('Access-Control-Allow-Origin','*'); res.writeHead(502); res.end(JSON.stringify({ error: 'p-hus otillgängligt just nu' })); }
+    });
+
+  } else if (reqUrl.pathname === '/servicedagar-bbox') {
+    // Städdata för EN veckodag, begränsat till sökrutan. Svarar i samma GeoJSON-form som
+    // /proxy/servicedagar/weekday/{dag}, så klienten kan byta URL utan att röra sin logik.
+    // ?dag=<0-6 eller svenskt namn>&bbox=minLng,minLat,maxLng,maxLat
+    const dagParam = (reqUrl.searchParams.get('dag') || '').toLowerCase().trim();
+    const dagIdx = /^\d$/.test(dagParam) ? +dagParam : SCHED_API_DAYS.indexOf(dagParam);
+    const bbox = (reqUrl.searchParams.get('bbox') || '').split(',').map(Number);
+    if (dagIdx < 0 || dagIdx > 6 || bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
+      res.end(JSON.stringify({ error: 'dag (0-6 eller veckodagsnamn) och bbox=minLng,minLat,maxLng,maxLat krävs' }));
+      return;
+    }
+    const warm = !!schedGeo;
+    buildSchedule().then(() => {
+      const [aLng, aLat, bLng, bLat] = bbox;
+      // Behåll varje feature vars egen bbox SKÄR rutan – samma semantik som WFS BBOX, så en
+      // gata som sträcker sig ut ur rutan följer med i sin helhet (viktigt för 25 m-matchningen).
+      const features = (schedGeo && schedGeo[dagIdx] || [])
+        .filter(f => !(f._bb[2] < aLng || f._bb[0] > bLng || f._bb[3] < aLat || f._bb[1] > bLat))
+        .map(f => ({ type: f.type, properties: f.properties, geometry: f.geometry }));
+      send(res, 200, 'application/json; charset=utf-8',
+           Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), warm ? 'HIT' : 'MISS');
+    }).catch(() => {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
+      res.end(JSON.stringify({ error: 'städschema otillgängligt' }));
     });
 
   } else if (reqUrl.pathname === '/schedule') {
