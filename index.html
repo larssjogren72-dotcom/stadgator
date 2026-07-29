@@ -207,12 +207,14 @@
     .veh-opt.on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
     .veh-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     /* Förslagsnål: GRÖN med vit ram – samma gröna som "får stå", så nålen säger samma sak som
-       gatan under den. Siffran ensam bär rangordningen; ingen färgskillnad mellan 1, 2 och 3
-       (gult sa "varning" i appens övriga språk och blev en signal till). */
+       gatan under den. GLYFEN bär rollen (kvast = städeffekt, P = närmast grön, kr = billigare
+       zon); ingen siffra, ingen rangordning och ingen färgskillnad mellan de tre. */
     .forslag-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
-      background: #16a34a; color: #fff; font-weight: 700; font-size: 14px;
+      background: #16a34a; color: #fff; font-weight: 700; font-size: 15px;
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 2px 6px rgba(22,163,74,.5); }
+    .forslag-pin-b.kr  { font-size: 12px; letter-spacing: -.3px; }
+    .forslag-pin-b svg { width: 19px; height: 19px; display: block; }
     /* Nål för reserverad plats: rundad FYRKANT (MC:s är rund) i turkos (MC:s är blå) */
     .rh-pin { filter: drop-shadow(0 2px 5px rgba(14,116,144,.45)); }
     .rh-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
@@ -2781,74 +2783,146 @@ function nastaStadTxt(n, now) {
   return `Nästa städning ${nar} ${kl} · ${om}`;
 }
 
-// ── Tre förslag: bästa möjlighet till parkering närmast målet ────────────────
-// Rangordning, inte tröskel. En tröskelregel gav i mockupen "exakt en gata", och i en app där
-// svaret är OSÄKERT är ett enda förslag en felkälla utan reserv – användaren behöver alternativ
-// att köra förbi. Varje förslag bär sitt EGET SKÄL; de tre är inte lika bra och appen ska inte
-// låtsas det.
+// ── Tre symboler: tre frågor, tre svar ──────────────────────────────────────
+// Ersätter den rangordnade poängen (avstånd − bonus). Den vägde ihop tre oförenliga storheter
+// till ett tal, och någon växelkurs mellan "nyss städad" och "nära" finns inte – den var
+// uppfunnen och handkalibrerad (400 mot 150 m). Nu besvarar varje symbol sin EGEN fråga:
+//   kvast → närmaste gata där städningen nyss slutat, eller börjar i natt
+//   P     → närmaste gata där du får stå
+//   kr    → närmaste gröna gata i en billigare taxa-zon
+// Inget att vikta, inga trösklar att kalibrera, och två symboler kan aldrig säga samma sak.
 //
-// ⛔ VI HAR INGEN BELÄGGNINGSDATA. "Chans" vilar på två antaganden:
-//    · städningen tvingade bort bilarna nyss  (starkast – en faktisk händelse)
+// ⛔ VI HAR INGEN BELÄGGNINGSDATA. Kvasten vilar på två antaganden:
+//    · städningen tvingade bort bilarna nyss  (en faktisk händelse)
 //    · boende undviker gator som ska städas   (Lars lokalkännedom, ej uppmätt)
 //    Därför säger texten "bra chans", aldrig "ledigt".
-const FORSLAG_ANTAL      = 3;
-const FORSLAG_KANDIDATER = 25;    // närmaste gator som poängsätts (närhet ingår ändå i poängen)
+const FORSLAG_KANDIDATER = 25;    // närmaste gator som prövas – håller beräkningen liten
 const NYSS_STADAD_H      = 6;     // "bilarna tvingades bort nyss"
 // Boende flyttar inför en städning – men först när den närmar sig. Kl 12 har ingen flyttat
 // inför midnatt. Lars exempel är kvällen: 18:00 med städning 00:00 = 6 h. Därför 8, inte 12.
 const UNDVIKS_H          = 8;
 const MIN_HALLBAR_MIN    = 60;    // håller den kortare tid än så hinner man inte dit och parkera
-// Hur många meters omväg är en bättre chans värd? Utan detta blir rangordningen strikt efter
-// nivå, och då föreslogs gator 389–457 m bort i Vasastan trots gröna gator på 50 m – tvärtemot
-// "bästa möjlighet till parkering NÄRMAST MÅLET". Avståndet är primärt; chansen förskjuter det.
-// Nyss städad väger tungt (Lars 2026-07-29): det är den enda signalen som bygger på en
-// FAKTISK händelse – bilarna tvingades bort för några timmar sedan. En sådan gata ska vinna
-// även en bit längre bort. 400 m är ~5 min promenad i innerstan.
-const BONUS_NYSS_M       = 400;
-const BONUS_UNDVIKS_M    = 150;   // svagare: bygger på antagande om beteende, inte på en händelse
 
-function rankaForslag(allowed, lat, lng, uppslag, now) {
+// Billigaste taxa-zonen som täcker punkten, eller null om ingen gör det.
+// taxaZoneAt() returnerar med flit den DYRASTE vid överlapp – rätt svar på "vad kostar det
+// HÄR". Men för "finns det billigare i närheten" blir samma läsning fel: Odenplan ligger i
+// BÅDE Taxa 2 och Taxa 3 (uppmätt 2026-07-29), och den dyra läsningen fick appen att peka på
+// en "billigare" gata 37 m bort som man redan stod i. Två frågor, två svar, båda rätt.
+// null ≠ billigt: att en zon SAKNAS bevisar ingenting (kan lika gärna vara okarterat).
+function billigasteTaxaNr(lat, lng) {
+  if (!taxaZones.length || lat == null) return null;
+  let px, py;
+  try { [px, py] = proj4('WGS84', 'EPSG:3011', [lng, lat]); }
+  catch { return null; }
+  let basta = null;
+  for (const z of taxaZones) {
+    const g = z.geometry;
+    const hit = g.type === 'Polygon'      ? pointInRing(px, py, g.coordinates[0])
+              : g.type === 'MultiPolygon' ? g.coordinates.some(p => pointInRing(px, py, p[0]))
+              : false;
+    if (!hit) continue;
+    const num = +((z.name.match(/\d+/) || [])[0]);
+    if (!num) continue;
+    if (basta === null || num > basta) basta = num;   // högst nummer = billigast
+  }
+  return basta;
+}
+
+function valjSymboler(allowed, lat, lng, uppslag, now) {
   if (!uppslag) return [];
   const centrum = L.latLng(lat, lng);
-  // En gata = ETT förslag. Ta gatans närmaste ritbara segment till sökpunkten.
+  const kl = t => `${String(Math.floor(t/100)).padStart(2,'0')}:${String(t%100).padStart(2,'0')}`;
+
+  // En gata = ETT förslag, och avståndet mäts till gatans NÄRMASTE PUNKT – inte till linjens
+  // första punkt som förr. I ytterstan är segmenten 200–240 m långa, så första punkten kan
+  // ligga en hel kvarterslängd fel.
   const perGata = new Map();
   allowed.forEach(s => {
     if (!s.visaNastaStad || !s.linesSweref.length) return;
     const namn = (s.street || '').trim(); if (!namn) return;
-    const c = s.linesSweref[0][0], ll = toLatLng(c[0], c[1]);
-    const d = centrum.distanceTo(ll);
+    let bd = Infinity, bll = null;
+    s.linesSweref.forEach(line => line.forEach(c => {
+      const ll = toLatLng(c[0], c[1]);
+      const d  = centrum.distanceTo(ll);
+      if (d < bd) { bd = d; bll = ll; }
+    }));
+    if (!bll) return;
     const f = perGata.get(namn);
-    if (!f || d < f.d) perGata.set(namn, { namn, ll, d, s });
+    if (!f || bd < f.d) perGata.set(namn, { namn, ll: bll, d: bd, s });
   });
   const kandidater = [...perGata.values()].sort((a, b) => a.d - b.d).slice(0, FORSLAG_KANDIDATER);
 
-  const ut = [];
+  // Gemensam uteslutning: håller gatan inte längre än det tar att komma dit är den värdelös
+  // som förslag, oavsett vilken symbol som skulle pekat på den.
+  const dugliga = [];
   kandidater.forEach(k => {
     const nyckel = k.namn.toLowerCase();
     const nasta  = uppslag(k.ll, nyckel, now);
     const senast = uppslag.senaste(k.ll, nyckel, now);
     const hTill  = nasta ? (nasta.when - now) / 3600000 : Infinity;
-    if (hTill * 60 < MIN_HALLBAR_MIN) return;                    // hinner inte dit – uteslut helt
-    const hSedan = senast ? (now - senast.when) / 3600000 : Infinity;
-    const kl = t => `${String(Math.floor(t/100)).padStart(2,'0')}:${String(t%100).padStart(2,'0')}`;
-    let bonus, skal;
-    if (hSedan <= NYSS_STADAD_H) {
-      bonus = BONUS_NYSS_M; skal = `Städad klar ${kl(senast.end)} – bilarna tvingades bort nyss`;
-    } else if (hTill <= UNDVIKS_H) {
-      bonus = BONUS_UNDVIKS_M; skal = `Städas ${kl(nasta.start)} – boende undviker, bra chans`;
-    } else {
-      bonus = 0; skal = 'Nära dig';
-    }
-    // "Effektivt avstånd": hur långt det känns värt att gå givet chansen.
-    ut.push({ ...k, skal, hTill, nasta, poang: k.d - bonus });
+    if (hTill * 60 < MIN_HALLBAR_MIN) return;
+    dugliga.push({ ...k, nasta, senast, hTill,
+                   hSedan: senast ? (now - senast.when) / 3600000 : Infinity });
   });
-  ut.sort((a, b) => a.poang - b.poang || a.d - b.d);
-  return ut.slice(0, FORSLAG_ANTAL);
+  if (!dugliga.length) return [];
+
+  // Rollerna i GLYF-prioritet: krockar två roller på samma gata vinner den första glyfen och
+  // den andra bidrar med sitt skäl. P är basfallet ("närmast grön") och får därför stryka på
+  // foten – kvast och kr säger något utöver det.
+  const roller = [];
+
+  // 1 · Städeffekt. EN symbol för båda händelserna: Lars 2026-07-29 – de behöver inte skiljas
+  //     visuellt eftersom kortet anger vilken det är när man trycker på nålen.
+  const kvast = dugliga.find(k => k.hSedan <= NYSS_STADAD_H || k.hTill <= UNDVIKS_H);
+  if (kvast) roller.push({ roll: 'kvast', k: kvast, skal: kvast.hSedan <= NYSS_STADAD_H
+    ? `Städad klar ${kl(kvast.senast.end)} – bilarna tvingades bort nyss`
+    : `Städas ${kl(kvast.nasta.start)} – boende undviker, bra chans` });
+
+  // 2 · Billigare taxa-zon. Pekar på en GRÖN GATA i den billigare zonen, aldrig på en zongräns:
+  //     vid Wallingatan börjar Taxa 3 efter 165 m men första gatan man får stå på ligger på
+  //     229 m (uppmätt). Billigt hjälper inte om man inte får parkera där.
+  const minNr = billigasteTaxaNr(lat, lng);
+  if (minNr !== null) {
+    const kr = dugliga.find(k => {
+      const nr = billigasteTaxaNr(k.ll.lat, k.ll.lng);
+      return nr !== null && nr > minNr;
+    });
+    // Ingen prisskillnad i kronor här: taxetexten säger inget om vad som gäller utanför sina
+    // egna tidsfönster, och att anta "gratis" vore ett påstående vi inte kan belägga. Kortet
+    // visar zonens EGEN taxetext när nålen trycks – det är den ärliga siffran.
+    if (kr) roller.push({ roll: 'kr', k: kr, skal: 'Billigare taxa-zon än där du står' });
+  }
+
+  // 3 · Närmast grön. Ren datasanning, ingen heuristik – finns alltid ett svar.
+  roller.push({ roll: 'p', k: dugliga[0], skal: 'Närmaste gata där du får stå' });
+
+  const ut = [];
+  roller.forEach(r => {
+    const fanns = ut.find(u => u.namn === r.k.namn);
+    if (fanns) { fanns.skal.push(r.skal); return; }   // samma gata → EN nål, båda skälen (Lars)
+    ut.push({ ...r.k, roll: r.roll, skal: [r.skal] });
+  });
+  return ut;
 }
 
-function forslagPinIcon(nr) {
+// Kvasten är ritad, inte en emoji: emoji renderas olika per plattform och skulle inte matcha
+// P och kr i vikt. Bristrarna är gröna så de läses som skåror i ett vitt fält vid 28 px.
+const SYMBOL_GLYF = {
+  kvast: '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+           '<path d="M17.6 5.2 L12.2 10.6" stroke="#fff" stroke-width="2.1" stroke-linecap="round" fill="none"/>' +
+           '<path d="M11.1 9.1 L15.8 13.8 L11.9 17.9 C9.2 20.7 5.6 19.4 4.9 16.4 C4.4 14.1 6.5 13.2 8.2 11.9 Z" fill="#fff"/>' +
+           '<g stroke="#16a34a" stroke-width="1.05" stroke-linecap="round">' +
+             '<path d="M8.6 12.6 L11.4 15.4"/><path d="M7.1 14.3 L9.9 17.1"/></g></svg>',
+  p:  'P',
+  kr: 'kr'
+};
+
+// L.marker({alt}) sätter alt på en <img> – en divIcon blir en <div> och tappar den helt (gällde
+// även den gamla sifferversionen). Skärmläsaren får texten via aria-label på själva rutan.
+function forslagPinIcon(roll, etikett) {
   return L.divIcon({ className: 'forslag-pin', iconSize: [28, 28], iconAnchor: [14, 14],
-    html: `<div class="forslag-pin-b">${nr}</div>` });
+    html: `<div class="forslag-pin-b ${roll}" role="img" aria-label="${escHtml(etikett || '')}">` +
+          `${SYMBOL_GLYF[roll] || ''}</div>` });
 }
 
 async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
@@ -2930,16 +3004,26 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
 
-    // Tre rangordnade förslag. Körs EFTER kaskaden, så bara segment som faktiskt är
+    // Zonerna FÖRE symbolerna: kr-symbolen läser taxaZones, som fylls asynkront. Låg anropet
+    // kvar efter symbolsteget hann flödet före zonerna på en kall sidladdning → kr-nålen
+    // uteblev tyst och kom inte tillbaka förrän användaren sökte igen (uppmätt 2026-07-29).
+    // Inget nytt anrop: zonerna hämtades ändå i samma flöde, bara några rader senare.
+    await loadZonesForViewport(getKey());
+
+    // Tre symboler, en per fråga. Körs EFTER kaskaden, så bara segment som faktiskt är
     // användbara (s.visaNastaStad) kan föreslås. Kandidatmängden är de närmaste gatorna →
     // ingen förberäkning över hela vyn (den kostade 2 354 ms i Vasastan).
-    const forslag = rankaForslag(allowed, lat, lng, nastaStadUppslag, new Date());
-    forslag.forEach((f, i) => {
-      L.marker(f.ll, { icon: forslagPinIcon(i + 1), pane: 'markerPane', riseOnHover: true,
-                       alt: `Förslag ${i + 1}: ${f.namn}. ${f.skal}` })
+    // Färre än tre nålar är ett giltigt utfall: saknas städsignal visas ingen kvast, och
+    // står man inte nära en zongräns visas inget kr.
+    const symboler = valjSymboler(allowed, lat, lng, nastaStadUppslag, new Date());
+    symboler.forEach(f => {
+      const skalTxt = f.skal.join(' · ');
+      L.marker(f.ll, { icon: forslagPinIcon(f.roll, `Förslag: ${f.namn}. ${skalTxt}`),
+                       pane: 'markerPane', riseOnHover: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
           selectV2Street(f.s, grp);
-          showPlaceCardV2(f.namn, `Förslag ${i + 1} · ${f.skal}`, '#16a34a', f.ll, '',
+          // Första skälet är hjälterubriken, resten hamnar på varför-raden under den.
+          showPlaceCardV2(f.namn, f.skal[0], '#16a34a', f.ll, f.skal.slice(1).join(' · '),
                           false, false, nastaStadTxt(f.nasta, new Date())); })
         .addTo(grp);
     });
@@ -2957,8 +3041,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     document.getElementById('hint').innerHTML =
       `<span class="hint-main">Tryck på ${tapTargetPhrase()} för tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
-    loadZonesForViewport(getKey());
-    sheetSnapTo('peek');
+    sheetSnapTo('peek');                       // zonerna laddas nu före symbolsteget ovan
     console.log(`[UC3-nu] får-stå=${okNu} | förbud=${forbiddenLines.length} | städsegment=${clean.count}`);
   } catch(e) {
     console.error('[UC3-nu]', e);
