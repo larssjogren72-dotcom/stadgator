@@ -217,6 +217,13 @@
       box-shadow: 0 2px 6px rgba(22,163,74,.5); }
     .forslag-pin-b.kr  { font-size: 12px; letter-spacing: -.3px; }
     .forslag-pin-b svg { width: 19px; height: 19px; display: block; }
+    /* Samma nål i legenden, nedskalad. box-sizing explicit – annars lägger ramen 4 px utanpå. */
+    .lgnd-pin { box-sizing: border-box; width: 22px; height: 22px; border-radius: 7px;
+      border: 2px solid #fff; background: #16a34a; color: #fff; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px; box-shadow: 0 1px 4px rgba(22,163,74,.45); }
+    .lgnd-pin.kr  { font-size: 10px; letter-spacing: -.3px; }
+    .lgnd-pin svg { width: 15px; height: 15px; display: block; }
     /* Nål för reserverad plats: rundad FYRKANT (MC:s är rund) i turkos (MC:s är blå) */
     .rh-pin { filter: drop-shadow(0 2px 5px rgba(14,116,144,.45)); }
     .rh-pin.stad { filter: drop-shadow(0 2px 5px rgba(245,158,11,.5)); }
@@ -3005,6 +3012,16 @@ const SYMBOL_GLYF = {
 
 // L.marker({alt}) sätter alt på en <img> – en divIcon blir en <div> och tappar den helt (gällde
 // även den gamla sifferversionen). Skärmläsaren får texten via aria-label på själva rutan.
+// Legendens etiketter. ⛔ Aldrig "ledig gata" – vi har ingen beläggningsdata. P-symbolen säger
+// exakt samma sak som platskortet gör vid tryck, så legend och kort aldrig kan säga olika.
+const FORSLAG_ETIKETT = {
+  kvast: 'Städat nyss eller i natt',
+  kr:    'Billigare taxa-zon',
+  p:     'Närmaste gata där du får stå'
+};
+// Vilka förslagssymboler som ligger på kartan just nu. Legenden förklarar bara det som syns.
+let aktivaForslag = [];
+
 function forslagPinIcon(roll, etikett) {
   return L.divIcon({ className: 'forslag-pin', iconSize: [28, 28], iconAnchor: [14, 14],
     html: `<div class="forslag-pin-b ${roll}" role="img" aria-label="${escHtml(etikett || '')}">` +
@@ -3104,6 +3121,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     // Färre än tre nålar är ett giltigt utfall: saknas städsignal visas ingen kvast, och
     // står man inte nära en zongräns visas inget kr.
     const symboler = valjSymboler(allowed, lat, lng, nastaStadUppslag, new Date());
+    aktivaForslag = symboler.map(f => ({ roll: f.roll, namn: f.namn }));   // legenden förklarar det som syns
     symboler.forEach(f => {
       const skalTxt = f.skal.join(' · ');
       L.marker(f.ll, { icon: forslagPinIcon(f.roll, `Förslag: ${f.namn}. ${skalTxt}`),
@@ -3129,6 +3147,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     document.getElementById('hint').innerHTML =
       `<span class="hint-main">Tryck på ${tapTargetPhrase()} för tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
+    updateLegend(currentMode);                 // förslagsblocket speglar nålarna som just ritades
     sheetSnapTo('peek');                       // zonerna laddas nu före symbolsteget ovan
     console.log(`[UC3-nu] får-stå=${okNu} | förbud=${forbiddenLines.length} | städsegment=${clean.count}`);
   } catch(e) {
@@ -3412,11 +3431,23 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #92400e"></div>Vald gata</div>`;
 
+  // Förslagsnålarna är inte en färgkategori utan ett eget lager: färgraderna svarar på "vad
+  // betyder gatans färg", nålarna på "vad tycker appen att jag ska göra". Därför ett eget block
+  // ÖVERST – och bara för de symboler som faktiskt ligger på kartan just nu. Uppmätt över 99
+  // sökpunkter: 1 nål i 48 fall, 2 i 49, 3 i bara 2 ⇒ en fast lista med tre vore mest brus,
+  // i en legend som dessutom redan visat sig bli för hög på mobil (se fitLegendHeight).
+  const forslagBlock = aktivaForslag.length
+    ? `<div class="lgnd-taxa-label">Förslag</div>` +
+      aktivaForslag.map(f =>
+        `<div class="lgnd-row"><span class="lgnd-pin ${f.roll}">${SYMBOL_GLYF[f.roll] || ''}</span>` +
+        `<span style="flex:1">${FORSLAG_ETIKETT[f.roll] || ''}</span></div>`).join('') +
+      `<div class="lgnd-hidden-note">Tryck på en nål för skäl och tider.</div><hr class="lgnd-sep">`
+    : '';
   legendDiv.innerHTML =
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${taxaScale}${modeRows}${layerToggles}</div>`;
+     <div id="legend-content">${forslagBlock}${taxaScale}${modeRows}${layerToggles}</div>`;
   applyLegendState();
 }
 
@@ -3597,6 +3628,7 @@ function clearStreetsFromMap() {
   streetGroupLayers.forEach(lg => lg.remove());
   streetGroupLayers = [];
   allLayers = [];
+  aktivaForslag = [];        // nålarna försvinner med lagren → blocket ska inte ligga kvar
   clearZonesFromMap();
   clearGarages();
   inGarageView = false; setPhusBtn(false);   // ny vy → lämna ev. p-hus-läge, återställ växeln
