@@ -206,6 +206,13 @@
     .veh-opt svg { width: 21px; height: 21px; }
     .veh-opt.on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
     .veh-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    /* Förslagsnål: gul rundad fyrkant med rangsiffra. Nr 1 fylld, 2–3 ringade – ordningen
+       ska synas utan att kartan får tre lika starka signaler. */
+    .forslag-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #f0b429;
+      background: #fff; color: #8a6206; font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(240,180,41,.45); }
+    .forslag-pin-b.ett { background: #f0b429; color: #3b2a05; }
     /* Nål för reserverad plats: rundad FYRKANT (MC:s är rund) i turkos (MC:s är blå) */
     .rh-pin { filter: drop-shadow(0 2px 5px rgba(14,116,144,.45)); }
     .rh-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
@@ -2724,29 +2731,36 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
     });
     perDag.push(byName);
   }
-  return (ll, name, now) => {
+  // Anropas som f(ll, namn, nu) = nästa städSTART efter nu.
+  // f.senaste(ll, namn, nu)     = senaste städSLUT före nu (för "nyss städad").
+  // i går till 7, inte 6. Annars får en gata som städas EN gång i veckan fel svar exakt på
+  // sin egen städdag: onsdag 09:10 har onsdagsfönstret 00–06 passerat, och nästa tillfälle
+  // är nästa onsdag = i+7. Med i<=6 blev svaret felaktigt "ingen städning den närmaste veckan"
+  // samtidigt som schemaraden bredvid sa "Servas onsdagar 00–06". Uppmätt på Ynglingagatan.
+  const sok = (ll, name, now, bakat) => {
     if (!name || !ll) return null;
-    // i går till 7, inte 6. Annars får en gata som städas EN gång i veckan fel svar exakt på
-    // sin egen städdag: onsdag 09:10 har onsdagsfönstret 00–06 passerat, och nästa tillfälle
-    // är nästa onsdag = i+7. Med i<=6 blev svaret felaktigt "ingen städning den närmaste veckan"
-    // samtidigt som schemaraden bredvid sa "Servas onsdagar 00–06". Uppmätt på Ynglingagatan.
     for (let i = 0; i <= 7; i++) {
-      const dat = new Date(now); dat.setDate(now.getDate() + i);
+      const dat = new Date(now); dat.setDate(now.getDate() + (bakat ? -i : i));
       const kand = perDag[dat.getDay()].get(name);
       if (!kand) continue;
       let bast = null;
       for (const s of kand) {
         if (!cleaningActiveOn(s.p, dat)) continue;
         if (distPointToSegmentLL(ll, s.a, s.b) > 25) continue;
-        const st = new Date(dat);
-        st.setHours(Math.floor(s.start / 100), s.start % 100, 0, 0);
-        if (st <= now) continue;
-        if (!bast || st < bast.when) bast = { when: st, start: s.start, end: s.end, dagar: i };
+        const t = new Date(dat);
+        const hm = bakat ? s.end : s.start;
+        t.setHours(Math.floor(hm / 100), hm % 100, 0, 0);
+        if (bakat ? t >= now : t <= now) continue;
+        if (!bast || (bakat ? t > bast.when : t < bast.when))
+          bast = { when: t, start: s.start, end: s.end, dagar: i };
       }
       if (bast) return bast;
     }
     return null;
   };
+  const f = (ll, name, now) => sok(ll, name, now, false);
+  f.senaste = (ll, name, now) => sok(ll, name, now, true);
+  return f;
 }
 
 // Ren SAKUPPGIFT, inget löfte. Vi säger när städningen kommer – inte att platsen "håller"
@@ -2765,6 +2779,74 @@ function nastaStadTxt(n, now) {
   // ("på fredag 00") även om det fungerar i ett intervall ("00–06").
   const kl = `${String(Math.floor(n.start/100)).padStart(2,'0')}:${String(n.start%100).padStart(2,'0')}`;
   return `Nästa städning ${nar} ${kl} · ${om}`;
+}
+
+// ── Tre förslag: bästa möjlighet till parkering närmast målet ────────────────
+// Rangordning, inte tröskel. En tröskelregel gav i mockupen "exakt en gata", och i en app där
+// svaret är OSÄKERT är ett enda förslag en felkälla utan reserv – användaren behöver alternativ
+// att köra förbi. Varje förslag bär sitt EGET SKÄL; de tre är inte lika bra och appen ska inte
+// låtsas det.
+//
+// ⛔ VI HAR INGEN BELÄGGNINGSDATA. "Chans" vilar på två antaganden:
+//    · städningen tvingade bort bilarna nyss  (starkast – en faktisk händelse)
+//    · boende undviker gator som ska städas   (Lars lokalkännedom, ej uppmätt)
+//    Därför säger texten "bra chans", aldrig "ledigt".
+const FORSLAG_ANTAL      = 3;
+const FORSLAG_KANDIDATER = 25;    // närmaste gator som poängsätts (närhet ingår ändå i poängen)
+const NYSS_STADAD_H      = 6;     // "bilarna tvingades bort nyss"
+// Boende flyttar inför en städning – men först när den närmar sig. Kl 12 har ingen flyttat
+// inför midnatt. Lars exempel är kvällen: 18:00 med städning 00:00 = 6 h. Därför 8, inte 12.
+const UNDVIKS_H          = 8;
+const MIN_HALLBAR_MIN    = 60;    // håller den kortare tid än så hinner man inte dit och parkera
+// Hur många meters omväg är en bättre chans värd? Utan detta blir rangordningen strikt efter
+// nivå, och då föreslogs gator 389–457 m bort i Vasastan trots gröna gator på 50 m – tvärtemot
+// "bästa möjlighet till parkering NÄRMAST MÅLET". Avståndet är primärt; chansen förskjuter det.
+const BONUS_NYSS_M       = 250;
+const BONUS_UNDVIKS_M    = 150;
+
+function rankaForslag(allowed, lat, lng, uppslag, now) {
+  if (!uppslag) return [];
+  const centrum = L.latLng(lat, lng);
+  // En gata = ETT förslag. Ta gatans närmaste ritbara segment till sökpunkten.
+  const perGata = new Map();
+  allowed.forEach(s => {
+    if (!s.visaNastaStad || !s.linesSweref.length) return;
+    const namn = (s.street || '').trim(); if (!namn) return;
+    const c = s.linesSweref[0][0], ll = toLatLng(c[0], c[1]);
+    const d = centrum.distanceTo(ll);
+    const f = perGata.get(namn);
+    if (!f || d < f.d) perGata.set(namn, { namn, ll, d, s });
+  });
+  const kandidater = [...perGata.values()].sort((a, b) => a.d - b.d).slice(0, FORSLAG_KANDIDATER);
+
+  const ut = [];
+  kandidater.forEach(k => {
+    const nyckel = k.namn.toLowerCase();
+    const nasta  = uppslag(k.ll, nyckel, now);
+    const senast = uppslag.senaste(k.ll, nyckel, now);
+    const hTill  = nasta ? (nasta.when - now) / 3600000 : Infinity;
+    if (hTill * 60 < MIN_HALLBAR_MIN) return;                    // hinner inte dit – uteslut helt
+    const hSedan = senast ? (now - senast.when) / 3600000 : Infinity;
+    const kl = t => `${String(Math.floor(t/100)).padStart(2,'0')}:${String(t%100).padStart(2,'0')}`;
+    let bonus, skal;
+    if (hSedan <= NYSS_STADAD_H) {
+      bonus = BONUS_NYSS_M; skal = `Städad klar ${kl(senast.end)} – bilarna tvingades bort nyss`;
+    } else if (hTill <= UNDVIKS_H) {
+      bonus = BONUS_UNDVIKS_M; skal = `Städas ${kl(nasta.start)} – boende undviker, bra chans`;
+    } else {
+      bonus = 0; skal = 'Nära dig';
+    }
+    // "Effektivt avstånd": hur långt det känns värt att gå givet chansen.
+    ut.push({ ...k, skal, hTill, nasta, poang: k.d - bonus });
+  });
+  ut.sort((a, b) => a.poang - b.poang || a.d - b.d);
+  return ut.slice(0, FORSLAG_ANTAL);
+}
+
+function forslagPinIcon(nr) {
+  const ett = nr === 1;
+  return L.divIcon({ className: 'forslag-pin', iconSize: [28, 28], iconAnchor: [14, 14],
+    html: `<div class="forslag-pin-b${ett ? ' ett' : ''}">${nr}</div>` });
 }
 
 async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
@@ -2844,6 +2926,20 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       s.visaNastaStad = !anda && !ejForDig && !isRhPlats(s) && !s.gagata;
       drawParkingSegment(s, color, txt, dest, infoRow, grp);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
+    });
+
+    // Tre rangordnade förslag. Körs EFTER kaskaden, så bara segment som faktiskt är
+    // användbara (s.visaNastaStad) kan föreslås. Kandidatmängden är de närmaste gatorna →
+    // ingen förberäkning över hela vyn (den kostade 2 354 ms i Vasastan).
+    const forslag = rankaForslag(allowed, lat, lng, nastaStadUppslag, new Date());
+    forslag.forEach((f, i) => {
+      L.marker(f.ll, { icon: forslagPinIcon(i + 1), pane: 'markerPane', riseOnHover: true,
+                       alt: `Förslag ${i + 1}: ${f.namn}. ${f.skal}` })
+        .on('click', e => { L.DomEvent.stopPropagation(e);
+          selectV2Street(f.s, grp);
+          showPlaceCardV2(f.namn, `Förslag ${i + 1} · ${f.skal}`, '#16a34a', f.ll, '',
+                          false, false, nastaStadTxt(f.nasta, new Date())); })
+        .addTo(grp);
     });
 
     streetGroupLayers.push(grp.addTo(map));
