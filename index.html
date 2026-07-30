@@ -1131,7 +1131,13 @@ function launchApp() {
   updateWhenChip(currentMode);   // klockan har redan valt läge – visa vilket, och varför
   renderVehicleToggle();         // visa Bil/MC-väljaren (sparat val)
   document.getElementById('header-date').textContent = fmtDate(new Date());   // dagens datum direkt
-  requestAnimationFrame(() => { initMap(); loadData(); });
+  // rAF pausas av webbläsaren om fliken inte är synlig (bakgrund, low-power-läge, vissa
+  // webviews) – utan skydd fastnar "Hämtar servicegator…" för evigt (upptäckt 2026-07-30).
+  // setTimeout-fallbacken garanterar att kartan/datan alltid startar, även om rAF aldrig triggar.
+  let bootstrapped = false;
+  const bootstrap = () => { if (bootstrapped) return; bootstrapped = true; initMap(); loadData(); };
+  requestAnimationFrame(bootstrap);
+  setTimeout(bootstrap, 300);
 }
 
 // ── API ──────────────────────────────────────────────────────────────────────
