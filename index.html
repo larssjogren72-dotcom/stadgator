@@ -1624,12 +1624,19 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad) {
     if (color === '#9333ea')      { drawColor = '#c3ccd6'; weight = 4; opacity = 0.55; }   // icke-MC → tyst grått
     else if (color === '#16a34a') { opacity = 0.38; weight = 5; }                           // bilgata MC får nyttja → dämpad
   } else if (nyssStadad) {
-    // Samma legalitet (grönt), bara en ljusare nyans + tjockare linje – ingen ny färgkategori
-    // i `color`/dimning/kortets hero (de använder fortfarande '#16a34a' oförändrat).
-    drawColor = '#4ade80'; weight = 7;
+    // Samma legalitet (grönt) – men lyft fram med en HALO, inte bara en ljusare nyans.
+    // En ren ljushetsändring inom samma gröna ton är en svag UX-signal: ögat söker av en karta
+    // på FÄRGKONTRAST och FORM/STORLEK, inte på nyansskillnader inom samma kulör. `color`/
+    // dimning/kortets hero är fortfarande opåverkade – bara det som RITAS ändras.
+    drawColor = '#22c55e'; weight = 7;
   }
   s.linesSweref.forEach(line => {
-    const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: drawColor, weight, opacity }).addTo(grp);
+    const latlngs = line.map(c => toLatLng(c[0], c[1]));
+    if (nyssStadad) {
+      // Glow under själva linjen – bredare, ljusare, ointeraktiv (tar inget klick).
+      L.polyline(latlngs, { color: '#86efac', weight: 13, opacity: 0.55, interactive: false }).addTo(grp);
+    }
+    const pl = L.polyline(latlngs, { color: drawColor, weight, opacity }).addTo(grp);
     pl._sid = s; pl._base = drawColor;
     pl.on('click', e => { L.DomEvent.stopPropagation(e); selectV2Street(s, grp);
       let nasta = null;
@@ -3161,7 +3168,7 @@ function updateLegend(mode) {
   const nowLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #16a34a"></div>Nyss städad – bra chans</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Nyss städad – bra chans</div>
        ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
