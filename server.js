@@ -135,16 +135,17 @@ function fetchServicedayJSON(apiDay) {
   });
 }
 
-// Bygg feature-listan för alla 7 dagar (cachat 6h, single-flight). Säsong filtreras
+// Bygger alla 7 dagar PARALLELLT i stället för i sekvens – uppmätt 9,9s → ~1,5s (samma
+// sju anrop till samma API, bara samtidigt i stället för ett i taget). Säsong filtreras
 // vid REQUEST (med dagens datum) så cachen är datum-oberoende.
-function buildSchedule() {
-  if (schedFeats && Date.now() - schedTs < SCHED_TTL) return Promise.resolve(schedFeats);
+function refreshSchedule() {
   if (schedInflight) return schedInflight;
-  schedInflight = (async () => {
+  const p = (async () => {
     const out = [];
     const geo = [[], [], [], [], [], [], []];   // per veckodag, trimmad GeoJSON
+    const dagsvar = await Promise.all(SCHED_API_DAYS.map(fetchServicedayJSON));
     for (let day = 0; day < 7; day++) {
-      const j = await fetchServicedayJSON(SCHED_API_DAYS[day]);
+      const j = dagsvar[day];
       const feats = (j && (Array.isArray(j) ? j : j.features)) || [];
       for (const f of feats) {
         const p = f.properties || {}, g = f.geometry;
@@ -176,11 +177,30 @@ function buildSchedule() {
                    lines, bb });
       }
     }
-    schedFeats = out; schedGeo = geo; schedTs = Date.now(); schedInflight = null;
+    schedFeats = out; schedGeo = geo; schedTs = Date.now();
     console.log(`[ParkSpot] Städschema byggt: ${out.length} features (7 dagar)`);
     return out;
   })();
-  return schedInflight;
+  schedInflight = p;
+  // Nollställ ALLTID flaggan när bygget landar, oavsett utfall – annars fastnar cachen i
+  // "pågår" permanent om ett enstaka bygge kastar, och allt efter hänger på samma trasiga
+  // promise tills servern startas om. Den tomma catch() är bara för att inte trigga en
+  // "unhandled rejection"-varning på DEN HÄR sidokedjan – den riktiga anroparen (buildSchedule
+  // vid kall start) får felet som vanligt via `p` självt.
+  p.finally(() => { schedInflight = null; }).catch(() => {});
+  return p;
+}
+
+// Serverar ALLTID direkt om en cache finns – även en utgången. En utgången cache triggar en
+// ombyggnad i BAKGRUNDEN (ingen inväntar den) i stället för att blocka anroparen; samma
+// 6-timmars färskhetsgräns som tidigare, bara utan väntetiden. Bara den allra första
+// förfrågan efter serverstart (ingen cache alls än) behöver faktiskt vänta på bygget.
+function buildSchedule() {
+  if (schedFeats) {
+    if (Date.now() - schedTs >= SCHED_TTL) refreshSchedule().catch(() => {});
+    return Promise.resolve(schedFeats);
+  }
+  return refreshSchedule();
 }
 
 // Punkt→segment-distans i meter – IDENTISK med klientens distPointToSegment(LL).
