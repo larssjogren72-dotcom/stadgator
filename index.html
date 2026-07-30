@@ -1614,7 +1614,7 @@ function mcPinIcon(color) {
 // Ritar ETT parkeringssegment. Bil-läge: oförändrat (vanlig linje). MC-läge (fokus/deklutter):
 // exklusiv MC-ruta → PIN; bilgata MC får nyttja → dämpad grön; icke-MC → tyst grått;
 // "Endast MC" → dölj allt utom pins + städ/förbud (som gäller MC med).
-function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
+function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad) {
   const mc = vehicleMode === 'mc';
   if (vehicleMode === 'rh' && isRhPlats(s)) return;   // ritas som nål av rhPlatserOverlay
   if (s.gagata) return;                          // gågata ritas som streckad linje (FORESKRIFT) – ej dubbel heldragen
@@ -1623,6 +1623,10 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp) {
   if (mc) {
     if (color === '#9333ea')      { drawColor = '#c3ccd6'; weight = 4; opacity = 0.55; }   // icke-MC → tyst grått
     else if (color === '#16a34a') { opacity = 0.38; weight = 5; }                           // bilgata MC får nyttja → dämpad
+  } else if (nyssStadad) {
+    // Samma legalitet (grönt), bara en ljusare nyans + tjockare linje – ingen ny färgkategori
+    // i `color`/dimning/kortets hero (de använder fortfarande '#16a34a' oförändrat).
+    drawColor = '#4ade80'; weight = 7;
   }
   s.linesSweref.forEach(line => {
     const pl = L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: drawColor, weight, opacity }).addTo(grp);
@@ -2819,6 +2823,9 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
 
     // Gatufärg = får jag stå här just nu? (pris visas av zonerna + popupen, ej av färgen)
     let okNu = 0;
+    const now = new Date();
+    const nyssTid0 = performance.now();
+    let nyssRaknade = 0;
     allowed.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
@@ -2852,19 +2859,34 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
       // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
+      // "Kort besök går bra" är ett FAKTUM (du hinner därifrån innan fönstret börjar), inte en
+      // gissning om lediga platser – därför ingen "bra chans"-formulering här, bara legaliteten
+      // uttryckt ärligare. "Pågår"-fallet får INGET sådant tillägg: då är fönstret redan öppet.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : anda ? `Parkering tillåten övrig tid`
                     : (isRhPlats(s) || ejForDig) ? ''
                     : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
-                    : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)}`
-                    : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · flytta i kväll` : '';
-      // Flagga bara – uppslaget görs LAT vid klick. Att beräkna det för alla segment i förväg
+                    : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`
+                    : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll` : '';
+      // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
       // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
       // "Nästa städning" är dessutom irrelevant på platser man inte får använda.
       s.visaNastaStad = !anda && !ejForDig && !isRhPlats(s) && !s.gagata;
-      drawParkingSegment(s, color, txt, dest, infoRow, grp);
+      // "Nyss städad" som en LJUSARE nyans av samma gröna – inte en ny färgkategori (`color`,
+      // dimning och kortets hero-färg är opåverkade, bara linjens ritade kulör ändras). Bara
+      // det enkla "Får stå nu"-fallet, inte besöksplats/MC-ruta/etc – annars blandas för många
+      // budskap. Uppslaget är en ren tal-jämförelse (ingen textbyggnad) – billigare än fällan
+      // ovan, men mätt per sökning (se console.log efter loopen) för att vara säker.
+      let nyssStadad = false;
+      if (color === '#16a34a' && s.visaNastaStad && nastaStadUppslag && dest) {
+        nyssRaknade++;
+        const sen = nastaStadUppslag.senaste(dest, name, now);
+        nyssStadad = !!sen && (now - sen.when) / 3600000 <= SENASTE_H;
+      }
+      drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
+    console.log(`[Nyss städad] ${nyssRaknade} uppslag på ${(performance.now() - nyssTid0).toFixed(0)} ms`);
 
     streetGroupLayers.push(grp.addTo(map));
     applyDimAll();
@@ -3139,6 +3161,7 @@ function updateLegend(mode) {
   const nowLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#4ade80;border:1px solid #16a34a"></div>Nyss städad – bra chans</div>
        ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
