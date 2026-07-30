@@ -2786,9 +2786,11 @@ function nastaStadTxt(n, now) {
   return `Nästa städning ${nar} ${kl} · ${om}`;
 }
 
-// Hur länge sen får en avslutad städning nämnas? Efter det säger den inget om nu.
-// Samma tröskel som tidigare "nyss städad" vilade på (en faktisk händelse, inte en gissning).
-const SENASTE_H = 6;
+// Hur länge sen får en avslutad städning nämnas (kortraden) och lysa upp som prioritet
+// (glowen)? Sattes först till 6h, men mätt i Vasastan var det 17 % av gatorna en eftermiddag
+// strax efter ett vanligt städfönster (09–14) – för vanligt för att kännas som en prioritet.
+// 3h håller den sällsynt även direkt efter ett stort fönster.
+const SENASTE_H = 3;
 // Symmetrisk mot nastaStadTxt, fast bakåt – "avslutad" städning. Visas bara nyligen (se
 // SENASTE_H i drawParkingSegment): en städning för tre dygn sen säger inget om nu.
 function senasteStadTxt(n, now) {
