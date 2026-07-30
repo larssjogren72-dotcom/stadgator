@@ -2,6 +2,7 @@ const http  = require('http');
 const https = require('https');
 const fs    = require('fs');
 const path  = require('path');
+const zlib  = require('zlib');
 
 const PORT = process.env.PORT || 3456;
 
@@ -239,7 +240,7 @@ http.createServer((req, res) => {
     const apiPath = reqUrl.pathname.replace('/proxy/', '/LTF-Tolken/v1/');
     if (API_KEY) reqUrl.searchParams.set('apiKey', API_KEY);   // injicera server-nyckel
     const target  = apiPath + '?' + reqUrl.searchParams.toString();
-    forward('openparking.stockholm.se', target, res);
+    forward('openparking.stockholm.se', target, req, res);
 
   } else if (reqUrl.pathname.startsWith('/wfs/')) {
     // Proxy → openstreetgs.stockholm.se (WFS). Nyckel = path-segment /geoservice/api/{key}/...
@@ -251,15 +252,15 @@ http.createServer((req, res) => {
       wfsPath = reqUrl.pathname.replace('/wfs/', '/geoservice/api/'); // fallback: klientnyckel
     }
     const target  = wfsPath + '?' + reqUrl.searchParams.toString();
-    forward('openstreetgs.stockholm.se', target, res);
+    forward('openstreetgs.stockholm.se', target, req, res);
 
   } else if (reqUrl.pathname === '/phus') {
     // Stockholm Parkering (p-hus). Källan är MYCKET långsam (TTFB ~30s) + saknar CORS.
     // Egen förvärmd cache (6h) + single-flight → användarna får alltid datan direkt.
     const fresh = phusBody && (Date.now() - phusTs < PHUS_TTL);
-    if (fresh) { send(res, 200, phusType, phusBody, 'HIT'); }
+    if (fresh) { send(req, res, 200, phusType, phusBody, 'HIT'); }
     else fetchPhus().then(body => {
-      if (body) send(res, 200, phusType, body, 'MISS');
+      if (body) send(req, res, 200, phusType, body, 'MISS');
       else { res.setHeader('Access-Control-Allow-Origin','*'); res.writeHead(502); res.end(JSON.stringify({ error: 'p-hus otillgängligt just nu' })); }
     });
 
@@ -294,7 +295,7 @@ http.createServer((req, res) => {
       const kropp = flera
         ? { dagar: Object.fromEntries(dagar.map(d => [d, utsnitt(d)])) }
         : utsnitt(dagar[0]);
-      send(res, 200, 'application/json; charset=utf-8',
+      send(req, res, 200, 'application/json; charset=utf-8',
            Buffer.from(JSON.stringify(kropp)), warm ? 'HIT' : 'MISS');
     }).catch(() => {
       res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
@@ -328,7 +329,7 @@ http.createServer((req, res) => {
         const k = f.day+'_'+f.s+'_'+f.e;
         if (!seen.has(k)) { seen.add(k); schedule.push({ day: f.day, s: f.s, e: f.e }); }
       }
-      send(res, 200, 'application/json; charset=utf-8', Buffer.from(JSON.stringify({ schedule })), warm ? 'HIT' : 'MISS');
+      send(req, res, 200, 'application/json; charset=utf-8', Buffer.from(JSON.stringify({ schedule })), warm ? 'HIT' : 'MISS');
     }).catch(() => {
       res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
       res.end(JSON.stringify({ error: 'schema otillgängligt' }));
@@ -346,29 +347,27 @@ http.createServer((req, res) => {
 
   } else if (reqUrl.pathname === '/robots.txt') {
     res.setHeader('Content-Type', 'text/plain');
-    res.writeHead(200);
-    res.end('User-agent: *\nAllow: /\nSitemap: https://parkspot.se/sitemap.xml\n');
+    finish(req, res, 200, Buffer.from('User-agent: *\nAllow: /\nSitemap: https://parkspot.se/sitemap.xml\n'));
 
   } else if (reqUrl.pathname === '/sitemap.xml') {
     res.setHeader('Content-Type', 'application/xml');
-    res.writeHead(200);
     const lastmod = new Date().toISOString().slice(0, 10);
     let seoUrls = [];
     try { seoUrls = JSON.parse(fs.readFileSync(path.join(__dirname, 'seo', 'pages.json'), 'utf8')); } catch {}
     const seoXml = seoUrls.map(p =>
       `  <url>\n    <loc>${p.loc}</loc>\n    <lastmod>${p.lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`
     ).join('\n');
-    res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n${seoXml}\n</urlset>`);
+    const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n${seoXml}\n</urlset>`;
+    finish(req, res, 200, Buffer.from(xmlBody));
 
   } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|om-parkspot|en)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
     // SEO-sidor (statiska, genererade i seo/site/) – egna URL:er, rör ej appen.
     const rel = reqUrl.pathname.replace(/\/+$/, '');
     const seoFile = path.join(__dirname, 'seo', 'site', rel + '.html');
     fs.readFile(seoFile, (err, data) => {
-      if (err) { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.writeHead(404); res.end('<h1>404</h1><p><a href="/">Till ParkSpot</a></p>'); return; }
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.writeHead(200);
-      res.end(data);
+      if (err) { finish(req, res, 404, Buffer.from('<h1>404</h1><p><a href="/">Till ParkSpot</a></p>')); return; }
+      finish(req, res, 200, data);
     });
 
   } else if (reqUrl.pathname === '/version') {
@@ -376,8 +375,7 @@ http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'no-store');
-    res.writeHead(200);
-    res.end(JSON.stringify({ version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT }));
+    finish(req, res, 200, Buffer.from(JSON.stringify({ version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT })));
 
   } else {
     // Servera statiska filer (index.html)
@@ -404,8 +402,7 @@ http.createServer((req, res) => {
           .split('__APP_VERSION__').join(APP_VERSION)
           .split('__APP_BUILT__').join(APP_BUILT), 'utf8');
       }
-      res.writeHead(200);
-      res.end(body);
+      finish(req, res, 200, body);
     });
   }
 
@@ -415,31 +412,57 @@ http.createServer((req, res) => {
   buildSchedule().catch(() => {});   // förvärm städschemat (7 dagar) → första kortet snabbt
 });
 
-function send(res, status, type, body, cacheState) {
+// ── Komprimering ──────────────────────────────────────────────────────────
+// index.html var 225 kB / bbox-städdata 15 kB okomprimerat – ren transportkostnad,
+// samma bytes för alla användare oavsett nät. gzip ger ~70-90 % mindre (uppmätt:
+// index.html → 70 kB, servicedagar-bbox-JSON → 1,7 kB). Bilder/redan komprimerat
+// hoppas över (COMPRESSIBLE), och svaret skickas okomprimerat om klienten inte
+// bad om gzip eller kroppen är för liten för att vara värt det.
+const COMPRESSIBLE = /^(text\/|application\/json|application\/javascript|application\/xml|image\/svg\+xml)/;
+function acceptsGzip(req) {
+  return /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+}
+// Ersätter writeHead(status)+end(body) sist i en respons. Måste anropas EFTER alla
+// setHeader(...) men FÖRE writeHead, annars hinner Content-Encoding inte med.
+function finish(req, res, status, body) {
+  const type = String(res.getHeader('Content-Type') || '');
+  if (body && body.length > 512 && COMPRESSIBLE.test(type) && acceptsGzip(req)) {
+    zlib.gzip(body, (err, gz) => {
+      if (err) { res.writeHead(status); res.end(body); return; }
+      res.setHeader('Content-Encoding', 'gzip');
+      res.writeHead(status);
+      res.end(gz);
+    });
+  } else {
+    res.writeHead(status);
+    res.end(body);
+  }
+}
+
+function send(req, res, status, type, body, cacheState) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', type);
   res.setHeader('X-Cache', cacheState);
-  res.writeHead(status);
-  res.end(body);
+  finish(req, res, status, body);
 }
 
-function forward(hostname, upstreamPath, res, port = 443) {
+function forward(hostname, upstreamPath, req, res, port = 443) {
   const key = hostname + ':' + port + upstreamPath;
 
   // 1) Cache-träff → svara direkt
   const cached = cacheGet(key);
-  if (cached) { HITS++; return send(res, 200, cached.type, cached.body, 'HIT'); }
+  if (cached) { HITS++; return send(req, res, 200, cached.type, cached.body, 'HIT'); }
 
   // 2) Single-flight: pågår redan en hämtning för samma nyckel → vänta in den
   const waiting = INFLIGHT.get(key);
-  if (waiting) { waiting.push(res); return; }
-  INFLIGHT.set(key, [res]);
+  if (waiting) { waiting.push({ req, res }); return; }
+  INFLIGHT.set(key, [{ req, res }]);
   MISSES++;
 
   const flush = (status, type, body, state) => {
     const list = INFLIGHT.get(key) || []; INFLIGHT.delete(key);
     // Originalanropet (i=0) gjorde upstream-anropet; övriga delade det → COALESCED.
-    list.forEach((r, i) => send(r, status, type, body, i === 0 ? state : 'COALESCED'));
+    list.forEach((w, i) => send(w.req, w.res, status, type, body, i === 0 ? state : 'COALESCED'));
   };
 
   // 3) Hämta upstream, buffra, cacha (om 200), svara alla väntande
@@ -454,7 +477,7 @@ function forward(hostname, upstreamPath, res, port = 443) {
   });
   proxyReq.on('error', (err) => {
     const list = INFLIGHT.get(key) || []; INFLIGHT.delete(key);
-    list.forEach(r => { r.writeHead(502); r.end(JSON.stringify({ error: err.message })); });
+    list.forEach(w => { w.res.writeHead(502); w.res.end(JSON.stringify({ error: err.message })); });
   });
   proxyReq.setTimeout(20000, () => proxyReq.destroy(new Error('upstream timeout')));
   proxyReq.end();
