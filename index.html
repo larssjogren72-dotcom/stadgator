@@ -1603,7 +1603,6 @@ function bindGagata(pl) {
 }
 // Röda förbudslinjer saknade klick-hantering. Nu går de att trycka på för att se vad som gäller.
 function bindForbud(pl) {
-  pl._base = '#ef4444';   // gör den lyftbar i z-ordningen, se bringToFront-anropen nedan
   pl.on('click', e => {
     L.DomEvent.stopPropagation(e);
     const lls = pl.getLatLngs(); const mid = lls[Math.floor(lls.length / 2)];
@@ -2532,10 +2531,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
     streetGroupLayers.push(grp.addTo(map));
     applyDimAll();
-    // Lyft varningsfärgerna (förbud/gågata/uteservering) överst – annars kan ett parallellt
-    // grönt segment ligga ovanpå och både dölja flaggan och fånga klicket (Lars stickprov
-    // 2026-07-31: en busshållplats gömdes bakom Margretelundsvägen).
-    grp.eachLayer(l => { if (l._base === '#ef4444' && l.bringToFront) l.bringToFront(); });
+    // Lyft varningsfärgerna (gågata/uteservering) överst – annars kan ett parallellt grönt
+    // segment ligga ovanpå och både dölja flaggan och fånga klicket.
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
 
     const badge = document.getElementById('count-badge');
@@ -2908,10 +2905,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
 
     streetGroupLayers.push(grp.addTo(map));
     applyDimAll();
-    // Alla röda (förbud OCH ändamålsplatser) lyfts: bägge är KORTA/smala jämfört med
-    // parkeringssträckorna och kan annars täckas helt av en grön linje som ritas senare
-    // (Lars stickprov 2026-07-31: en busshållplats gömdes bakom Margretelundsvägen).
-    grp.eachLayer(l => { if (l._base === '#ef4444' && l.bringToFront) l.bringToFront(); });
+    // Ändamålsplatserna är KORTA (median 13 m) och ligger inklämda i längre p-sträckor →
+    // utan detta kan en grön linje som ritas senare täcka dem helt. Bara VÅRA röda lyfts:
+    // förbudslinjerna saknar _sid och ska medvetet ligga underst (oförändrat).
+    grp.eachLayer(l => { if (l._base === '#ef4444' && l._sid && l._sid.andamal && l.bringToFront) l.bringToFront(); });
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
     const badge = document.getElementById('count-badge');
     badge.textContent = `${okNu} gator där du får stå nu`;
