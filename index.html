@@ -2979,7 +2979,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${okNu} gator där du får stå nu`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      `<span class="hint-main">Tryck på ${tapTargetPhrase()} för tider och vägbeskrivning.</span>` +
+      `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     loadZonesForViewport(getKey());
     sheetSnapTo('peek');
