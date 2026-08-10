@@ -1620,7 +1620,7 @@ function mcPinIcon(color) {
 // Ritar ETT parkeringssegment. Bil-läge: oförändrat (vanlig linje). MC-läge (fokus/deklutter):
 // exklusiv MC-ruta → PIN; bilgata MC får nyttja → dämpad grön; icke-MC → tyst grått;
 // "Endast MC" → dölj allt utom pins + städ/förbud (som gäller MC med).
-function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad) {
+function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hiddenGem) {
   const mc = vehicleMode === 'mc';
   if (vehicleMode === 'rh' && isRhPlats(s)) return;   // ritas som nål av rhPlatserOverlay
   if (s.gagata) return;                          // gågata ritas som streckad linje (FORESKRIFT) – ej dubbel heldragen
@@ -1635,12 +1635,21 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad) {
     // på FÄRGKONTRAST och FORM/STORLEK, inte på nyansskillnader inom samma kulör. `color`/
     // dimning/kortets hero är fortfarande opåverkade – bara det som RITAS ändras.
     drawColor = '#22c55e'; weight = 7;
+  } else if (hiddenGem) {
+    // Samma halo-mönster som nyss städad, fast på orange – "gott om tid kvar" (se
+    // HIDDEN_GEM_MIN_H/MAX_H i showNowParkingV2Flow). Kulören är oförändrad (fortfarande
+    // #f59e0b, samma varning-i-grunden), bara emfasen ökar – som mc-grenen ovan tar denna
+    // path bort glowen i MC-läge, samma avsiktliga deklutter som för nyss städad.
+    weight = 7;
   }
   s.linesSweref.forEach(line => {
     const latlngs = line.map(c => toLatLng(c[0], c[1]));
     if (nyssStadad) {
       // Glow under själva linjen – bredare, ljusare, ointeraktiv (tar inget klick).
       L.polyline(latlngs, { color: '#86efac', weight: 13, opacity: 0.55, interactive: false }).addTo(grp);
+    } else if (hiddenGem) {
+      // Amber-300 under amber-500 – samma två-steg-ljusare-relation som gröna glowen ovan.
+      L.polyline(latlngs, { color: '#fcd34d', weight: 13, opacity: 0.55, interactive: false }).addTo(grp);
     }
     const pl = L.polyline(latlngs, { color: drawColor, weight, opacity }).addTo(grp);
     pl._sid = s; pl._base = drawColor;
@@ -2828,6 +2837,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     nastaStadUppslag = buildNextCleaningWeek(veckoData, lat, lng);
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
     const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
+    // "Hidden gem": orange men gott om tid kvar innan städning – varken för nära (känns riskabelt)
+    // eller för långt bort (ingen brådska, inget fynd). Bara Nu-läget – i Natt-läget kan samma
+    // klockslag betyda att bilen INTE får lämnas över natten, se tier==='natt' i showSafeStreetsV2Flow.
+    const HIDDEN_GEM_MIN_H = 2, HIDDEN_GEM_MAX_H = 7;
 
     // Gågator/förbud (rosa streckad/röd, underst) – syns även där ingen parkering finns. Kan döljas i Förklaring.
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
@@ -2839,6 +2852,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     // Gatufärg = får jag stå här just nu? (pris visas av zonerna + popupen, ej av färgen)
     let okNu = 0;
     const now = new Date();
+    const nowH = now.getHours() + now.getMinutes() / 60;   // för hidden-gem-fönstret nedan
     const nyssTid0 = performance.now();
     let nyssRaknade = 0;
     allowed.forEach(s => {
@@ -2858,7 +2872,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // MC-rutor). OBS: en MC-ruta i MC-läget är en plats man FÅR använda – där är städvarningen
       // relevant och grenen `mc && isMcExclusive` ligger därför kvar efter städningen.
       const ejForDig = !vehicleAllowed(s.vehicle);
-      let color, txt;
+      let color, txt, hiddenGem = false;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       else if (anda)                   { color = '#ef4444'; txt = andamalTxt(s); }
       // MÅSTE ligga före städgrenarna: "får jag stå här överhuvudtaget" besvaras före "när städas
@@ -2867,8 +2881,16 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
       else if (ejForDig)               { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
-      else if (cs && cs.state === 'upcoming') { color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++; }
-      else if (nx)                     { color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++; }
+      else if (cs && cs.state === 'upcoming') {
+        color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++;
+        const h = Math.floor(cs.start / 100) + (cs.start % 100) / 60 - nowH;   // timmar kvar, städning idag
+        hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
+      }
+      else if (nx) {
+        color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++;
+        const h = (24 - nowH) + Math.floor(nx.start / 100) + (nx.start % 100) / 60;   // timmar kvar, städning imorgon
+        hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
+      }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
@@ -2898,7 +2920,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         const sen = nastaStadUppslag.senaste(dest, name, now);
         nyssStadad = !!sen && (now - sen.when) / 3600000 <= SENASTE_H;
       }
-      drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad);
+      drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hiddenGem);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
     console.log(`[Nyss städad] ${nyssRaknade} uppslag på ${(performance.now() - nyssTid0).toFixed(0)} ms`);
@@ -3182,6 +3204,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas idag – tryck för exakt tid</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>God tid kvar – bra läge</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const modeRows = mode === 'now'
