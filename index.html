@@ -2880,7 +2880,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : anda ? `Parkering tillåten övrig tid`
                     : (isRhPlats(s) || ejForDig) ? ''
-                    : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
+                    : (cs && cs.state === 'active')   ? `Pågår – flytta ${vehicleWord()}`
                     : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`
                     : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll` : '';
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
