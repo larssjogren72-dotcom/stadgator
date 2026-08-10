@@ -44,6 +44,14 @@ const APP_VERSION = APP_SHA ? APP_SHA.slice(0, 7) : 'okänd';
 const APP_BUILT   = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 console.log(`[ParkSpot] Version ${APP_VERSION} (${APP_SRC}) · server startad ${APP_BUILT}`);
 
+// ── Keep-alive mot Stockholms servrar ─────────────────────────────────────────
+// Utan detta öppnar https.request en NY TCP+TLS-anslutning per anrop. En sökning
+// gör 4 samtidiga anrop till samma host (openstreetgs.stockholm.se) → 4 fulla
+// handskakningar parallellt, uppmätt 2-10s vardera i produktion (Railway) trots
+// att samma anrop tar ~0,2-0,3s direkt mot Stockholms server från annat nät.
+// keepAlive återanvänder anslutningen mellan anrop till samma host.
+const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 50 });
+
 // ── Server-side cache (TTL + minnesgräns + single-flight) ────────────────────
 // Stockholms data ändras långsamt och är identisk för alla användare → cacha
 // upstream-svar så N användares identiska anrop blir 1 anrop. Skyddar API-nyckeln.
@@ -85,7 +93,8 @@ function fetchPhus() {
     const t0 = Date.now();
     const req = https.request({
       hostname: 'api.stockholmparkering.se', port: 8084,
-      path: '/SparkInfartsParkeringService.svc/GetAllAnlaggningParkeringsInfo', method: 'GET'
+      path: '/SparkInfartsParkeringService.svc/GetAllAnlaggningParkeringsInfo', method: 'GET',
+      agent: keepAliveAgent
     }, (r) => {
       const chunks = [];
       r.on('data', c => chunks.push(c));
@@ -126,7 +135,7 @@ function fetchServicedayJSON(apiDay) {
     let p = `/LTF-Tolken/v1/servicedagar/weekday/${encodeURIComponent(apiDay)}?outputFormat=json`;
     if (API_KEY) p += `&apiKey=${encodeURIComponent(API_KEY)}`;
     const chunks = [];
-    const r = https.request({ hostname: 'openparking.stockholm.se', port: 443, path: p, method: 'GET' }, (resp) => {
+    const r = https.request({ hostname: 'openparking.stockholm.se', port: 443, path: p, method: 'GET', agent: keepAliveAgent }, (resp) => {
       resp.on('data', c => chunks.push(c));
       resp.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); } });
     });
@@ -466,7 +475,7 @@ function forward(hostname, upstreamPath, req, res, port = 443) {
   };
 
   // 3) Hämta upstream, buffra, cacha (om 200), svara alla väntande
-  const proxyReq = https.request({ hostname, port, path: upstreamPath, method: 'GET' }, (proxyRes) => {
+  const proxyReq = https.request({ hostname, port, path: upstreamPath, method: 'GET', agent: keepAliveAgent }, (proxyRes) => {
     const chunks = [], type = proxyRes.headers['content-type'] || 'application/json';
     proxyRes.on('data', c => chunks.push(c));
     proxyRes.on('end', () => {
