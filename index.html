@@ -902,6 +902,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
 <script>
 
+// ── Debug: simulera annan klocka (?debugtid=HH:MM i URL:en) ─────────────────
+// Enda syfte: testa tidsberoende logik (hidden-gem-fönstret, NU_HORIZON_H, SENASTE_H m.fl.)
+// utan att vänta till rätt klockslag på riktigt. Måste köras FÖRST, innan något annat i
+// sidan hinner göra new Date(). Helt inaktiv (0 kostnad, 0 risk) om parametern saknas –
+// TILLFÄLLIGT verktyg, ta bort innan produktion om det inte visar sig användbart löpande.
+(function initDebugClock() {
+  const m = /[?&]debugtid=(\d{1,2}):(\d{2})/.exec(location.search);
+  if (!m) return;
+  const RealDate = Date;
+  const fixed = new RealDate();
+  fixed.setHours(+m[1], +m[2], 0, 0);
+  const fixedMs = fixed.getTime();
+  window.Date = new Proxy(RealDate, {
+    construct(target, args) { return args.length === 0 ? new target(fixedMs) : new target(...args); }
+  });
+  Date.now = () => fixedMs;
+  console.warn('[Debug] Klockan simulerad till ' + m[1] + ':' + m[2] + ' – ta bort ?debugtid= i adressfältet för riktig tid.');
+})();
+
 // ── Koordinater ──────────────────────────────────────────────────────────────
 proj4.defs('EPSG:3011','+proj=tmerc +lat_0=0 +lon_0=18 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs');
 function toLatLng(x, y) {
