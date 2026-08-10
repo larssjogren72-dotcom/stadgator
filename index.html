@@ -2559,7 +2559,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // Ingen städinstruktion för platser man inte får använda.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : (isRhPlats(s) || ejForDig) ? ''
-                    : tier === 'natt'   ? `Flytta bilen i kväll`
+                    : tier === 'natt'   ? `Flytta ${vehicleWord()} i kväll`
                     : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
                     : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
                     : '';
@@ -2931,7 +2931,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : anda ? `Parkering tillåten övrig tid`
                     : (isRhPlats(s) || ejForDig) ? ''
-                    : (cs && cs.state === 'active')   ? `Pågår – flytta bilen`
+                    : (cs && cs.state === 'active')   ? `Pågår – flytta ${vehicleWord()}`
                     : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`
                     : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll` : '';
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
@@ -3065,6 +3065,9 @@ function tapTargetPhrase() {
   if (vehicleMode === 'rh') return 'en grön gata eller en reserverad plats';
   return 'en grön gata';
 }
+// Ordet för fordonet i löptext. Rörelsehindrad-läget är bil + tillstånd (se vehicleAllowed
+// ovan) – behåller därför "bilen", till skillnad från MC som har eget ord.
+function vehicleWord() { return vehicleMode === 'mc' ? 'MC:n' : 'bilen'; }
 const WHEN_LABELS = { now: 'Nu',  uc2: 'Natt' };
 const WHEN_SUBS   = { now: 'Vad gäller just nu – och vad händer snart?', uc2: 'Tryggt till imorgon bitti' };
 
@@ -3078,14 +3081,17 @@ function pickWhen(mode) {
 // så man slipper välja läge för att förstå appen (men kan byta).
 const MODE_PITCH = {
   now: { icon:'check', t:'Nu — var du får stå just nu', w:'Gröna gator är lagliga just nu. Tryck på en för att se om den nyss städats eller snart städas.' },
-  uc2: { icon:'moon',  t:'Natt — tryggt till i morgon',  w:'Visar gator där bilen kan stå kvar utan att service slår till.' },
+  uc2: { icon:'moon',  t:'Natt — tryggt till i morgon' },   // w byggs i updateWhenChip – beror på vehicleMode
 };
 function updateWhenChip(mode) {
   const p = MODE_PITCH[mode] || MODE_PITCH.now;
   const cur = document.getElementById('when-current'); if (cur) cur.textContent = WHEN_LABELS[mode] || '';
   const ic  = document.getElementById('when-icon');    if (ic) ic.innerHTML = svgIcon(p.icon);
   const pt  = document.getElementById('when-pitch');   if (pt) pt.textContent = p.t;
-  const wy  = document.getElementById('when-why');     if (wy) wy.textContent = p.w;
+  const wy  = document.getElementById('when-why');
+  if (wy) wy.textContent = mode === 'uc2'
+    ? `Visar gator där ${vehicleWord()} kan stå kvar utan att service slår till.`
+    : p.w;
   document.querySelectorAll('.when-opt').forEach(el =>
     el.classList.toggle('active-when', el.dataset.mode === mode));
 }
@@ -3759,8 +3765,23 @@ function setVehicle(v) {
   try { localStorage.setItem('vehicle_mode', v); } catch (e) {}
   renderVehicleToggle();
   updateLegend(currentMode);
+  updateWhenChip(currentMode);   // "Natt"-chippens why-text nämner fordonet (bilen/MC:n)
   if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng);   // kör om i samma läge, nytt fordon
-  else refreshZones();
+  else { refreshZones(); renderModeIntro(); }   // ingen destination → lägesintrot i #hint måste också bytas
+}
+
+// Förklarar hur det VALDA läget fungerar ihop med det VALDA fordonet (service-terminologi)
+// + vägledning. Byggs om vid både läges- och fordonsbyte – annars kan "Natt"-introt fortsätta
+// säga "bilen" efter ett byte till MC. Färger bor i Förklaring, inte här.
+function renderModeIntro() {
+  const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
+  const intro = {
+    now: `<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på ${tapTargetPhrase()} för att se om gatan nyss städats eller snart städas, plus vägbeskrivning.`,
+    uc2: `<b>"Natt"</b> visar var ${vehicleWord()} står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhrase()} för service-tider och vägbeskrivning.`,
+  };
+  const hintEl = document.getElementById('hint');
+  hintEl.style.display = 'block';
+  hintEl.innerHTML = `<span class="hint-main">${intro[currentMode] || intro.uc2}</span>` + disclaimer;
 }
 
 function setMode(mode) {
@@ -3775,15 +3796,7 @@ function setMode(mode) {
 
   updateLegend(mode);
   clearStreetsFromMap();
-  const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
-  // Förklarar hur det VALDA läget fungerar (service-terminologi) + vägledning. Färger bor i Förklaring.
-  const intro = {
-    now: `<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på ${tapTargetPhrase()} för att se om gatan nyss städats eller snart städas, plus vägbeskrivning.`,
-    uc2: `<b>"Natt"</b> visar var bilen står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhrase()} för service-tider och vägbeskrivning.`,
-  };
-  const hintEl = document.getElementById('hint');
-  hintEl.style.display = 'block';
-  hintEl.innerHTML = `<span class="hint-main">${intro[mode] || intro.uc2}</span>` + disclaimer;
+  renderModeIntro();
   inp.value = '';
   // Ingen auto-fokus: tangentbordet ska inte slå upp och dölja lägesförklaringen.
   // Användaren trycker själv i sökfältet när hen vill skriva.
