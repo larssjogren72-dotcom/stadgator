@@ -1305,10 +1305,18 @@ let forbiddenLineSegments = []; // LTFR_FORESKRIFT_GEOM – parkeringsrestriktio
 let forbiddenParkingLines = []; // LTFR_P_FORBUD_GEOM – parkeringsförbudslinjer (SWEREF99)
 let loadingZoneSegments   = []; // Lastzoner (ändamålsplats lastning/lossning) – ritas som korta markörer, blockerar ej hela gatan
 
-async function loadParkingRestrictions(apiKey) {
+// Skopad till sökrutan (bbox), inte hela Stockholm – LTFR_P_FORBUD_GEOM utan bbox var
+// 51 MB/17s+ och kringgick serverns cache (post > 30 MB-taket), vid VARJE kartladdning.
+// Anropas numera per sökning (från showSafeStreetsNearby), inte en gång vid appstart.
+async function loadParkingRestrictions(apiKey, lat, lng, radius = 500) {
+  forbiddenZoneGeoms   = [];
+  forbiddenStreetNames = new Set();
+  forbiddenParkingLines = [];
+  const deg  = (radius / 111000) * 1.8; // grader med marginal, samma formel som övriga bbox-hämtningar
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
   for (const layer of RESTRICTION_LAYERS) {
     try {
-      const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${encodeURIComponent(layer)}&outputFormat=application/json`);
+      const r = await fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${encodeURIComponent(layer)}&outputFormat=application/json&BBOX=${bbox}`);
       if (!r.ok) { console.warn(`[Städgator] ${layer}: HTTP ${r.status}`); continue; }
       const d = await r.json();
       let polygons = 0, names = 0;
@@ -2985,7 +2993,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
 // ── Karta ────────────────────────────────────────────────────────────────────
 let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let garageMarkers = [], garageDataPromise = null;   // p-hus (sista utväg)
-let streetDataPromise = null, restrictionsPromise = null, searchCenter = null;
+let streetDataPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
 // Smart standard (beslut UX §11.4): kväll/natt → Över natten, dagtid → Nu
 let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'now'; })();
@@ -3432,8 +3440,9 @@ function loadData() {
 
   // Starta alla hämtningar i bakgrunden — ingen blockering
   streetDataPromise   = fetchServicedays(key, apiDay(tom));
-  restrictionsPromise = loadParkingRestrictions(key);
   // Zoner laddas per sökning med BBOX (loadZonesForViewport)
+  // Parkeringsrestriktioner (LTFR_P_FORBUD_GEOM) laddas numera per sökning i
+  // showSafeStreetsNearby, skopat till sökrutan – inte längre hela Stockholm vid appstart.
 
   // Kartan visas omedelbart – sätt hint med disclaimer via setMode så allt är konsekvent
   document.getElementById('loading').style.display = 'none';
@@ -3838,9 +3847,9 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
        </div>
      </div>`;
   try {
-    // Vänta på att parkeringsrestriktioner (LTFR_P_FORBUD_GEOM) är klara.
-    // forbiddenParkingLines är tom tills loadParkingRestrictions är klar.
-    await restrictionsPromise;
+    // Parkeringsrestriktioner (LTFR_P_FORBUD_GEOM) hämtas skopat till sökrutan nedan
+    // (tillsammans med overpass/foreskrift) – forbiddenParkingLines fylls där.
+    const restrictionsP = loadParkingRestrictions(getKey(), lat, lng, 500);
 
     // 1. Städgator inom 500 m – röda linjer och namnfilter baseras BARA på nearby-features.
     //    Annars bannlyses t.ex. "Birger Jarlsgatan" nära sökadressen för att samma gatunamn
@@ -3879,6 +3888,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     const [overpass] = await Promise.all([
       overpassP   || fetchOverpassStreets(lat, lng, 500),
       foreskriftP || loadForeskriftRestrictions(lat, lng, 500),
+      restrictionsP,
     ]);
 
     // 4a. Pre-filtrera parkeringsförbudslinjer till sökadressen (prestanda)
