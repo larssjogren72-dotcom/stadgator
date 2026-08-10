@@ -919,6 +919,16 @@
   });
   Date.now = () => fixedMs;
   console.warn('[Debug] Klockan simulerad till ' + m[1] + ':' + m[2] + ' – ta bort ?debugtid= i adressfältet för riktig tid.');
+  // Synlig badge, inte bara konsolloggen – annars är det för lätt att glömma att klockan är
+  // förfalskad och läsa falska resultat som riktiga (eller missa att den inte slog an alls).
+  window.addEventListener('DOMContentLoaded', () => {
+    const b = document.createElement('div');
+    b.textContent = '⏱ DEBUG ' + m[1] + ':' + m[2];
+    b.style.cssText = 'position:fixed;top:8px;left:8px;z-index:99999;background:#dc2626;' +
+      'color:#fff;font:700 12px/1 system-ui;padding:6px 10px;border-radius:6px;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,.3)';
+    document.body.appendChild(b);
+  });
 })();
 
 // ── Koordinater ──────────────────────────────────────────────────────────────
