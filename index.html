@@ -2549,7 +2549,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // "Trygg över natten" och räknas som en trygg plats i badgen.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
       else if (ejForDig)               { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
-      else if (tier === 'natt')        { color = '#f59e0b'; txt = `Servas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – undvik`; städas++; }
+      else if (tier === 'natt')        { color = '#f59e0b'; txt = `Städas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – ej säkert att lämna bilen`; städas++; }
       else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
@@ -2559,7 +2559,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // Ingen städinstruktion för platser man inte får använda.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : (isRhPlats(s) || ejForDig) ? ''
-                    : tier === 'natt'   ? `Flytta ${vehicleWord()} i kväll`
+                    : tier === 'natt'   ? `Flytta ${vehicleWord()} ${cl.start === 0 ? 'innan midnatt' : `innan ${fmtClock(cl.start)} ikväll`}`
                     : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
                     : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
                     : '';
@@ -2909,16 +2909,18 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // i natt" + räknades i badgen – uppmätt 17 platser i Vasastan, 45 på Östermalm.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
       else if (ejForDig)               { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
-      else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Servas nu ${fmtClock(cs.start)}–${fmtClock(cs.end)} – undvik`; }
+      else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Städas nu, klart ${fmtClock(cs.end)}`; }
       else if (cs && cs.state === 'upcoming') {
-        color = '#f59e0b'; txt = `Får stå tills ${fmtClock(cs.start)}`; okNu++;
+        color = '#f59e0b'; okNu++;
         const h = Math.floor(cs.start / 100) + (cs.start % 100) / 60 - nowH;   // timmar kvar, städning idag
         hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
+        txt = hiddenGem ? `Gott om tid – får stå till ${fmtClock(cs.start)}` : `Får stå tills ${fmtClock(cs.start)}`;
       }
       else if (nx) {
-        color = '#f59e0b'; txt = `Får stå nu · servas i natt`; okNu++;
+        color = '#f59e0b'; okNu++;
         const h = (24 - nowH) + Math.floor(nx.start / 100) + (nx.start % 100) / 60;   // timmar kvar, städning imorgon
         hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
+        txt = hiddenGem ? `Gott om tid – servas i natt` : `Får stå nu · servas i natt`;
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
@@ -2931,9 +2933,13 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : anda ? `Parkering tillåten övrig tid`
                     : (isRhPlats(s) || ejForDig) ? ''
-                    : (cs && cs.state === 'active')   ? `Pågår – flytta ${vehicleWord()}`
-                    : (cs && cs.state === 'upcoming') ? `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`
-                    : nx ? `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll` : '';
+                    : (cs && cs.state === 'active')   ? `Flytta ${vehicleWord()} – inte tillåtet just nu`
+                    : (cs && cs.state === 'upcoming') ? (hiddenGem
+                        ? `Städas ${fmtClock(cs.start)}–${fmtClock(cs.end)} · en bra möjlighet för ett kortare ärende nu`
+                        : `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`)
+                    : nx ? (hiddenGem
+                        ? `Städas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · en bra möjlighet för en kortare kvällsparkering`
+                        : `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll`) : '';
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
       // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
       // "Nästa städning" är dessutom irrelevant på platser man inte får använda.
@@ -3068,6 +3074,13 @@ function tapTargetPhrase() {
 // Ordet för fordonet i löptext. Rörelsehindrad-läget är bil + tillstånd (se vehicleAllowed
 // ovan) – behåller därför "bilen", till skillnad från MC som har eget ord.
 function vehicleWord() { return vehicleMode === 'mc' ? 'MC:n' : 'bilen'; }
+// Samma som tapTargetPhrase, fast utan "grön" – Nu-lägets intro pekar nu även på orange
+// (hidden gems), så "tryck på en grön gata" vore missvisande där. Bara den texten ska använda den.
+function tapTargetPhraseAny() {
+  if (vehicleMode === 'mc') return 'en gata eller MC-ikonen';
+  if (vehicleMode === 'rh') return 'en gata eller en reserverad plats';
+  return 'en gata';
+}
 const WHEN_LABELS = { now: 'Nu',  uc2: 'Natt' };
 const WHEN_SUBS   = { now: 'Vad gäller just nu – och vad händer snart?', uc2: 'Tryggt till imorgon bitti' };
 
@@ -3080,7 +3093,7 @@ function pickWhen(mode) {
 // Vad appen VISAR i varje läge – och varför. Klockan väljer åt användaren; texten förklarar valet,
 // så man slipper välja läge för att förstå appen (men kan byta).
 const MODE_PITCH = {
-  now: { icon:'check', t:'Nu — var du får stå just nu', w:'Gröna gator är lagliga just nu. Tryck på en för att se om den nyss städats eller snart städas.' },
+  now: { icon:'check', t:'Nu — var du får stå just nu', w:'Gröna gator är lagliga just nu. Orange kan också vara ett bra val en stund – ljusare kant betyder gott om tid innan städning.' },
   uc2: { icon:'moon',  t:'Natt — tryggt till i morgon' },   // w byggs i updateWhenChip – beror på vehicleMode
 };
 function updateWhenChip(mode) {
@@ -3187,7 +3200,7 @@ function initSheet() {
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
   if (!legendDiv) return;
-  const otherLabel = vehicleMode === 'mc' ? 'Övrigt (ej MC)' : 'Ej för bil (mc/buss)';
+  const otherLabel = vehicleMode === 'mc' ? 'Övrigt (ej MC)' : 'Ej för bil (t.ex. mc/buss)';
   const otherColor = vehicleMode === 'mc' ? '#c3ccd6' : '#9333ea';
   const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
   const mcRow = vehicleMode === 'mc'
@@ -3239,7 +3252,7 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas idag – tryck för exakt tid</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>God tid kvar – bra läge</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>Gott om tid – bra möjlighet just nu</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const modeRows = mode === 'now'
@@ -3776,7 +3789,7 @@ function setVehicle(v) {
 function renderModeIntro() {
   const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   const intro = {
-    now: `<b>"Nu"</b> visar var du får parkera lagligt just nu. Gator som redan servats idag räknas som lediga; pågående eller snar service varnas. Tryck på ${tapTargetPhrase()} för att se om gatan nyss städats eller snart städas, plus vägbeskrivning.`,
+    now: `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`,
     uc2: `<b>"Natt"</b> visar var ${vehicleWord()} står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhrase()} för service-tider och vägbeskrivning.`,
   };
   const hintEl = document.getElementById('hint');
