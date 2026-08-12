@@ -113,6 +113,81 @@ function fetchPhus() {
   return phusInflight;
 }
 
+// ── Busshållplatser (SL, via OSM/Overpass) – separat förvärmd cache ──────────
+// Informativ markör, INTE gatufärgning: punktdata ger ingen exakt förbudssträcka,
+// den avgörs av skylten vid stolpen (se project-minnet). Hållplatser flyttas/
+// tillkommer mycket sällan → lång TTL räcker gott, hämtas i bakgrunden vid start
+// och sedan periodiskt. Aldrig i användarens sökväg (samma mönster som p-hus).
+// Två speglar provas i tur och ordning – kumi.systems timeoutade konsekvent vid
+// test 2026-08-12, overpass-api.de och lz4.overpass-api.de svarade på 5-6s.
+const OVERPASS_HOSTS = ['overpass-api.de', 'lz4.overpass-api.de'];
+const OVERPASS_BBOX  = '59.20,17.74,59.45,18.22';   // lat,lng,lat,lng – samma yta som ZON_BBOX_STAD
+const OVERPASS_QUERY = `[out:json][timeout:60];(node["highway"="bus_stop"](${OVERPASS_BBOX}););out body;`;
+const HALLPLATSER_TTL = 48 * 60 * 60 * 1000;   // 48h
+const OVERPASS_FETCH_TIMEOUT = 60000;
+let hallplatser = null, hallplatserTs = 0, hallplatserInflight = null;
+
+function fetchOverpassFrom(hostname) {
+  return new Promise((resolve, reject) => {
+    const body = 'data=' + encodeURIComponent(OVERPASS_QUERY);
+    const req = https.request({
+      hostname, port: 443, path: '/api/interpreter', method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body),
+        'User-Agent': 'ParkSpot/1.0 (+https://parkspot.se)'   // Overpass svarar 406 utan User-Agent
+      },
+      agent: keepAliveAgent
+    }, (r) => {
+      const chunks = [];
+      r.on('data', c => chunks.push(c));
+      r.on('end', () => {
+        if (r.statusCode !== 200) { reject(new Error(`${hostname} svarade ${r.statusCode}`)); return; }
+        try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
+        catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(OVERPASS_FETCH_TIMEOUT, () => req.destroy(new Error(`${hostname} timeout`)));
+    req.write(body);
+    req.end();
+  });
+}
+
+// Provar speglarna i tur och ordning; behåller gammal cache om alla fallerar
+// (bättre stale data än ingen data alls – matchar buildSchedule-mönstret).
+function fetchHallplatser() {
+  if (hallplatserInflight) return hallplatserInflight;
+  hallplatserInflight = (async () => {
+    const t0 = Date.now();
+    for (const host of OVERPASS_HOSTS) {
+      try {
+        const j = await fetchOverpassFrom(host);
+        const out = (j.elements || [])
+          .filter(e => e.tags && e.tags.name)
+          .map(e => ({ lat: e.lat, lng: e.lon, namn: e.tags.name }));
+        hallplatser = out; hallplatserTs = Date.now();
+        console.log(`[ParkSpot] Hållplatser hämtade från ${host}: ${out.length} st på ${Date.now() - t0} ms`);
+        return out;
+      } catch (e) {
+        console.warn(`[ParkSpot] Hållplatser: ${host} misslyckades (${e.message}), provar nästa`);
+      }
+    }
+    console.warn('[ParkSpot] Hållplatser: alla Overpass-speglar misslyckades, behåller ev. gammal cache');
+    return hallplatser;
+  })();
+  hallplatserInflight.finally(() => { hallplatserInflight = null; }).catch(() => {});
+  return hallplatserInflight;
+}
+
+// Samma "servera direkt, uppdatera i bakgrunden om gammal" som buildSchedule.
+function buildHallplatser() {
+  if (hallplatser) {
+    if (Date.now() - hallplatserTs >= HALLPLATSER_TTL) fetchHallplatser().catch(() => {});
+    return Promise.resolve(hallplatser);
+  }
+  return fetchHallplatser();
+}
+
 // ── Städschema (alla 7 veckodagar, per-segment) ──────────────────────────────
 // Kortet ska ALLTID kunna visa "Servas onsdagar 09–14" på RÄTT sträcka. En lång gata
 // (t.ex. Dalagatan) har olika scheman på olika segment → vi matchar klientens klickade
@@ -311,6 +386,25 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: 'städschema otillgängligt' }));
     });
 
+  } else if (reqUrl.pathname === '/hallplatser-bbox') {
+    // Busshållplatser (SL, via OSM), begränsat till sökrutan. ?bbox=minLng,minLat,maxLng,maxLat
+    const bbox = (reqUrl.searchParams.get('bbox') || '').split(',').map(Number);
+    if (bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
+      res.end(JSON.stringify({ error: 'bbox=minLng,minLat,maxLng,maxLat krävs' }));
+      return;
+    }
+    const warm = !!hallplatser;
+    buildHallplatser().then(list => {
+      const [aLng, aLat, bLng, bLat] = bbox;
+      const utsnitt = (list || []).filter(h => h.lng >= aLng && h.lng <= bLng && h.lat >= aLat && h.lat <= bLat);
+      send(req, res, 200, 'application/json; charset=utf-8',
+           Buffer.from(JSON.stringify({ hallplatser: utsnitt })), warm ? 'HIT' : 'MISS');
+    }).catch(() => {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
+      res.end(JSON.stringify({ error: 'hållplatsdata otillgänglig' }));
+    });
+
   } else if (reqUrl.pathname === '/schedule') {
     // Veckoschema för EN klickad punkt: ?lat=&lng=&name= → { schedule:[{day,s,e}] }.
     // Matchar punkt mot cleaning-segment ≤25 m med samma namn (= flödenas clean.near).
@@ -419,6 +513,7 @@ http.createServer((req, res) => {
   console.log(`Städgator: http://localhost:${PORT}`);
   fetchPhus();        // förvärm p-hus-cachen i bakgrunden (källan är seg ~30s)
   buildSchedule().catch(() => {});   // förvärm städschemat (7 dagar) → första kortet snabbt
+  buildHallplatser().catch(() => {});   // förvärm busshållplatser (Overpass, 48h TTL)
 });
 
 // ── Komprimering ──────────────────────────────────────────────────────────
