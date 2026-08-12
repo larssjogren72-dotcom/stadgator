@@ -2283,46 +2283,13 @@ function bayLines(f) {
   }).filter(Boolean);
 }
 
-// Rutnät (cellstorlek = tolM) av hinder-segment för snabb närhetssökning i clipLineAwayFrom.
-// Utan detta är klippningen O(samplingspunkter × alla hinderlinjer) – uppmätt 437 ms mot
-// 1648 förbudslinjer i Margretelundsvägen-rutan (fas 2b), mot 24 ms med bara 36 special-
-// linjer (fas 1). Varje hinder-segment läggs in i alla celler dess boundingbox (utökad med
-// tolM) täcker, så en fråga bara behöver kolla EN cell (den frågepunkten själv ligger i) för
-// att hitta alla hinder inom tolM – ingen 3×3-grannkoll behövs.
-function buildObstacleGrid(obstacleLines, tolM) {
-  const grid = new Map();
-  obstacleLines.forEach(line => {
-    for (let i = 0; i < line.length - 1; i++) {
-      const a = line[i], b = line[i+1];
-      const cx0 = Math.floor((Math.min(a[0],b[0]) - tolM) / tolM), cx1 = Math.floor((Math.max(a[0],b[0]) + tolM) / tolM);
-      const cy0 = Math.floor((Math.min(a[1],b[1]) - tolM) / tolM), cy1 = Math.floor((Math.max(a[1],b[1]) + tolM) / tolM);
-      for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
-        const key = cx + ',' + cy;
-        let arr = grid.get(key);
-        if (!arr) { arr = []; grid.set(key, arr); }
-        arr.push([a, b]);
-      }
-    }
-  });
-  return grid;
-}
-function nearObstacleGrid(pt, grid, tolM) {
-  const segs = grid.get(Math.floor(pt[0]/tolM) + ',' + Math.floor(pt[1]/tolM));
-  if (!segs) return false;
-  for (const [a, b] of segs) if (distPointToSegment(pt[0], pt[1], a[0], a[1], b[0], b[1]) <= tolM) return true;
-  return false;
-}
-
-// Platsmodell fas 1/2b: klipp bort de sträckor av en linje som ligger inom tolM från en
-// "hinder"-linje (t.ex. en ändamåls-/reserverad-registrering, eller ett äkta förbud som redan
-// överlever 12m-tröskeln) – SAMPLAR var ~2 m, exakt samma teknik som redan används för
-// uteserverings-klippen nedan. Ger tomrum i stället för att rita en lång grön linje rakt över
-// en kort reserverad/förbjuden plats. Rör aldrig hinder-linjens egen geometri – den ritas
-// oförändrat, med sin egen redan korrekta färgkaskad. Tar ett FÄRDIGBYGGT rutnät (`grid`,
-// se buildObstacleGrid) – anropas en gång per grön post, men rutnätet ska byggas EN gång för
-// hela sökningen, inte per post (annars byggs det om 400+ gånger, uppmätt bidrag till 437 ms).
-function clipLineAwayFrom(lines, grid, tolM) {
-  if (!grid) return lines;
+// Platsmodell fas 1: klipp bort de sträckor av en linje som ligger inom CLUSTER_TOL_M från
+// en "hinder"-linje (t.ex. en ändamåls-/reserverad-registrering) – SAMPLAR var ~2 m, exakt
+// samma teknik som redan används för uteserverings-klippen nedan. Ger tomrum i stället för
+// att rita en lång grön linje rakt över en kort reserverad plats. Rör aldrig hinder-linjens
+// egen geometri – den ritas oförändrat, med sin egen redan korrekta färgkaskad.
+function clipLineAwayFrom(lines, obstacleLines, tolM) {
+  if (!obstacleLines.length) return lines;
   const clipped = [];
   lines.forEach(line => {
     for (let i = 0; i < line.length - 1; i++) {
@@ -2331,7 +2298,13 @@ function clipLineAwayFrom(lines, grid, tolM) {
       let run = null;
       for (let k = 0; k <= steps; k++) {
         const t = k / steps, pt = [a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1])];
-        const near = nearObstacleGrid(pt, grid, tolM);
+        let near = false;
+        for (const obs of obstacleLines) {
+          for (let j = 0; j < obs.length - 1; j++) {
+            if (distPointToSegment(pt[0], pt[1], obs[j][0], obs[j][1], obs[j+1][0], obs[j+1][1]) <= tolM) { near = true; break; }
+          }
+          if (near) break;
+        }
         if (!near) { if (!run) run = [pt]; else run.push(pt); }
         else { if (run && run.length >= 2) clipped.push(run); run = null; }
       }
@@ -2461,26 +2434,16 @@ async function loadParkingV2(lat, lng, radius = 500) {
   // ovan (inte direkt efter tillRaw.map) så även de härledda besök/taxa-posterna klipps –
   // annars kvarstår exakt samma överlapp för dem (uppmätt 398 oklippta träffar i Wallingatan-
   // rutan innan denna flytt).
-  // Fas 2b (2026-08-12): samma mekanism, utökad till äkta rött förbud som redan ÖVERLEVER
-  // 12m-tröskeln ovan (dvs. redan ritas som `forbiddenLines` idag) men råkar ligga geometriskt
-  // ovanpå en grön linje – Margretelundsvägens gömda busshållplats. Bekräftat mot riktig data:
-  // 67 % av äkta förbud överlever redan tröskeln (ej ett svälj-problem), och 7 % av dem (117 av
-  // 1648 i testområdet) ligger inom 1,5 m av en grön linje – ren z-ordning, `bindForbud()`-
-  // linjer fick aldrig `bringToFront`. Kirurgiskt begränsat till just de 7 % – INTE samma sak
-  // som det tidigare (reverterade 31 juli) försöket att blint lyfta ALL röd, som exponerade
-  // 1687 linjer i Traneberg på en gång. `forbiddenLines` är redan `[[a,b], …]`-par, dög som
-  // hinder-linjer direkt utan omformning.
-  // OBS avgränsning: rör ENDAST gröna/tillåtna segment (inte special-linjernas egen geometri).
-  // Förbudslagrets 12m-tröskel SJÄLV (svalde förbud helt, Svartviksslingan, fas 2a) är
-  // MEDVETET oberörd här – saknar samma tydliga avstånds-gap, kräver egen, bredare granskning.
+  // OBS avgränsning: rör ENDAST gröna/tillåtna segment. Förbudslagrets 12m-tröskel (svalde
+  // förbud helt, Svartviksslingan) och vanligt rött förbuds z-ordning (Margretelundsvägen,
+  // tidigare försök reverterat 31 juli) är MEDVETET oberörda här – båda saknar samma tydliga
+  // avstånds-gap och kräver egen, bredare visuell granskning (se minnet, "fas 2").
   const isSpecialTillaten = (s) => s.andamal != null || /reserverad/i.test(s.platsTyp || '');
   const specialLines = allowed.filter(isSpecialTillaten).flatMap(s => s.linesSweref);
-  const clipObstacles = specialLines.concat(forbiddenLines);
-  if (clipObstacles.length) {
-    const clipGrid = buildObstacleGrid(clipObstacles, CLUSTER_TOL_M);   // byggs EN gång för hela sökningen
+  if (specialLines.length) {
     allowed.forEach(s => {
       if (isSpecialTillaten(s)) return;   // rör aldrig special-linjens egen geometri
-      s.linesSweref = clipLineAwayFrom(s.linesSweref, clipGrid, CLUSTER_TOL_M);
+      s.linesSweref = clipLineAwayFrom(s.linesSweref, specialLines, CLUSTER_TOL_M);
     });
     allowed = allowed.filter(s => s.linesSweref.length > 0);   // helt övertäckt grön post → inget kvar att rita
   }
