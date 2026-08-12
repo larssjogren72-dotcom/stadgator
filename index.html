@@ -219,6 +219,12 @@
     #rh-rights ul { margin: 0 0 8px; padding-left: 18px; font-size: 13.5px; color: var(--text); }
     #rh-rights li { margin-bottom: 4px; }
     #rh-rights p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+    /* Nål för SL-busshållplats: samma rundade fyrkant som RH-nålen, men röd – återanvänder
+       appens befintliga förbud-röda (#ef4444) så "parkera inte här" läses utan att öppna kortet. */
+    .bus-pin { filter: drop-shadow(0 2px 5px rgba(185,28,28,.45)); }
+    .bus-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
+      background: #ef4444; display: flex; align-items: center; justify-content: center; }
+    .bus-pin-b svg { width: 16px; height: 16px; color: #fff; }
     .hd-icon   {
       width: 36px; height: 36px; background: var(--accent-dim);
       border: 1px solid rgba(74,222,128,0.28); border-radius: 10px;
@@ -1609,6 +1615,9 @@ function svgIcon(n) {
     // Internationella tillgänglighetssymbolen – samma märke som på skylten och målat på asfalten.
     wheelchair:'<circle cx="10.6" cy="4.3" r="1.6" fill="currentColor" stroke="none"/><path d="M8.6 8v5h5l3 5"/><path d="M15 10.4a6.6 6.6 0 1 1-8.4 3.2"/>',
     clock:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+    bus:      '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M3 10h18"/>'
+            + '<circle cx="7" cy="19" r="1.6" fill="currentColor" stroke="none"/>'
+            + '<circle cx="17" cy="19" r="1.6" fill="currentColor" stroke="none"/>',
   }[n] || '';
   return '<svg ' + a + '>' + p + '</svg>';
 }
@@ -1778,6 +1787,47 @@ async function rhPlatserOverlay(lat, lng) {
     const b = document.getElementById('count-badge');
     if (b) { b.textContent = `${segs.length} reserverade platser här`; b.style.display = 'block'; }
   } catch (e) { console.warn('[Städgator] Rörelsehindrad-lager:', e.message); }
+}
+
+// ── Busshållplatser (SL, via OSM/Overpass, server-cachad) som egna nålar ────────
+// Informativ markör, INTE gatufärgning – punktdata ger ingen exakt förbudssträcka,
+// den avgörs av skylten vid stolpen (se project-minnet). Till skillnad från MC/RH-
+// lagren ovan visas den i ALLA lägen och för alla fordonstyper, eftersom hållplatsen
+// är relevant oavsett fordon. Återanvänder appens förbud-röda (#ef4444) i nålen så
+// "parkera inte här" läses direkt, utan att behöva öppna kortet.
+function busPinIcon() {
+  return L.divIcon({ className: 'bus-pin', iconSize: [28, 28], iconAnchor: [14, 14],
+    html: '<div class="bus-pin-b">' + svgIcon('bus') + '</div>' });
+}
+async function fetchHallplatser(lat, lng, radius = 500) {
+  const deg  = (radius / 111000) * 1.8;
+  const bbox = [lng - deg, lat - deg, lng + deg, lat + deg].join(',');
+  try {
+    const r = await fetch(`/hallplatser-bbox?bbox=${bbox}`);
+    if (!r.ok) return [];
+    const j = await r.json();
+    return j.hallplatser || [];
+  } catch { return []; }
+}
+let busOverlayReqId = 0;
+async function busHallplatserOverlay(lat, lng) {
+  const myReqId = ++busOverlayReqId;
+  try {
+    const stops = await fetchHallplatser(lat, lng);
+    if (myReqId !== busOverlayReqId) return;   // nyare sökning hann före
+    const grp = L.layerGroup();
+    stops.forEach(h => {
+      const dest = L.latLng(h.lat, h.lng);
+      L.marker(dest, { icon: busPinIcon(), pane: 'markerPane', riseOnHover: true,
+                       alt: 'Busshållplats ' + h.namn, keyboard: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e);
+          showPlaceCardV2(h.namn, 'SL-hållplats – parkering troligen förbjuden', '#ef4444', dest,
+            'Läget kommer från OpenStreetMap och är ungefärligt. Den exakta förbudssträckan bestäms av skylten vid stolpen – kontrollera alltid på plats.');
+        })
+        .addTo(grp);
+    });
+    streetGroupLayers.push(grp.addTo(map));
+  } catch (e) { console.warn('[Städgator] Hållplats-lager:', e.message); }
 }
 
 // doljTaxa: sant för en ändamålsplats som gäller NU. Zonens taxa beskriver vad det kostar att
@@ -3712,6 +3762,7 @@ function flyToAndShow(lat, lng) {
     else showSafeStreetsNearby(lat, lng, overpassP, foreskriftP);
     if (vehicleMode === 'mc') mcRutorOverlay(lat, lng);   // MC-rutor i ALLA lägen
     if (vehicleMode === 'rh') rhPlatserOverlay(lat, lng); // reserverade platser i ALLA lägen
+    busHallplatserOverlay(lat, lng);                      // busshållplatser i ALLA lägen/fordon
   };
   // Redan på plats (t.ex. fordonsbyte på samma destination) → kör flödet direkt, ingen flyTo.
   // Leaflet animerar zoom-transformen även för en flygning på 0 meter → syns som en "skakning".
