@@ -2078,6 +2078,16 @@ const CLUSTER_TOL_M = 1.5;
 // (20–80 %, upp till en fjärdedel av populationen i vissa områden) är MEDVETET oberört här –
 // för osäkert för att avgöra ännu, se minnet "fas 2a steg B".
 const REVEAL_COVERAGE_TH = 0.2;
+// Platsmodell fas 2 (2026-08-12, efter fas 2a steg A): ett ÖVERLEVANDE äkta förbud (ingen
+// taxa/besök-signal) kan ändå ritas UNDER en genuint sammanfallande grön registrering – samma
+// fysiska sträcka dubbelregistrerad i Stockholms data (bekräftat konkret: Margretelundsvägen
+// vid Återvinningsstationen, en äkta busshållplats-sträcka som exakt sammanföll med en "P
+// Avgift, boende"-linje). Skiljer sig medvetet från det blint reverterade 31 juli-försöket
+// (som lyfte ALLA röda, exponerade 1687 linjer i Traneberg på en gång) och fas 2b (som klippte
+// bort grönt, åt sig igenom 30–40 % av alla röd/grön-gränser i vanliga områden – se minnet).
+// Den här gången: lyft BARA de röda som verkligen sammanfaller (samma kroppsnärhets-mått som
+// REVEAL_COVERAGE_TH ovan, hög tröskel åt andra hållet) – ren rityordning, ingen geometri rörs.
+const COINCIDENT_COVERAGE_TH = 0.7;
 const GAGATA_TOL_M = 10;             // meter: vinkelrätt avstånd till gågata-linjen → flaggas gågata.
                                      // Gågator är SMALA → äkta kantparkering ligger ≤10 m. Lösare (15 m)
                                      // gav 47 parallellgata-läckage + 50 ändpunkts-överflagg per 1 äkta.
@@ -2425,15 +2435,35 @@ async function loadParkingV2(lat, lng, radius = 500) {
   // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten – plus (fas 2a steg A)
   // äkta förbud (ingen taxa/besök-signal) vars sväljning inte håller vid en striktare
   // kroppsnärhets-koll. OBS: hasAllowedNear bygger på P_TILLATEN-punkterna ENBART (oförändrat)
-  // → redan-röda påverkas aldrig av härledningen nedan.
+  // → redan-röda påverkas aldrig av härledningen nedan. Varje post bär även `coincident` (fas 2,
+  // se COINCIDENT_COVERAGE_TH) – överlevande äkta förbud vars EGEN kropp sammanfaller med en
+  // tillåten-linjes, som renderingen (showNowParkingV2Flow/showSafeStreetsV2Flow) lyfter i
+  // rityordning. Nyavslöjade (steg A) är per definition INTE sammanfallande (annars hade de
+  // inte klarat REVEAL_COVERAGE_TH) – coincident alltid false för dem.
+  //
+  // Fas 2c (2026-08-12): en taxa/besök-typad post (isParkingForbud) beskriver per definition
+  // ALLTID laglig parkering (se ARKITEKTUR.md/kommentaren till isParkingForbud nedan) – det är
+  // hela grunden för grön-räddningen några rader ner. Den grundregeln gällde tidigare bara när
+  // posten SVALDES av 12m-tröskeln (hasAllowedNear); en post som ÖVERLEVER (lång rak gata, egna
+  // hörnpunkter för långt från någon grön hörnpunkt – samma bugg som steg A adresserar, fast här
+  // åt fel håll) föll däremot rakt igenom och ritades rött ändå. Bekräftat konkret: 30–48% av
+  // all "redan röd" gatulängd i testade områden var just taxa-typad och löpte hela vägen längs
+  // en tillåten-linjes kropp (se minnet) – synlig brus runt Lars två bekräftade SL-hållplatser
+  // (Gesundaplan/Margretelundsvägen, OSM-verifierade koordinater). Låg risk att skärpa: tar bara
+  // bort ett påstående ("förbud") för poster vars EGEN datatyp redan säger motsatsen – kan aldrig
+  // dölja ett äkta förbud (de har aldrig taxa/besök-typ), bara sluta ljuga om ett som inte finns.
   const forbiddenLines = [];
   forbRaw.forEach(f => featureLines(f).forEach(line => {
+    if (isParkingForbud(f.properties || {})) return;   // fas 2c – aldrig rött, oavsett sväljning
     for (let i = 0; i < line.length - 1; i++) {
       const a = line[i], b = line[i+1];
       const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
-      if (!hasAllowedNear(mid)) { forbiddenLines.push([a, b]); continue; }
-      if (!isParkingForbud(f.properties || {}) && bodyCoverage(a, b) < REVEAL_COVERAGE_TH) {
-        forbiddenLines.push([a, b]);   // felaktigt svald → avslöja som äkta förbud igen
+      if (!hasAllowedNear(mid)) {
+        forbiddenLines.push({ a, b, coincident: bodyCoverage(a, b) >= COINCIDENT_COVERAGE_TH });
+        continue;
+      }
+      if (bodyCoverage(a, b) < REVEAL_COVERAGE_TH) {
+        forbiddenLines.push({ a, b, coincident: false });   // felaktigt svald → avslöja igen
       }
     }
   }));
@@ -2644,8 +2674,11 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     };
 
     // Förbudssträckor (rött, underst) – samma tjocklek som tillåtna. Kan döljas i Förklaring.
-    forbiddenLines.forEach(line =>
-      bindForbud(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp)));
+    forbiddenLines.forEach(line => {
+      const pl = L.polyline([line.a, line.b].map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp);
+      pl._coincident = line.coincident;
+      bindForbud(pl);
+    });
 
     // Gatufärg = trygg att stå över natten? (pris visas av zonerna + popupen, ej av färgen)
     // Tidsmedveten: morgondagens städning tolkas efter när den börjar (beslut A 2026-06-17):
@@ -2686,6 +2719,9 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
     streetGroupLayers.push(grp.addTo(map));
     applyDimAll();
+    // Fas 2: lyft äkta förbud som verkligen sammanfaller med en tillåten-linje (se
+    // COINCIDENT_COVERAGE_TH) – annars kan den genuint dubbelregistrerade gröna täcka den helt.
+    grp.eachLayer(l => { if (l._coincident && l.bringToFront) l.bringToFront(); });
     // Lyft varningsfärgerna (gågata/uteservering) överst – annars kan ett parallellt grönt
     // segment ligga ovanpå och både dölja flaggan och fånga klicket.
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
@@ -2992,8 +3028,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
       bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
-    forbiddenLines.forEach(line =>
-      bindForbud(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp)));
+    forbiddenLines.forEach(line => {
+      const pl = L.polyline([line.a, line.b].map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp);
+      pl._coincident = line.coincident;
+      bindForbud(pl);
+    });
 
     // Gatufärg = får jag stå här just nu? (pris visas av zonerna + popupen, ej av färgen)
     let okNu = 0;
@@ -3080,9 +3119,13 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     streetGroupLayers.push(grp.addTo(map));
     applyDimAll();
     // Ändamålsplatserna är KORTA (median 13 m) och ligger inklämda i längre p-sträckor →
-    // utan detta kan en grön linje som ritas senare täcka dem helt. Bara VÅRA röda lyfts:
-    // förbudslinjerna saknar _sid och ska medvetet ligga underst (oförändrat).
+    // utan detta kan en grön linje som ritas senare täcka dem helt. Bara VÅRA röda lyfts här:
+    // vanliga förbudslinjer ligger fortfarande underst SOM DEFAULT (oförändrat) – förutom de
+    // som märkts _coincident (fas 2, se nästa rad).
     grp.eachLayer(l => { if (l._base === '#ef4444' && l._sid && l._sid.andamal && l.bringToFront) l.bringToFront(); });
+    // Fas 2: lyft äkta förbud som verkligen sammanfaller med en tillåten-linje (se
+    // COINCIDENT_COVERAGE_TH) – annars kan den genuint dubbelregistrerade gröna täcka den helt.
+    grp.eachLayer(l => { if (l._coincident && l.bringToFront) l.bringToFront(); });
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
     const badge = document.getElementById('count-badge');
     badge.textContent = `${okNu} gator där du får stå nu`;
