@@ -2063,6 +2063,21 @@ const FORBID_THRESHOLD_M = 12;       // meter: P_FORBUD utan tillåten inom dett
 // (12 m): den frågan (äkta förbud vs. dubblettregistrering) saknar samma tydliga gap – se
 // minnet – och rörs INTE här.
 const CLUSTER_TOL_M = 1.5;
+// Platsmodell fas 2a, steg A (2026-08-12): hasAllowedNear (se loadParkingV2) sväljer ett
+// förbudssegment så fort NÅGON tillåten-hörnpunkt ligger inom 12 m – isotropiskt, blint för
+// riktning. En taxa/besök-post som sväljs fel har en räddning (isParkingForbud → grönt). Ett
+// ÄKTA förbud (ingen VF_PLATS_TYP, ingen taxa – t.ex. busshållplats) saknar den räddningen:
+// sväljs det fel försvinner det spårlöst. Bekräftat konkret på Margretelundsvägen (Lars eget
+// stickprov + id 19732, "-"-typ, 4,5 m från tillåten). Steg A: kräv en STARKARE bekräftelse
+// (andel av segmentets EGEN längd som löper inom CLUSTER_TOL_M av en tillåten-linjes KROPP,
+// inte bara närmaste hörnpunkt) innan sväljningen litas på för just denna population.
+// Validerat brett (8 områden – Traneberg/innerstad/villa/ytterstad, se minnet): fördelningen
+// är dominerat tvåtoppig, 55–95 % av den svalda icke-taxa-populationen har NÄSTAN INGEN
+// kroppsnärhet (<20 %, sannolikt äkta förbud svalt av misstag). En liten andel (2–24 %) ligger
+// högt (>70 %, trolig äkta dubblettregistrering, ska fortsatt sväljas). Ett gråzon-band
+// (20–80 %, upp till en fjärdedel av populationen i vissa områden) är MEDVETET oberört här –
+// för osäkert för att avgöra ännu, se minnet "fas 2a steg B".
+const REVEAL_COVERAGE_TH = 0.2;
 const GAGATA_TOL_M = 10;             // meter: vinkelrätt avstånd till gågata-linjen → flaggas gågata.
                                      // Gågator är SMALA → äkta kantparkering ligger ≤10 m. Lösare (15 m)
                                      // gav 47 parallellgata-läckage + 50 ändpunkts-överflagg per 1 äkta.
@@ -2380,14 +2395,46 @@ async function loadParkingV2(lat, lng, radius = 500) {
     return false;
   };
 
-  // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten.
-  // OBS: hasAllowedNear bygger på P_TILLATEN-punkterna ENBART (oförändrat) → de äkta
-  // röda påverkas aldrig av härledningen nedan.
+  // isParkingForbud/bodyCoverage används av BÅDE grön-räddningen och den avslöja-igen-logiken
+  // (fas 2a steg A) nedan – se REVEAL_COVERAGE_TH ovan för fullt resonemang.
+  const isParkingForbud = (p) => {
+    const t = (p.VF_PLATS_TYP || '').toLowerCase();
+    const r = (p.PARKING_RATE || '').toLowerCase();
+    return /endast besök|reserverad/.test(t) || /taxa\s*\d/.test(r);
+  };
+  const allowedSegs = allowed.flatMap(s => {
+    const segs = [];
+    s.linesSweref.forEach(l => { for (let i = 0; i < l.length - 1; i++) segs.push([l[i], l[i+1]]); });
+    return segs;
+  });
+  // Andel av [a,b]:s EGEN längd som löper inom CLUSTER_TOL_M av en tillåten-linjes kropp,
+  // samplat var ~2 m (samma teknik som clipLineAwayFrom/uteserveringsklippet).
+  function bodyCoverage(a, b) {
+    const L = Math.hypot(b[0]-a[0], b[1]-a[1]); if (L < 0.5) return 0;
+    const steps = Math.max(1, Math.round(L / 2));
+    let hit = 0;
+    for (let k = 0; k <= steps; k++) {
+      const t = k / steps, pt = [a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1])];
+      for (const [sa, sb] of allowedSegs) {
+        if (distPointToSegment(pt[0], pt[1], sa[0], sa[1], sb[0], sb[1]) <= CLUSTER_TOL_M) { hit++; break; }
+      }
+    }
+    return hit / (steps + 1);
+  }
+
+  // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten – plus (fas 2a steg A)
+  // äkta förbud (ingen taxa/besök-signal) vars sväljning inte håller vid en striktare
+  // kroppsnärhets-koll. OBS: hasAllowedNear bygger på P_TILLATEN-punkterna ENBART (oförändrat)
+  // → redan-röda påverkas aldrig av härledningen nedan.
   const forbiddenLines = [];
   forbRaw.forEach(f => featureLines(f).forEach(line => {
     for (let i = 0; i < line.length - 1; i++) {
-      const mid = [(line[i][0]+line[i+1][0])/2, (line[i][1]+line[i+1][1])/2];
-      if (!hasAllowedNear(mid)) forbiddenLines.push([line[i], line[i+1]]);
+      const a = line[i], b = line[i+1];
+      const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
+      if (!hasAllowedNear(mid)) { forbiddenLines.push([a, b]); continue; }
+      if (!isParkingForbud(f.properties || {}) && bodyCoverage(a, b) < REVEAL_COVERAGE_TH) {
+        forbiddenLines.push([a, b]);   // felaktigt svald → avslöja som äkta förbud igen
+      }
     }
   }));
 
@@ -2400,11 +2447,6 @@ async function loadParkingV2(lat, lng, radius = 500) {
   // OCH (b) redan är släckta (tillåten inom 12 m). Villkor (b) garanterar att de
   // äkta röda (ingen tillåten inom 12 m) ALDRIG berörs. Klassas via samma
   // toAllowedSegment → enhetligt beteende (besök/VF_METER, fordonsfilter, städning).
-  const isParkingForbud = (p) => {
-    const t = (p.VF_PLATS_TYP || '').toLowerCase();
-    const r = (p.PARKING_RATE || '').toLowerCase();
-    return /endast besök|reserverad/.test(t) || /taxa\s*\d/.test(r);
-  };
   forbRaw.forEach(f => {
     if (!isParkingForbud(f.properties || {})) return;       // äkta förbud → orört
     const keepLines = [];
