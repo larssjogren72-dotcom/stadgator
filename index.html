@@ -2054,6 +2054,15 @@ const FORBID_THRESHOLD_M = 12;       // meter: P_FORBUD utan tillåten inom dett
                                      // förbudssidan på smala gator men ger falska röda i innerstan
                                      // (där avståndsfördelningen saknar gap). Smal-gata-miss är en
                                      // känd begränsning som disclaimern täcker ("kontrollera skylt").
+// Platsmodell fas 1 (2026-08-12): tolerans för att avgöra att en ändamåls-/reserverad-
+// registrering (t.ex. "Reserverad p-plats rörelsehindrad") ligger på EXAKT samma fysiska
+// trottoarkant som en vanlig P_TILLATEN-linje, inte bara "i närheten". Validerad mot riktig
+// data i FYRA områden (Wallingatan, Svartviksslingan, Hallebergsvägen, Vasastan): tydligt,
+// konsekvent gap i avståndsfördelningen precis vid 1–2 m i alla fyra – nästan alla äkta par
+// ligger under 1 m, nästan inget mellan 1–2 m. Skiljer sig medvetet från FORBID_THRESHOLD_M
+// (12 m): den frågan (äkta förbud vs. dubblettregistrering) saknar samma tydliga gap – se
+// minnet – och rörs INTE här.
+const CLUSTER_TOL_M = 1.5;
 const GAGATA_TOL_M = 10;             // meter: vinkelrätt avstånd till gågata-linjen → flaggas gågata.
                                      // Gågator är SMALA → äkta kantparkering ligger ≤10 m. Lösare (15 m)
                                      // gav 47 parallellgata-läckage + 50 ändpunkts-överflagg per 1 äkta.
@@ -2274,6 +2283,37 @@ function bayLines(f) {
   }).filter(Boolean);
 }
 
+// Platsmodell fas 1: klipp bort de sträckor av en linje som ligger inom CLUSTER_TOL_M från
+// en "hinder"-linje (t.ex. en ändamåls-/reserverad-registrering) – SAMPLAR var ~2 m, exakt
+// samma teknik som redan används för uteserverings-klippen nedan. Ger tomrum i stället för
+// att rita en lång grön linje rakt över en kort reserverad plats. Rör aldrig hinder-linjens
+// egen geometri – den ritas oförändrat, med sin egen redan korrekta färgkaskad.
+function clipLineAwayFrom(lines, obstacleLines, tolM) {
+  if (!obstacleLines.length) return lines;
+  const clipped = [];
+  lines.forEach(line => {
+    for (let i = 0; i < line.length - 1; i++) {
+      const a = line[i], b = line[i+1], L = Math.hypot(b[0]-a[0], b[1]-a[1]);
+      const steps = Math.max(2, Math.ceil(L / 2));
+      let run = null;
+      for (let k = 0; k <= steps; k++) {
+        const t = k / steps, pt = [a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1])];
+        let near = false;
+        for (const obs of obstacleLines) {
+          for (let j = 0; j < obs.length - 1; j++) {
+            if (distPointToSegment(pt[0], pt[1], obs[j][0], obs[j][1], obs[j+1][0], obs[j+1][1]) <= tolM) { near = true; break; }
+          }
+          if (near) break;
+        }
+        if (!near) { if (!run) run = [pt]; else run.push(pt); }
+        else { if (run && run.length >= 2) clipped.push(run); run = null; }
+      }
+      if (run && run.length >= 2) clipped.push(run);
+    }
+  });
+  return clipped;
+}
+
 // Lager 3 – normalisera P_TILLATEN-feature → ParkingSegment
 const SHORT_VISITOR_M = 30;   // uppmätt besöksficka under detta = trolig 30-min-ficka (ej trygg natt)
 
@@ -2329,7 +2369,7 @@ async function loadParkingV2(lat, lng, radius = 500) {
     loadActiveServeringar(lat, lng, todayInt).catch(() => []),  // uteserveringar (egen tight ruta – ej fatalt)
   ]);
 
-  const allowed = tillRaw.map(toAllowedSegment);
+  let allowed = tillRaw.map(toAllowedSegment);
 
   // Alla tillåten-punkter (SWEREF99) för närhetstest
   const allowedPts = allowed.flatMap(s => s.linesSweref.flat());
@@ -2380,6 +2420,33 @@ async function loadParkingV2(lat, lng, radius = 500) {
     seg.fromForbud = true;                                  // härledd ur förbudslagret (spårbarhet)
     allowed.push(seg);
   });
+
+  // Platsmodell fas 1 (2026-08-12): en ändamåls-/reserverad-registrering (t.ex. "Reserverad
+  // p-plats rörelsehindrad", MC-ruta, lastplats) kan ligga på EXAKT samma trottoarkant som en
+  // vanlig grön post (P_TILLATEN "P Avgift, boende" ELLER en besök/taxa-post härledd ur
+  // förbudslagret ovan) – Stockholms data registrerar samma fysiska plats två gånger. Utan
+  // detta steg ritas båda ovanpå varandra och vilken som SYNS avgörs av slumpmässig
+  // WFS-svarsordning – bevisat på Wallingatan (MC-reserverad plats, VF_METER=5, helt dold
+  // bakom en lång grön linje). Klipp i stället bort just den sträckan ur den gröna linjen, så
+  // den korta special-linjen (redan korrekt klassad av sin egen färgkaskad, se isRhPlats/
+  // andamalActiveAt/ejForDig nedan) aldrig kan bli övermålad. Ingen bringToFront-utökning
+  // behövs – det finns bara en linje kvar att rita per plats. Körs EFTER förbud-härledningen
+  // ovan (inte direkt efter tillRaw.map) så även de härledda besök/taxa-posterna klipps –
+  // annars kvarstår exakt samma överlapp för dem (uppmätt 398 oklippta träffar i Wallingatan-
+  // rutan innan denna flytt).
+  // OBS avgränsning: rör ENDAST gröna/tillåtna segment. Förbudslagrets 12m-tröskel (svalde
+  // förbud helt, Svartviksslingan) och vanligt rött förbuds z-ordning (Margretelundsvägen,
+  // tidigare försök reverterat 31 juli) är MEDVETET oberörda här – båda saknar samma tydliga
+  // avstånds-gap och kräver egen, bredare visuell granskning (se minnet, "fas 2").
+  const isSpecialTillaten = (s) => s.andamal != null || /reserverad/i.test(s.platsTyp || '');
+  const specialLines = allowed.filter(isSpecialTillaten).flatMap(s => s.linesSweref);
+  if (specialLines.length) {
+    allowed.forEach(s => {
+      if (isSpecialTillaten(s)) return;   // rör aldrig special-linjens egen geometri
+      s.linesSweref = clipLineAwayFrom(s.linesSweref, specialLines, CLUSTER_TOL_M);
+    });
+    allowed = allowed.filter(s => s.linesSweref.length > 0);   // helt övertäckt grön post → inget kvar att rita
+  }
 
   // ── Gågator (LTFR_FORESKRIFT) ───────────────────────────────────────────────
   // Vissa gator har blivit gågator (en del bara över sommaren, andra permanent).
