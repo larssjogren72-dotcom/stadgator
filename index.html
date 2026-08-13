@@ -952,6 +952,7 @@ function toLatLng(x, y) {
 // disk (utan servern) står de kvar orörda → visa "lokal" i stället för rå platshållare.
 // Regexen matchar bara prefixet, så den blir inte själv utbytt.
 const APP_VERSION = (function (v) { return /^__APP/.test(v) ? 'lokal' : v; })('__APP_VERSION__');
+const APP_SEMVER  = (function (v) { return /^__APP/.test(v) ? ''      : v; })('__APP_SEMVER__');
 const APP_BUILT   = (function (v) { return /^__APP/.test(v) ? ''      : v; })('__APP_BUILT__');
 
 // ── Datum ────────────────────────────────────────────────────────────────────
@@ -996,7 +997,7 @@ function openPrivacy()  {
   // Versionen skrivs vid öppning – syns bara för den som letar, men gör en användarrapport
   // knytbar till exakt den kod personen körde.
   const v = document.getElementById('app-version-txt');
-  if (v) v.textContent = APP_VERSION + (APP_BUILT ? ' · ' + APP_BUILT : '');
+  if (v) v.textContent = (APP_SEMVER ? 'v' + APP_SEMVER + ' · ' : '') + APP_VERSION + (APP_BUILT ? ' · ' + APP_BUILT : '');
   document.getElementById('privacy-modal').style.display = 'flex';
 }
 function closePrivacy() { document.getElementById('privacy-modal').style.display = 'none'; }

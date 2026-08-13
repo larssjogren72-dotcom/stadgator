@@ -42,7 +42,10 @@ if (!APP_SHA) {
 }
 const APP_VERSION = APP_SHA ? APP_SHA.slice(0, 7) : 'okänd';
 const APP_BUILT   = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
-console.log(`[ParkSpot] Version ${APP_VERSION} (${APP_SRC}) · server startad ${APP_BUILT}`);
+// Semver (package.json) = mänskligt läsbar releasebeteckning, t.ex. för changelog/SaaS-listningar.
+// SHA:t ovan är fortfarande facit för exakt spårbarhet – semver kan dela version över flera commits.
+const APP_SEMVER = require('./package.json').version;
+console.log(`[ParkSpot] Version ${APP_VERSION} v${APP_SEMVER} (${APP_SRC}) · server startad ${APP_BUILT}`);
 
 // ── Keep-alive mot Stockholms servrar ─────────────────────────────────────────
 // Utan detta öppnar https.request en NY TCP+TLS-anslutning per anrop. En sökning
@@ -478,7 +481,7 @@ http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'no-store');
-    finish(req, res, 200, Buffer.from(JSON.stringify({ version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT })));
+    finish(req, res, 200, Buffer.from(JSON.stringify({ semver: APP_SEMVER, version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT })));
 
   } else {
     // Servera statiska filer (index.html)
@@ -503,6 +506,7 @@ http.createServer((req, res) => {
         // Stämpla in versionen. Går bara på HTML och bara på platshållarna – inget byggsteg.
         body = Buffer.from(String(data)
           .split('__APP_VERSION__').join(APP_VERSION)
+          .split('__APP_SEMVER__').join(APP_SEMVER)
           .split('__APP_BUILT__').join(APP_BUILT), 'utf8');
       }
       finish(req, res, 200, body);
