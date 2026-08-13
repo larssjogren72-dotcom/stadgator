@@ -220,11 +220,14 @@
     #rh-rights li { margin-bottom: 4px; }
     #rh-rights p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
     /* Nål för SL-busshållplats: samma rundade fyrkant som RH-nålen, men röd – återanvänder
-       appens befintliga förbud-röda (#ef4444) så "parkera inte här" läses utan att öppna kortet. */
-    .bus-pin { filter: drop-shadow(0 2px 5px rgba(185,28,28,.45)); }
-    .bus-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
+       appens befintliga förbud-röda (#ef4444) så "parkera inte här" läses utan att öppna kortet.
+       Hälften av storleken (28→14px): hållplatser ligger tätt (båda körriktningar räknas
+       separat) och nålens jobb är bara "något du inte ska stå på" – identiteten (namn, SL)
+       lever i kortet, inte i nålen. Kant/skugga skalas ner proportionellt i samma steg. */
+    .bus-pin { filter: drop-shadow(0 1px 3px rgba(185,28,28,.45)); }
+    .bus-pin-b { width: 14px; height: 14px; border-radius: 5px; border: 1.5px solid #fff;
       background: #ef4444; display: flex; align-items: center; justify-content: center; }
-    .bus-pin-b svg { width: 16px; height: 16px; color: #fff; }
+    .bus-pin-b svg { width: 8px; height: 8px; color: #fff; }
     .hd-icon   {
       width: 36px; height: 36px; background: var(--accent-dim);
       border: 1px solid rgba(74,222,128,0.28); border-radius: 10px;
@@ -1796,7 +1799,7 @@ async function rhPlatserOverlay(lat, lng) {
 // är relevant oavsett fordon. Återanvänder appens förbud-röda (#ef4444) i nålen så
 // "parkera inte här" läses direkt, utan att behöva öppna kortet.
 function busPinIcon() {
-  return L.divIcon({ className: 'bus-pin', iconSize: [28, 28], iconAnchor: [14, 14],
+  return L.divIcon({ className: 'bus-pin', iconSize: [14, 14], iconAnchor: [7, 7],
     html: '<div class="bus-pin-b">' + svgIcon('bus') + '</div>' });
 }
 async function fetchHallplatser(lat, lng, radius = 500) {
@@ -1818,9 +1821,10 @@ async function busHallplatserOverlay(lat, lng) {
     const grp = L.layerGroup();
     stops.forEach(h => {
       const dest = L.latLng(h.lat, h.lng);
-      L.marker(dest, { icon: busPinIcon(), pane: 'markerPane', riseOnHover: true,
-                       alt: 'Busshållplats ' + h.namn, keyboard: true })
-        .on('click', e => { L.DomEvent.stopPropagation(e);
+      const m = L.marker(dest, { icon: busPinIcon(), pane: 'markerPane', riseOnHover: true,
+                       alt: 'Busshållplats ' + h.namn, keyboard: true, opacity: dimBlocked ? DIM_OPACITY : 1 });
+      m._base = '#ef4444';   // samma förbud-röda som gator → fångas av befintlig "Tona ner"-switch
+      m.on('click', e => { L.DomEvent.stopPropagation(e);
           showPlaceCardV2(h.namn, 'SL-hållplats – parkering troligen förbjuden', '#ef4444', dest,
             'Läget kommer från OpenStreetMap och är ungefärligt. Den exakta förbudssträckan bestäms av skylten vid stolpen – kontrollera alltid på plats.');
         })
@@ -3232,9 +3236,13 @@ function isBlockedColor(c) { return (vehicleMode === 'mc' ? DIM_MC : DIM_BIL).ha
 function applyDim(grp) {
   if (!grp || !grp.eachLayer) return;
   grp.eachLayer(l => {
-    if (!l.setStyle || !l.options) return;
+    if (!l.options) return;
     const bas = l.options.color || l._base;
     if (!bas || !isBlockedColor(bas)) return;
+    // Nålar (t.ex. busshållplats) har setOpacity, inte setStyle – samma dämpningsnivå,
+    // bara ett annat Leaflet-API för punkter kontra linjer.
+    if (!l.setStyle && l.setOpacity) { l.setOpacity(dimBlocked ? DIM_OPACITY : 1); return; }
+    if (!l.setStyle) return;
     if (l._fullStyle === undefined) l._fullStyle = { weight: l.options.weight, opacity: l.options.opacity };
     l.setStyle(dimBlocked ? { opacity: DIM_OPACITY, weight: DIM_WEIGHT } : l._fullStyle);
   });
