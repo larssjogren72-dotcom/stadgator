@@ -273,6 +273,10 @@ function districtHub(d) {
     <p>${esc(d.name)} ligger främst i ${d.taxa.map(z => `<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}.
     Billigast hittar du för runt <b class="green">${pris} kr/tim</b>. Exakt pris styrs av skylten på gatan — appen visar zonen direkt på kartan.</p>
     ${taxaTable(d.taxa)}</section>
+  <section class="card"><h2>Vad kostar boendeparkering i ${esc(d.name)}?</h2>
+    <p>Den som är folkbokförd i zonen och äger/leasar fordonet kan ansöka om boendeparkeringstillstånd:</p>
+    ${boendeTable(d.taxa)}
+    <p class="muted">${BOENDE_CAVEAT}</p></section>
   <section class="card"><h2>Städgator i ${esc(d.name)}</h2><p>${seasonLine}</p>
     <p>Kvällsknepet: en gata som städas imorgon bitti är ofta ledig redan ikväll — de som nattparkerar undviker den.</p></section>
   <section class="card"><h2>Parkera över natten i ${esc(d.name)}</h2>
@@ -288,6 +292,7 @@ function districtHub(d) {
     { q:`Får man parkera över natten i ${d.name}?`, a:`Ja, på många gator. Använd läget "Över natten" för att se var det är lagligt till morgonen efter, utan städgata eller förbud.` },
     { q:`Hur vet jag om en gata i ${d.name} städas imorgon?`, a:`ParkSpot visar morgondagens städgator på kartan${d.seasonal ? ', och räknar bort vintergator som inte gäller på sommaren' : ''}.` },
     { q:`Är ParkSpot gratis?`, a:`Ja, gratis och utan inloggning. Det bygger på Stockholms stads öppna data.` },
+    { q:`Vad kostar boendeparkering i ${d.name}?`, a:`${d.taxa.map(z => `Taxa ${z}: <b>${TAXA[z].boendeDygn} kr/dygn</b> eller <b>${TAXA[z].boendeMan} kr/30 dagar</b>`).join(' · ')}. Kräver folkbokföring och fordonsägande i zonen – går inte att köpa spontant som besökare.` },
   ];
   const related = [
     { href:`billigare-parkering/${d.slug}`, text:`Billigare parkering i ${d.name}` },
