@@ -16,12 +16,14 @@ const PROMISE = 'ParkSpot visar lagliga gatuplatser, billigast taxa och vilka ga
 const DISCLAIMER = 'Informationen bygger på Stockholms stads öppna data och kan vara inaktuell. Kontrollera alltid lokala skyltar. ParkSpot ansvarar inte för p-böter eller bogsering.';
 
 // ── Taxa-referens (Stockholms stads besöksparkering, kr/tim) ─────────────────
+// Boendeparkering (kr/dygn resp kr/30 dagar) – parkering.stockholm/betala-parkering/taxeomraden-avgifter
+// (uppdaterat 10 feb 2026). OBS: kräver folkbokföring + fordonsägande i zonen – inget en besökare kan köpa.
 const TAXA = {
-  1: { pris: 55, txt: '55 kr/tim alla dagar 00–24 (avgift dygnet runt)' },
-  2: { pris: 31, txt: '31 kr/tim vardag 7–21, lör & helg 9–19, 20 kr/tim övrig tid (avgift dygnet runt)' },
-  3: { pris: 20, txt: '20 kr/tim vardag 7–19, 15 kr/tim lör 11–17 (sön & natt fritt)' },
-  4: { pris: 10, txt: '10 kr/tim vardag 7–19, 10 kr/tim lör 11–17 (sön & natt fritt)' },
-  5: { pris: 5,  txt: '5 kr/tim vardag 7–19 (lör, sön & natt fritt; mc 2,50 kr/tim)' },
+  1: { pris: 55, txt: '55 kr/tim alla dagar 00–24 (avgift dygnet runt)', boendeDygn: 90, boendeMan: 1600, boendeMcDygn: '22,50', boendeMcMan: 400 },
+  2: { pris: 31, txt: '31 kr/tim vardag 7–21, lör & helg 9–19, 20 kr/tim övrig tid (avgift dygnet runt)', boendeDygn: 90, boendeMan: 1600, boendeMcDygn: '22,50', boendeMcMan: 400 },
+  3: { pris: 20, txt: '20 kr/tim vardag 7–19, 15 kr/tim lör 11–17 (sön & natt fritt)', boendeDygn: 90, boendeMan: 1600, boendeMcDygn: '22,50', boendeMcMan: 400 },
+  4: { pris: 10, txt: '10 kr/tim vardag 7–19, 10 kr/tim lör 11–17 (sön & natt fritt)', boendeDygn: 35, boendeMan: 500, boendeMcDygn: '8,75', boendeMcMan: 125 },
+  5: { pris: 5,  txt: '5 kr/tim vardag 7–19 (lör, sön & natt fritt; mc 2,50 kr/tim)', boendeDygn: 20, boendeMan: 300, boendeMcDygn: 5, boendeMcMan: 75 },
 };
 const SEASON = '1 november–15 maj';
 
@@ -228,6 +230,12 @@ function taxaTable(zones) {
   const rows = zones.map(z => `<tr><td>Taxa ${z}</td><td><b>${TAXA[z].pris} kr/tim</b></td><td class="muted">${TAXA[z].txt}</td></tr>`).join('');
   return `<table><tr><th>Zon</th><th>Pris</th><th>Gäller</th></tr>${rows}</table>`;
 }
+function boendeTable(zones) {
+  const rows = zones.map(z => { const t = TAXA[z];
+    return `<tr><td>Taxa ${z}</td><td><b>${t.boendeDygn} kr/dygn</b> eller <b>${t.boendeMan} kr/30 dagar</b></td><td class="muted">MC: ${t.boendeMcDygn} kr/dygn · ${t.boendeMcMan} kr/30 dagar</td></tr>`; }).join('');
+  return `<table><tr><th>Zon</th><th>Boendeparkering</th><th>Boende-MC</th></tr>${rows}</table>`;
+}
+const BOENDE_CAVEAT = 'Boendeparkering är <b>inte något en besökare kan köpa i stunden</b> – tillståndet kräver att du är folkbokförd och äger/leasar fordonet inom zonen. Priserna ovan gäller den som redan har eller ansöker om tillstånd.';
 // Gratis/avgift – ÄRLIGT per zon: bara Taxa 3–5 har avgiftsfri natt/söndag. Taxa 1–2 (city)
 // är avgift DYGNET RUNT → påstå aldrig "gratis nattetid" på rena innerstadssidor (falsk trygghet → böter).
 const hasFreeZone = taxa => taxa.some(z => z >= 3);
@@ -487,8 +495,12 @@ function pillarTaxa() {
     ${taxaTable([1,2,3,4,5])}
     <p class="muted">Motorcykel har egen, lägre taxa (serie 11–15, t.ex. 2,50 kr/tim i Taxa 5-områden).</p></section>
   <section class="card"><h2>Så betalar du minst</h2>
-    <ul><li>Sikta på låga zoner (Taxa 4–5) i ytterstaden.</li><li>Kvällar, nätter och söndagar är ofta avgiftsfria. <b>Lördag 11–17 har dock avgift</b> i Taxa 1–4 (Taxa 5 fritt).</li><li>Boende kan köpa boendeparkering (rabatt per månad).</li></ul>
+    <ul><li>Sikta på låga zoner (Taxa 4–5) i ytterstaden.</li><li>Kvällar, nätter och söndagar är ofta avgiftsfria. <b>Lördag 11–17 har dock avgift</b> i Taxa 1–4 (Taxa 5 fritt).</li><li>Boende kan ansöka om boendeparkering (rabatterat pris, se nedan).</li></ul>
     <p>ParkSpot färgar zonerna på kartan så du ser priset innan du parkerar.</p></section>
+  <section class="card"><h2>Vad kostar boendeparkering?</h2>
+    <p>Den som är folkbokförd i zonen och äger/leasar fordonet kan ansöka om boendeparkeringstillstånd:</p>
+    ${boendeTable([1,2,3,4,5])}
+    <p class="muted">${BOENDE_CAVEAT}</p></section>
   <section class="card"><h2>Pris per zon i detalj</h2>
     <p>Djupdyk i en specifik taxa – pris, tider och var den gäller:</p>
     ${linkList([1,2,3,4,5].map(z => ({ href:`parkeringstaxor-stockholm/taxa-${z}`, text:`Taxa ${z} – ${TAXA[z].pris} kr/tim` })))}</section>`;
@@ -497,6 +509,7 @@ function pillarTaxa() {
     { q:`Vilken taxa är billigast – och vilken är dyrast?`, a:`Billigast är <b>Taxa 5</b> (5 kr/tim vardag 7–19, gratis övrig tid). Dyrast är <b>Taxa 1</b> (55 kr/tim dygnet runt i city).` },
     { q:`Finns det Taxa 6, 7, 8 eller 9 i Stockholm?`, a:`Nej – bilparkeringen i Stockholm har <b>taxa 1–5</b>. Det finns en lägre taxa för <b>motorcykel</b> (ca 2,50–13,75 kr/tim beroende på zon). Står du i en mc-ruta gäller mc-taxan.` },
     { q:`När är parkering avgiftsfri i Stockholm?`, a:`Ofta kvällar, nätter och söndagar utanför taxetiden, särskilt i lägre zoner. Obs: lördag 11–17 har avgift i Taxa 1–4 (Taxa 5 fritt). Kontrollera skylten.` },
+    { q:`Vad kostar boendeparkering i Stockholm?`, a:`I Taxa 1–3: <b>90 kr/dygn</b> eller <b>1 600 kr/30 dagar</b>. Taxa 4: 35 kr/dygn eller 500 kr/30 dagar. Taxa 5: 20 kr/dygn eller 300 kr/30 dagar. Kräver folkbokföring och fordonsägande i zonen.` },
   ];
   const related = [
     { href:`billigare-parkering`, text:`Billigare parkering i Stockholm` },
@@ -524,6 +537,10 @@ function taxaPage(n) {
     <p><b>Taxa ${n} kostar ${t.pris} kr/tim</b> — ${t.txt}. ${freeTxt}</p>
     ${taxaTable([n])}
     <a class="cta" href="/">📍 Se var Taxa ${n} gäller på kartan →</a></section>
+  <section class="card"><h2>Vad kostar boendeparkering i Taxa ${n}?</h2>
+    <p>Den som är folkbokförd i zonen och äger/leasar fordonet kan ansöka om boendeparkeringstillstånd:</p>
+    ${boendeTable([n])}
+    <p class="muted">${BOENDE_CAVEAT}</p></section>
   <section class="card"><h2>Jämför med övriga zoner</h2>
     <p>Stockholm har fem bil-taxor: Taxa 1 dyrast (city), Taxa 5 billigast (ytterstad).</p>
     ${taxaTable([1,2,3,4,5])}
@@ -538,6 +555,7 @@ function taxaPage(n) {
       ? { q:`När är Taxa ${n} gratis?`, a:`${n === 5 ? 'Lördag, söndag och natt (avgift bara vardag 7–19).' : 'Söndag och natt är avgiftsfritt; lördag 11–17 och vardag 7–19 har avgift.'} Kontrollera alltid skylten.` }
       : { q:`Är Taxa ${n} någonsin gratis?`, a:`Nej – Taxa ${n} ligger i city och har <b>avgift dygnet runt</b>. Kontrollera skylten.` },
     { q:`Vilken taxa är billigast respektive dyrast?`, a:`Billigast är <b>Taxa 5</b> (5 kr/tim), dyrast är <b>Taxa 1</b> (55 kr/tim, dygnet runt).` },
+    { q:`Vad kostar boendeparkering i Taxa ${n}?`, a:`<b>${t.boendeDygn} kr/dygn</b> eller <b>${t.boendeMan} kr/30 dagar</b> (MC: ${t.boendeMcDygn} kr/dygn · ${t.boendeMcMan} kr/30 dagar). Kräver folkbokföring och fordonsägande i zonen – går inte att köpa spontant som besökare.` },
   ];
   const related = [
     { href:`parkeringstaxor-stockholm`, text:`Alla parkeringstaxor (Taxa 1–5)` },
