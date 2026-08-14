@@ -940,6 +940,25 @@
   });
 })();
 
+// ── Debug: stickprovsläge (?debug=1 i URL:en) ────────────────────────────────
+// Syfte: göra sväljningsmodellens beslut synligt för ett enskilt kartklick – utan att gissa
+// via skärmdumpar. Klicka var som helst (även där INGET är ritat – det är ofta poängen) →
+// debugInspectPoint (definierad längre ner) visar vilka P_TILLATEN/P_FORBUD-poster som låg
+// nära, avstånd, täckningsgrad och det beräknade utfallet. Helt inaktiv (0 kostnad) om
+// parametern saknas. Se feedback_check_visual_channel_collision – detta ersätter INTE
+// stickprov, det gör dem jämförbara: samma tal, samma källa, ingen tolkning i mitten.
+const DEBUG_MODE = /[?&]debug=1/.test(location.search);
+if (DEBUG_MODE) {
+  window.addEventListener('DOMContentLoaded', () => {
+    const b = document.createElement('div');
+    b.textContent = '🔍 DEBUG – klicka kartan för stickprov';
+    b.style.cssText = 'position:fixed;top:8px;right:8px;z-index:99999;background:#0369a1;' +
+      'color:#fff;font:700 12px/1 system-ui;padding:6px 10px;border-radius:6px;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,.3)';
+    document.body.appendChild(b);
+  });
+}
+
 // ── Koordinater ──────────────────────────────────────────────────────────────
 proj4.defs('EPSG:3011','+proj=tmerc +lat_0=0 +lon_0=18 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs');
 function toLatLng(x, y) {
@@ -1519,6 +1538,79 @@ async function diagForeskrift(lat, lng) {
   } catch(e) {
     out.textContent = 'Fel: ' + e.message;
     console.warn('[FORESKRIFT] Fel:', e.message);
+  }
+}
+
+// ── Stickprov: vad säger rådatan mot vad sväljningsmodellen SKULLE rita här? ────────────────
+// (?debug=1, se DEBUG_MODE). Egen, tight hämtning för klickpunkten – oberoende av vad som
+// råkar vara sökt/ritat sen tidigare, så den fungerar även där INGET är ritat (poängen med
+// stickprovet). Kör samma delade funktioner som loadParkingV2 (isParkingForbud,
+// nearestAllowedDist, computeBodyCoverage) – en sanning, inte en gissning om vad koden gör.
+async function debugInspectPoint(lat, lng) {
+  const d = 0.0008; // ~60-90 m beroende på breddgrad – en gatustump, inte hela kvarteret
+  const bbox = `${lng-d},${lat-d},${lng+d},${lat+d},EPSG:4326`;
+  const out = document.getElementById('diag-output');
+  const panel = document.getElementById('diag-panel');
+  out.textContent = 'Hämtar…';
+  panel.style.display = 'block';
+  try {
+    const [tillRaw, forbRaw] = await Promise.all([
+      fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
+      fetchLayer('LTFR_P_FORBUD_GEOM', bbox),
+    ]);
+    const [px, py] = proj4('WGS84', 'EPSG:3011', [lng, lat]);
+    const allowedLines = tillRaw.flatMap(f => featureLines(f));
+    const allowedPts = allowedLines.flat();
+    const allowedSegs = allowedLines.flatMap(l => { const s = []; for (let i = 0; i < l.length-1; i++) s.push([l[i], l[i+1]]); return s; });
+    const R = 80; // m – hur nära klicket för att räknas med i utskriften
+
+    let text = `Klick: ${lat.toFixed(5)}, ${lng.toFixed(5)}  (${px.toFixed(1)}, ${py.toFixed(1)} SWEREF99)\n`;
+    text += `${tillRaw.length} P_TILLATEN · ${forbRaw.length} P_FORBUD i rutan (~${Math.round(d*111000)} m)\n`;
+
+    text += '\n── P_TILLATEN (grönt) inom ' + R + ' m ──\n';
+    let anyTill = false;
+    tillRaw.forEach(f => {
+      const p = f.properties || {};
+      featureLines(f).forEach(line => {
+        let best = Infinity;
+        line.forEach(pt => { const dd = Math.hypot(pt[0]-px, pt[1]-py); if (dd < best) best = dd; });
+        if (best > R) return;
+        anyTill = true;
+        text += `${best.toFixed(1)} m · ${p.STREET_NAME||'?'} · ${p.VF_PLATS_TYP||'-'} · citation ${p.CITATION||'-'}\n`;
+      });
+    });
+    if (!anyTill) text += '(ingen P_TILLATEN-geometri inom räckhåll – äkta datalucka, inte en renderingsbugg)\n';
+
+    text += '\n── P_FORBUD inom ' + R + ' m – och vad modellen SKULLE rita ──\n';
+    let anyForb = false;
+    forbRaw.forEach(f => {
+      const p = f.properties || {};
+      const forbud = isParkingForbud(p);
+      featureLines(f).forEach(line => {
+        for (let i = 0; i < line.length - 1; i++) {
+          const a = line[i], b = line[i+1];
+          const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
+          const distToClick = Math.hypot(mid[0]-px, mid[1]-py);
+          if (distToClick > R) continue;
+          anyForb = true;
+          const nearest = nearestAllowedDist(mid, allowedPts);
+          const cov = computeBodyCoverage(a, b, allowedSegs);
+          let verdict;
+          if (forbud) verdict = 'ALDRIG rött (taxa/besök-typ → fas 2c)';
+          else if (nearest > FORBID_THRESHOLD_M) verdict = 'RÖTT (ingen tillåten inom ' + FORBID_THRESHOLD_M + ' m, nearest ' + nearest.toFixed(1) + ' m)';
+          else if (cov < REVEAL_COVERAGE_TH) verdict = 'RÖTT (svald men avslöjad igen – täckning ' + (cov*100).toFixed(0) + '% < ' + (REVEAL_COVERAGE_TH*100) + '%)';
+          else verdict = 'SVALT/OSYNLIGT (täckning ' + (cov*100).toFixed(0) + '% ≥ ' + (REVEAL_COVERAGE_TH*100) + '%' + (cov >= COINCIDENT_COVERAGE_TH ? ', coincident' : '') + ')';
+          text += `${distToClick.toFixed(1)} m · ${p.STREET_NAME||'?'} · ${p.VF_PLATS_TYP||'-'} · ${p.START_WEEKDAY || p.DAY_TYPE || 'alltid'} ${p.START_TIME ?? ''}${p.START_TIME!=null?'-':''}${p.END_TIME ?? ''} · → ${verdict}\n`;
+        }
+      });
+    });
+    if (!anyForb) text += '(inget P_FORBUD inom räckhåll)\n';
+
+    out.textContent = text;
+    console.log('[stickprov]', { lat, lng, tillRaw, forbRaw });
+  } catch (e) {
+    out.textContent = 'Fel: ' + e.message;
+    console.warn('[stickprov] Fel:', e.message);
   }
 }
 
@@ -2165,6 +2257,31 @@ const REVEAL_COVERAGE_TH = 0.2;
 // Den här gången: lyft BARA de röda som verkligen sammanfaller (samma kroppsnärhets-mått som
 // REVEAL_COVERAGE_TH ovan, hög tröskel åt andra hållet) – ren rityordning, ingen geometri rörs.
 const COINCIDENT_COVERAGE_TH = 0.7;
+// Delade, rena funktioner för sväljningsmodellen – lyfta ur loadParkingV2 (2026-08-13) så att
+// debugInspectPoint (?debug=1) kan köra EXAKT samma logik mot en enskild klickpunkt utan att
+// duplicera den. En sanning, två anropsställen.
+function isParkingForbud(p) {
+  const t = (p.VF_PLATS_TYP || '').toLowerCase();
+  const r = (p.PARKING_RATE || '').toLowerCase();
+  return /endast besök|reserverad/.test(t) || /taxa\s*\d/.test(r);
+}
+function nearestAllowedDist(p, allowedPts) {
+  let best = Infinity;
+  for (const q of allowedPts) { const d = Math.hypot(p[0]-q[0], p[1]-q[1]); if (d < best) best = d; }
+  return best;
+}
+function computeBodyCoverage(a, b, allowedSegs) {
+  const L = Math.hypot(b[0]-a[0], b[1]-a[1]); if (L < 0.5) return 0;
+  const steps = Math.max(1, Math.round(L / 2));
+  let hit = 0;
+  for (let k = 0; k <= steps; k++) {
+    const t = k / steps, pt = [a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1])];
+    for (const [sa, sb] of allowedSegs) {
+      if (distPointToSegment(pt[0], pt[1], sa[0], sa[1], sb[0], sb[1]) <= CLUSTER_TOL_M) { hit++; break; }
+    }
+  }
+  return hit / (steps + 1);
+}
 const GAGATA_TOL_M = 10;             // meter: vinkelrätt avstånd till gågata-linjen → flaggas gågata.
                                      // Gågator är SMALA → äkta kantparkering ligger ≤10 m. Lösare (15 m)
                                      // gav 47 parallellgata-läckage + 50 ändpunkts-överflagg per 1 äkta.
@@ -2473,41 +2590,17 @@ async function loadParkingV2(lat, lng, radius = 500) {
 
   let allowed = tillRaw.map(toAllowedSegment);
 
-  // Alla tillåten-punkter (SWEREF99) för närhetstest
+  // Alla tillåten-punkter (SWEREF99) för närhetstest. isParkingForbud/nearestAllowedDist/
+  // computeBodyCoverage är delade toppnivå-funktioner (se COINCIDENT_COVERAGE_TH ovan) – samma
+  // logik som debugInspectPoint (?debug=1) kör mot en enskild klickpunkt.
   const allowedPts = allowed.flatMap(s => s.linesSweref.flat());
-  const hasAllowedNear = (p) => {
-    for (const q of allowedPts) {
-      if (Math.hypot(p[0]-q[0], p[1]-q[1]) <= FORBID_THRESHOLD_M) return true;
-    }
-    return false;
-  };
-
-  // isParkingForbud/bodyCoverage används av BÅDE grön-räddningen och den avslöja-igen-logiken
-  // (fas 2a steg A) nedan – se REVEAL_COVERAGE_TH ovan för fullt resonemang.
-  const isParkingForbud = (p) => {
-    const t = (p.VF_PLATS_TYP || '').toLowerCase();
-    const r = (p.PARKING_RATE || '').toLowerCase();
-    return /endast besök|reserverad/.test(t) || /taxa\s*\d/.test(r);
-  };
+  const hasAllowedNear = (p) => nearestAllowedDist(p, allowedPts) <= FORBID_THRESHOLD_M;
   const allowedSegs = allowed.flatMap(s => {
     const segs = [];
     s.linesSweref.forEach(l => { for (let i = 0; i < l.length - 1; i++) segs.push([l[i], l[i+1]]); });
     return segs;
   });
-  // Andel av [a,b]:s EGEN längd som löper inom CLUSTER_TOL_M av en tillåten-linjes kropp,
-  // samplat var ~2 m (samma teknik som clipLineAwayFrom/uteserveringsklippet).
-  function bodyCoverage(a, b) {
-    const L = Math.hypot(b[0]-a[0], b[1]-a[1]); if (L < 0.5) return 0;
-    const steps = Math.max(1, Math.round(L / 2));
-    let hit = 0;
-    for (let k = 0; k <= steps; k++) {
-      const t = k / steps, pt = [a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1])];
-      for (const [sa, sb] of allowedSegs) {
-        if (distPointToSegment(pt[0], pt[1], sa[0], sa[1], sb[0], sb[1]) <= CLUSTER_TOL_M) { hit++; break; }
-      }
-    }
-    return hit / (steps + 1);
-  }
+  const bodyCoverage = (a, b) => computeBodyCoverage(a, b, allowedSegs);
 
   // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten – plus (fas 2a steg A)
   // äkta förbud (ingen taxa/besök-signal) vars sväljning inte håller vid en striktare
@@ -3579,6 +3672,7 @@ function initMap() {
     searchStreetName = null;                                   // punkt, inte namngiven gata
     document.getElementById('search-input').value = '';
     flyToAndShow(e.latlng.lat, e.latlng.lng);
+    if (DEBUG_MODE) debugInspectPoint(e.latlng.lat, e.latlng.lng);   // stickprov, se ?debug=1
   });
   map.on('moveend', refreshZones);                            // zonfärger uppdateras vid panorering/zoom
   document.addEventListener('click', e => { if (!e.target.closest('#mode-row')) closeWhenMenu(); });
