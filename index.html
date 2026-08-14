@@ -1572,7 +1572,29 @@ function taxaZoneAt(lat, lng) {
 
 // Förtydliga jargong i taxetexten: "dag före helgdag" = lördag/helgafton (lätt att missläsa
 // som att lördag är gratis – det stämmer inte, lör 11–17 har avgift i Taxa 1–4).
-function clarifyTaxa(t) { return String(t || '').replace(/dag före helgdag/gi, 'lör/helgafton'); }
+//
+// Boende-delen av samma fält (Stockholms LTFR_TAXA_VIEW, egenskap TAXA) är inaktuell för
+// zon 1–3: fältet säger "1100 kr/månad eller 75 kr/dygn" i zon 2/3 och "ingen boendeparkering"
+// i zon 1, men https://parkering.stockholm/betala-parkering/taxeomraden-avgifter/ (uppdaterad
+// 10 feb 2026) säger 90 kr/dygn / 1600 kr/30 dagar i alla tre. Timtaxan i samma fält stämmer
+// (verifierat mot samma sida) och hämtas fortfarande live – bara boende-delen ersätts här med
+// en manuellt verifierad tabell (samma siffror som seo/build.js TAXA-objektet).
+// Verifierad: 2026-08-13.
+const TAXA_BOENDE = {
+  1: '90 kr/dygn eller 1600 kr/30 dagar',
+  2: '90 kr/dygn eller 1600 kr/30 dagar',
+  3: '90 kr/dygn eller 1600 kr/30 dagar',
+  4: '35 kr/dygn eller 500 kr/30 dagar',
+  5: '20 kr/dygn eller 300 kr/30 dagar',
+};
+function clarifyTaxa(t, zoneName) {
+  let s = String(t || '').replace(/dag före helgdag/gi, 'lör/helgafton');
+  const num = zoneName && +((zoneName.match(/\d+/) || [])[0]);
+  if (num && TAXA_BOENDE[num]) {
+    s = s.replace(/,?\s*Boende:.*$/i, '') + `, Boende: ${TAXA_BOENDE[num]}`;
+  }
+  return s;
+}
 
 // Visa platskort i nedre lådan för Nu/Över natten – pris + status utan att öppna popup.
 // Veckoschema i kortet: hämtar gatans faktiska städtider (per-segment) från servern
@@ -1871,7 +1893,7 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   } else if (z && z.taxa) {
     // Vanlig gata = zonens (bil-)taxa. En MC som ställer sig här betalar bil-taxan, inte mc-taxan.
     const mcNote = vehicleMode === 'mc' ? ` <span style="color:rgba(15,23,42,.5)">· på vanlig gata betalar MC bil-taxan</span>` : '';
-    taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa)}${mcNote}</span>`;
+    taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa, z.name)}${mcNote}</span>`;
     taxaRow.style.display = 'flex';
   } else { taxaRow.style.display = 'none'; }
   if (dest) document.getElementById('gmaps-btn').href =
