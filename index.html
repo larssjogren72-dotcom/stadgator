@@ -2481,14 +2481,30 @@ function andamalTxt(s) {
 // (bredd median 2,8 m, max 4,1 m) ⇒ ytans längsta diagonal sammanfaller i praktiken med
 // långsidan och är därför en korrekt representativ linje. Hela den befintliga kedjan
 // (färgkaskad, städmatchning, nedtoning, platskort) fungerar då oförändrad.
-// ⚠️ AVGRÄNSNING (Lars beslut 2026-07-28): ENBART reserverade platser för rörelsehindrade.
-// Att rita ALLA ytor skulle lägga till 3 061 m nytt grönt i Hässelby där 94 % bär en säsong
-// och 46 % en maxtid som appen ännu inte läser – det väntar på säsong/maxtid-fixen.
+// Utökat 2026-08-16 till "P Avgift, boende"-ytor efter stadstäckande census (2 086
+// opåverkade polygon-poster totalt, varav 947 "P Avgift, boende"): 95 % av dem är
+// ≤8 m breda (samma karaktär som rörelsehindrade, en aning bredare) och av de 786 som
+// bär en strukturerad säsong beskriver 784 (100%) ett STÄDUNDANTAG i fritexten
+// ("Servicetid ... utom under tiden ..."), inte en parkeringssäsong – appens städlogik
+// hanterar redan den biten separat (servicedagar), så den säsongen påverkar inte
+// legaliteten. Bara 2 poster (Klubbacken, Helsingborgsvägen) hade säsong UTAN
+// "Servicetid" i texten – ospårat om det är en äkta legalitetssäsong (typ Hässelbys
+// vinterparkeringsförbud) → uteslutna via hasUnexplainedSeason() nedan, en generell
+// fältregel, inte en lista över specifika gator.
+// AVGRÄNSNING KVARSTÅR för övriga ytetyper (avgiftsfri, endast besök, m.fl.) och för
+// breda ytor (>8 m, troligen riktiga p-platser med flera rader – fel att rita som en
+// enkel linje) – väntar på egen granskning.
 const BAY_MIN_M = 2;          // uppmätt en degenererad yta på 0,3 m → för kort att rita
+const BAY_MAX_WIDTH_M = 8;    // uppmätt 2026-08-16: p90 för äkta fickor: bredare = trolig p-yta, inte en ficka
 function polygonRings(g) {
   if (!g) return [];
   return g.type === 'Polygon'      ? [g.coordinates[0]]
        : g.type === 'MultiPolygon' ?  g.coordinates.map(p => p[0]) : [];
+}
+function ringArea(r) {
+  let a = 0;
+  for (let i = 0; i < r.length - 1; i++) a += r[i][0]*r[i+1][1] - r[i+1][0]*r[i][1];
+  return Math.abs(a) / 2;
 }
 function bayLines(f) {
   return polygonRings(f.geometry).map(r => {
@@ -2498,8 +2514,15 @@ function bayLines(f) {
         const d = Math.hypot(r[j][0] - r[i][0], r[j][1] - r[i][1]);
         if (d > bäst) { bäst = d; a = r[i]; b = r[j]; }
       }
-    return bäst >= BAY_MIN_M ? [a, b] : null;
+    if (bäst < BAY_MIN_M) return null;
+    if (ringArea(r) / bäst > BAY_MAX_WIDTH_M) return null;   // trolig p-yta, inte en ficka
+    return [a, b];
   }).filter(Boolean);
+}
+// Strukturerad säsong (START_MONTH satt) UTAN "Servicetid" i fritexten är sannolikt en
+// äkta legalitets-säsong som appen inte kan tolka för ytor än – räddas därför inte.
+function hasUnexplainedSeason(p) {
+  return p.START_MONTH != null && !/servicetid/i.test(p.OTHER_INFO || '');
 }
 
 // Platsmodell fas 1: klipp bort de sträckor av en linje som ligger inom CLUSTER_TOL_M från
@@ -2548,11 +2571,14 @@ function toAllowedSegment(f) {
   // Exakt minutgräns finns ej i öppen data → ärlig etikett "kontrollera tid".
   const visitorOnly = /endast besök/i.test(platsTyp);
   const vfMeter = p.VF_METER != null ? +p.VF_METER : null;
-  // Ytor räddas bara för rörelsehindrade-platser (se bayLines ovan) – övriga ytor
-  // förblir oritade tills säsong/maxtid läses, annars blir appen för generös.
+  // Ytor räddas för rörelsehindrade-platser helt utan förbehåll (juli-beslutet testade
+  // och godkände den kategorin brett, inget säsongsvillkor). "P Avgift, boende" är nytt
+  // 2026-08-16 och har en egen, striktare spärr (hasUnexplainedSeason) eftersom den
+  // kategorin inte testades lika brett i juli. Övriga ytetyper förblir oritade.
   const linjer = featureLines(f);
   const linesSweref = linjer.length ? linjer
-                    : (/rörelsehindrad/i.test(platsTyp) ? bayLines(f) : []);
+                    : /rörelsehindrad/i.test(platsTyp) ? bayLines(f)
+                    : (/P Avgift, boende/i.test(platsTyp) && !hasUnexplainedSeason(p) ? bayLines(f) : []);
   return {
     kind: 'allowed',
     vehicle: (p.VEHICLE || 'fordon').toLowerCase(),
