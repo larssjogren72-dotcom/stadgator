@@ -2542,6 +2542,73 @@ function ringArea(r) {
   for (let i = 0; i < r.length - 1; i++) a += r[i][0]*r[i+1][1] - r[i+1][0]*r[i][1];
   return Math.abs(a) / 2;
 }
+// Diagonalen ovan (två mest avlägsna hörn) är bara parallell med ytans långsidor om ytan
+// råkar vara en rektangel. En skevad/trapetsformad yta (vanligt när en parkeringsrad följer
+// en gatukurva) får då en linje som pekar fel mot gatan – fältfynd 2026-08-17 (Rörstrandsgatan,
+// Anna Sandströms Gata, John Bergs Plan). Minsta omskrivna rektangeln ("rotating calipers"
+// över konvexa höljet) ger ytans SANNA långsideriktning oavsett hörnantal.
+function crossZ(o, a, b) { return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]); }
+function convexHull(points) {
+  const seen = new Map();
+  for (const p of points) seen.set(p[0].toFixed(3)+','+p[1].toFixed(3), p);
+  const pts = [...seen.values()].sort((a,b) => a[0]-b[0] || a[1]-b[1]);
+  if (pts.length < 3) return pts;
+  const lower = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && crossZ(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper = [];
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && crossZ(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+function minAreaRect(ring) {
+  const hull = convexHull(ring);
+  if (hull.length < 2) return null;
+  let bäst = null;
+  const n = hull.length;
+  for (let i = 0; i < n; i++) {
+    const a = hull[i], b = hull[(i+1) % n];
+    const ang = Math.atan2(b[1]-a[1], b[0]-a[0]);
+    const c = Math.cos(-ang), s = Math.sin(-ang);
+    let minU=Infinity, maxU=-Infinity, minV=Infinity, maxV=-Infinity;
+    for (const p of hull) {
+      const u = p[0]*c - p[1]*s, v = p[0]*s + p[1]*c;
+      if (u<minU) minU=u; if (u>maxU) maxU=u;
+      if (v<minV) minV=v; if (v>maxV) maxV=v;
+    }
+    const area = (maxU-minU) * (maxV-minV);
+    if (!bäst || area < bäst.area) bäst = { area, angle: ang, spanU: maxU-minU, spanV: maxV-minV };
+  }
+  const longSpan = Math.max(bäst.spanU, bäst.spanV), shortSpan = Math.max(0.01, Math.min(bäst.spanU, bäst.spanV));
+  return { angle: bäst.spanU >= bäst.spanV ? bäst.angle : bäst.angle + Math.PI/2, aspect: longSpan / shortSpan };
+}
+// Projicera ringens punkter på given vinkel → linje centrerad i formen, med samma fulla
+// längdutsträckning som diagonalen ger (nedströms längd-/klipplogik förblir opåverkad).
+function projectOnAngle(ring, angle) {
+  const u = [Math.cos(angle), Math.sin(angle)], v = [-u[1], u[0]];
+  let minU=Infinity, maxU=-Infinity, sumV=0;
+  for (const p of ring) {
+    const pu = p[0]*u[0] + p[1]*u[1];
+    if (pu<minU) minU=pu; if (pu>maxU) maxU=pu;
+    sumV += p[0]*v[0] + p[1]*v[1];
+  }
+  const vC = sumV / ring.length;
+  return [
+    [u[0]*minU + v[0]*vC, u[1]*minU + v[1]*vC],
+    [u[0]*maxU + v[0]*vC, u[1]*maxU + v[1]*vC]
+  ];
+}
+// Tröskel uppmätt stadsomfattande (1067 räddade ytor mot NVDB_Vagtrafiknat, 2026-08-17):
+// vid aspect≥5 byter 395 ytor till MBR-linjen, 281 mätbart bättre / 8 sämre (2,0%). Under
+// tröskeln är långsidan ett myntkast (en nästan kvadratisk yta har två nästan likvärdiga
+// kandidater 90° isär) – där lämnas diagonalen orörd, precis som innan denna ändring.
+const MBR_ASPECT_THRESHOLD = 5;
 function bayLines(f) {
   return polygonRings(f.geometry).map(r => {
     let bäst = 0, a = null, b = null;
@@ -2552,6 +2619,8 @@ function bayLines(f) {
       }
     if (bäst < BAY_MIN_M) return null;
     if (ringArea(r) / bäst > BAY_MAX_WIDTH_M) return null;   // trolig p-yta, inte en ficka
+    const mbr = minAreaRect(r);
+    if (mbr && mbr.aspect >= MBR_ASPECT_THRESHOLD) return projectOnAngle(r, mbr.angle);
     return [a, b];
   }).filter(Boolean);
 }
