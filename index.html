@@ -2727,6 +2727,24 @@ async function loadParkingV2(lat, lng, radius = 500) {
     allowed.push(seg);
   });
 
+  // Fas 2d-utökning (2026-08-18, Grimsta-fallet): en OSKYDDAD förbudspost vars eget
+  // tidsfönster (forbudActiveAt) säkert INTE är aktivt just nu är laglig parkering just nu –
+  // inte bara "inte rött" (gårdagens fix, som bara släckte raden) utan faktiskt GRÖNT, annars
+  // blir platsen osynlig trots att skylten säger att man får stå där (Lars fysiskt
+  // bekräftat: "Tisdag 8-16, 1/11-15/5"-skylt fotad på plats, en måndag). Till skillnad
+  // från besök/taxa-räddningen ovan krävs INGEN närliggande tillåten-linje – tidsfönstret
+  // är egen, direkt grund (forbudActiveAt === false är ett bevisat faktum om just den här
+  // posten, ingen gissning om vad som finns runtomkring).
+  forbRaw.forEach(f => {
+    const fp = f.properties || {};
+    if (isParkingForbud(fp)) return;                        // redan hanterad ovan
+    if (forbudActiveAt(fp, tD) !== false) return;            // aktiv nu eller osäkert → rör inte
+    const seg = toAllowedSegment(f);
+    if (!seg.linesSweref.length) return;                     // ingen ritbar geometri (t.ex. annan ytetyp)
+    seg.fromForbud = true;
+    allowed.push(seg);
+  });
+
   // Platsmodell fas 1 (2026-08-12): en ändamåls-/reserverad-registrering (t.ex. "Reserverad
   // p-plats rörelsehindrad", MC-ruta, lastplats) kan ligga på EXAKT samma trottoarkant som en
   // vanlig grön post (P_TILLATEN "P Avgift, boende" ELLER en besök/taxa-post härledd ur
