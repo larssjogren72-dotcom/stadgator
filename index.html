@@ -2712,6 +2712,41 @@ function toAllowedSegment(f) {
   };
 }
 
+// MC-reserverade ytor (2026-08-17-tillägget ovan) är typiskt små och nästan kvadratiska
+// (median avlångshet 1,8×) – varken diagonalen eller minsta-omskrivna-rektangeln har en
+// tillförlitlig egen långsida att utgå från. Uppmätt mot NVDB_Vagtrafiknat (91 ytor):
+// diagonal median 35° fel, MBR bara till 18,5° (40% risk att bli SÄMRE). En MC-ficka delar
+// nästan alltid samma trottoarkant som en redan räddad granne (boende/rörelsehindrad/vanlig
+// linje) – att ärva grannens riktning istället för att gissa utifrån den egna lilla ytan gav
+// median 9° fel (68 bättre/21 sämre av 91, bästa avvägning vid 20m). Ingen ny nätverkshämtning
+// – återanvänder linjer som redan finns i allowed[]. Bevarar MC-linjens egen längd/mittpunkt,
+// roterar den bara till grannens vinkel.
+const MC_NEIGHBOR_MAX_M = 20;
+function realignMcToNeighbor(allowed) {
+  const neighborSegs = [];
+  for (const s of allowed) {
+    if (/motorcykel/i.test(s.platsTyp)) continue;
+    s.linesSweref.forEach(line => { for (let i = 0; i < line.length - 1; i++) neighborSegs.push([line[i], line[i+1]]); });
+  }
+  if (!neighborSegs.length) return;
+  for (const s of allowed) {
+    if (!s.fromBay || !/motorcykel/i.test(s.platsTyp)) continue;
+    s.linesSweref = s.linesSweref.map(line => {
+      if (line.length < 2) return line;
+      const a = line[0], b = line[line.length - 1];
+      const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2, half = Math.hypot(b[0]-a[0], b[1]-a[1]) / 2;
+      let bäst = null;
+      for (const [p, q] of neighborSegs) {
+        const d = distPointToSegment(mx, my, p[0], p[1], q[0], q[1]);
+        if (d <= MC_NEIGHBOR_MAX_M && (!bäst || d < bäst.dist)) bäst = { dist: d, angle: Math.atan2(q[1]-p[1], q[0]-p[0]) };
+      }
+      if (!bäst) return line;   // ingen granne nära nog – behåll diagonalen som fallback
+      const u = [Math.cos(bäst.angle), Math.sin(bäst.angle)];
+      return [[mx - u[0]*half, my - u[1]*half], [mx + u[0]*half, my + u[1]*half]];
+    });
+  }
+}
+
 // Lager 3+5 – ladda och klassificera parkering runt en punkt.
 // Returnerar { allowed:[ParkingSegment], forbiddenLines:[[ [x,y],[x,y] ] …] } (SWEREF99)
 async function loadParkingV2(lat, lng, radius = 500) {
@@ -2726,6 +2761,7 @@ async function loadParkingV2(lat, lng, radius = 500) {
   ]);
 
   let allowed = tillRaw.map(toAllowedSegment);
+  realignMcToNeighbor(allowed);   // MC-ytor: ärv grannens riktning, se kommentar ovan funktionen
 
   // Alla tillåten-punkter (SWEREF99) för närhetstest. isParkingForbud/nearestAllowedDist/
   // computeBodyCoverage är delade toppnivå-funktioner (se COINCIDENT_COVERAGE_TH ovan) – samma
