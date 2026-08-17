@@ -2677,13 +2677,19 @@ function toAllowedSegment(f) {
   const visitorOnly = /endast besök/i.test(platsTyp);
   const vfMeter = p.VF_METER != null ? +p.VF_METER : null;
   // Ytor räddas för rörelsehindrade-platser helt utan förbehåll (juli-beslutet testade
-  // och godkände den kategorin brett, inget säsongsvillkor). "P Avgift, boende" är nytt
-  // 2026-08-16 och har en egen, striktare spärr (hasUnexplainedSeason) eftersom den
-  // kategorin inte testades lika brett i juli. Övriga ytetyper förblir oritade.
+  // och godkände den kategorin brett, inget säsongsvillkor). "P Avgift, boende" (2026-08-16)
+  // och "Reserverad p-plats motorcykel*" (2026-08-17) delar samma striktare spärr
+  // (hasUnexplainedSeason), eftersom de inte testades lika brett i juli. MC-tillägget:
+  // 61 unika citations stadsomfattande, alla helt osynliga innan detta (varken linje eller
+  // mcRutorOverlay-nål, eftersom Polygon-geometri aldrig gav dem en linesSweref) – 23/61
+  // hade säsong, 23/23 "servicetid" i fritexten (städundantag, ofarligt), 0 oförklarade.
+  // 4 oberoende RDT-läsningar (en per undertyp) bekräftade äkta, aktuella MC-registreringar.
+  // Övriga ytetyper förblir oritade.
   const linjer = featureLines(f);
   const linesSweref = linjer.length ? linjer
                     : /rörelsehindrad/i.test(platsTyp) ? bayLines(f)
-                    : (/P Avgift, boende/i.test(platsTyp) && !hasUnexplainedSeason(p) ? bayLines(f) : []);
+                    : (/P Avgift, boende/i.test(platsTyp) || /motorcykel/i.test(platsTyp)) && !hasUnexplainedSeason(p)
+                      ? bayLines(f) : [];
   return {
     kind: 'allowed',
     vehicle: (p.VEHICLE || 'fordon').toLowerCase(),
