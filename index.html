@@ -2475,6 +2475,42 @@ function andamalTxt(s) {
   return `${namn} ${nar} ${fmtClock(s.andamalStart)}–${fmtClock(s.andamalEnd)}`.replace(/\s+/g, ' ').trim();
 }
 
+// Är en OSKYDDAD förbudspost (inte taxa/besök, se isParkingForbud) aktiv just nu? Kombinerar
+// samma säsongslogik som cleaningActiveOn med samma veckodags-/klockslagslogik som
+// andamalActiveAt, applicerat på vanliga förbudsposters egna fält. Fas 2d (2026-08-18,
+// Järnbärarvägen-fallet): en "Avgiftsfri parkering"-post förbjuden bara måndagar 08-16 under
+// 1/11-15/5 visades röd dygnet/året runt, eftersom ingen kod nånsin läste postens eget
+// tidsfönster. Stadstäckande census: 4 093 poster berörda, 70% av dem <5 tim/vecka faktisk
+// aktiv tid, 86% i ytterstad (roterande vinter-/snöröjningsschema).
+// false = säkert INTE aktiv just nu → släck röd. null (okänt mönster, t.ex. ODD_EVEN eller ett
+// DAY_TYPE vi aldrig sett) → rör ALDRIG färgen, samma försiktighetsprincip som andamalActiveAt
+// ("en otolkbar regel får aldrig färga om något") – hellre rött för mycket än grönt för lite.
+function forbudActiveAt(p, d) {
+  if (p.ODD_EVEN != null) return null;             // ovanligt fält, aldrig sett i data – gissa inte
+  if (p.START_MONTH != null) {
+    const md = (m, day) => m * 100 + (day || 1);
+    const cur = md(d.getMonth() + 1, d.getDate());
+    const a = md(p.START_MONTH, p.START_DAY), b = md(p.END_MONTH, p.END_DAY);
+    const inSeason = a <= b ? (cur >= a && cur <= b) : (cur >= a || cur <= b);
+    if (!inSeason) return false;
+  }
+  const dag = d.getDay(), dt = (p.DAY_TYPE || '').toLowerCase();
+  let dagOk = null;
+  if (dt.includes('utom vardag före')) dagOk = dag >= 1 && dag <= 5;
+  else if (dt.includes('vardag före'))  dagOk = dag === 6;
+  else if (dt.includes('vardag'))       dagOk = dag >= 1 && dag <= 5;
+  else if (p.START_WEEKDAY)             dagOk = SV_WEEKDAYS[dag] === String(p.START_WEEKDAY).toLowerCase();
+  if (dagOk === false) return false;
+  if (dagOk === null && (p.DAY_TYPE || p.START_WEEKDAY)) return null;   // okänt mönster
+  if (p.START_TIME != null && p.END_TIME != null) {
+    const min = h => Math.floor(h / 100) * 60 + (h % 100);
+    const nu = d.getHours() * 60 + d.getMinutes(), a = min(p.START_TIME), b = min(p.END_TIME);
+    const inTime = a <= b ? (nu >= a && nu < b) : (nu >= a || nu < b);
+    if (!inTime) return false;
+  }
+  return true;   // permanent post (inga villkor alls) eller alla kända villkor uppfyllda
+}
+
 // ── P-fickor som lagras som YTA i stället för linje ─────────────────────────
 // featureLines() returnerar [] för Polygon/MultiPolygon → sådana poster ritas inte alls.
 // Uppmätt 2026-07-28: ALLA 24 rörelsehindrade-ytor i fem områden är avlånga fickor
@@ -2650,7 +2686,9 @@ async function loadParkingV2(lat, lng, radius = 500) {
   // dölja ett äkta förbud (de har aldrig taxa/besök-typ), bara sluta ljuga om ett som inte finns.
   const forbiddenLines = [];
   forbRaw.forEach(f => featureLines(f).forEach(line => {
-    if (isParkingForbud(f.properties || {})) return;   // fas 2c – aldrig rött, oavsett sväljning
+    const fp = f.properties || {};
+    if (isParkingForbud(fp)) return;                    // fas 2c – aldrig rött, oavsett sväljning
+    if (forbudActiveAt(fp, tD) === false) return;        // fas 2d – tidsfönster inte aktivt just nu
     for (let i = 0; i < line.length - 1; i++) {
       const a = line[i], b = line[i+1];
       const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
