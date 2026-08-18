@@ -1843,13 +1843,51 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
   });
 }
 
+// ── Städ-koll för dedikerade platser (MC/RH/cykel) ──────────────────────────
+// P_TILLATEN och P_FORBUD delar CITATION (ärendenummer) när en dedikerad plats har en
+// schemalagd servicetid. Verifierat citywide 2026-08-18: 0 av 594 P_FORBUD-poster (mc +
+// moped klass 1/2) saknade en matchande P_TILLATEN-citation ("orphan") → säker parning,
+// ingen geometrisk gissning. Cykel och rörelsehindrade har ALDRIG en sådan post i
+// registret (0 st vardera) – grenen är overksam för dem idag, bara en garanti om
+// registret ändras. Lars beslut 2026-08-18: en nål får ALDRIG se ledig ut om det städas
+// där just nu (appens grundprincip – visa aldrig en plats som ledig om det inte stämmer).
+async function fetchCleaningByCitation(lat, lng, vehicleSet, radius = 500) {
+  const deg  = (radius / 111000) * 1.8;
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  const forbRaw = await fetchLayer('LTFR_P_FORBUD_GEOM', bbox);
+  const byCitation = new Map();
+  forbRaw.forEach(f => {
+    const p = f.properties || {};
+    if (!p.CITATION || !vehicleSet.has((p.VEHICLE || '').toLowerCase())) return;
+    if (!byCitation.has(p.CITATION)) byCitation.set(p.CITATION, []);
+    byCitation.get(p.CITATION).push(p);
+  });
+  return byCitation;
+}
+// Flera geometribitar kan dela citation (t.ex. Spelbomskans Torg, två polygonbitar) – räcker
+// att ETT tidsfönster är aktivt just nu för att platsen ska räknas som städas.
+function citationCleaningNow(citation, byCitation, now) {
+  const rows = citation && byCitation.get(citation);
+  if (!rows) return null;
+  const active = rows.find(p => forbudActiveAt(p, now) === true);
+  return active ? { end: active.END_TIME } : false;
+}
+
 // MC-rutorna som ETT eget lager – visas i ALLA lägen (Nu/Morgon/Kväll/Natt) när MC är valt,
 // oberoende av vilket flöde som ritar gatorna. Återanvänder P_TILLATEN-hämtaren.
 async function fetchMcRutor(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
-  return tillRaw.map(toAllowedSegment).filter(s => isMcExclusive(s.vehicle));
+  const [tillRaw, cleanByCitation] = await Promise.all([
+    fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
+    fetchCleaningByCitation(lat, lng, MC_VEHICLES, radius),
+  ]);
+  const now = new Date();
+  return tillRaw.map(toAllowedSegment).filter(s => isMcExclusive(s.vehicle)).map(s => {
+    const c = citationCleaningNow(s.citation, cleanByCitation, now);
+    if (c) { s.cleaningNow = true; s.cleaningEnd = c.end; }
+    return s;
+  });
 }
 let mcOverlayReqId = 0;
 async function mcRutorOverlay(lat, lng) {
@@ -1865,8 +1903,11 @@ async function mcRutorOverlay(lat, lng) {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      L.marker(dest, { icon: mcPinIcon('#2563eb'), pane: 'markerPane', riseOnHover: true })
-        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', 'MC-ruta · bara MC får stå', '#2563eb', dest, 'Dedikerad MC-plats – bilister får inte ta den.'); })
+      const color = s.cleaningNow ? '#f59e0b' : '#2563eb';
+      const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'MC-ruta · bara MC får stå';
+      const info  = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Dedikerad MC-plats – bilister får inte ta den.';
+      L.marker(dest, { icon: mcPinIcon(color), pane: 'markerPane', riseOnHover: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', txt, color, dest, info, s.cleaningNow); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
@@ -1880,15 +1921,23 @@ async function mcRutorOverlay(lat, lng) {
 // BONUS: överlägget går utanför drawParkingSegment, som hoppar över gågator. Två uppmätta
 // platser (Sabbatsbergsvägen + en i Gamla Stan) låg på gågata och ritades därför inte alls –
 // och just på gågata GÄLLER tillståndet. De kommer med här.
-function rhPinIcon() {
+function rhPinIcon(color) {
   return L.divIcon({ className: 'rh-pin', iconSize: [28, 28], iconAnchor: [14, 14],
-    html: '<div class="rh-pin-b">' + svgIcon('wheelchair') + '</div>' });
+    html: '<div class="rh-pin-b" style="background:' + (color || RH_COLOR) + '">' + svgIcon('wheelchair') + '</div>' });
 }
 async function fetchRhPlatser(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
-  return tillRaw.map(toAllowedSegment).filter(s => isRhPlats(s) && s.linesSweref.length);
+  const [tillRaw, cleanByCitation] = await Promise.all([
+    fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
+    fetchCleaningByCitation(lat, lng, RH_VEHICLES, radius),
+  ]);
+  const now = new Date();
+  return tillRaw.map(toAllowedSegment).filter(s => isRhPlats(s) && s.linesSweref.length).map(s => {
+    const c = citationCleaningNow(s.citation, cleanByCitation, now);
+    if (c) { s.cleaningNow = true; s.cleaningEnd = c.end; }
+    return s;
+  });
 }
 let rhOverlayReqId = 0;
 async function rhPlatserOverlay(lat, lng) {
@@ -1902,12 +1951,14 @@ async function rhPlatserOverlay(lat, lng) {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      L.marker(dest, { icon: rhPinIcon(), pane: 'markerPane', riseOnHover: true,
+      const color = s.cleaningNow ? '#f59e0b' : RH_COLOR;
+      const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'Reserverad plats';
+      const info  = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Kräver parkeringstillstånd för rörelsehindrade';
+      L.marker(dest, { icon: rhPinIcon(color), pane: 'markerPane', riseOnHover: true,
                        alt: 'Reserverad plats för rörelsehindrade' + (s.street ? ' på ' + s.street : ''),
                        keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Reserverad plats', 'Reserverad plats', RH_COLOR, dest,
-                          'Kräver parkeringstillstånd för rörelsehindrade', false, true); })
+          showPlaceCardV2(s.street || 'Reserverad plats', txt, color, dest, info, s.cleaningNow, true); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
@@ -1922,15 +1973,23 @@ async function rhPlatserOverlay(lat, lng) {
 // Till skillnad från MC/RH målas INGA gator i det här läget (se showNowParkingV2Flow/
 // showSafeStreetsV2Flow) – registret har aldrig en förbudszon för cykel (verifierat 2026-08-18,
 // se project-minnet), så nålarna är den ENDA informationen kartan visar i cykel-läge.
-function cykelPinIcon() {
+function cykelPinIcon(color) {
   return L.divIcon({ className: 'cykel-pin', iconSize: [24, 24], iconAnchor: [12, 12],
-    html: '<div class="cykel-pin-b">' + svgIcon('bike') + '</div>' });
+    html: '<div class="cykel-pin-b" style="background:' + (color || CYKEL_COLOR) + '">' + svgIcon('bike') + '</div>' });
 }
 async function fetchCykelPlatser(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
-  return tillRaw.map(toAllowedSegment).filter(s => isCykelPlats(s.vehicle) && s.linesSweref.length);
+  const [tillRaw, cleanByCitation] = await Promise.all([
+    fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
+    fetchCleaningByCitation(lat, lng, CYKEL_VEHICLES, radius),
+  ]);
+  const now = new Date();
+  return tillRaw.map(toAllowedSegment).filter(s => isCykelPlats(s.vehicle) && s.linesSweref.length).map(s => {
+    const c = citationCleaningNow(s.citation, cleanByCitation, now);
+    if (c) { s.cleaningNow = true; s.cleaningEnd = c.end; }
+    return s;
+  });
 }
 let cykelOverlayReqId = 0;
 async function cykelPlatserOverlay(lat, lng) {
@@ -1945,11 +2004,13 @@ async function cykelPlatserOverlay(lat, lng) {
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
       const undertyp = (s.vehicle || '').toLowerCase() === 'moped-klass2' ? 'moped klass 2' : 'cykel';
-      L.marker(dest, { icon: cykelPinIcon(), pane: 'markerPane', riseOnHover: true,
+      const color = s.cleaningNow ? '#f59e0b' : CYKEL_COLOR;
+      const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'Dedikerad plats · ' + undertyp;
+      const info  = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.';
+      L.marker(dest, { icon: cykelPinIcon(color), pane: 'markerPane', riseOnHover: true,
                        alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Cykel-/mopedplats', 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest,
-                          'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.', true); })
+          showPlaceCardV2(s.street || 'Cykel-/mopedplats', txt, color, dest, info, true); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
@@ -3837,21 +3898,6 @@ function initSheet() {
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
   if (!legendDiv) return;
-  // Cykel-läget målar inga gator (ingen taxa, inget förbud i registret) – taxastegen och
-  // dim-reglaget hör bara till gatufärgning och skulle vara missvisande här. Egen, kort legend.
-  if (vehicleMode === 'cykel') {
-    const cykelLegend =
-      `<div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
-       <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen. Nålarna visar bara Stockholms dedikerade platser – ingen avgift, inget förbud i registret.</div>
-       <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
-    legendDiv.innerHTML =
-      `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
-         <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
-       </button>
-       <div id="legend-content">${cykelLegend}</div>`;
-    applyLegendState();
-    return;
-  }
   const otherLabel = vehicleMode === 'mc' ? 'Övrigt (ej MC)' : 'Ej för bil (t.ex. mc/buss)';
   const otherColor = vehicleMode === 'mc' ? '#c3ccd6' : '#9333ea';
   const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
@@ -3878,6 +3924,12 @@ function updateLegend(mode) {
      <div class="lgnd-row"><span style="flex:1">${dimEtikett}</span>
        <label class="lgnd-switch"><input type="checkbox" ${dimBlocked ? 'checked' : ''} onchange="toggleDim()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
      ${dimBlocked ? `<div class="lgnd-hidden-note">Nedtonade, inte dolda – tomt betyder «ingen data», inte «fritt».</div>` : ''}
+     <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
+  // Cykel-läget har inget att tona ner (inga gatlinjer ritas – se cykelLegend nedan) – ett
+  // dim-reglage som ändå inte gjorde något vore missvisande i sig. Bara feedback-länken kvar,
+  // samma placering/utseende som de andra lägena.
+  const feedbackOnly =
+    `<hr class="lgnd-sep">
      <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
@@ -3907,15 +3959,27 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
-  const modeRows = mode === 'now'
-    ? nowLegend
+  // Cykel + moped klass 2 målar inga gator (registret har ingen förbudszon för dem, se
+  // project-minnet 2026-08-18) – bara nålen för Stockholms dedikerade platser. Samma
+  // taxa-steg som alla andra lägen (zonfärgen på kartan ritas oavsett fordon), men egna
+  // rader i stället för gatufärgerna eftersom inga sådana ritas. Amber-raden hör ihop med
+  // städ-kollen på nålarna (2026-08-18): gäller MC vanligast, cykel/RH i praktiken aldrig
+  // idag (0 sådana poster i registret) men samma regel oavsett fordon.
+  const cykelLegend =
+      `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706;border-radius:7px;transform:rotate(45deg)"></div>Städas just nu – inte tillåtet</div>
+       <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen – nålarna visar bara Stockholms dedikerade platser (avgiftsfritt).</div>`;
+  const modeRows = vehicleMode === 'cykel' ? cykelLegend
+    : mode === 'now' ? nowLegend
     : (v2Active ? uc2LegendV2 : uc2LegendOld);
+  const bottomToggles = vehicleMode === 'cykel' ? feedbackOnly : layerToggles;
 
   legendDiv.innerHTML =
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${taxaScale}${modeRows}${layerToggles}</div>`;
+     <div id="legend-content">${taxaScale}${modeRows}${bottomToggles}</div>`;
   applyLegendState();
 }
 
