@@ -197,6 +197,10 @@ UC2 ligger redan på v2-grunden; UC1 migreras till samma grund under fas 1–3.
    förfina gestlägena stegvis.
 4. **Smart standard vid öppning** (val A): gissa intent (dagtid→Nu, kväll→Över natten/
    I kväll), alltid justerbar med ett tryck. Ingen tvångsfråga.
+   > **REVERSERAT 2026-08-18** (Lars beslut): automatiken gjorde det lätt att av misstag
+   > testa/använda appen i fel läge utan att märka det (kvällstid → Natt-läge, där t.ex.
+   > "nyss städad"/"gott om tid" inte visas eftersom de bara finns i Nu-läget – lätt att
+   > misstolka som ett fel). Appen startar nu alltid i Nu-läget, oavsett tid på dygnet.
 
 ### Färgavstämning mot v2-koden (konsekvens av beslut 2)
 Idag är blå = "säker/bäst". Det skiftar till:

@@ -3554,8 +3554,11 @@ let map, allLayers = [], streetGroupLayers = [], zoneGroupLayers = [];
 let garageMarkers = [], garageDataPromise = null;   // p-hus (sista utväg)
 let streetDataPromise = null, searchCenter = null;
 let searchStreetName = null; // gatunamn utan husnummer – för att filtrera bort sökadressen i UC2
-// Smart standard (beslut UX §11.4): kväll/natt → Över natten, dagtid → Nu
-let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'uc2' : 'now'; })();
+// Smart standard (beslut UX §11.4) TOGS BORT 2026-08-18 (Lars beslut): automatiken bytte
+// till Natt-läge kvällstid, vilket gjorde att man kunde testa/använda appen i fel läge utan
+// att märka det (Nu-lägets "nyss städad"/"gott om tid" finns bara där, inte i Natt) – lätt
+// att missta för ett fel. Startar nu alltid i Nu, oavsett tid på dygnet.
+let currentMode = 'now';
 
 // ── Fordonsprofil: Bil eller MC ──────────────────────────────────────────────
 // Datan (VEHICLE) har bl.a. 'fordon'/'personbil' (bil) och 'motorcykel' (mc).
