@@ -3132,7 +3132,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     badge.textContent = `${safe} trygga platser i natt`;
     badge.style.display = 'block';
     document.getElementById('hint').innerHTML =
-      `<span class="hint-main">Tryck på ${tapTargetPhrase()} för service-tider och vägbeskrivning.</span>` +
+      `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
 
     loadZonesForViewport(getKey());
@@ -3635,18 +3635,12 @@ function vehicleAllowed(v) {
 function isMcExclusive(v) { return MC_VEHICLES.has((v || 'fordon').toLowerCase()); }   // ruta bara MC får ta
 // Etikett för segment som inte gäller det valda fordonet (för "ej för dig"-lila).
 function otherVehicleLabel(v) { return vehicleMode === 'mc' ? `Endast ${v}` : `Ej för bil (${v})`; }
-// I MC-läge visas riktiga MC-rutor som EGNA nålar (pins), inte som gatlinjer – hint-texten måste
-// säga det, annars missar användaren att trycka på nålen (bara "grön gata" räcker inte i mc-läge).
-function tapTargetPhrase() {
-  if (vehicleMode === 'mc') return 'en grön gata eller MC-ikonen';
-  if (vehicleMode === 'rh') return 'en grön gata eller en reserverad plats';
-  return 'en grön gata';
-}
 // Ordet för fordonet i löptext. Rörelsehindrad-läget är bil + tillstånd (se vehicleAllowed
 // ovan) – behåller därför "bilen", till skillnad från MC som har eget ord.
 function vehicleWord() { return vehicleMode === 'mc' ? 'MC:n' : 'bilen'; }
-// Samma som tapTargetPhrase, fast utan "grön" – Nu-lägets intro pekar nu även på orange
-// (hidden gems), så "tryck på en grön gata" vore missvisande där. Bara den texten ska använda den.
+// I MC-läge visas riktiga MC-rutor som EGNA nålar (pins), inte som gatlinjer – hint-texten måste
+// säga det, annars missar användaren att trycka på nålen. Ingen färg nämns ("grön gata" räckte
+// inte längre sen orange hidden-gems och blå tidsbegränsade sträckor också blev tryckbara).
 function tapTargetPhraseAny() {
   if (vehicleMode === 'mc') return 'en gata eller MC-ikonen';
   if (vehicleMode === 'rh') return 'en gata eller en reserverad plats';
@@ -3664,7 +3658,7 @@ function pickWhen(mode) {
 // Vad appen VISAR i varje läge – och varför. Klockan väljer åt användaren; texten förklarar valet,
 // så man slipper välja läge för att förstå appen (men kan byta).
 const MODE_PITCH = {
-  now: { icon:'check', t:'Nu — var du får stå just nu', w:'Gröna gator är lagliga just nu. Orange kan också vara ett bra val en stund – ljusare kant betyder gott om tid innan städning.' },
+  now: { icon:'check', t:'Nu — var du får stå just nu', w:'Gröna gator är lagliga just nu. Orange kan också vara ett bra val en stund – ljusare kant betyder gott om tid innan städning. Blå går också bra – men kolla tidsgränsen på skylten.' },
   uc2: { icon:'moon',  t:'Natt — tryggt till i morgon' },   // w byggs i updateWhenChip – beror på vehicleMode
 };
 function updateWhenChip(mode) {
@@ -3802,9 +3796,9 @@ function updateLegend(mode) {
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Trygg över natten</div>
        ${mcRow}
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Möjlig att parkera – kontrollera tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksparkering – kontrollera tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
@@ -3820,10 +3814,10 @@ function updateLegend(mode) {
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Nyss städad – bra chans</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas idag – tryck för exakt tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>Gott om tid – bra möjlighet just nu</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Möjlig att parkera – kontrollera tid</div>
        ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Besöksplats – kort tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
   const modeRows = mode === 'now'
@@ -4363,8 +4357,8 @@ function setVehicle(v) {
 function renderModeIntro() {
   const disclaimer = '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
   const intro = {
-    now: `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`,
-    uc2: `<b>"Natt"</b> visar var ${vehicleWord()} står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhrase()} för service-tider och vägbeskrivning.`,
+    now: `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Blått betyder att du får parkera men bör kontrollera tidsgränsen på skylten. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`,
+    uc2: `<b>"Natt"</b> visar var ${vehicleWord()} står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.`,
   };
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
