@@ -1920,6 +1920,19 @@ function stadTierFor(dest, name, ctx, now) {
   name = name.toLowerCase().trim();
   const cs = ctx.clean.near(dest, name);
   if (cs && cs.state === 'active') return { tier: 'aktiv', end: cs.end };
+  // Natt-läge ställer en ANNAN fråga än Nu (se overnightCleaningTier/showSafeStreetsV2Flow):
+  // inte "nyss/snart städat" utan "stör något imorgon INNAN jag hunnit flytta". Bara imorgon
+  // räknas (dagar===1, samma avgränsning som gatornas tomorrow()-filter) – och till skillnad
+  // från Nu-läget får nålen ALLTID en dom (trygg eller risk), aldrig neutral, precis som
+  // gatorna alltid är gröna eller gula i Natt-läge (2026-08-18, Lars UX-beslut).
+  if (currentMode === 'uc2') {
+    const nx = ctx.nastaStadUppslag(dest, name, now);
+    if (nx && nx.dagar === 1) {
+      const nt = overnightCleaningTier(nx.start);
+      if (nt === 'natt' || nt === 'morgon') return { tier: 'risk', info: nx, natTier: nt };
+    }
+    return { tier: 'trygg' };
+  }
   const sen = ctx.nastaStadUppslag.senaste(dest, name, now);
   if (sen && (now - sen.when) / 3600000 <= SENASTE_H) return { tier: 'nyss', info: sen };
   const nx = ctx.nastaStadUppslag(dest, name, now);
@@ -1936,6 +1949,17 @@ function stadTierFor(dest, name, ctx, now) {
 function nyssSnartRing(s, now, baseInfo) {
   if (s.nyssStadad)  return { ring: '#86efac', info: senasteStadTxt(s.nyssInfo, now) + ' – bra chans att den är ledig.' };
   if (s.stadasSnart) return { ring: '#fcd34d', info: nastaStadTxt(s.snartInfo, now) + ' · gott om tid ännu.' };
+  // Natt-läge (2026-08-18): "trygg" är default-domen (grön, som gatorna) – "risk" byter även
+  // TITELN (inte bara ring+info), samma val som bilens tier natt/morgon som ersätter hela
+  // "Trygg över natten"-texten i stället för att bara lägga till en varning bredvid.
+  if (s.tryggNatt) return { ring: '#86efac', info: 'Trygg över natten – ingen städning imorgon som stör.' };
+  if (s.nattRisk) {
+    const natt = s.nattTier === 'natt';
+    return { ring: '#fcd34d',
+      titleOverride: natt ? 'Städas i natt – inte tryggt att lämna' : `Flytta innan kl ${fmtClock(s.nattInfo.start)} i morgon`,
+      info: natt ? `Städas i natt ${fmtClock(s.nattInfo.start)}–${fmtClock(s.nattInfo.end)} – inte säkert att lämna över natten.`
+                 : `Servas imorgon ${fmtClock(s.nattInfo.start)}–${fmtClock(s.nattInfo.end)} – flytta innan.` };
+  }
   return { ring: null, info: baseInfo };
 }
 
@@ -1958,6 +1982,8 @@ async function fetchMcRutor(lat, lng, radius = 500) {
     if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
     else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
     else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
+    else if (tier && tier.tier === 'trygg') { s.tryggNatt = true; }
+    else if (tier && tier.tier === 'risk')  { s.nattRisk = true; s.nattInfo = tier.info; s.nattTier = tier.natTier; }
     return s;
   });
 }
@@ -1980,9 +2006,9 @@ async function mcRutorOverlay(lat, lng) {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      const { ring, info } = nyssSnartRing(s, new Date(), 'Dedikerad MC-plats – bilister får inte ta den.');
+      const { ring, info, titleOverride } = nyssSnartRing(s, new Date(), 'Dedikerad MC-plats – bilister får inte ta den.');
       L.marker(dest, { icon: mcPinIcon('#2563eb', ring), pane: 'markerPane', riseOnHover: true })
-        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', 'MC-ruta · bara MC får stå', '#2563eb', dest, info); })
+        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', titleOverride || 'MC-ruta · bara MC får stå', '#2563eb', dest, info); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
@@ -2018,6 +2044,8 @@ async function fetchRhPlatser(lat, lng, radius = 500) {
     if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
     else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
     else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
+    else if (tier && tier.tier === 'trygg') { s.tryggNatt = true; }
+    else if (tier && tier.tier === 'risk')  { s.nattRisk = true; s.nattInfo = tier.info; s.nattTier = tier.natTier; }
     return s;
   });
 }
@@ -2036,12 +2064,12 @@ async function rhPlatserOverlay(lat, lng) {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      const { ring, info } = nyssSnartRing(s, new Date(), 'Kräver parkeringstillstånd för rörelsehindrade');
+      const { ring, info, titleOverride } = nyssSnartRing(s, new Date(), 'Kräver parkeringstillstånd för rörelsehindrade');
       L.marker(dest, { icon: rhPinIcon(RH_COLOR, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Reserverad plats för rörelsehindrade' + (s.street ? ' på ' + s.street : ''),
                        keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Reserverad plats', 'Reserverad plats', RH_COLOR, dest, info, false, true); })
+          showPlaceCardV2(s.street || 'Reserverad plats', titleOverride || 'Reserverad plats', RH_COLOR, dest, info, false, true); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
@@ -2078,6 +2106,8 @@ async function fetchCykelPlatser(lat, lng, radius = 500) {
     if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
     else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
     else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
+    else if (tier && tier.tier === 'trygg') { s.tryggNatt = true; }
+    else if (tier && tier.tier === 'risk')  { s.nattRisk = true; s.nattInfo = tier.info; s.nattTier = tier.natTier; }
     return s;
   });
 }
@@ -2101,11 +2131,11 @@ async function cykelPlatserOverlay(lat, lng) {
       // taggad som. Verifierat citywide (2026-08-18): moped klass 2 följer cykelns regler och
       // alla 32 moped-klass2-poster i registret delar exakt samma platstyp/avgiftsfri-status
       // som cykelplatserna – ingen gissning, samma fakta oavsett enskild post.
-      const { ring, info } = nyssSnartRing(s, new Date(), 'Avgiftsfri – gäller både cykel och moped klass 2. Du får även stå utanför markerade platser.');
+      const { ring, info, titleOverride } = nyssSnartRing(s, new Date(), 'Avgiftsfri – gäller både cykel och moped klass 2. Du får även stå utanför markerade platser.');
       L.marker(dest, { icon: cykelPinIcon(CYKEL_COLOR, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Cykel-/mopedplats', 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest, info, true); })
+          showPlaceCardV2(s.street || 'Cykel-/mopedplats', titleOverride || 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest, info, true); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
@@ -4005,14 +4035,20 @@ function updateLegend(mode) {
   // Ring-raderna (nyss städad/gott om tid) hör ihop med bas-raden ovanför – samma svep,
   // samma nålform, bara kulör på ringen skiljer. Vit kant utanför (Lars UX-fix 2026-08-18)
   // så ringen syns mot kartan i legend-swatchen precis som på den riktiga nålen.
+  // De två ring-raderna beror på LÄGE (Nu vs Natt), inte bara fordon – Natt frågar "stör
+  // något imorgon" istället för "nyss/snart städat", och ger ALLTID en dom (grön eller gul),
+  // aldrig neutral – precis som gatorna alltid är gröna eller gula i Natt-läge (2026-08-18).
+  const ringRows = (shape, ringBg) => mode === 'uc2'
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;${shape}"></div>Trygg över natten</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;${shape}"></div>Störs imorgon – flytta innan</div>`
+    : `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;${shape}"></div>Nyss städad – bra chans</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;${shape}"></div>Gott om tid – bra möjlighet just nu</div>`;
   const mcRow = vehicleMode === 'mc'
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;border-radius:50%"></div>Nyss städad – bra chans</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;border-radius:50%"></div>Gott om tid – bra möjlighet just nu</div>`
+       ${ringRows('border-radius:50%', '#2563eb')}`
     : vehicleMode === 'rh'
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #0c5a70;border-radius:5px"></div>Reserverad plats – tillstånd krävs</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;border-radius:5px"></div>Nyss städad – bra chans</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;border-radius:5px"></div>Gott om tid – bra möjlighet just nu</div>` : '';
+       ${ringRows('border-radius:5px', RH_COLOR)}` : '';
   // Taxa 1–5 är en ORDNAD prisskala (dyrast→billigast), inte fem fristående kategorier →
   // en kompakt färgstege i stället för fem staplade rader (samma info, en fjärdedel av höjden).
   const taxaScale =
@@ -4072,8 +4108,7 @@ function updateLegend(mode) {
   const cykelLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;border-radius:7px;transform:rotate(45deg)"></div>Nyss städad – bra chans</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;border-radius:7px;transform:rotate(45deg)"></div>Gott om tid – bra möjlighet just nu</div>
+       ${ringRows('border-radius:7px;transform:rotate(45deg)', CYKEL_COLOR)}
        <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen – nålarna visar bara Stockholms dedikerade platser (avgiftsfritt). En plats som städas just nu visas inte alls, och räknas inte i antalet ovan.</div>`;
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
     : mode === 'now' ? nowLegend
