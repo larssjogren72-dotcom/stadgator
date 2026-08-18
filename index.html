@@ -1797,8 +1797,11 @@ const PIN_SHADOW_TINT = {
   '#334155': 'rgba(51,65,85,.45)',   // cykel-grafit
   '#f59e0b': 'rgba(245,158,11,.5)',  // städ-amber (alla tre nåltyper i "städas nu")
 };
+// Vit kant UTANFÖR ringen (Lars idé 2026-08-18): ringen hade bara kontrast mot nålens egen
+// vita kant på INSIDAN, men tonade bort mot kartan på utsidan – ingen definierad ytterkant.
+// Två box-shadows staplas (första ritas överst): färgad ring 0–3px, sen vit ring 3–5px.
 function pinShadow(color, ring) {
-  return ring ? 'box-shadow:0 0 0 3px ' + ring
+  return ring ? 'box-shadow:0 0 0 3px ' + ring + ', 0 0 0 5px #fff'
               : 'box-shadow:0 2px 6px ' + (PIN_SHADOW_TINT[color] || 'rgba(15,23,42,.4)');
 }
 function mcPinIcon(color, ring) {
