@@ -189,7 +189,7 @@
     }
     .hd-brand  { display: flex; align-items: center; gap: 10px; }
     .mc-pin-b { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #fff; display: flex;
-      align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,.5); }
+      align-items: center; justify-content: center; }
     .mc-pin-b svg { width: 15px; height: 15px; color: #fff; }
     #veh-toggle { display: flex; gap: 3px; background: rgba(15,23,42,0.05); border-radius: 10px; padding: 3px; flex: none; }
     .veh-opt {
@@ -206,13 +206,14 @@
     .veh-opt svg { width: 21px; height: 21px; }
     .veh-opt.on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
     .veh-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    /* Nål för reserverad plats: rundad FYRKANT (MC:s är rund) i turkos (MC:s är blå) */
-    .rh-pin { filter: drop-shadow(0 2px 5px rgba(14,116,144,.45)); }
+    /* Nål för reserverad plats: rundad FYRKANT (MC:s är rund) i turkos (MC:s är blå).
+       Skuggan sätts inline i JS (pinDepthShadow) – inte här – så den kan matcha rätt
+       kulör oavsett läge (annars blir skuggan kvar i turkos bakom en gul "städas nu"-nål). */
     .rh-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
       background: #0e7490; display: flex; align-items: center; justify-content: center; }
     /* Nål för cykel-/mopedplats: rundad fyrkant i 45° (diamant) – skild från MC (rund) och
-       RH (upprätt fyrkant) på BÅDE form och kulör (grafit, ingen annan nål/gata är grafit). */
-    .cykel-pin { filter: drop-shadow(0 2px 5px rgba(51,65,85,.45)); }
+       RH (upprätt fyrkant) på BÅDE form och kulör (grafit, ingen annan nål/gata är grafit).
+       Skuggan sätts inline i JS av samma skäl som RH ovan. */
     .cykel-pin-b { width: 24px; height: 24px; border-radius: 7px; transform: rotate(45deg);
       border: 2.5px solid #fff; background: #334155; display: flex; align-items: center; justify-content: center; }
     .cykel-pin-b svg { width: 12px; height: 12px; color: #fff; transform: rotate(-45deg); }
@@ -1786,10 +1787,24 @@ function bindForbud(pl) {
 }
 
 // MC-pin: markör med fast skärmstorlek → en 5 m MC-ruta syns på alla zoom (löser gyttret).
+// Skuggan bakom en nål ska matcha FYLLNADSFÄRGEN, inte nålens ursprungstyp – en blå skugga
+// bakom en gul "städas nu"-nål såg fel ut (upptäckt 2026-08-18). Bara fyra färger skickas
+// någonsin in (de tre nåltypernas egna + den delade städ-ambern) → liten lookup räcker,
+// ingen generell hex→rgba-konvertering behövs.
+const PIN_SHADOW_TINT = {
+  '#2563eb': 'rgba(37,99,235,.5)',   // MC-blå
+  '#0e7490': 'rgba(14,116,144,.45)', // RH-turkos
+  '#334155': 'rgba(51,65,85,.45)',   // cykel-grafit
+  '#f59e0b': 'rgba(245,158,11,.5)',  // städ-amber (alla tre nåltyper i "städas nu")
+};
+function pinShadow(color, ring) {
+  return ring ? 'box-shadow:0 0 0 3px ' + ring
+              : 'box-shadow:0 2px 6px ' + (PIN_SHADOW_TINT[color] || 'rgba(15,23,42,.4)');
+}
 function mcPinIcon(color, ring) {
-  const ringCss = ring ? ';box-shadow:0 0 0 3px ' + ring : '';
+  const c = color || '#2563eb';
   return L.divIcon({ className: 'mc-pin', iconSize: [26, 26], iconAnchor: [13, 13],
-    html: '<div class="mc-pin-b" style="background:' + (color || '#2563eb') + ringCss + '">' + svgIcon('motorcycle') + '</div>' });
+    html: '<div class="mc-pin-b" style="background:' + c + ';' + pinShadow(c, ring) + '">' + svgIcon('motorcycle') + '</div>' });
 }
 // Ritar ETT parkeringssegment. Bil-läge: oförändrat (vanlig linje). MC-läge (fokus/deklutter):
 // exklusiv MC-ruta → PIN; bilgata MC får nyttja → dämpad grön; icke-MC → tyst grått;
@@ -1972,9 +1987,9 @@ async function mcRutorOverlay(lat, lng) {
 // platser (Sabbatsbergsvägen + en i Gamla Stan) låg på gågata och ritades därför inte alls –
 // och just på gågata GÄLLER tillståndet. De kommer med här.
 function rhPinIcon(color, ring) {
-  const ringCss = ring ? ';box-shadow:0 0 0 3px ' + ring : '';
+  const c = color || RH_COLOR;
   return L.divIcon({ className: 'rh-pin', iconSize: [28, 28], iconAnchor: [14, 14],
-    html: '<div class="rh-pin-b" style="background:' + (color || RH_COLOR) + ringCss + '">' + svgIcon('wheelchair') + '</div>' });
+    html: '<div class="rh-pin-b" style="background:' + c + ';' + pinShadow(c, ring) + '">' + svgIcon('wheelchair') + '</div>' });
 }
 async function fetchRhPlatser(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
@@ -2032,9 +2047,9 @@ async function rhPlatserOverlay(lat, lng) {
 // showSafeStreetsV2Flow) – registret har aldrig en förbudszon för cykel (verifierat 2026-08-18,
 // se project-minnet), så nålarna är den ENDA informationen kartan visar i cykel-läge.
 function cykelPinIcon(color, ring) {
-  const ringCss = ring ? ';box-shadow:0 0 0 3px ' + ring : '';
+  const c = color || CYKEL_COLOR;
   return L.divIcon({ className: 'cykel-pin', iconSize: [24, 24], iconAnchor: [12, 12],
-    html: '<div class="cykel-pin-b" style="background:' + (color || CYKEL_COLOR) + ringCss + '">' + svgIcon('bike') + '</div>' });
+    html: '<div class="cykel-pin-b" style="background:' + c + ';' + pinShadow(c, ring) + '">' + svgIcon('bike') + '</div>' });
 }
 async function fetchCykelPlatser(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
