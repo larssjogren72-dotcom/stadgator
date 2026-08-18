@@ -210,6 +210,12 @@
     .rh-pin { filter: drop-shadow(0 2px 5px rgba(14,116,144,.45)); }
     .rh-pin-b { width: 28px; height: 28px; border-radius: 9px; border: 2.5px solid #fff;
       background: #0e7490; display: flex; align-items: center; justify-content: center; }
+    /* Nål för cykel-/mopedplats: rundad fyrkant i 45° (diamant) – skild från MC (rund) och
+       RH (upprätt fyrkant) på BÅDE form och kulör (grafit, ingen annan nål/gata är grafit). */
+    .cykel-pin { filter: drop-shadow(0 2px 5px rgba(51,65,85,.45)); }
+    .cykel-pin-b { width: 24px; height: 24px; border-radius: 7px; transform: rotate(45deg);
+      border: 2.5px solid #fff; background: #334155; display: flex; align-items: center; justify-content: center; }
+    .cykel-pin-b svg { width: 12px; height: 12px; color: #fff; transform: rotate(-45deg); }
     .rh-pin-b svg { width: 17px; height: 17px; color: #fff; }
     /* Rättighetsrutan på platskortet */
     #rh-rights { margin-top: 10px; padding: 12px 14px; border-radius: 10px;
@@ -772,6 +778,7 @@
       <button id="veh-bil" class="veh-opt" onclick="setVehicle('bil')" aria-label="Bil"></button>
       <button id="veh-mc"  class="veh-opt" onclick="setVehicle('mc')"  aria-label="Motorcykel"></button>
       <button id="veh-rh"  class="veh-opt" onclick="setVehicle('rh')"  aria-label="Rörelsehindrad – parkeringstillstånd"></button>
+      <button id="veh-cykel" class="veh-opt" onclick="setVehicle('cykel')" aria-label="Cykel och moped klass 2"></button>
     </div>
   </div>
 
@@ -1730,6 +1737,7 @@ function svgIcon(n) {
     warn:     '<path d="M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     car:      '<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v4a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/>',
     motorcycle:'<circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/><path d="M7.2 17h8.6l-2.8-4H9"/><path d="M13 13l2-3h3"/><path d="M5 13h3l1.5 2"/>',
+    bike:     '<circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M5.5 17.5l4.5-9h4"/><path d="M10 8.5l4.5 9"/><path d="M14.5 17.5L17 12h2"/>',
     // Internationella tillgänglighetssymbolen – samma märke som på skylten och målat på asfalten.
     wheelchair:'<circle cx="10.6" cy="4.3" r="1.6" fill="currentColor" stroke="none"/><path d="M8.6 8v5h5l3 5"/><path d="M15 10.4a6.6 6.6 0 1 1-8.4 3.2"/>',
     clock:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
@@ -1743,6 +1751,7 @@ function svgIcon(n) {
 // Varning (gul/röd status) vinner alltid över lägesikonen.
 function heroIconFor(statusColor) {
   if (statusColor === '#2563eb') return 'motorcycle';   // MC-ruta
+  if (statusColor === CYKEL_COLOR) return 'bike';        // cykel-/mopedplats
   if (statusColor === '#f59e0b' || statusColor === '#ef4444' || statusColor === '#dc2626') return 'warn';
   if (currentMode === 'uc2') return 'moon';
   return 'check';
@@ -1905,6 +1914,48 @@ async function rhPlatserOverlay(lat, lng) {
     const b = document.getElementById('count-badge');
     if (b) { b.textContent = `${segs.length} reserverade platser här`; b.style.display = 'block'; }
   } catch (e) { console.warn('[Städgator] Rörelsehindrad-lager:', e.message); }
+}
+
+// ── Cykel-/mopedplatser (moped klass 2) som egna nålar ──────────────────────
+// Samma grepp som MC/RH ovan: dedikerade platser (oftast 5 m) som annars försvinner som linje.
+// Grafit diamant – skild från MC (rund blå), RH (upprätt turkos fyrkant) och alla gatufärger.
+// Till skillnad från MC/RH målas INGA gator i det här läget (se showNowParkingV2Flow/
+// showSafeStreetsV2Flow) – registret har aldrig en förbudszon för cykel (verifierat 2026-08-18,
+// se project-minnet), så nålarna är den ENDA informationen kartan visar i cykel-läge.
+function cykelPinIcon() {
+  return L.divIcon({ className: 'cykel-pin', iconSize: [24, 24], iconAnchor: [12, 12],
+    html: '<div class="cykel-pin-b">' + svgIcon('bike') + '</div>' });
+}
+async function fetchCykelPlatser(lat, lng, radius = 500) {
+  const deg  = (radius / 111000) * 1.8;
+  const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
+  const tillRaw = await fetchLayer('LTFR_P_TILLATEN_GEOM', bbox);
+  return tillRaw.map(toAllowedSegment).filter(s => isCykelPlats(s.vehicle) && s.linesSweref.length);
+}
+let cykelOverlayReqId = 0;
+async function cykelPlatserOverlay(lat, lng) {
+  if (vehicleMode !== 'cykel') return;
+  const myReqId = ++cykelOverlayReqId;
+  try {
+    const segs = await fetchCykelPlatser(lat, lng);
+    if (vehicleMode !== 'cykel' || myReqId !== cykelOverlayReqId) return;   // läget bytt under hämtningen
+    const grp = L.layerGroup();
+    segs.forEach(s => {
+      const first = s.linesSweref[0] && s.linesSweref[0][0];
+      const dest = first && toLatLng(first[0], first[1]);
+      if (!dest) return;
+      const undertyp = (s.vehicle || '').toLowerCase() === 'moped-klass2' ? 'moped klass 2' : 'cykel';
+      L.marker(dest, { icon: cykelPinIcon(), pane: 'markerPane', riseOnHover: true,
+                       alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e);
+          showPlaceCardV2(s.street || 'Cykel-/mopedplats', 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest,
+                          'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.', true); })
+        .addTo(grp);
+    });
+    streetGroupLayers.push(grp.addTo(map));
+    const b = document.getElementById('count-badge');
+    if (b) { b.textContent = `${segs.length} cykel-/mopedplatser här`; b.style.display = 'block'; }
+  } catch (e) { console.warn('[Städgator] Cykel-lager:', e.message); }
 }
 
 // ── Busshållplatser (SL, via OSM/Overpass, server-cachad) som egna nålar ────────
@@ -2290,6 +2341,9 @@ const GAGATA_COLOR = '#ec4899';      // rosa – gågata (skild från lila "ej b
 // Turkos – reserverad plats för rörelsehindrade. Skild från MC:s blå #2563eb på BÅDE kulör och
 // form (MC = rund nål, denna = rundad fyrkant som läser som en skylt).
 const RH_COLOR = '#0e7490';
+// Grafit – cykel-/mopedplats (moped klass 2). Skild från alla upptagna kulörer (grön/röd/rosa/
+// orange/gult/blått/lila/turkos/indigo betyder redan något annat, se project-minnet 2026-08-18).
+const CYKEL_COLOR = '#334155';
 // Gågata-etikett: visa säsongsslut när det finns (sommargågata), annars permanent.
 const GAGATA_MN = ['jan','feb','mars','apr','maj','juni','juli','aug','sep','okt','nov','dec'];
 function gagataTxt(vt) {
@@ -3038,7 +3092,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     const grp = L.layerGroup();
 
     // Gågator (rosa streckad, underst) – syns även där ingen parkering finns. Kan döljas i Förklaring.
-    (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
+    // Cykel-läget hoppar över – gågata begränsar bilparkering, inte cykel/moped klass 2.
+    if (vehicleMode !== 'cykel') (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
       bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
     // Städgator imorgon inom hämtningsytan: rita (gul streckad) + samla linjesegment + gatunamn (SWEREF99)
@@ -3072,7 +3127,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     };
 
     // Förbudssträckor (rött, underst) – samma tjocklek som tillåtna. Kan döljas i Förklaring.
-    forbiddenLines.forEach(line => {
+    // Cykel-läget hoppar över – förbudssträckorna gäller motorfordon, inte cykel/moped klass 2.
+    if (vehicleMode !== 'cykel') forbiddenLines.forEach(line => {
       const pl = L.polyline([line.a, line.b].map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp);
       pl._coincident = line.coincident;
       bindForbud(pl);
@@ -3084,6 +3140,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     //   sen (≥10)  = du har åkt på morgonen → trygg över natten ändå.
     let safe = 0, städas = 0;
     allowed.forEach(s => {
+      if (vehicleMode === 'cykel') return;   // cykel-läget målar inga gator, bara nålar (se cykelPlatserOverlay)
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
       const cl = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());   // null | {start,end}
@@ -3129,8 +3186,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
 
     const badge = document.getElementById('count-badge');
-    badge.textContent = `${safe} trygga platser i natt`;
-    badge.style.display = 'block';
+    if (vehicleMode !== 'cykel') { badge.textContent = `${safe} trygga platser i natt`; badge.style.display = 'block'; }
     document.getElementById('hint').innerHTML =
       `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
@@ -3430,7 +3486,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
       bindGagata(L.polyline(line.map(c => toLatLng(c[0], c[1])), { color: GAGATA_COLOR, weight: 5, opacity: .8, dashArray: '4 7' }).addTo(grp))));
 
-    forbiddenLines.forEach(line => {
+    // Cykel-läget hoppar över – förbudssträckorna gäller motorfordon, inte cykel/moped klass 2.
+    if (vehicleMode !== 'cykel') forbiddenLines.forEach(line => {
       const pl = L.polyline([line.a, line.b].map(c => toLatLng(c[0], c[1])), { color:'#ef4444', weight:6, opacity:.9 }).addTo(grp);
       pl._coincident = line.coincident;
       bindForbud(pl);
@@ -3443,6 +3500,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     const nyssTid0 = performance.now();
     let nyssRaknade = 0;
     allowed.forEach(s => {
+      if (vehicleMode === 'cykel') return;   // cykel-läget målar inga gator, bara nålar (se cykelPlatserOverlay)
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
       const name = (s.street || '').toLowerCase().trim();
@@ -3535,8 +3593,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     grp.eachLayer(l => { if (l._coincident && l.bringToFront) l.bringToFront(); });
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
     const badge = document.getElementById('count-badge');
-    badge.textContent = `${okNu} gator där du får stå nu`;
-    badge.style.display = 'block';
+    if (vehicleMode !== 'cykel') { badge.textContent = `${okNu} gator där du får stå nu`; badge.style.display = 'block'; }
     document.getElementById('hint').innerHTML =
       `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för tider och vägbeskrivning.</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
@@ -3565,7 +3622,7 @@ let currentMode = (() => { const h = new Date().getHours(); return (h >= 18 || h
 // får inte stå där, så de ska inte visas/räknas som "MC-ruta").
 // Läs tillbaka sparat fordonsval. OBS: måste känna igen ALLA lägen – låg 'rh' kvar utanför
 // listan föll ett sparat rörelsehindrad-läge tillbaka till bil vid varje omladdning.
-let vehicleMode = ['mc', 'rh'].includes(localStorage.getItem('vehicle_mode'))
+let vehicleMode = ['mc', 'rh', 'cykel'].includes(localStorage.getItem('vehicle_mode'))
   ? localStorage.getItem('vehicle_mode') : 'bil';
 // ── Dämpa gator man inte får stå på ──────────────────────────────────────────
 // Ersätter de två separata switcharna för gågata/förbud (som dessutom inte täckte
@@ -3608,8 +3665,16 @@ function toggleDim() {
   updateLegend(currentMode);
 }
 const CAR_VEHICLES = new Set(['fordon', 'personbil']);
-const MC_VEHICLES  = new Set(['motorcykel', 'mc']);   // EXKLUSIVA mc-rutor (ej moped-klass1/2, se ovan)
+// moped-klass1 tillagd 2026-08-18: samma regler som MC (får använda MC-rutor, källa Stockholms
+// stad) och registret bekräftar det – den enda moped-klass1-posten i hela WFS-registret ligger
+// på en "Reserverad p-plats motorcykel boende" (Vanadisvägen), inte en cykelplats.
+const MC_VEHICLES  = new Set(['motorcykel', 'mc', 'moped-klass1']);
 const RH_VEHICLES  = new Set(['rörelsehindrade', 'rörelsehindrad']);
+// Cykel + moped-klass2 tillagda 2026-08-18: samma regelregim (moped klass 2 = cykelregler,
+// källa Stockholms stad) och registret behandlar dem identiskt – alla 32 moped-klass2-poster
+// i P_TILLATEN är taggade EXAKT som cykelplatser (VF_PLATS_TYP "Reserverad p-plats cykel").
+const CYKEL_VEHICLES = new Set(['cykel', 'moped-klass2']);
+function isCykelPlats(v) { return CYKEL_VEHICLES.has((v || 'fordon').toLowerCase()); }
 
 // ── Reserverad plats för rörelsehindrade ────────────────────────────────────
 // MÄTT 2026-07-28: 8 av 675 platser (1,2 %) bär VEHICLE = "fordon" i stället för
@@ -3630,20 +3695,25 @@ function vehicleAllowed(v) {
   v = (v || 'fordon').toLowerCase();
   if (vehicleMode === 'mc') return v === 'fordon' || MC_VEHICLES.has(v);
   if (vehicleMode === 'rh') return CAR_VEHICLES.has(v) || RH_VEHICLES.has(v);
+  // Cykel-läget målar aldrig gator (se cykelPlatserOverlay) – denna gren nås därför inte av
+  // huvudflödena idag, men hålls korrekt för alla vehicleMode-värden.
+  if (vehicleMode === 'cykel') return CYKEL_VEHICLES.has(v);
   return CAR_VEHICLES.has(v);
 }
 function isMcExclusive(v) { return MC_VEHICLES.has((v || 'fordon').toLowerCase()); }   // ruta bara MC får ta
 // Etikett för segment som inte gäller det valda fordonet (för "ej för dig"-lila).
 function otherVehicleLabel(v) { return vehicleMode === 'mc' ? `Endast ${v}` : `Ej för bil (${v})`; }
 // Ordet för fordonet i löptext. Rörelsehindrad-läget är bil + tillstånd (se vehicleAllowed
-// ovan) – behåller därför "bilen", till skillnad från MC som har eget ord.
-function vehicleWord() { return vehicleMode === 'mc' ? 'MC:n' : 'bilen'; }
+// ovan) – behåller därför "bilen", till skillnad från MC/cykel som har egna ord.
+function vehicleWord() { return vehicleMode === 'mc' ? 'MC:n' : vehicleMode === 'cykel' ? 'cykeln' : 'bilen'; }
 // I MC-läge visas riktiga MC-rutor som EGNA nålar (pins), inte som gatlinjer – hint-texten måste
 // säga det, annars missar användaren att trycka på nålen. Ingen färg nämns ("grön gata" räckte
 // inte längre sen orange hidden-gems och blå tidsbegränsade sträckor också blev tryckbara).
+// Cykel-läget visar ALDRIG gator (bara nålar) – frasen nämner därför ingen gata alls.
 function tapTargetPhraseAny() {
   if (vehicleMode === 'mc') return 'en gata eller MC-ikonen';
   if (vehicleMode === 'rh') return 'en gata eller en reserverad plats';
+  if (vehicleMode === 'cykel') return 'en cykel- eller mopedplats';
   return 'en gata';
 }
 const WHEN_LABELS = { now: 'Nu',  uc2: 'Natt' };
@@ -3667,7 +3737,9 @@ function updateWhenChip(mode) {
   const ic  = document.getElementById('when-icon');    if (ic) ic.innerHTML = svgIcon(p.icon);
   const pt  = document.getElementById('when-pitch');   if (pt) pt.textContent = p.t;
   const wy  = document.getElementById('when-why');
-  if (wy) wy.textContent = mode === 'uc2'
+  if (wy) wy.textContent = vehicleMode === 'cykel'
+    ? 'Visar dedikerade cykel- och mopedplatser (moped klass 2) i närheten.'
+    : mode === 'uc2'
     ? `Visar gator där ${vehicleWord()} kan stå kvar utan att service slår till.`
     : p.w;
   document.querySelectorAll('.when-opt').forEach(el =>
@@ -3765,6 +3837,21 @@ function initSheet() {
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
   if (!legendDiv) return;
+  // Cykel-läget målar inga gator (ingen taxa, inget förbud i registret) – taxastegen och
+  // dim-reglaget hör bara till gatufärgning och skulle vara missvisande här. Egen, kort legend.
+  if (vehicleMode === 'cykel') {
+    const cykelLegend =
+      `<div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
+       <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen. Nålarna visar bara Stockholms dedikerade platser – ingen avgift, inget förbud i registret.</div>
+       <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
+    legendDiv.innerHTML =
+      `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
+         <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
+       </button>
+       <div id="legend-content">${cykelLegend}</div>`;
+    applyLegendState();
+    return;
+  }
   const otherLabel = vehicleMode === 'mc' ? 'Övrigt (ej MC)' : 'Ej för bil (t.ex. mc/buss)';
   const otherColor = vehicleMode === 'mc' ? '#c3ccd6' : '#9333ea';
   const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
@@ -4118,6 +4205,7 @@ function flyToAndShow(lat, lng) {
     else showSafeStreetsNearby(lat, lng, overpassP, foreskriftP);
     if (vehicleMode === 'mc') mcRutorOverlay(lat, lng);   // MC-rutor i ALLA lägen
     if (vehicleMode === 'rh') rhPlatserOverlay(lat, lng); // reserverade platser i ALLA lägen
+    if (vehicleMode === 'cykel') cykelPlatserOverlay(lat, lng);   // cykel-/mopedplatser i ALLA lägen
     busHallplatserOverlay(lat, lng);                      // busshållplatser i ALLA lägen/fordon
   };
   // Redan på plats (t.ex. fordonsbyte på samma destination) → kör flödet direkt, ingen flyTo.
@@ -4328,11 +4416,13 @@ function getCenter(layer) {
 // Fyll toggle-knapparna med ikoner + markera aktivt fordon + visa "Endast MC" bara i MC-läge.
 function renderVehicleToggle() {
   const bil = document.getElementById('veh-bil'), mc = document.getElementById('veh-mc'),
-        rh = document.getElementById('veh-rh');
+        rh = document.getElementById('veh-rh'), cykel = document.getElementById('veh-cykel');
   if (!bil || !mc) return;
   bil.innerHTML = svgIcon('car'); mc.innerHTML = svgIcon('motorcycle');
   if (rh) { rh.innerHTML = svgIcon('wheelchair'); rh.classList.toggle('on', vehicleMode === 'rh');
             rh.setAttribute('aria-pressed', vehicleMode === 'rh'); }
+  if (cykel) { cykel.innerHTML = svgIcon('bike'); cykel.classList.toggle('on', vehicleMode === 'cykel');
+               cykel.setAttribute('aria-pressed', vehicleMode === 'cykel'); }
   bil.classList.toggle('on', vehicleMode === 'bil');
   mc.classList.toggle('on', vehicleMode === 'mc');
   bil.setAttribute('aria-pressed', vehicleMode === 'bil');
@@ -4340,7 +4430,7 @@ function renderVehicleToggle() {
 }
 // Byt fordon → spara, markera, rita om Förklaring och kör om flödet för samma plats.
 function setVehicle(v) {
-  v = (v === 'mc' || v === 'rh') ? v : 'bil';
+  v = (v === 'mc' || v === 'rh' || v === 'cykel') ? v : 'bil';
   if (v === vehicleMode) return;
   vehicleMode = v;
   try { localStorage.setItem('vehicle_mode', v); } catch (e) {}
@@ -4360,9 +4450,13 @@ function renderModeIntro() {
     now: `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Blått betyder att du får parkera men bör kontrollera tidsgränsen på skylten. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`,
     uc2: `<b>"Natt"</b> visar var ${vehicleWord()} står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.`,
   };
+  // Cykel + moped klass 2 får normalt parkera var som helst (ingen förbudszon finns i registret,
+  // se project-minnet 2026-08-18) – appen målar därför inga gator i det här läget, bara nålar
+  // för Stockholms dedikerade platser. Samma text oavsett Nu/Natt eftersom regeln inte skiljer.
+  const cykelIntro = `<b>Cykel &amp; moped klass 2</b> visar Stockholms dedikerade cykel- och mopedplatser i närheten. Du får normalt ställa cykeln/mopeden var som helst annars, så länge den inte är i vägen – kartan visar inga förbudsgator för cykel. Tryck på ${tapTargetPhraseAny()} för detaljer.`;
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
-  hintEl.innerHTML = `<span class="hint-main">${intro[currentMode] || intro.uc2}</span>` + disclaimer;
+  hintEl.innerHTML = `<span class="hint-main">${vehicleMode === 'cykel' ? cykelIntro : (intro[currentMode] || intro.uc2)}</span>` + disclaimer;
 }
 
 function setMode(mode) {
