@@ -1910,6 +1910,11 @@ async function fetchStadContext(lat, lng) {
 // { tier:'aktiv', end } | { tier:'nyss', info } | { tier:'snart', info } | null
 function stadTierFor(dest, name, ctx, now) {
   if (!ctx || !dest || !name) return null;
+  // nastaStadUppslag/clean.near indexerar på GEMENER+trimmat gatunamn (samma som bilens
+  // Nu-flöde alltid skickar in) – utan detta missar Map.get() varje gata med versal
+  // (dvs alla riktiga gatunamn) och funktionen returnerar tyst null jämt. Upptäckt
+  // 2026-08-18: Lars testfall (Holländargatan) borde gett "gott om tid" men gjorde inte det.
+  name = name.toLowerCase().trim();
   const cs = ctx.clean.near(dest, name);
   if (cs && cs.state === 'active') return { tier: 'aktiv', end: cs.end };
   const sen = ctx.nastaStadUppslag.senaste(dest, name, now);
