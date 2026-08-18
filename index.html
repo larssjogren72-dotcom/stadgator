@@ -4001,7 +4001,9 @@ function updateLegend(mode) {
   // EN switch i stället för de gamla två (gågata/förbud). De täckte inte lila "ej för bil",
   // och mängden "får ej stå" är fordonsberoende → en switch som följer vehicleMode är korrektare.
   // Färgerna förklaras redan en gång i modeRows ovan – därför inga färgrutor här, bara reglaget.
-  const dimEtikett = vehicleMode === 'mc' ? 'Tona ner där MC inte får stå' : 'Tona ner där bilen inte får stå';
+  const dimEtikett = vehicleMode === 'mc' ? 'Tona ner där MC inte får stå'
+                    : vehicleMode === 'cykel' ? 'Tona ner busshållplatser'
+                                               : 'Tona ner där bilen inte får stå';
   const dimVilka   = vehicleMode === 'mc' ? 'Förbud, gågator och platser för andra fordon'
                    : vehicleMode === 'rh' ? 'Förbud, gågator och platser för mc/buss'
                                           : 'Förbud, gågator och platser för mc/buss';
@@ -4010,12 +4012,6 @@ function updateLegend(mode) {
      <div class="lgnd-row"><span style="flex:1">${dimEtikett}</span>
        <label class="lgnd-switch"><input type="checkbox" ${dimBlocked ? 'checked' : ''} onchange="toggleDim()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
      ${dimBlocked ? `<div class="lgnd-hidden-note">Nedtonade, inte dolda – tomt betyder «ingen data», inte «fritt».</div>` : ''}
-     <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
-  // Cykel-läget har inget att tona ner (inga gatlinjer ritas – se cykelLegend nedan) – ett
-  // dim-reglage som ändå inte gjorde något vore missvisande i sig. Bara feedback-länken kvar,
-  // samma placering/utseende som de andra lägena.
-  const feedbackOnly =
-    `<hr class="lgnd-sep">
      <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
@@ -4059,13 +4055,11 @@ function updateLegend(mode) {
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
     : mode === 'now' ? nowLegend
     : (v2Active ? uc2LegendV2 : uc2LegendOld);
-  const bottomToggles = vehicleMode === 'cykel' ? feedbackOnly : layerToggles;
-
   legendDiv.innerHTML =
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${taxaScale}${modeRows}${bottomToggles}</div>`;
+     <div id="legend-content">${taxaScale}${modeRows}${layerToggles}</div>`;
   applyLegendState();
 }
 
