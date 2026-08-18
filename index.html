@@ -2097,7 +2097,11 @@ async function cykelPlatserOverlay(lat, lng) {
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
       const undertyp = (s.vehicle || '').toLowerCase() === 'moped-klass2' ? 'moped klass 2' : 'cykel';
-      const { ring, info } = nyssSnartRing(s, new Date(), 'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.');
+      // Gäller alltid BÅDA – oavsett vilken av de två denna specifika registerpost råkar vara
+      // taggad som. Verifierat citywide (2026-08-18): moped klass 2 följer cykelns regler och
+      // alla 32 moped-klass2-poster i registret delar exakt samma platstyp/avgiftsfri-status
+      // som cykelplatserna – ingen gissning, samma fakta oavsett enskild post.
+      const { ring, info } = nyssSnartRing(s, new Date(), 'Avgiftsfri – gäller både cykel och moped klass 2. Du får även stå utanför markerade platser.');
       L.marker(dest, { icon: cykelPinIcon(CYKEL_COLOR, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
@@ -3998,10 +4002,17 @@ function updateLegend(mode) {
   const otherLabel = vehicleMode === 'mc' ? 'Övrigt (ej MC)' : 'Ej för bil (t.ex. mc/buss)';
   const otherColor = vehicleMode === 'mc' ? '#c3ccd6' : '#9333ea';
   const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
+  // Ring-raderna (nyss städad/gott om tid) hör ihop med bas-raden ovanför – samma svep,
+  // samma nålform, bara kulör på ringen skiljer. Vit kant utanför (Lars UX-fix 2026-08-18)
+  // så ringen syns mot kartan i legend-swatchen precis som på den riktiga nålen.
   const mcRow = vehicleMode === 'mc'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>`
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;border-radius:50%"></div>Nyss städad – bra chans</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;border-radius:50%"></div>Gott om tid – bra möjlighet just nu</div>`
     : vehicleMode === 'rh'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #0c5a70;border-radius:5px"></div>Reserverad plats – tillstånd krävs</div>` : '';
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #0c5a70;border-radius:5px"></div>Reserverad plats – tillstånd krävs</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;border-radius:5px"></div>Nyss städad – bra chans</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;border-radius:5px"></div>Gott om tid – bra möjlighet just nu</div>` : '';
   // Taxa 1–5 är en ORDNAD prisskala (dyrast→billigast), inte fem fristående kategorier →
   // en kompakt färgstege i stället för fem staplade rader (samma info, en fjärdedel av höjden).
   const taxaScale =
@@ -4061,7 +4072,8 @@ function updateLegend(mode) {
   const cykelLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};box-shadow:0 0 0 3px #86efac;border-radius:7px;transform:rotate(45deg)"></div>Nyss städad – bra chans</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;border-radius:7px;transform:rotate(45deg)"></div>Nyss städad – bra chans</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;border-radius:7px;transform:rotate(45deg)"></div>Gott om tid – bra möjlighet just nu</div>
        <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen – nålarna visar bara Stockholms dedikerade platser (avgiftsfritt). En plats som städas just nu visas inte alls, och räknas inte i antalet ovan.</div>`;
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
     : mode === 'now' ? nowLegend
