@@ -1963,16 +1963,18 @@ async function mcRutorOverlay(lat, lng) {
     // annars kan gamla MC-pins ritas ut ovanpå bil-läget och kapa klick från gatorna under.
     if (vehicleMode !== 'mc' || myReqId !== mcOverlayReqId) return;
     const grp = L.layerGroup();
-    segs.forEach(s => {
+    // Städas just nu → visas INTE alls (Lars beslut 2026-08-18): en plats man inte får
+    // använda just nu är inte en plats att visa som ledig – till skillnad från gatlinjer
+    // (glesa nålar, ingen "hål i en färglagd karta"-förväxling) är dölj här rätt val.
+    // "Nyss städad"/"gott om tid" är fortsatt GILTIGA platser (du får stå där nu) och
+    // behåller sin ring – bara "aktiv nu" (du får INTE stå där) tas bort helt.
+    segs.filter(s => !s.cleaningNow).forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      const color = s.cleaningNow ? '#f59e0b' : '#2563eb';
-      const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'MC-ruta · bara MC får stå';
-      const baseInfo = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Dedikerad MC-plats – bilister får inte ta den.';
-      const { ring, info } = s.cleaningNow ? { ring: null, info: baseInfo } : nyssSnartRing(s, new Date(), baseInfo);
-      L.marker(dest, { icon: mcPinIcon(color, ring), pane: 'markerPane', riseOnHover: true })
-        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', txt, color, dest, info, s.cleaningNow); })
+      const { ring, info } = nyssSnartRing(s, new Date(), 'Dedikerad MC-plats – bilister får inte ta den.');
+      L.marker(dest, { icon: mcPinIcon('#2563eb', ring), pane: 'markerPane', riseOnHover: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', 'MC-ruta · bara MC får stå', '#2563eb', dest, info); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
@@ -2019,24 +2021,24 @@ async function rhPlatserOverlay(lat, lng) {
     const segs = await fetchRhPlatser(lat, lng);
     if (vehicleMode !== 'rh' || myReqId !== rhOverlayReqId) return;   // läget bytt under hämtningen
     const grp = L.layerGroup();
-    segs.forEach(s => {
+    // Städas just nu → visas INTE alls, samma beslut som MC-lagret (se kommentar i
+    // mcRutorOverlay). Badgen räknar bara de faktiskt visade platserna, inte alla hämtade.
+    const visningsbara = segs.filter(s => !s.cleaningNow);
+    visningsbara.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
-      const color = s.cleaningNow ? '#f59e0b' : RH_COLOR;
-      const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'Reserverad plats';
-      const baseInfo = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Kräver parkeringstillstånd för rörelsehindrade';
-      const { ring, info } = s.cleaningNow ? { ring: null, info: baseInfo } : nyssSnartRing(s, new Date(), baseInfo);
-      L.marker(dest, { icon: rhPinIcon(color, ring), pane: 'markerPane', riseOnHover: true,
+      const { ring, info } = nyssSnartRing(s, new Date(), 'Kräver parkeringstillstånd för rörelsehindrade');
+      L.marker(dest, { icon: rhPinIcon(RH_COLOR, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Reserverad plats för rörelsehindrade' + (s.street ? ' på ' + s.street : ''),
                        keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Reserverad plats', txt, color, dest, info, s.cleaningNow, true); })
+          showPlaceCardV2(s.street || 'Reserverad plats', 'Reserverad plats', RH_COLOR, dest, info, false, true); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
     const b = document.getElementById('count-badge');
-    if (b) { b.textContent = `${segs.length} reserverade platser här`; b.style.display = 'block'; }
+    if (b) { b.textContent = `${visningsbara.length} reserverade platser här`; b.style.display = 'block'; }
   } catch (e) { console.warn('[Städgator] Rörelsehindrad-lager:', e.message); }
 }
 
@@ -2079,24 +2081,24 @@ async function cykelPlatserOverlay(lat, lng) {
     const segs = await fetchCykelPlatser(lat, lng);
     if (vehicleMode !== 'cykel' || myReqId !== cykelOverlayReqId) return;   // läget bytt under hämtningen
     const grp = L.layerGroup();
-    segs.forEach(s => {
+    // Städas just nu → visas INTE alls, samma beslut som MC/RH-lagren (se kommentar i
+    // mcRutorOverlay). Badgen räknar bara de faktiskt visade platserna, inte alla hämtade.
+    const visningsbara = segs.filter(s => !s.cleaningNow);
+    visningsbara.forEach(s => {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest = first && toLatLng(first[0], first[1]);
       if (!dest) return;
       const undertyp = (s.vehicle || '').toLowerCase() === 'moped-klass2' ? 'moped klass 2' : 'cykel';
-      const color = s.cleaningNow ? '#f59e0b' : CYKEL_COLOR;
-      const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'Dedikerad plats · ' + undertyp;
-      const baseInfo = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.';
-      const { ring, info } = s.cleaningNow ? { ring: null, info: baseInfo } : nyssSnartRing(s, new Date(), baseInfo);
-      L.marker(dest, { icon: cykelPinIcon(color, ring), pane: 'markerPane', riseOnHover: true,
+      const { ring, info } = nyssSnartRing(s, new Date(), 'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.');
+      L.marker(dest, { icon: cykelPinIcon(CYKEL_COLOR, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Cykel-/mopedplats', txt, color, dest, info, true); })
+          showPlaceCardV2(s.street || 'Cykel-/mopedplats', 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest, info, true); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
     const b = document.getElementById('count-badge');
-    if (b) { b.textContent = `${segs.length} cykel-/mopedplatser här`; b.style.display = 'block'; }
+    if (b) { b.textContent = `${visningsbara.length} cykel-/mopedplatser här`; b.style.display = 'block'; }
   } catch (e) { console.warn('[Städgator] Cykel-lager:', e.message); }
 }
 
@@ -4053,8 +4055,7 @@ function updateLegend(mode) {
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};box-shadow:0 0 0 3px #86efac;border-radius:7px;transform:rotate(45deg)"></div>Nyss städad – bra chans</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706;border-radius:7px;transform:rotate(45deg)"></div>Städas just nu – inte tillåtet</div>
-       <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen – nålarna visar bara Stockholms dedikerade platser (avgiftsfritt).</div>`;
+       <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen – nålarna visar bara Stockholms dedikerade platser (avgiftsfritt). En plats som städas just nu visas inte alls, och räknas inte i antalet ovan.</div>`;
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
     : mode === 'now' ? nowLegend
     : (v2Active ? uc2LegendV2 : uc2LegendOld);
