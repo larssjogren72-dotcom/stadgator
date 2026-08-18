@@ -1786,9 +1786,10 @@ function bindForbud(pl) {
 }
 
 // MC-pin: markör med fast skärmstorlek → en 5 m MC-ruta syns på alla zoom (löser gyttret).
-function mcPinIcon(color) {
+function mcPinIcon(color, ring) {
+  const ringCss = ring ? ';box-shadow:0 0 0 3px ' + ring : '';
   return L.divIcon({ className: 'mc-pin', iconSize: [26, 26], iconAnchor: [13, 13],
-    html: '<div class="mc-pin-b" style="background:' + (color || '#2563eb') + '">' + svgIcon('motorcycle') + '</div>' });
+    html: '<div class="mc-pin-b" style="background:' + (color || '#2563eb') + ringCss + '">' + svgIcon('motorcycle') + '</div>' });
 }
 // Ritar ETT parkeringssegment. Bil-läge: oförändrat (vanlig linje). MC-läge (fokus/deklutter):
 // exklusiv MC-ruta → PIN; bilgata MC får nyttja → dämpad grön; icke-MC → tyst grått;
@@ -1873,19 +1874,67 @@ function citationCleaningNow(citation, byCitation, now) {
   return active ? { end: active.END_TIME } : false;
 }
 
+// ── Nyss städad / städas snart för dedikerade platser (MC/RH/cykel) ────────
+// Lars beslut 2026-08-18: en gatusopning bryr sig inte om vad som står parkerat på gatan –
+// samma "nyss städad"/"städas snart"-regler som bilens Nu-läge redan har gäller därför lika
+// ärligt för en MC-/RH-/cykelplats. Återanvänder de EXAKT samma funktionerna och trösklarna
+// (SENASTE_H, HIDDEN_GEM_MIN_H/MAX_H) som showNowParkingV2Flow, bara riktade mot en punkt
+// (nålen) i stället för en gatlinje. Ingen ny städdatakälla – samma städschema-API.
+// Kompletterar (ersätter inte) citationCleaningNow ovan: den fångar bara platser med sin EGEN
+// dokumenterade tidsbegränsning i P_FORBUD (vanligt för MC, sällan för cykel/RH – se
+// project-minnet), medan städschemat täcker ALLA platser oavsett fordonstyp.
+async function fetchStadContext(lat, lng) {
+  const veckoData = await fetchServicedaysWeek(lat, lng);
+  if (!veckoData) return null;
+  const today = new Date();
+  const cleaningToday = veckoData[today.getDay()] || veckoData[String(today.getDay())] || null;
+  const dummyGrp = L.layerGroup();   // matcharen ritar annars gula streckade linjer – vi vill bara ha .near()
+  return { clean: buildCleaningMatcher(cleaningToday, lat, lng, dummyGrp),
+           nastaStadUppslag: buildNextCleaningWeek(veckoData, lat, lng) };
+}
+// { tier:'aktiv', end } | { tier:'nyss', info } | { tier:'snart', info } | null
+function stadTierFor(dest, name, ctx, now) {
+  if (!ctx || !dest || !name) return null;
+  const cs = ctx.clean.near(dest, name);
+  if (cs && cs.state === 'active') return { tier: 'aktiv', end: cs.end };
+  const sen = ctx.nastaStadUppslag.senaste(dest, name, now);
+  if (sen && (now - sen.when) / 3600000 <= SENASTE_H) return { tier: 'nyss', info: sen };
+  const nx = ctx.nastaStadUppslag(dest, name, now);
+  if (nx) {
+    const h = (nx.when - now) / 3600000;
+    if (h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H) return { tier: 'snart', info: nx };
+  }
+  return null;
+}
+// Ring-färg + kompletterande info-text för en nål som är "nyss städad"/"städas snart" (men
+// INTE aktivt städas nu – den grenen har redan egen färg/text, se cleaningNow ovan). Delad
+// mellan MC/RH/cykel-nålarna – samma textformatterare som bilens Nu-läge (senasteStadTxt/
+// nastaStadTxt), bara riktad mot en nål i stället för en gatlinje.
+function nyssSnartRing(s, now, baseInfo) {
+  if (s.nyssStadad)  return { ring: '#86efac', info: senasteStadTxt(s.nyssInfo, now) + ' – bra chans att den är ledig.' };
+  if (s.stadasSnart) return { ring: '#fcd34d', info: nastaStadTxt(s.snartInfo, now) + ' · gott om tid ännu.' };
+  return { ring: null, info: baseInfo };
+}
+
 // MC-rutorna som ETT eget lager – visas i ALLA lägen (Nu/Morgon/Kväll/Natt) när MC är valt,
 // oberoende av vilket flöde som ritar gatorna. Återanvänder P_TILLATEN-hämtaren.
 async function fetchMcRutor(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const [tillRaw, cleanByCitation] = await Promise.all([
+  const [tillRaw, cleanByCitation, stadCtx] = await Promise.all([
     fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
     fetchCleaningByCitation(lat, lng, MC_VEHICLES, radius),
+    fetchStadContext(lat, lng),
   ]);
   const now = new Date();
   return tillRaw.map(toAllowedSegment).filter(s => isMcExclusive(s.vehicle)).map(s => {
-    const c = citationCleaningNow(s.citation, cleanByCitation, now);
-    if (c) { s.cleaningNow = true; s.cleaningEnd = c.end; }
+    const first = s.linesSweref[0] && s.linesSweref[0][0];
+    const dest = first && toLatLng(first[0], first[1]);
+    const cit = citationCleaningNow(s.citation, cleanByCitation, now);
+    const tier = stadTierFor(dest, s.street, stadCtx, now);
+    if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
+    else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
+    else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
     return s;
   });
 }
@@ -1905,8 +1954,9 @@ async function mcRutorOverlay(lat, lng) {
       if (!dest) return;
       const color = s.cleaningNow ? '#f59e0b' : '#2563eb';
       const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'MC-ruta · bara MC får stå';
-      const info  = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Dedikerad MC-plats – bilister får inte ta den.';
-      L.marker(dest, { icon: mcPinIcon(color), pane: 'markerPane', riseOnHover: true })
+      const baseInfo = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Dedikerad MC-plats – bilister får inte ta den.';
+      const { ring, info } = s.cleaningNow ? { ring: null, info: baseInfo } : nyssSnartRing(s, new Date(), baseInfo);
+      L.marker(dest, { icon: mcPinIcon(color, ring), pane: 'markerPane', riseOnHover: true })
         .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', txt, color, dest, info, s.cleaningNow); })
         .addTo(grp);
     });
@@ -1921,21 +1971,28 @@ async function mcRutorOverlay(lat, lng) {
 // BONUS: överlägget går utanför drawParkingSegment, som hoppar över gågator. Två uppmätta
 // platser (Sabbatsbergsvägen + en i Gamla Stan) låg på gågata och ritades därför inte alls –
 // och just på gågata GÄLLER tillståndet. De kommer med här.
-function rhPinIcon(color) {
+function rhPinIcon(color, ring) {
+  const ringCss = ring ? ';box-shadow:0 0 0 3px ' + ring : '';
   return L.divIcon({ className: 'rh-pin', iconSize: [28, 28], iconAnchor: [14, 14],
-    html: '<div class="rh-pin-b" style="background:' + (color || RH_COLOR) + '">' + svgIcon('wheelchair') + '</div>' });
+    html: '<div class="rh-pin-b" style="background:' + (color || RH_COLOR) + ringCss + '">' + svgIcon('wheelchair') + '</div>' });
 }
 async function fetchRhPlatser(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const [tillRaw, cleanByCitation] = await Promise.all([
+  const [tillRaw, cleanByCitation, stadCtx] = await Promise.all([
     fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
     fetchCleaningByCitation(lat, lng, RH_VEHICLES, radius),
+    fetchStadContext(lat, lng),
   ]);
   const now = new Date();
   return tillRaw.map(toAllowedSegment).filter(s => isRhPlats(s) && s.linesSweref.length).map(s => {
-    const c = citationCleaningNow(s.citation, cleanByCitation, now);
-    if (c) { s.cleaningNow = true; s.cleaningEnd = c.end; }
+    const first = s.linesSweref[0] && s.linesSweref[0][0];
+    const dest = first && toLatLng(first[0], first[1]);
+    const cit = citationCleaningNow(s.citation, cleanByCitation, now);
+    const tier = stadTierFor(dest, s.street, stadCtx, now);
+    if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
+    else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
+    else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
     return s;
   });
 }
@@ -1953,8 +2010,9 @@ async function rhPlatserOverlay(lat, lng) {
       if (!dest) return;
       const color = s.cleaningNow ? '#f59e0b' : RH_COLOR;
       const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'Reserverad plats';
-      const info  = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Kräver parkeringstillstånd för rörelsehindrade';
-      L.marker(dest, { icon: rhPinIcon(color), pane: 'markerPane', riseOnHover: true,
+      const baseInfo = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Kräver parkeringstillstånd för rörelsehindrade';
+      const { ring, info } = s.cleaningNow ? { ring: null, info: baseInfo } : nyssSnartRing(s, new Date(), baseInfo);
+      L.marker(dest, { icon: rhPinIcon(color, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Reserverad plats för rörelsehindrade' + (s.street ? ' på ' + s.street : ''),
                        keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
@@ -1973,21 +2031,28 @@ async function rhPlatserOverlay(lat, lng) {
 // Till skillnad från MC/RH målas INGA gator i det här läget (se showNowParkingV2Flow/
 // showSafeStreetsV2Flow) – registret har aldrig en förbudszon för cykel (verifierat 2026-08-18,
 // se project-minnet), så nålarna är den ENDA informationen kartan visar i cykel-läge.
-function cykelPinIcon(color) {
+function cykelPinIcon(color, ring) {
+  const ringCss = ring ? ';box-shadow:0 0 0 3px ' + ring : '';
   return L.divIcon({ className: 'cykel-pin', iconSize: [24, 24], iconAnchor: [12, 12],
-    html: '<div class="cykel-pin-b" style="background:' + (color || CYKEL_COLOR) + '">' + svgIcon('bike') + '</div>' });
+    html: '<div class="cykel-pin-b" style="background:' + (color || CYKEL_COLOR) + ringCss + '">' + svgIcon('bike') + '</div>' });
 }
 async function fetchCykelPlatser(lat, lng, radius = 500) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const [tillRaw, cleanByCitation] = await Promise.all([
+  const [tillRaw, cleanByCitation, stadCtx] = await Promise.all([
     fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
     fetchCleaningByCitation(lat, lng, CYKEL_VEHICLES, radius),
+    fetchStadContext(lat, lng),
   ]);
   const now = new Date();
   return tillRaw.map(toAllowedSegment).filter(s => isCykelPlats(s.vehicle) && s.linesSweref.length).map(s => {
-    const c = citationCleaningNow(s.citation, cleanByCitation, now);
-    if (c) { s.cleaningNow = true; s.cleaningEnd = c.end; }
+    const first = s.linesSweref[0] && s.linesSweref[0][0];
+    const dest = first && toLatLng(first[0], first[1]);
+    const cit = citationCleaningNow(s.citation, cleanByCitation, now);
+    const tier = stadTierFor(dest, s.street, stadCtx, now);
+    if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
+    else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
+    else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
     return s;
   });
 }
@@ -2006,8 +2071,9 @@ async function cykelPlatserOverlay(lat, lng) {
       const undertyp = (s.vehicle || '').toLowerCase() === 'moped-klass2' ? 'moped klass 2' : 'cykel';
       const color = s.cleaningNow ? '#f59e0b' : CYKEL_COLOR;
       const txt   = s.cleaningNow ? `Städas nu${s.cleaningEnd != null ? ' till ' + fmtClock(s.cleaningEnd) : ''}` : 'Dedikerad plats · ' + undertyp;
-      const info  = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.';
-      L.marker(dest, { icon: cykelPinIcon(color), pane: 'markerPane', riseOnHover: true,
+      const baseInfo = s.cleaningNow ? 'Inte tillåtet just nu – servicefordon behöver platsen.' : 'Avgiftsfri. Cyklar och moped klass 2 får även stå utanför markerade platser.';
+      const { ring, info } = s.cleaningNow ? { ring: null, info: baseInfo } : nyssSnartRing(s, new Date(), baseInfo);
+      L.marker(dest, { icon: cykelPinIcon(color, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
           showPlaceCardV2(s.street || 'Cykel-/mopedplats', txt, color, dest, info, true); })
@@ -3507,6 +3573,11 @@ function nastaStadTxt(n, now) {
 // strax efter ett vanligt städfönster (09–14) – för vanligt för att kännas som en prioritet.
 // 3h håller den sällsynt även direkt efter ett stort fönster.
 const SENASTE_H = 3;
+// "Hidden gem": orange men gott om tid kvar innan städning – varken för nära (känns riskabelt)
+// eller för långt bort (ingen brådska, inget fynd). Delad global (inte bara Nu-flödets städlinjer)
+// sen 2026-08-18: samma fönster används nu även för MC/RH/cykel-nålarnas "städas snart"-ring,
+// eftersom en gatusopning bryr sig lika lite om en dedikerad plats som om en vanlig gata.
+const HIDDEN_GEM_MIN_H = 2, HIDDEN_GEM_MAX_H = 7;
 // Symmetrisk mot nastaStadTxt, fast bakåt – "avslutad" städning. Visas bara nyligen (se
 // SENASTE_H i drawParkingSegment): en städning för tre dygn sen säger inget om nu.
 function senasteStadTxt(n, now) {
@@ -3538,10 +3609,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     nastaStadUppslag = buildNextCleaningWeek(veckoData, lat, lng);
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
     const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
-    // "Hidden gem": orange men gott om tid kvar innan städning – varken för nära (känns riskabelt)
-    // eller för långt bort (ingen brådska, inget fynd). Bara Nu-läget – i Natt-läget kan samma
-    // klockslag betyda att bilen INTE får lämnas över natten, se tier==='natt' i showSafeStreetsV2Flow.
-    const HIDDEN_GEM_MIN_H = 2, HIDDEN_GEM_MAX_H = 7;
+    // HIDDEN_GEM_MIN_H/MAX_H: global const (se SENASTE_H ovan) – bara Nu-läget använder den här,
+    // i Natt-läget kan samma klockslag betyda att bilen INTE får lämnas över natten (tier==='natt').
 
     // Gågator/förbud (rosa streckad/röd, underst) – syns även där ingen parkering finns. Kan döljas i Förklaring.
     (gagataLines || []).forEach(gl => gl.lines.forEach(line =>
@@ -3968,6 +4037,7 @@ function updateLegend(mode) {
   const cykelLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};box-shadow:0 0 0 3px #86efac;border-radius:7px;transform:rotate(45deg)"></div>Nyss städad – bra chans</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706;border-radius:7px;transform:rotate(45deg)"></div>Städas just nu – inte tillåtet</div>
        <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen – nålarna visar bara Stockholms dedikerade platser (avgiftsfritt).</div>`;
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
