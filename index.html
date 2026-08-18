@@ -2775,6 +2775,15 @@ async function loadParkingV2(lat, lng, radius = 500) {
   });
   const bodyCoverage = (a, b) => computeBodyCoverage(a, b, allowedSegs);
 
+  // "Avgiftsfri parkering" finns registrerad i BÅDA lagren för samma citation (upptäckt
+  // 2026-08-18, Majrovägen 0180 2020-05600: fanns både som egen P_TILLATEN-post OCH i
+  // P_FORBUD). Den egna P_FORBUD-grenen nedan äger nu hela presentationen för den här typen
+  // (tidsgräns-varning, städdags-text) – ta bort P_TILLATEN-kopian ur VISNINGEN här, annars
+  // dubbelritas sträckan: en ovärderad grön UTAN tidsgräns ovanpå/under vår blå/amber.
+  // allowedPts/allowedSegs ovan är redan beräknade och opåverkade – andra förbudslinjers
+  // sväljning i närheten rörs alltså inte.
+  allowed = allowed.filter(s => s.platsTyp !== 'Avgiftsfri parkering');
+
   // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten – plus (fas 2a steg A)
   // äkta förbud (ingen taxa/besök-signal) vars sväljning inte håller vid en striktare
   // kroppsnärhets-koll. OBS: hasAllowedNear bygger på P_TILLATEN-punkterna ENBART (oförändrat)
@@ -2799,6 +2808,7 @@ async function loadParkingV2(lat, lng, radius = 500) {
   forbRaw.forEach(f => featureLines(f).forEach(line => {
     const fp = f.properties || {};
     if (isParkingForbud(fp)) return;                    // fas 2c – aldrig rött, oavsett sväljning
+    if ((fp.VF_PLATS_TYP || '') === 'Avgiftsfri parkering') return;  // egen gren nedan – aldrig rött härifrån
     if (forbudActiveAt(fp, tD) === false) return;        // fas 2d – tidsfönster inte aktivt just nu
     for (let i = 0; i < line.length - 1; i++) {
       const a = line[i], b = line[i+1];
@@ -2849,10 +2859,35 @@ async function loadParkingV2(lat, lng, radius = 500) {
   forbRaw.forEach(f => {
     const fp = f.properties || {};
     if (isParkingForbud(fp)) return;                        // redan hanterad ovan
+    if ((fp.VF_PLATS_TYP || '') === 'Avgiftsfri parkering') return;  // egen gren nedan
     if (forbudActiveAt(fp, tD) !== false) return;            // aktiv nu eller osäkert → rör inte
     const seg = toAllowedSegment(f);
     if (!seg.linesSweref.length) return;                     // ingen ritbar geometri (t.ex. annan ytetyp)
     seg.fromForbud = true;
+    allowed.push(seg);
+  });
+
+  // "Avgiftsfri parkering" (2026-08-18, Majrovägen-fallet): denna VF_PLATS_TYP beskriver i
+  // verkligheten TILLÅTEN parkering, nästan alltid med en egen dygns-/timgräns (1 tim–7 dygn,
+  // ofta P-skiva) som ALDRIG finns i strukturerad data (MAX_HOURS/MAX_MINUTES konsekvent null –
+  // 9/9 PDF-verifierade citywide, se minnet) plus ibland ett städdags-undantag som DÄREMOT finns
+  // strukturerat. Föll tidigare igenom till vanlig förbudslogik: rött när ingen P_TILLATEN låg
+  // inom 12 m (uppmätt 30,7 % av alla segment citywide), och när fas 2d-grenen ovan räddade den
+  // (utanför städfönstret, dvs. mesta tiden) blev den ORÖRT grönt – saknade tidsgränsen helt,
+  // samma falska trygghet. Egen, självständig gren (som fas 2d) – ingen gissning om grannskap,
+  // markerar bara segmentet så rendering kan visa "kontrollera tidsgräns" i stället för att
+  // antingen ljuga rött eller ljuga tyst grönt.
+  forbRaw.forEach(f => {
+    const fp = f.properties || {};
+    if ((fp.VF_PLATS_TYP || '') !== 'Avgiftsfri parkering') return;
+    const seg = toAllowedSegment(f);
+    if (!seg.linesSweref.length) return;
+    seg.fromForbud = true;
+    seg.avgiftsfriTidsbegransad = true;
+    seg.cleaningNow = forbudActiveAt(fp, tD) === true;
+    seg.cleaningTxt = fp.START_WEEKDAY
+      ? `Städas ${fp.START_WEEKDAY} ${fmtClock(fp.START_TIME)}–${fmtClock(fp.END_TIME)}` + (seasonText(fp) ? ` (${seasonText(fp)})` : '')
+      : '';
     allowed.push(seg);
   });
 
@@ -3066,6 +3101,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
+      else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; städas++; }
+      else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = 'Får parkera – kontrollera tidsgräns'; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
       // Detaljraden KOMPLETTERAR chipet (upprepar aldrig): har chipet tiden → ge handlingen; saknar tid → ge tiden.
@@ -3075,6 +3112,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
                     : tier === 'natt'   ? `Flytta ${vehicleWord()} ${cl.start === 0 ? 'innan midnatt' : `innan ${fmtClock(cl.start)} ikväll`}`
                     : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
                     : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
+                    : (s.avgiftsfriTidsbegransad && s.cleaningNow) ? (s.cleaningTxt || 'Inte tillåtet just nu enligt skylt')
+                    : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
                     : '';
       drawParkingSegment(s, color, txt, dest, infoRow, grp);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
@@ -3442,6 +3481,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         txt = hiddenGem ? `Gott om tid – servas i natt` : `Får stå nu · servas i natt`;
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
+      else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; }
+      else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = 'Får parkera – kontrollera tidsgräns'; okNu++; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
@@ -3458,7 +3499,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                         : `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`)
                     : nx ? (hiddenGem
                         ? `Städas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · en bra möjlighet för en kortare kvällsparkering`
-                        : `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll`) : '';
+                        : `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll`)
+                    : (s.avgiftsfriTidsbegransad && s.cleaningNow) ? (s.cleaningTxt || 'Inte tillåtet just nu enligt skylt')
+                    : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
+                    : '';
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
       // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
       // "Nästa städning" är dessutom irrelevant på platser man inte får använda.
