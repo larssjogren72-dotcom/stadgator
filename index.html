@@ -3131,7 +3131,15 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     if (!seg.linesSweref.length) return;
     seg.fromForbud = true;
     seg.avgiftsfriTidsbegransad = true;
-    seg.cleaningNow = forbudActiveAt(fp, tD) === true;
+    // Tre lägen, inte två: true (städas nu) / false (VI VET säkert att fönstret inte är
+    // aktivt, av postens EGNA veckodags-/tidsfält – inte bara "inget upptäckt") / null (osäkert,
+    // ovanligt mönster). Bara null ska ge den försiktiga "kontrollera tidsgräns"-texten – false
+    // är lika stark grund som vilken annan grönmålning som helst. Lars fynd 2026-08-20
+    // (Urbergsvägen 0180 2019:01106, RDT-PDF-verifierad: "får fordon parkeras" hela året UTOM
+    // tisdag 08–16, 1 nov–15 maj) – augusti är långt utanför fönstret, blått var onödigt försiktigt.
+    const active = forbudActiveAt(fp, tD);
+    seg.cleaningNow = active === true;
+    seg.cleaningKnownSafe = active === false;
     seg.cleaningTxt = fp.START_WEEKDAY
       ? `Städas ${fp.START_WEEKDAY} ${fmtClock(fp.START_TIME)}–${fmtClock(fp.END_TIME)}` + (seasonText(fp) ? ` (${seasonText(fp)})` : '')
       : '';
@@ -3356,6 +3364,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; städas++; }
+      else if (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
       else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = 'Får parkera – kontrollera tidsgräns'; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
@@ -3367,6 +3376,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
                     : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
                     : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
                     : (s.avgiftsfriTidsbegransad && s.cleaningNow) ? (s.cleaningTxt || 'Inte tillåtet just nu enligt skylt')
+                    : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
                     : '';
       drawParkingSegment(s, color, txt, dest, infoRow, grp);
@@ -3748,6 +3758,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; }
+      else if (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) { color = '#16a34a'; txt = 'Får stå nu'; okNu++; }
       else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = 'Får parkera – kontrollera tidsgräns'; okNu++; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
@@ -3767,6 +3778,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                         ? `Städas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · en bra möjlighet för en kortare kvällsparkering`
                         : `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll`)
                     : (s.avgiftsfriTidsbegransad && s.cleaningNow) ? (s.cleaningTxt || 'Inte tillåtet just nu enligt skylt')
+                    : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
                     : '';
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
