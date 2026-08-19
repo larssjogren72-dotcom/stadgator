@@ -2704,6 +2704,14 @@ function andamalTxt(s) {
 // false = säkert INTE aktiv just nu → släck röd. null (okänt mönster, t.ex. ODD_EVEN eller ett
 // DAY_TYPE vi aldrig sett) → rör ALDRIG färgen, samma försiktighetsprincip som andamalActiveAt
 // ("en otolkbar regel får aldrig färga om något") – hellre rött för mycket än grönt för lite.
+// Sant om posten saknar ALLA egna villkor (ingen veckodag/DAY_TYPE/klockslag) – går då inte
+// att avgöra NÄR (eller om) en begränsning gäller utifrån posten ensam. Delad mellan
+// forbudActiveAt (returnerar null i stället för att gissa) och avgiftsfri-grenarna i
+// loadParkingV2 (som medvetet INTE räddar en sådan post som "avgiftsfri, kontrollera tid" –
+// se kommentaren där för varför, RDT-PDF-verifierat 2/2 fall).
+function hasNoOwnCondition(p) {
+  return !p.DAY_TYPE && !p.START_WEEKDAY && p.START_TIME == null && p.END_TIME == null;
+}
 function forbudActiveAt(p, d) {
   if (p.ODD_EVEN != null) return null;             // ovanligt fält, aldrig sett i data – gissa inte
   if (p.START_MONTH != null) {
@@ -2727,19 +2735,17 @@ function forbudActiveAt(p, d) {
     const inTime = a <= b ? (nu >= a && nu < b) : (nu >= a || nu < b);
     if (!inTime) return false;
   }
-  // HELT utan egna villkor (ingen veckodag/DAY_TYPE/klockslag) – oavsett om säsong är satt eller
-  // ej. Går inte att avgöra om posten betyder "aldrig någon känd begränsning" eller "begränsad
-  // dygnet runt", utifrån posten ensam – samma försiktighetsprincip som dagOk===null ovan (en
-  // otolkbar regel får aldrig färga om något). Lars fynd 2026-08-19 (Urbergsvägen, CITATION
-  // 0180 2020-00138): en "Avgiftsfri parkering"-post helt utan fält visades som "Städas nu –
-  // flytta bilen" trots noll data om NÄR. Ändrad från "return true" (som ursprungligen antog att
-  // tomma fält = permanent begränsning) till "return null" – konsekvensen är att en sådan post
-  // hamnar i den redan existerande "Får parkera – kontrollera tidsgräns"-grenen i stället, ärligt
-  // i linje med att MAX_HOURS/MAX_MINUTES ändå alltid saknas i den här datan (se andra minnet).
-  // Påverkar EJ posten med riktiga fält (DAY_TYPE/WEEKDAY/TIME) – bara den helt tomma varianten.
-  if (!p.DAY_TYPE && !p.START_WEEKDAY && p.START_TIME == null && p.END_TIME == null) {
-    return null;
-  }
+  // HELT utan egna villkor – går inte att avgöra NÄR (eller om) en begränsning gäller, utifrån
+  // posten ensam. Samma försiktighetsprincip som dagOk===null ovan (en otolkbar regel får aldrig
+  // färga om något). Lars fynd 2026-08-19 (Urbergsvägen, CITATION 0180 2020-00138): en
+  // "Avgiftsfri parkering"-post helt utan fält visades som "Städas nu – flytta bilen" trots noll
+  // data om NÄR. RDT-PDF-verifierat (2/2, Urbergsvägen + Mamrevägen 0180 2021-03652): båda är i
+  // verkligheten FULLSTÄNDIGA parkeringsförbud utan undantag – "Avgiftsfri parkering"-taggen på
+  // just dessa poster är felaktig i Stockholms egen data. loadParkingV2 utesluter därför numera
+  // den här mönstret helt ur avgiftsfri-grenarna (se kommentar där) så det hanteras som vanligt
+  // förbud i stället. Den här null-returen skyddar ändå andra anropare (citationCleaningNow m.fl.)
+  // från att tro att en tom post har en aktiv städtid.
+  if (hasNoOwnCondition(p)) return null;
   return true;   // alla kända villkor uppfyllda (minst ett av DAY_TYPE/WEEKDAY/TIME var satt)
 }
 
@@ -3040,7 +3046,11 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   forbRaw.forEach(f => featureLines(f).forEach(line => {
     const fp = f.properties || {};
     if (isParkingForbud(fp)) return;                    // fas 2c – aldrig rött, oavsett sväljning
-    if ((fp.VF_PLATS_TYP || '') === 'Avgiftsfri parkering') return;  // egen gren nedan – aldrig rött härifrån
+    // Avgiftsfri MED egna villkor (minst ett av DAY_TYPE/WEEKDAY/TIME) hanteras av egen gren
+    // nedan. En HELT tom "avgiftsfri"-post får INTE samma skydd – RDT-PDF-verifierat 2/2
+    // (Urbergsvägen 0180 2020-00138, Mamrevägen 0180 2021-03652) att den taggen då är felaktig
+    // och posten i verkligheten är ett fullständigt förbud utan undantag (Lars 2026-08-20).
+    if ((fp.VF_PLATS_TYP || '') === 'Avgiftsfri parkering' && !hasNoOwnCondition(fp)) return;
     if (forbudActiveAt(fp, tD) === false) return;        // fas 2d – tidsfönster inte aktivt just nu
     for (let i = 0; i < line.length - 1; i++) {
       const a = line[i], b = line[i+1];
@@ -3112,6 +3122,11 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   forbRaw.forEach(f => {
     const fp = f.properties || {};
     if ((fp.VF_PLATS_TYP || '') !== 'Avgiftsfri parkering') return;
+    // HELT tom post (ingen DAY_TYPE/WEEKDAY/TIME) hör INTE hemma här längre – RDT-PDF-verifierat
+    // 2/2 (Urbergsvägen, Mamrevägen, se forbudActiveAt-kommentaren) att "avgiftsfri"-taggen då är
+    // felaktig i Stockholms data och posten i verkligheten är ett fullständigt förbud. Låt den
+    // falla igenom till den vanliga rött-grenen ovan i stället (Lars 2026-08-20).
+    if (hasNoOwnCondition(fp)) return;
     const seg = toAllowedSegment(f);
     if (!seg.linesSweref.length) return;
     seg.fromForbud = true;
