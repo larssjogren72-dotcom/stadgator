@@ -2727,7 +2727,20 @@ function forbudActiveAt(p, d) {
     const inTime = a <= b ? (nu >= a && nu < b) : (nu >= a || nu < b);
     if (!inTime) return false;
   }
-  return true;   // permanent post (inga villkor alls) eller alla kända villkor uppfyllda
+  // HELT utan egna villkor (ingen veckodag/DAY_TYPE/klockslag) – oavsett om säsong är satt eller
+  // ej. Går inte att avgöra om posten betyder "aldrig någon känd begränsning" eller "begränsad
+  // dygnet runt", utifrån posten ensam – samma försiktighetsprincip som dagOk===null ovan (en
+  // otolkbar regel får aldrig färga om något). Lars fynd 2026-08-19 (Urbergsvägen, CITATION
+  // 0180 2020-00138): en "Avgiftsfri parkering"-post helt utan fält visades som "Städas nu –
+  // flytta bilen" trots noll data om NÄR. Ändrad från "return true" (som ursprungligen antog att
+  // tomma fält = permanent begränsning) till "return null" – konsekvensen är att en sådan post
+  // hamnar i den redan existerande "Får parkera – kontrollera tidsgräns"-grenen i stället, ärligt
+  // i linje med att MAX_HOURS/MAX_MINUTES ändå alltid saknas i den här datan (se andra minnet).
+  // Påverkar EJ posten med riktiga fält (DAY_TYPE/WEEKDAY/TIME) – bara den helt tomma varianten.
+  if (!p.DAY_TYPE && !p.START_WEEKDAY && p.START_TIME == null && p.END_TIME == null) {
+    return null;
+  }
+  return true;   // alla kända villkor uppfyllda (minst ett av DAY_TYPE/WEEKDAY/TIME var satt)
 }
 
 // ── P-fickor som lagras som YTA i stället för linje ─────────────────────────
