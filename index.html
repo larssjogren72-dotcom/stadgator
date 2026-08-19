@@ -219,13 +219,6 @@
     .cykel-pin-b svg { width: 12px; height: 12px; color: #fff; transform: rotate(-45deg); }
     .rh-pin-b svg { width: 17px; height: 17px; color: #fff; }
     /* Rättighetsrutan på platskortet */
-    #rh-rights { margin-top: 10px; padding: 12px 14px; border-radius: 10px;
-      background: rgba(14,116,144,.07); border: 1px solid rgba(14,116,144,.22); }
-    #rh-rights h4 { margin: 0 0 7px; font-size: 11.5px; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--muted); font-weight: 700; }
-    #rh-rights ul { margin: 0 0 8px; padding-left: 18px; font-size: 13.5px; color: var(--text); }
-    #rh-rights li { margin-bottom: 4px; }
-    #rh-rights p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
     /* Nål för SL-busshållplats: samma rundade fyrkant som RH-nålen, men röd – återanvänder
        appens befintliga förbud-röda (#ef4444) så "parkera inte här" läses utan att öppna kortet.
        Hälften av storleken (28→14px): hållplatser ligger tätt (båda körriktningar räknas
@@ -852,16 +845,6 @@
       <div id="next-clean-row" style="display:none"></div>
       <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
-      <div id="rh-rights" style="display:none">
-        <h4>Med tillstånd får du också</h4>
-        <ul>
-          <li>stå <b>högst 3 tim</b> där parkering är förbjuden</li>
-          <li>stå <b>högst 3 tim</b> på gågata</li>
-          <li>stå <b>högst 24 tim</b> där parkering är tillåten 3–24 tim</li>
-        </ul>
-        <p>Gäller inte där det är förbud att <b>stanna</b>, eller på lastplats, taxiplats,
-           vändplats och busshållplats. Kontrollera skylten på plats.</p>
-      </div>
       <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5
@@ -2242,14 +2225,7 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
       .then(txt => { if (seq === cardSeq) setClean(txt); })
       .catch(() => { if (seq === cardSeq) setClean('Kontrollera skylt på plats'); });
   }
-  // ── Rättighetsruta: vad tillståndet ger UTÖVER den här platsen ──
-  // Ordagrant ur Stockholms stads regler (mars 2021). Ligger på KORTET och aldrig som färg på
-  // kartan: API:et skiljer inte "förbud att parkera" (3 h tillåtet) från "förbud att stanna"
-  // (inte alls tillåtet), så en omfärgning av rött skulle kunna skicka någon till en hållplats.
-  const rights = document.getElementById('rh-rights');
-  if (rights) rights.style.display = visaRattigheter ? 'block' : 'none';
-
-  // Nästa städning – sakuppgift, bara där den är relevant (platser man får använda).
+// Nästa städning – sakuppgift, bara där den är relevant (platser man får använda).
   const ncr = document.getElementById('next-clean-row');
   if (ncr) {
     if (nastaStad) { ncr.innerHTML = svgIcon('clock') + '<span>' + escHtml(nastaStad) + '</span>';
@@ -4108,8 +4084,7 @@ function updateLegend(mode) {
   const cykelLegend =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
-       ${ringRows('border-radius:7px;transform:rotate(45deg)', CYKEL_COLOR)}
-       <div class="lgnd-hidden-note">Cyklar och moped klass 2 får normalt parkeras var som helst, så länge de inte är i vägen – nålarna visar bara Stockholms dedikerade platser (avgiftsfritt). En plats som städas just nu visas inte alls, och räknas inte i antalet ovan.</div>`;
+       ${ringRows('border-radius:7px;transform:rotate(45deg)', CYKEL_COLOR)}`;
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
     : mode === 'now' ? nowLegend
     : (v2Active ? uc2LegendV2 : uc2LegendOld);
