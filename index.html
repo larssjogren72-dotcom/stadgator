@@ -3260,24 +3260,29 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
     // Städgator imorgon inom hämtningsytan: rita (gul streckad) + samla linjesegment + gatunamn (SWEREF99)
     // "Över natten" → städning gäller IMORGON. Filtrera bort poster ur säsong.
-    const cleaningFeatures = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
-      .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
+    // Cykel-läget hoppar över – målar inga gator, bara nålar (se cykelPlatserOverlay). Utan detta
+    // ritades de gula städlinjerna ändå (ej klickbara, interactive:false) trots att inget annat
+    // i cykel-läget målar gator – synligt brus utan funktion (Lars fältfynd 2026-08-19).
     const cleaningSegs = [], cleaningByName = new Map();   // { a:latlng, b:latlng, name }  (lat/lng – koordinatsystem-oberoende)
-    cleaningFeatures.forEach(f => {
-      if (!cleaningFeatureInReach(f, lat, lng)) return;   // samma räckvidd som parkeringen (se 500 m-glappet)
-      const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
-      const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
-      L.geoJSON(f, { style:{ color:'#f59e0b', weight:5, opacity:.85, dashArray:'6 6' },
-        coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
-      featureLines(f).forEach(line => {
-        for (let i = 0; i < line.length - 1; i++) {
-          const seg = { a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end };
-          cleaningSegs.push(seg);
-          if (!cleaningByName.has(name)) cleaningByName.set(name, []);
-          cleaningByName.get(name).push(seg);
-        }
+    if (vehicleMode !== 'cykel') {
+      const cleaningFeatures = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
+        .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
+      cleaningFeatures.forEach(f => {
+        if (!cleaningFeatureInReach(f, lat, lng)) return;   // samma räckvidd som parkeringen (se 500 m-glappet)
+        const name = (f.properties?.STREET_NAME || '').toLowerCase().trim();
+        const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
+        L.geoJSON(f, { style:{ color:'#f59e0b', weight:5, opacity:.85, dashArray:'6 6' },
+          coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
+        featureLines(f).forEach(line => {
+          for (let i = 0; i < line.length - 1; i++) {
+            const seg = { a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]), name, start, end };
+            cleaningSegs.push(seg);
+            if (!cleaningByName.has(name)) cleaningByName.set(name, []);
+            cleaningByName.get(name).push(seg);
+          }
+        });
       });
-    });
+    }
     // Tillåten plats städas imorgon = samma gatunamn OCH ≤25 m från städgatans geometri (lat/lng)
     // (namn-match hindrar att granngata vid korsning "läcker" gult). Returnerar fönstret för kortet.
     // Indexerat på gatunamn – räckvidden ovan är större än förr (se near() i buildCleaningMatcher).
@@ -3442,7 +3447,9 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp) {
     const start = f.properties?.START_TIME, end = f.properties?.END_TIME;
     const state = cleaningState(start, end, nowHM);
     // Rita gul streckad ENBART där städning är aktiv/kommande idag – passerat = ingen distraktion.
-    if (state !== 'passed')
+    // Cykel-läget hoppar över (målar inga gator, bara nålar) – matchningen byggs ändå, konsumeras
+    // bara inte av gatufärgningen i det läget (se allow.forEach-guarden i anropande flöde).
+    if (state !== 'passed' && vehicleMode !== 'cykel')
       L.geoJSON(f, { style:{ color:'#f59e0b', weight:5, opacity:.85, dashArray:'6 6' },
         coordsToLatLng: c => toLatLng(c[0], c[1]), interactive:false }).addTo(grp);
     featureLines(f).forEach(line => {
