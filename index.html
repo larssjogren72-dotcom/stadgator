@@ -1804,9 +1804,15 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
   if (s.gagata) return;                          // gågata ritas som streckad linje (FORESKRIFT) – ej dubbel heldragen
   if (mc && isMcExclusive(s.vehicle)) return;   // MC-rutor ritas av mcRutorOverlay (samma i alla lägen)
   let weight = 6, opacity = 0.95, drawColor = color;
+  // MC-läge: byt bara KULÖR för "ej för bil"-lila → tyst grått (samma otherColor-konvention
+  // som legenden redan använder). Opaciteten sätts INTE här längre – det körde helt vid sidan
+  // om Tona ner-reglaget (isBlockedColor/applyDim), så grönt (lagligt för MC) visades permanent
+  // nedtonat på 0.38 oavsett reglagets läge, och grått fastnade på 0.55 även med reglaget AV.
+  // Lars fynd 2026-08-20: "grön är nedtonat innan du klickar" – bekräftat mätt (opacitet 0.38 i
+  // både på/av). isBlockedColor(c) inkluderar redan grått (DIM_MC) men INTE grönt – applyDim
+  // sköter nu båda korrekt, exakt som för bil/RH-lägena, ingen särbehandling kvar här.
   if (mc) {
-    if (color === '#9333ea')      { drawColor = '#c3ccd6'; weight = 4; opacity = 0.55; }   // icke-MC → tyst grått
-    else if (color === '#16a34a') { opacity = 0.38; weight = 5; }                           // bilgata MC får nyttja → dämpad
+    if (color === '#9333ea') drawColor = '#c3ccd6';
   } else if (nyssStadad) {
     // Samma legalitet (grönt) – men lyft fram med en HALO, inte bara en ljusare nyans.
     // En ren ljushetsändring inom samma gröna ton är en svag UX-signal: ögat söker av en karta
@@ -1816,8 +1822,9 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
   } else if (hiddenGem) {
     // Samma halo-mönster som nyss städad, fast på orange – "gott om tid kvar" (se
     // HIDDEN_GEM_MIN_H/MAX_H i showNowParkingV2Flow). Kulören är oförändrad (fortfarande
-    // #f59e0b, samma varning-i-grunden), bara emfasen ökar – som mc-grenen ovan tar denna
-    // path bort glowen i MC-läge, samma avsiktliga deklutter som för nyss städad.
+    // #f59e0b, samma varning-i-grunden), bara emfasen ökar – mc-grenen ovan tar fortfarande
+    // denna path bort i MC-läge, samma avsiktliga deklutter som för nyss städad (oförändrat,
+    // bara opaciteten som styrdes vid sidan om Tona ner-reglaget är borttagen, se ovan).
     weight = 7;
   }
   s.linesSweref.forEach(line => {
