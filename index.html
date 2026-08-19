@@ -359,11 +359,16 @@
       z-index: 1050;
     }
     #sheet-handle {
-      flex-shrink: 0; padding: 10px 0 6px; cursor: grab;
+      flex-shrink: 0; padding: 10px 0 6px; cursor: grab; position: relative;
       display: flex; justify-content: center; touch-action: none; user-select: none;
     }
     #sheet-handle .grabber {
       width: 40px; height: 5px; border-radius: 3px; background: rgba(15,23,42,0.18);
+    }
+    #sheet-close {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 15px; cursor: pointer; touch-action: manipulation;
     }
     #sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: env(safe-area-inset-bottom, 0px); scroll-padding-bottom: 70px; }
     #hint { font-size: 14px; color: var(--muted); padding: 6px 18px 24px; min-height: 60px; }
@@ -607,17 +612,16 @@
       padding: 8px 14px; flex-shrink: 0; position: relative; z-index: 1100;
     }
     #when-chip {
-      display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left;
+      display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
       background: #ffffff; border: 1px solid var(--glass-border);
       border-radius: 12px; padding: 11px 13px; cursor: pointer; color: var(--text);
       font-family: 'Inter', sans-serif; font-size: 14px;
       -webkit-tap-highlight-color: transparent; transition: border-color .15s;
     }
     #when-chip:active { border-color: var(--accent); }
-    #when-icon svg { width: 19px; height: 19px; color: var(--accent); display: block; margin-top: 1px; }
+    #when-icon svg { width: 19px; height: 19px; color: var(--accent); display: block; }
     .when-main { flex: 1; min-width: 0; }
     #when-pitch { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
-    #when-why   { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
     .when-change { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 2px; flex: none; }
     .when-label { color: var(--muted); }
     #when-chip strong { color: var(--accent); font-weight: 700; }
@@ -781,7 +785,6 @@
       <span id="when-icon"></span>
       <span class="when-main">
         <span id="when-pitch">Nu — var du får stå just nu</span>
-        <span id="when-why">Visar gator där parkering är laglig just nu.</span>
       </span>
       <span class="when-change">Byt<span class="when-caret">▾</span></span>
     </button>
@@ -827,7 +830,7 @@
   </div>
 
   <div id="bottom">
-    <div id="sheet-handle"><div class="grabber"></div></div>
+    <div id="sheet-handle"><div class="grabber"></div><span id="sheet-close" onpointerdown="event.stopPropagation()" onclick="sheetMinimize()" title="Minimera" aria-label="Minimera menyn">✕</span></div>
     <div id="sheet-body">
     <div id="hint">Sök en destination ovan — servicegator i närheten visas på kartan.</div>
     <div id="garage-list"></div>
@@ -1328,7 +1331,7 @@ let loadingZoneSegments   = []; // Lastzoner (ändamålsplats lastning/lossning)
 // Skopad till sökrutan (bbox), inte hela Stockholm – LTFR_P_FORBUD_GEOM utan bbox var
 // 51 MB/17s+ och kringgick serverns cache (post > 30 MB-taket), vid VARJE kartladdning.
 // Anropas numera per sökning (från showSafeStreetsNearby), inte en gång vid appstart.
-async function loadParkingRestrictions(apiKey, lat, lng, radius = 500) {
+async function loadParkingRestrictions(apiKey, lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   forbiddenZoneGeoms   = [];
   forbiddenStreetNames = new Set();
   forbiddenParkingLines = [];
@@ -1853,7 +1856,7 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
 // registret (0 st vardera) – grenen är overksam för dem idag, bara en garanti om
 // registret ändras. Lars beslut 2026-08-18: en nål får ALDRIG se ledig ut om det städas
 // där just nu (appens grundprincip – visa aldrig en plats som ledig om det inte stämmer).
-async function fetchCleaningByCitation(lat, lng, vehicleSet, radius = 500) {
+async function fetchCleaningByCitation(lat, lng, vehicleSet, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
   const forbRaw = await fetchLayer('LTFR_P_FORBUD_GEOM', bbox);
@@ -1948,7 +1951,7 @@ function nyssSnartRing(s, now, baseInfo) {
 
 // MC-rutorna som ETT eget lager – visas i ALLA lägen (Nu/Morgon/Kväll/Natt) när MC är valt,
 // oberoende av vilket flöde som ritar gatorna. Återanvänder P_TILLATEN-hämtaren.
-async function fetchMcRutor(lat, lng, radius = 500) {
+async function fetchMcRutor(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
   const [tillRaw, cleanByCitation, stadCtx] = await Promise.all([
@@ -2010,7 +2013,7 @@ function rhPinIcon(color, ring) {
   return L.divIcon({ className: 'rh-pin', iconSize: [28, 28], iconAnchor: [14, 14],
     html: '<div class="rh-pin-b" style="background:' + c + ';' + pinShadow(c, ring) + '">' + svgIcon('wheelchair') + '</div>' });
 }
-async function fetchRhPlatser(lat, lng, radius = 500) {
+async function fetchRhPlatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
   const [tillRaw, cleanByCitation, stadCtx] = await Promise.all([
@@ -2072,7 +2075,7 @@ function cykelPinIcon(color, ring) {
   return L.divIcon({ className: 'cykel-pin', iconSize: [24, 24], iconAnchor: [12, 12],
     html: '<div class="cykel-pin-b" style="background:' + c + ';' + pinShadow(c, ring) + '">' + svgIcon('bike') + '</div>' });
 }
-async function fetchCykelPlatser(lat, lng, radius = 500) {
+async function fetchCykelPlatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
   const [tillRaw, cleanByCitation, stadCtx] = await Promise.all([
@@ -2137,7 +2140,7 @@ function busPinIcon() {
   return L.divIcon({ className: 'bus-pin', iconSize: [14, 14], iconAnchor: [7, 7],
     html: '<div class="bus-pin-b">' + svgIcon('bus') + '</div>' });
 }
-async function fetchHallplatser(lat, lng, radius = 500) {
+async function fetchHallplatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = [lng - deg, lat - deg, lng + deg, lat + deg].join(',');
   try {
@@ -2965,7 +2968,7 @@ function realignMcToNeighbor(allowed) {
 
 // Lager 3+5 – ladda och klassificera parkering runt en punkt.
 // Returnerar { allowed:[ParkingSegment], forbiddenLines:[[ [x,y],[x,y] ] …] } (SWEREF99)
-async function loadParkingV2(lat, lng, radius = 500) {
+async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
   const tD = new Date(), todayInt = tD.getFullYear()*10000 + (tD.getMonth()+1)*100 + tD.getDate();
@@ -3410,12 +3413,21 @@ function cleaningState(start, end, nowHM) {
   if (nowHM >= start || nowHM <= end) return 'active';
   return 'upcoming';
 }
+// Standard sök-/hämtningsradie (meter) för parkering, MC/RH/cykel-nålar och busshållplatser.
+// Bbox-formeln (se loadParkingV2) ger ±radie×1,8 i grader ⇒ verklig synlig räckvidd blir
+// UNGEFÄR DUBBELT det här talet, inte exakt det – 250 gav ±450 m N/S i praktiken (var 500→
+// ±900 m, uppmätt ända ut till 1006 m med WFS-segmentöverhäng). Sänkt 2026-08-20 på Lars
+// begäran: den gamla räckvidden gick längre än man rimligen vill gå till måladressen.
+// RÖR EJ CLEAN_REACH_M nedan – den är MEDVETET bredare (se 500 m-GLAPPET-kommentaren), en
+// säkerhetsmarginal mot en tidigare bugg. En mindre sökradie gör bara den marginalen större.
+const DEFAULT_SEARCH_RADIUS_M = 250;
 // ── 500 m-GLAPPET ────────────────────────────────────────────────────────────
 // Parkering hämtas i en BBOX (loadParkingV2: ±0,0081° ⇒ ±900 m N/S, ±460 m Ö/V, och
 // WFS returnerar HELA segment som skär rutan – uppmätt ritad parkering ända ut till
 // 1006 m). Städmatchningen filtrerade i stället på segmentets MITTPUNKT inom en
 // 500 m-CIRKEL. All parkering mellan cirkeln och bbox-kanten fick därför ALDRIG någon
-// städmatchning och föll igenom till grön = falsk trygghet.
+// städmatchning och föll igenom till grön = falsk trygghet. (Talen i denna historik-
+// kommentar är kvar oförändrade – de beskriver läget INNAN sökradien sänktes.)
 // Mätt 2026-07-27: 7,1 % av segmenten bytte färg beroende på var användaren sökt ifrån.
 // Två fel rättas: (1) räckvidden täcker nu hela hämtningsytan, (2) HELA segmentet
 // prövas, inte bara mittpunkten (ett långt städsegment kan ha mittpunkten utanför
@@ -3907,12 +3919,19 @@ function updateWhenChip(mode) {
   const cur = document.getElementById('when-current'); if (cur) cur.textContent = WHEN_LABELS[mode] || '';
   const ic  = document.getElementById('when-icon');    if (ic) ic.innerHTML = svgIcon(p.icon);
   const pt  = document.getElementById('when-pitch');   if (pt) pt.textContent = p.t;
-  const wy  = document.getElementById('when-why');
-  if (wy) wy.textContent = vehicleMode === 'cykel'
+  // Den utförliga förklaringen (fordons-/lägesmedveten) visas inte längre på chippet i vila –
+  // bara toppraden (when-pitch) syns där, alltid. Texten flyttar in i "Byt"-menyn i stället,
+  // på det AKTIVA lägets rad – fortfarande en tryckning bort, inte borttagen (Lars 2026-08-20).
+  const why = vehicleMode === 'cykel'
     ? 'Visar dedikerade cykel- och mopedplatser (moped klass 2) i närheten.'
     : mode === 'uc2'
     ? `Visar gator där ${vehicleWord()} kan stå kvar utan att service slår till.`
     : p.w;
+  const otherMode = mode === 'uc2' ? 'now' : 'uc2';
+  const activeSub = document.querySelector(`.when-opt[data-mode="${mode}"] .when-opt-sub`);
+  if (activeSub) activeSub.textContent = why;
+  const otherSub = document.querySelector(`.when-opt[data-mode="${otherMode}"] .when-opt-sub`);
+  if (otherSub) otherSub.textContent = WHEN_SUBS[otherMode] || '';
   document.querySelectorAll('.when-opt').forEach(el =>
     el.classList.toggle('active-when', el.dataset.mode === mode));
 }
@@ -3966,6 +3985,9 @@ function sheetSet(y, animate = true) {
 // fordonsbyte som svarar medan man drar) rycka undan lådan mitt i gesten ("åker upp och fastnar",
 // eftersom pointermove sedan räknar från ett läge lådan inte längre är i).
 function sheetSnapTo(state) { if (!sheetEl || sheetDragging) return; sheetCompute(); sheetSet(sheetSnaps[state]); }
+// Genväg till samma "bara handtaget synligt"-läge som redan nås genom att dra hela vägen
+// ner för hand – ett tryck på krysset i stället för en ibland kinkig dra-gest (Lars 2026-08-20).
+function sheetMinimize() { if (!sheetEl || sheetDragging) return; sheetCompute(); sheetSet(sheetSnaps.min); setSheetPref('min'); }
 // Minns om användaren själv dragit ner lådan → lägesförklaringen glider då inte upp av sig själv.
 // Minns EXAKT vilket läge användaren senast drog/snäppte lådan till (upp som ner) →
 // lägesförklaringen återställer det i stället för att alltid hoppa till peek. Default = peek (visa text).
@@ -4366,9 +4388,9 @@ function flyToAndShow(lat, lng) {
   // Pre-starta tunga nätverksanrop under kartanimationen (~1.1 s).
   // v2/now använder P_TILLATEN-grunden (ej Overpass).
   const useV2here   = uc2 && v2Active;
-  const overpassP   = (uc2 && !v2Active) ? fetchOverpassStreets(lat, lng, 500) : null;
-  const foreskriftP = (useV2here || isNow) ? null : loadForeskriftRestrictions(lat, lng, uc2 ? 500 : 700);
-  const parkV2P     = (useV2here || isNow) ? loadParkingV2(lat, lng, 500) : null;
+  const overpassP   = (uc2 && !v2Active) ? fetchOverpassStreets(lat, lng, DEFAULT_SEARCH_RADIUS_M) : null;
+  const foreskriftP = (useV2here || isNow) ? null : loadForeskriftRestrictions(lat, lng, DEFAULT_SEARCH_RADIUS_M);
+  const parkV2P     = (useV2here || isNow) ? loadParkingV2(lat, lng, DEFAULT_SEARCH_RADIUS_M) : null;
 
   // Destinationsnål: klassisk Google Maps-nål (röd droppe med vit kant). Samma i ALLA lägen.
   const destIcon = L.divIcon({
@@ -4682,7 +4704,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
   try {
     // Parkeringsrestriktioner (LTFR_P_FORBUD_GEOM) hämtas skopat till sökrutan nedan
     // (tillsammans med overpass/foreskrift) – forbiddenParkingLines fylls där.
-    const restrictionsP = loadParkingRestrictions(getKey(), lat, lng, 500);
+    const restrictionsP = loadParkingRestrictions(getKey(), lat, lng, DEFAULT_SEARCH_RADIUS_M);
 
     // 1. Städgator inom 500 m – röda linjer och namnfilter baseras BARA på nearby-features.
     //    Annars bannlyses t.ex. "Birger Jarlsgatan" nära sökadressen för att samma gatunamn
@@ -4719,8 +4741,8 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
     // 3. Använd pre-startade hämtningar (startades i flyToAndShow under kartanimationen)
     //    Är de klara är väntetiden noll – annars väntar vi på resterande tid.
     const [overpass] = await Promise.all([
-      overpassP   || fetchOverpassStreets(lat, lng, 500),
-      foreskriftP || loadForeskriftRestrictions(lat, lng, 500),
+      overpassP   || fetchOverpassStreets(lat, lng, DEFAULT_SEARCH_RADIUS_M),
+      foreskriftP || loadForeskriftRestrictions(lat, lng, DEFAULT_SEARCH_RADIUS_M),
       restrictionsP,
     ]);
 
