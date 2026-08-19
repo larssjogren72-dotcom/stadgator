@@ -61,7 +61,10 @@ const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 50 });
 const CACHE      = new Map();            // key -> { body:Buffer, type, expires }
 const INFLIGHT   = new Map();            // key -> [res, …]  (koalescering)
 const CACHE_TTL  = 6 * 60 * 60 * 1000;   // 6 h
-const CACHE_MAX  = 64 * 1024 * 1024;     // 64 MB total
+const CACHE_MAX  = 512 * 1024 * 1024;    // 512 MB total (höjt från 64 MB 2026-08-19 – Railway-planen
+                                          // har 8 GB, faktisk användning låg ~110-130 MB; cachen låg
+                                          // konstant i taket och kastade ut äldsta posten, vilket gjorde
+                                          // kallstarter vanliga för flerstopps-sessioner i nya områden)
 const ENTRY_MAX  = 30 * 1024 * 1024;     // cacha ej svar > 30 MB
 let   cacheBytes = 0, HITS = 0, MISSES = 0;
 
