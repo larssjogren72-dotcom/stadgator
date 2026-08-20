@@ -854,12 +854,13 @@ fs.mkdirSync(OUT, { recursive: true });
 function aboutPage() {
   const sections = `
   <section class="card"><h2>Vad är ParkSpot?</h2>
-    <p><b>ParkSpot</b> är en <b>gratis webb-app</b> som visar var du får <b>parkera lagligt i Stockholm</b> – just nu, i kväll eller över natten. Appen färgar gatorna på en karta efter om du får stå, visar <b>pris per taxazon (Taxa 1–5)</b>, <b>städdagar per gata</b> och när det är <b>gratis eller avgiftsfritt</b>. Allt bygger på <b>Stockholms stads öppna data</b>.</p>
+    <p><b>ParkSpot</b> är en <b>gratis webb-app</b> som visar var du får <b>parkera lagligt i Stockholm</b> – just nu eller över natten. Appen färgar gatorna på en karta efter om du får stå, visar <b>pris per taxazon (Taxa 1–5)</b>, <b>städdagar per gata</b> och när det är <b>gratis eller avgiftsfritt</b>. Utöver bil finns egna lägen för <b>motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd</b>. Allt bygger på <b>Stockholms stads öppna data</b>.</p>
     <a class="cta" href="/">📍 Öppna kartan →</a></section>
   <section class="card"><h2>Vad gör ParkSpot unikt?</h2>
     <ul>
       <li><b>Städdagar per gata</b> – se exakt vilken veckodag och tid en specifik gata servas, säsongsjusterat.</li>
-      <li><b>Fyra lägen</b> – Nu, Morgon, I kväll och Över natten – anpassat efter när du parkerar.</li>
+      <li><b>Två lägen</b> – Nu (inklusive vad som händer snart) och Över natten – anpassat efter när du parkerar.</li>
+      <li><b>Fyra fordonstyper</b> – bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd, varje med egna platser och regler.</li>
       <li><b>Pris innan du parkerar</b> – taxazonen visas direkt på kartan.</li>
       <li><b>Ingen inloggning, inga konton – helt gratis.</b></li>
     </ul></section>
@@ -870,6 +871,7 @@ function aboutPage() {
     <p>ParkSpot bygger på <b>Stockholms stads öppna data</b> (parkeringsregler, servicedagar, taxazoner). Data kan vara inaktuell eller ha luckor – <b>kontrollera alltid skylten på plats</b>. ParkSpot ansvarar inte för p-böter eller bogsering.</p></section>`;
   const faq = [
     { q:'Vad är ParkSpot?', a:'En gratis webb-app som visar var du får parkera lagligt i Stockholm – pris per zon, städdagar per gata och nattparkering – på en live-karta, baserat på Stockholms stads öppna data.' },
+    { q:'Fungerar ParkSpot för MC, moped och rörelsehindrade?', a:'Ja. Utöver bil har ParkSpot egna lägen för motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd – varje läge visar de platser och regler som gäller just det fordonet.' },
     { q:'Är ParkSpot gratis?', a:'Ja, helt gratis och utan inloggning. ParkSpot tar inte betalt och visar ingen reklam för parkering.' },
     { q:'Vilken data bygger ParkSpot på?', a:'Stockholms stads öppna data: parkeringsregler, servicedagar (städdagar) och taxazoner. Kontrollera alltid skylten på plats.' },
     { q:'Vad skiljer ParkSpot från EasyPark och Parkster?', a:'De är betal-appar för själva avgiften. ParkSpot visar i stället VAR du får stå lagligt, vad det kostar och när det städas – du betalar som vanligt via din vanliga app.' },
@@ -883,16 +885,16 @@ function aboutPage() {
   ];
   const extraLd = { '@context':'https://schema.org', '@graph':[
     { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:'ParkSpot Stockholm', url:SITE, logo:`${SITE}/og-image-v2.png`,
-      description:'ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.',
+      description:'ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.',
       areaServed:{ '@type':'City', name:'Stockholm', sameAs:'https://sv.wikipedia.org/wiki/Stockholm' } },
     { '@type':'WebApplication', '@id':`${SITE}/#app`, name:'ParkSpot Stockholm', alternateName:'ParkSpot', url:SITE,
       applicationCategory:'TravelApplication', applicationSubCategory:'Parking', operatingSystem:'Web', inLanguage:'sv', isAccessibleForFree:true,
       offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:{ '@type':'City', name:'Stockholm' }, publisher:{ '@id':`${SITE}/#organization` },
-      description:'Visar var du får parkera lagligt just nu i Stockholm – pris per zon, städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning.' } ] };
+      description:'Visar var du får parkera lagligt just nu i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per zon, städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning.' } ] };
   emit('om-parkspot', layout({
     slug:'om-parkspot', title:'Om ParkSpot – gratis parkeringsapp för Stockholm | ParkSpot',
-    desc:'Vad är ParkSpot? En gratis webb-app som visar var du får parkera lagligt i Stockholm – pris per zon, städdagar per gata och nattparkering, baserat på stadens öppna data.',
-    h1:'Om ParkSpot', lead:'ParkSpot är en gratis app som visar var du får parkera lagligt i Stockholm – nu, i kväll eller över natten. Här förklarar vi vad appen gör och varför.',
+    desc:'Vad är ParkSpot? Gratis app som visar var du får parkera lagligt i Stockholm – bil, MC, moped, rörelsehindrade. Pris, städdagar och nattparkering.',
+    h1:'Om ParkSpot', lead:'ParkSpot är en gratis app som visar var du får parkera lagligt i Stockholm – för bil, MC, cykel/moped och rörelsehindrade, nu eller över natten. Här förklarar vi vad appen gör och varför.',
     sections, faq, related, lat:null, lng:null, match:null, extraLd }));
 }
 
