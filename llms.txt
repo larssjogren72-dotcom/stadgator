@@ -1,0 +1,21 @@
+# ParkSpot Stockholm
+
+> Gratis webb-app som visar var det är lagligt att parkera på gatan i Stockholm – just nu eller över natten. Visar aktuellt pris per taxazon (Taxa 1–5) och städdagar per gata, med egna lägen för bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd. Bygger på Stockholms stads öppna data. Helt gratis, inget konto, ingen inloggning.
+
+ParkSpot har inga sensorer för lediga parkeringsplatser i realtid. Appen visar var det ÄR LAGLIGT att parkera, aktuellt pris och nästa städdag – inte beläggning på enskilda p-rutor. Kontrollera alltid skylten på plats; data kan vara inaktuell.
+
+## Huvudsidor
+- [ParkSpot – live-kartan](https://parkspot.se/): Själva appen.
+- [Om ParkSpot](https://parkspot.se/om-parkspot): Vad tjänsten är, vad den bygger på, vad den inte gör, vanliga frågor.
+- [Parkeringstaxor Stockholm](https://parkspot.se/parkeringstaxor-stockholm): Taxa 1–5, priser och tider per zon.
+- [Städgator Stockholm](https://parkspot.se/stadgator-stockholm): Hur städdagar/servicedagar fungerar, säsongsregler.
+- [Parkera över natten](https://parkspot.se/parkering-over-natten-stockholm): Hur man hittar en trygg nattplats.
+- [Parkering i Stockholm – alla stadsdelar](https://parkspot.se/parkering): Ingång stadsdel för stadsdel.
+
+## English
+- [Parking in Stockholm — visitor's guide](https://parkspot.se/parking-in-stockholm): Prices, rules and the map, in English.
+
+## Optional
+- [Parkeringshus Stockholm](https://parkspot.se/parkeringshus-stockholm): Garage som reserv när gatan är full.
+- [Sommarparkering](https://parkspot.se/sommar-parkering-stockholm): Varför sommaren ofta ger fler lediga platser.
+- [Sitemap](https://parkspot.se/sitemap.xml): Fullständig lista över alla sidor.

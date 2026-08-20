@@ -494,11 +494,13 @@ http.createServer((req, res) => {
     );
     fs.readFile(filePath, (err, data) => {
       if (err) { res.writeHead(404); res.end('Not found'); return; }
-      const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
+      const types = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
                       '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                      '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon' };
+                      '.svg': 'image/svg+xml; charset=utf-8', '.webp': 'image/webp', '.ico': 'image/x-icon' };
       const ext = path.extname(filePath);
-      res.setHeader('Content-Type', types[ext] || 'text/plain');
+      // Utan charset tolkar webbläsaren text/plain som Latin-1 → å/ä/ö blir rappakalja
+      // (upptäckt via llms.txt, som är första icke-ASCII .txt-filen som serverats härifrån).
+      res.setHeader('Content-Type', types[ext] || 'text/plain; charset=utf-8');
       // App-skalet (index.html) får ALDRIG cachas – annars kör webbläsaren kvar gammal
       // kod efter en deploy/ändring (stale-JS-fällan slog till flera ggr trots no-cache).
       // no-store = webbläsaren sparar aldrig svaret → omöjligt att servera gammal JS.
