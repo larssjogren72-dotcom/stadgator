@@ -278,7 +278,7 @@ function districtHub(d) {
     ${boendeTable(d.taxa)}
     <p class="muted">${BOENDE_CAVEAT}</p></section>
   <section class="card"><h2>Städgator i ${esc(d.name)}</h2><p>${seasonLine}</p>
-    <p>Kvällsknepet: en gata som städas imorgon bitti är ofta ledig redan ikväll — de som nattparkerar undviker den.</p></section>
+    <p>Kvällsknepet: en gata som städas imorgon bitti är ofta ledig redan ikväll — de som nattparkerar undviker den. Läget <b>Nu</b> visar direkt om en gata nyss städats eller snart städas.</p></section>
   <section class="card"><h2>Parkera över natten i ${esc(d.name)}</h2>
     <p>I läget <b>Över natten</b> visar ParkSpot gröna gator nära dig där det är lagligt att stå till morgonen efter — utan städgata eller förbud. Avgift kan ändå gälla; kontrollera skylten.</p></section>
   ${(() => { const st = STREETS.filter(x => x.districtSlug === d.slug);
@@ -364,7 +364,7 @@ function stadgator(d) {
     <p>Varje gata har en städdag (veckodag) då du inte får stå. ${d.seasonal
       ? `I ${esc(d.name)} gäller många gator <b>bara vintertid (${SEASON})</b> — resten av året är de inte städgator.`
       : `I ${esc(d.name)} städas gator i regel året runt.`} ParkSpot visar morgondagens städgator på kartan${d.seasonal ? ' och räknar bort vintergator som är ur säsong' : ''}.</p></section>
-  <section class="card"><h2>Kvällsknepet</h2><p>En gata som städas imorgon bitti är ofta ledig redan ikväll — nattparkerare undviker den. Perfekt för ett kvällsbesök i ${esc(d.name)}.</p></section>`;
+  <section class="card"><h2>Kvällsknepet</h2><p>En gata som städas imorgon bitti är ofta ledig redan ikväll — nattparkerare undviker den. Perfekt för ett kvällsbesök i ${esc(d.name)}. Läget <b>Nu</b> visar direkt vilka gator som nyss städats eller snart städas.</p></section>`;
   const faq = [
     { q:`Vilka gator städas imorgon i ${d.name}?`, a:`Det syns live på ParkSpot-kartan (se rutan ovan)${d.seasonal ? ', säsongsjusterat så vintergator inte visas på sommaren' : ''}.` },
     { q:`Är städgator i ${d.name} igång på sommaren?`, a:`${d.seasonal ? `Många gäller bara ${SEASON} (vinter) och är alltså inte städgator på sommaren.` : `Ja, i ${d.name} städas gator i regel året runt.`}` },
@@ -585,7 +585,7 @@ function pillarStadgator() {
   <section class="card"><h2>Säsongen: varför vissa gator bara gäller vintern</h2>
     <p>Många gator i ytterstaden städas <b>bara ${SEASON}</b>. Resten av året är de inte städgator. ParkSpot är säsongssmart och räknar bort dem när de inte gäller — så du ser rätt lista, inte en felaktig.</p>
     <ul>${outer.slice(0, 8).map(d => `<li><a href="/stadgator/${d.slug}">Städgator i ${esc(d.name)}</a></li>`).join('')}</ul></section>
-  <section class="card"><h2>Kvällsknepet</h2><p>En gata som städas imorgon bitti är ofta ledig redan ikväll — perfekt för kvällsbesök. ParkSpot:s läge "I kväll" bygger på just detta.</p></section>`;
+  <section class="card"><h2>Kvällsknepet</h2><p>En gata som städas imorgon bitti är ofta ledig redan ikväll — perfekt för kvällsbesök. Läget <b>Nu</b> visar direkt vilka gator som nyss städats eller snart städas, så du hittar dem.</p></section>`;
   const faq = [
     { q:`Hur vet jag vilka gator som städas imorgon?`, a:`ParkSpot visar morgondagens städgator live på kartan, säsongsjusterat.` },
     { q:`Varför står det att en gata inte städas fast skylten säger städdag?`, a:`Troligen säsong: gatan städas bara ${SEASON}. Utanför den perioden gäller den inte. Kontrollera alltid skylten.` },
