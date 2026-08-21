@@ -1518,6 +1518,20 @@ function distPointToSegment(px, py, ax, ay, bx, by) {
   const t = Math.max(0, Math.min(1, ((px-ax)*dx + (py-ay)*dy) / lenSq));
   return Math.hypot(px - (ax + t*dx), py - (ay + t*dy));
 }
+// Som distPointToSegment, men returnerar ÄVEN det oklippta projektionsläget t (kan vara <0
+// eller >1 om punkten ligger UTANFÖR sträckan). Byggd för cykel/bil-sammanfallningskollen
+// (Norra Agnegatan 2026-08-21, se forbudWeeklyOccurrence) - måste skilja "ligger mitt i bilens
+// städlinje" (t inom [0,1], Norra Agnegatan) från "råkar bara vidröra linjens ändpunkt" (t<0
+// eller t>1, Onkel Adams Väg) - distPointToSegments klippta t duger inte till det, den gör
+// medvetet ingen skillnad mellan de två fallen.
+function perpendicularCoincidence(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx*dx + dy*dy;
+  if (lenSq === 0) return { dist: Math.hypot(px - ax, py - ay), t: 0 };
+  const t = ((px-ax)*dx + (py-ay)*dy) / lenSq;
+  const tc = Math.max(0, Math.min(1, t));
+  return { dist: Math.hypot(px - (ax + tc*dx), py - (ay + tc*dy)), t };
+}
 
 // Sant om SWEREF99-punkt [sx,sy] ligger ≤ threshold meter från en restriktionslinje (FORESKRIFT)
 // streetName: om angivet matchas mot locationApprox för att undvika granngatans restriktioner.
@@ -2158,10 +2172,14 @@ function cykelPinIcon(color, ring) {
 async function fetchCykelPlatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const [tillRaw, cleanByCitation] = await Promise.all([
+  const [tillRaw, cleanByCitation, forbRaw] = await Promise.all([
     fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
     fetchCleaningByCitation(lat, lng, CYKEL_VEHICLES, radius),
+    fetchLayer('LTFR_P_FORBUD_GEOM', bbox),
   ]);
+  // Bilens förbudsposter i samma ruta - underlag för coincidentCarRecord (Norra Agnegatan-fallet
+  // nedan), oberoende av citation-kopplingen ovan.
+  const carForbud = forbRaw.filter(f => ((f.properties||{}).VEHICLE||'').toLowerCase() === 'fordon');
   const now = new Date();
   // MEDVETET ingen stadTierFor/fetchStadContext-fallback här (till skillnad från MC/RH nedan).
   // Den fallbacken matchar bara på GATUNAMN + 25 m-närhet till bilens städschema - fungerar bra
@@ -2196,6 +2214,14 @@ async function fetchCykelPlatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
         .map(p => ({ s: p.START_TIME, e: p.END_TIME, day: SV_WEEKDAYS.indexOf((p.START_WEEKDAY || '').toLowerCase()) }))
         .filter(x => x.day >= 0 && x.s != null);
       if (schedule.length) s.ownScheduleText = scheduleText(schedule);
+    }
+    // Ingen egen citation-koppling → kolla om rutan geometriskt SAMMANFALLER med en bils
+    // städlinje (Norra Agnegatan 2026-08-21, se coincidentCarRecord för resonemanget). Bara
+    // om cit/ownScheduleText inte redan gav ett svar - citation-kopplingen är starkast när den
+    // finns, det här är ett kompletterande, svagare-men-fortfarande-geometriskt-bekräftat spår.
+    if (!s.cleaningNow && !s.ownScheduleText) {
+      const carRecord = coincidentCarRecord(s, carForbud);
+      if (carRecord) applyCoincidentCleaning(s, carRecord, now);
     }
     return s;
   });
@@ -2854,6 +2880,104 @@ function forbudActiveAt(p, d) {
   // från att tro att en tom post har en aktiv städtid.
   if (hasNoOwnCondition(p)) return null;
   return true;   // alla kända villkor uppfyllda (minst ett av DAY_TYPE/WEEKDAY/TIME var satt)
+}
+
+// Slår upp senaste/nästa tillfälle en STATISK P_FORBUD-post (med egna veckodags-/tidsfält) är
+// aktiv, genom att testa forbudActiveAt på kandidatdagar - byggd 2026-08-21 för cykel/moped-
+// platser som geometriskt SAMMANFALLER med en bils städlinje (Norra Agnegatan, se
+// checkCoincidentCarCleaning i fetchCykelPlatser) men saknar en egen citation-koppling.
+// Återanvänder forbudActiveAt rakt av för varje kandidatdag - ingen egen veckodags-/säsongs-
+// logik att få fel, precis som buildNextCleaningWeek gör mot servicedagar-API:t (fast här mot
+// en enda given post istället för ett helt lager). ODD_EVEN-poster ger aldrig en träff här
+// (forbudActiveAt returnerar null för dem, aldrig true) - redan säkert, ingen specialhantering
+// behövs.
+function forbudWeeklyOccurrence(p, now) {
+  // Formen matchar EXAKT vad nastaStadTxt/senasteStadTxt (och stadTierFor/nyssSnartRing) redan
+  // förväntar sig av bilens Nu-flöde ({when,start,end,dagar}) - samma textformatterare återanvänds
+  // rakt av, ingen ny variant behövs.
+  let nextStart = null, lastEnd = null;
+  for (let i = 0; i <= 8 && !nextStart; i++) {
+    const d = new Date(now); d.setDate(now.getDate() + i);
+    d.setHours(Math.floor((p.START_TIME||0)/100), (p.START_TIME||0)%100, 1, 0);   // 1s in i fönstret
+    if (d >= now && forbudActiveAt(p, d) === true) nextStart = { when: d, start: p.START_TIME, end: p.END_TIME, dagar: i };
+  }
+  for (let i = 0; i <= 8 && !lastEnd; i++) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    d.setHours(Math.floor((p.END_TIME||0)/100), (p.END_TIME||0)%100, -1, 0);      // 1s före slutet
+    if (d <= now && forbudActiveAt(p, d) === true) {
+      const end = new Date(d); end.setSeconds(end.getSeconds() + 1);
+      lastEnd = { when: end, start: p.START_TIME, end: p.END_TIME };
+    }
+  }
+  return { lastEnd, nextStart };
+}
+
+const CYKEL_COINCIDENT_TOL_M = 2;       // tolerans MITT I en bilpost-sträcka
+const CYKEL_COINCIDENT_END_TOL_M = 0.3; // strängare tolerans vid postens FAKTISKA ändpunkt
+// Sant om cykel-/mopedsegmentets EGEN linje geometriskt SAMMANFALLER med en given bil-
+// förbudspost som har ett eget tidsvillkor. Norra Agnegatan (2026-08-21, Lars fältfynd):
+// cykelrutan (egen, senare citation 0180 2021:04219, föreskriftstext bara "får endast cykel
+// och moped klass II parkeras" - inget om tid, verifierat mot RDT-PDF) ligger 7-13 cm in i en
+// bilstädlinje (torsdagar 00-06, citation 0180 2017:08355), TYDLIGT inuti sträckan (t≈0,6-0,86
+// på den delsegment som träffas). Vägmärkesförordningen (lagen.nu/2007:90) bekräftar att en
+// snävare fordonstypregel för en kortare sträcka inte upphäver en bredare, redan gällande
+// tidsregel för samma sträcka om inte den nya uttryckligen säger det - så städkravet ärvs.
+//
+// FÖRSTA VERSIONEN (bara t∈[0,1], enhetlig 2 m-tolerans) gav 110/211 (52 %) citywide - orimligt
+// högt jämfört med det enda konkret verifierade fallet, och en stickprovskoll av avstånd/t-läge
+// visade varför: 40 % av träffarna låg nära t=0 eller t=1 på just DEN delsegment de träffade,
+// men en förbudspost består ofta av FLERA delsegment i rad (en krökt gata digitaliserad med
+// många hörnpunkter) - t nära 0/1 vid en INRE hörnpunkt (nästa delsegment tar vid direkt) är
+// helt ofarligt, bara vid linjens FAKTISKA start/slutpunkt (ingen fortsättning) betyder det att
+// cykelrutan kan ligga UTANFÖR hela sträckan, som Onkel Adams Väg (t<0 där, redan uteslutet,
+// men samma riskmönster kan uppstå med t bara barely inifrån [0,1] också). Skärpt därför:
+// full 2 m-tolerans mitt i sträckan, men bara 30 cm om träffen ligger nära den delsegmentets
+// ände OCH den delsegmenten råkar vara linjens FÖRSTA eller SISTA (ingen efterföljande punkt).
+function coincidentCarRecord(cykelSeg, carFeatures) {
+  for (const f of carFeatures) {
+    const p = f.properties || {};
+    if (hasNoOwnCondition(p)) continue;             // inget tidsvillkor att ärva
+    for (const cLine of featureLines(f)) {
+      for (let i = 0; i < cLine.length - 1; i++) {
+        const [ax, ay] = cLine[i], [bx, by] = cLine[i+1];
+        const isLineStart = (i === 0), isLineEnd = (i === cLine.length - 2);
+        for (const kLine of cykelSeg.linesSweref) {
+          for (const [px, py] of kLine) {
+            const { dist, t } = perpendicularCoincidence(px, py, ax, ay, bx, by);
+            if (t < 0 || t > 1) continue;
+            const nearRealEdge = (t < 0.1 && isLineStart) || (t > 0.9 && isLineEnd);
+            const tol = nearRealEdge ? CYKEL_COINCIDENT_END_TOL_M : CYKEL_COINCIDENT_TOL_M;
+            if (dist <= tol) return p;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+// Ger cykel-/mopedsegmentet SAMMA behandling (ring+text i Nu, trygg/risk i Natt) som en riktig
+// bilstädlinje skulle fått - men bara när coincidentCarRecord ovan geometriskt bekräftat att den
+// delar samma fysiska yta, aldrig bara för att den råkar dela gatunamn (det var 239773c-buggen).
+function applyCoincidentCleaning(s, carRecord, now) {
+  if (forbudActiveAt(carRecord, now) === true) { s.cleaningNow = true; s.cleaningEnd = carRecord.END_TIME; return; }
+  const { lastEnd, nextStart } = forbudWeeklyOccurrence(carRecord, now);
+  if (!s.ownScheduleText && carRecord.START_TIME != null) {
+    const day = SV_WEEKDAYS.indexOf((carRecord.START_WEEKDAY || '').toLowerCase());
+    if (day >= 0) s.ownScheduleText = scheduleText([{ s: carRecord.START_TIME, e: carRecord.END_TIME, day }]);
+  }
+  if (currentMode === 'uc2') {
+    if (nextStart && nextStart.dagar === 1) {
+      const nt = overnightCleaningTier(nextStart.start);
+      if (nt === 'natt' || nt === 'morgon') { s.nattRisk = true; s.nattInfo = nextStart; s.nattTier = nt; return; }
+    }
+    s.tryggNatt = true;
+    return;
+  }
+  if (lastEnd && (now - lastEnd.when) / 3600000 <= SENASTE_H) { s.nyssStadad = true; s.nyssInfo = lastEnd; return; }
+  if (nextStart) {
+    const h = (nextStart.when - now) / 3600000;
+    if (h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H) { s.stadasSnart = true; s.snartInfo = nextStart; }
+  }
 }
 
 // ── P-fickor som lagras som YTA i stället för linje ─────────────────────────
