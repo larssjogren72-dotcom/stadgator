@@ -2300,9 +2300,13 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   if (dest) document.getElementById('gmaps-btn').href =
     `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
 
-  // ── Meta: veckoschemat (beviset bakom hjälten). Gågata/uteservering har sin info i hjälten. ──
+  // ── Meta: veckoschemat (beviset bakom hjälten). Gågata/uteservering har sin info i hjälten.
+  // Cykel/moped också undantaget (2026-08-21): denna rad slår upp SCHEMAT FÖR GATUNAMNET, utan
+  // att veta att en cykelruta kan vara en egen, separat beslutad yta (se samma resonemang och
+  // exempel - Onkel Adams Väg - vid stadTierFor-fixen i fetchCykelPlatser ovan). MC/RH är riktiga
+  // bilplatser där gatans schema är sakligt korrekt "bevis" - de behåller raden oförändrad. ──
   const cleanRow = document.getElementById('clean-row');
-  const isSpecial = (statusColor === GAGATA_COLOR || statusColor === UTESERVERING_COLOR);
+  const isSpecial = (statusColor === GAGATA_COLOR || statusColor === UTESERVERING_COLOR || statusColor === CYKEL_COLOR);
   const seq = ++cardSeq;   // guard: ett nyare kort ska inte skrivas över av ett gammalt svar
   const setClean = t => { cleanRow.innerHTML = svgIcon('calendar') + '<span>' + escHtml(t) + '</span>'; };
   if (isSpecial || !dest || !name) {
