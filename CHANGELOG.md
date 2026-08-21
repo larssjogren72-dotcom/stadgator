@@ -14,6 +14,23 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.7.0 – 2026-08-21
+Cykel-/mopedplatser: två separata "lånad städtext från en orelaterad bilgata"-buggar
+hittade och fixade (gatunamns-baserad fallback i fetchCykelPlatser, samt platskortets
+egna gatunamns-schema-uppslag) – upptäckta genom fälttest (Onkel Adams Väg). Riktiga
+citation-kopplade fall (Vegagatan, Spelbomskans Torg) återinförda. Ny geometrisk
+sammanfallningskoll: en cykel-/mopedruta utan egen citation ärver nu bilens städschema
+när den bevisligen ligger på samma fysiska yta (Norra Agnegatan-fallet, verifierat mot
+RDT-föreskrift + vägmärkesförordningen), inte bara på gatunamn.
+`239773c` … `2565ac9`
+
+## v1.6.0 – 2026-08-21
+FAQ:n i om-modalen omgjord till strukturell schema.org-markup (Question/Answer),
+synkad ordagrant med JSON-LD (en säsongsfråga hade glidit isär i ordval). Fyra nya
+frågor: MC-parkering, "nyss städat/kommer städas"-glow-effekten, rörelsehindrad-läge
+och avgiftsfri-parkering-schemat.
+`0b0a58e` … `e6ad38a`
+
 ## v1.5.9 – 2026-08-20
 SEO/AEO-omgång: FAQ + FAQPage-schema på de 6 hubbsidor som saknade det,
 entitetsgraf i index.html utökad med cykel/moped/RH + dateModified, borttaget
