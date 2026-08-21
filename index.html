@@ -2177,9 +2177,26 @@ async function fetchCykelPlatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   // överhuvudtaget inte utfärdas mot ett oregistrerat fordon, så en lånad städvarning här hade
   // varit dubbelt ogrundad. MC/RH är riktiga bilplatser (RH = "bil + tillstånd") där bilens
   // städlogik är sakligt korrekt att återanvända - de behåller stadTierFor oförändrat.
+  //
+  // RÄTTAT 2026-08-21 (Lars fråga: "måste ju finnas rutor i stan där städgata gäller?"): stämde
+  // - "0/194" ovan var en 3 dagar gammal census, inte omkollad. Färsk stadstäckande koll hittade
+  // 2 äkta fall: Spelbomskans Torg (citation 0180 2024-04497, fredagar 12-14) och Vegagatan
+  // (0180 2024-04404, torsdagar 09-14) - båda P_FORBUD-poster taggade EXAKT "Reserverad p-plats
+  // cykel", dvs en riktig, stadsbekräftad städtid för just den rutan, inte en lånad gata-text.
+  // citationCleaningNow (döljer nålen när aktiv) fångade redan dessa korrekt utan ändring här -
+  // det som saknades var den INFORMATIVA texten i förväg. Byggd nedan direkt från samma
+  // citation-kopplade rader (aldrig den gatunamns-baserade /schedule-slagningen som orsakade
+  // hela buggen), så bara äkta bekräftade fall får en text alls.
   return tillRaw.map(toAllowedSegment).filter(s => isCykelPlats(s.vehicle) && s.linesSweref.length).map(s => {
     const cit = citationCleaningNow(s.citation, cleanByCitation, now);
     if (cit) { s.cleaningNow = true; s.cleaningEnd = cit.end; }
+    const ownRows = s.citation && cleanByCitation.get(s.citation);
+    if (ownRows && ownRows.length) {
+      const schedule = ownRows
+        .map(p => ({ s: p.START_TIME, e: p.END_TIME, day: SV_WEEKDAYS.indexOf((p.START_WEEKDAY || '').toLowerCase()) }))
+        .filter(x => x.day >= 0 && x.s != null);
+      if (schedule.length) s.ownScheduleText = scheduleText(schedule);
+    }
     return s;
   });
 }
@@ -2207,7 +2224,7 @@ async function cykelPlatserOverlay(lat, lng) {
       L.marker(dest, { icon: cykelPinIcon(CYKEL_COLOR, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Cykel-/mopedplats', titleOverride || 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest, info, true); })
+          showPlaceCardV2(s.street || 'Cykel-/mopedplats', titleOverride || 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest, info, true, false, s.ownScheduleText); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
