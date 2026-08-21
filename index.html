@@ -2158,22 +2158,28 @@ function cykelPinIcon(color, ring) {
 async function fetchCykelPlatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
-  const [tillRaw, cleanByCitation, stadCtx] = await Promise.all([
+  const [tillRaw, cleanByCitation] = await Promise.all([
     fetchLayer('LTFR_P_TILLATEN_GEOM', bbox),
     fetchCleaningByCitation(lat, lng, CYKEL_VEHICLES, radius),
-    fetchStadContext(lat, lng),
   ]);
   const now = new Date();
+  // MEDVETET ingen stadTierFor/fetchStadContext-fallback här (till skillnad från MC/RH nedan).
+  // Den fallbacken matchar bara på GATUNAMN + 25 m-närhet till bilens städschema - fungerar bra
+  // för MC/RH (dedikerade platser DÄR ÄR bilplatser, samma fysiska gata). En cykel-/mopedruta är
+  // en egen, senare och SEPARAT beslutad yta (egen citation) som kan ligga dikt an mot en
+  // bilstädzon utan att vara samma yta - Lars fann 2026-08-21 ett konkret fall (Onkel Adams Väg)
+  // där rutan (citation 0180 2025-04679, ingen egen städpost) fick "städas ons+tors 09-14" bara
+  // för att den låg <1 m från slutpunkten av en helt orelaterad bilstädlinje. Ren avståndströskel
+  // löser inte det (avståndet till just den punkten är verkligt litet) - rätt fix är att inte
+  // låna bilens gatunamns-baserade schema alls för cykel, bara den EGNA citation-kopplingen
+  // (citationCleaningNow, som ärligt är 0/194 hittills men är den enda bekräftade grunden).
+  // Se även project-minnet om rättslig osäkerhet: kontrollavgift/felparkeringsavgift kan
+  // överhuvudtaget inte utfärdas mot ett oregistrerat fordon, så en lånad städvarning här hade
+  // varit dubbelt ogrundad. MC/RH är riktiga bilplatser (RH = "bil + tillstånd") där bilens
+  // städlogik är sakligt korrekt att återanvända - de behåller stadTierFor oförändrat.
   return tillRaw.map(toAllowedSegment).filter(s => isCykelPlats(s.vehicle) && s.linesSweref.length).map(s => {
-    const first = s.linesSweref[0] && s.linesSweref[0][0];
-    const dest = first && toLatLng(first[0], first[1]);
     const cit = citationCleaningNow(s.citation, cleanByCitation, now);
-    const tier = stadTierFor(dest, s.street, stadCtx, now);
-    if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
-    else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
-    else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
-    else if (tier && tier.tier === 'trygg') { s.tryggNatt = true; }
-    else if (tier && tier.tier === 'risk')  { s.nattRisk = true; s.nattInfo = tier.info; s.nattTier = tier.natTier; }
+    if (cit) { s.cleaningNow = true; s.cleaningEnd = cit.end; }
     return s;
   });
 }
@@ -4228,8 +4234,7 @@ function updateLegend(mode) {
   // idag (0 sådana poster i registret) men samma regel oavsett fordon.
   const cykelLegend =
       `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>
-       ${ringRows('border-radius:7px;transform:rotate(45deg)', CYKEL_COLOR)}`;
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>`;
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
     : mode === 'now' ? nowLegend
     : (v2Active ? uc2LegendV2 : uc2LegendOld);
