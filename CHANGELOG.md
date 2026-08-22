@@ -14,6 +14,16 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.7.1 – 2026-08-22
+Moped klass 1 tillagt i MC-parkeringstexten, appen och SEO-sidorna. Verifierat
+mot 7 RDT-originalbeslut (2018–2026, 6 stadsdelar) att moped klass 1 juridiskt
+delar alla MC-parkeringsplatser i Stockholm – MC_VEHICLES-logiken var redan
+korrekt sedan 21/8, det som saknades var texten. Uppdaterat: FAQ (ny fråga +
+utökat svar), fordonsväljarens etikett, legend, platskortstitel och hint-text
+(tre separata kodvägar) i appen; ny fråga på huvudhubben "parkering", utökat
+taxa-svar och produktbeskrivning på om-parkspot i SEO-sidorna.
+`55bef8e` … `b507dbd`
+
 ## v1.7.0 – 2026-08-21
 Cykel-/mopedplatser: två separata "lånad städtext från en orelaterad bilgata"-buggar
 hittade och fixade (gatunamns-baserad fallback i fetchCykelPlatser, samt platskortets
