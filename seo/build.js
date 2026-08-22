@@ -518,7 +518,7 @@ function pillarTaxa() {
   const faq = [
     { q:`Vad kostar Taxa 1, 2, 3, 4 och 5 i Stockholm?`, a:`Taxa 1: <b>55 kr/tim</b> · Taxa 2: <b>31 kr/tim</b> · Taxa 3: <b>20 kr/tim</b> · Taxa 4: <b>10 kr/tim</b> · Taxa 5: <b>5 kr/tim</b> (pris per timme, besöksparkering). Se tabellen ovan för exakta tider per zon.` },
     { q:`Vilken taxa är billigast – och vilken är dyrast?`, a:`Billigast är <b>Taxa 5</b> (5 kr/tim vardag 7–19, gratis övrig tid). Dyrast är <b>Taxa 1</b> (55 kr/tim dygnet runt i city).` },
-    { q:`Finns det Taxa 6, 7, 8 eller 9 i Stockholm?`, a:`Nej – bilparkeringen i Stockholm har <b>taxa 1–5</b>. Det finns en lägre taxa för <b>motorcykel</b> (ca 2,50–13,75 kr/tim beroende på zon). Står du i en mc-ruta gäller mc-taxan.` },
+    { q:`Finns det Taxa 6, 7, 8 eller 9 i Stockholm?`, a:`Nej – bilparkeringen i Stockholm har <b>taxa 1–5</b>. Det finns en lägre taxa för <b>motorcykel</b> (ca 2,50–13,75 kr/tim beroende på zon), som även gäller <b>moped klass 1</b>. Står du i en mc-ruta gäller mc-taxan.` },
     { q:`När är parkering avgiftsfri i Stockholm?`, a:`Ofta kvällar, nätter och söndagar utanför taxetiden, särskilt i lägre zoner. Obs: lördag 11–17 har avgift i Taxa 1–4 (Taxa 5 fritt). Kontrollera skylten.` },
     { q:`Vad kostar boendeparkering i Stockholm?`, a:`I Taxa 1–3: <b>90 kr/dygn</b> eller <b>1 600 kr/30 dagar</b>. Taxa 4: 35 kr/dygn eller 500 kr/30 dagar. Taxa 5: 20 kr/dygn eller 300 kr/30 dagar. Kräver folkbokföring och fordonsägande i zonen.` },
   ];
@@ -743,6 +743,7 @@ function pillarHubs() {
       { q:'Hur funkar parkering i Stockholm?', a:'Tre saker styr: <b>taxezon</b> (pris, Taxa 1–5), <b>städdag</b> (veckodag med parkeringsförbud för städning) och eventuellt <b>parkeringsförbud</b>. ParkSpot visar alla tre på kartan.' },
       { q:'Täcker ParkSpot hela Stockholm?', a:'ParkSpot täcker Stockholms stad där Stockholms öppna data finns — välj din stadsdel nedan för pris, städdag och nattparkering.' },
       { q:'Är parkering i Stockholm gratis?', a:'Sällan helt gratis dagtid i innerstan (Taxa 1–2 har avgift dygnet runt), men ofta avgiftsfritt kvällar, nätter och söndagar i de lägre zonerna (Taxa 3–5).' },
+      { q:'Var får jag parkera med MC eller moped klass 1 i Stockholm?', a:'Motorcykel och moped klass 1 räknas i Stockholms trafikföreskrifter som samma fordonskategori – båda får parkera på dedikerade MC-rutor och på vanliga bilplatser. Öppna ParkSpots karta och välj MC-läget för lagliga platser, städdagar och pris i realtid.' },
     ] });
   // 2) Billigare parkering
   categoryHub({
@@ -885,13 +886,13 @@ fs.mkdirSync(OUT, { recursive: true });
 function aboutPage() {
   const sections = `
   <section class="card"><h2>Vad är ParkSpot?</h2>
-    <p><b>ParkSpot</b> är en <b>gratis webb-app</b> som visar var du får <b>parkera lagligt i Stockholm</b> – just nu eller över natten. Appen färgar gatorna på en karta efter om du får stå, visar <b>pris per taxazon (Taxa 1–5)</b>, <b>städdagar per gata</b> och när det är <b>gratis eller avgiftsfritt</b>. Utöver bil finns egna lägen för <b>motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd</b>. Allt bygger på <b>Stockholms stads öppna data</b>.</p>
+    <p><b>ParkSpot</b> är en <b>gratis webb-app</b> som visar var du får <b>parkera lagligt i Stockholm</b> – just nu eller över natten. Appen färgar gatorna på en karta efter om du får stå, visar <b>pris per taxazon (Taxa 1–5)</b>, <b>städdagar per gata</b> och när det är <b>gratis eller avgiftsfritt</b>. Utöver bil finns egna lägen för <b>motorcykel (även moped klass 1), cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd</b>. Allt bygger på <b>Stockholms stads öppna data</b>.</p>
     <a class="cta" href="/">📍 Öppna kartan →</a></section>
   <section class="card"><h2>Vad gör ParkSpot unikt?</h2>
     <ul>
       <li><b>Städdagar per gata</b> – se exakt vilken veckodag och tid en specifik gata servas, säsongsjusterat.</li>
       <li><b>Två lägen</b> – Nu (inklusive vad som händer snart) och Över natten – anpassat efter när du parkerar.</li>
-      <li><b>Fyra fordonstyper</b> – bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd, varje med egna platser och regler.</li>
+      <li><b>Fyra fordonstyper</b> – bil, motorcykel (även moped klass 1), cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd, varje med egna platser och regler.</li>
       <li><b>Pris innan du parkerar</b> – taxazonen visas direkt på kartan.</li>
       <li><b>Ingen inloggning, inga konton – helt gratis.</b></li>
     </ul></section>
@@ -902,7 +903,7 @@ function aboutPage() {
     <p>ParkSpot bygger på <b>Stockholms stads öppna data</b> (parkeringsregler, servicedagar, taxazoner). Data kan vara inaktuell eller ha luckor – <b>kontrollera alltid skylten på plats</b>. ParkSpot ansvarar inte för p-böter eller bogsering.</p></section>`;
   const faq = [
     { q:'Vad är ParkSpot?', a:'En gratis webb-app som visar var du får parkera lagligt i Stockholm – pris per zon, städdagar per gata och nattparkering – på en live-karta, baserat på Stockholms stads öppna data.' },
-    { q:'Fungerar ParkSpot för MC, moped och rörelsehindrade?', a:'Ja. Utöver bil har ParkSpot egna lägen för motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd – varje läge visar de platser och regler som gäller just det fordonet.' },
+    { q:'Fungerar ParkSpot för MC, moped och rörelsehindrade?', a:'Ja. Utöver bil har ParkSpot egna lägen för motorcykel (samma läge gäller moped klass 1), cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd – varje läge visar de platser och regler som gäller just det fordonet.' },
     { q:'Är ParkSpot gratis?', a:'Ja, helt gratis och utan inloggning. ParkSpot tar inte betalt och visar ingen reklam för parkering.' },
     { q:'Vilken data bygger ParkSpot på?', a:'Stockholms stads öppna data: parkeringsregler, servicedagar (städdagar) och taxazoner. Kontrollera alltid skylten på plats.' },
     { q:'Vad skiljer ParkSpot från EasyPark och Parkster?', a:'De är betal-appar för själva avgiften. ParkSpot visar i stället VAR du får stå lagligt, vad det kostar och när det städas – du betalar som vanligt via din vanliga app.' },
