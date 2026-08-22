@@ -57,7 +57,7 @@
         "image": "https://parkspot.se/og-image-v2.png",
         "description": "ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.",
         "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
-        "knowsAbout": ["Gatuparkering i Stockholm", "Parkeringstaxor (Taxa 1–5)", "Städgator och servicedagar", "Nattparkering", "Boendeparkering", "MC-parkering (motorcykel)", "Cykel- och mopedparkering (moped klass 2)", "Parkering för rörelsehindrade"]
+        "knowsAbout": ["Gatuparkering i Stockholm", "Parkeringstaxor (Taxa 1–5)", "Städgator och servicedagar", "Nattparkering", "Boendeparkering", "MC-parkering (motorcykel och moped klass 1)", "Cykel- och mopedparkering (moped klass 2)", "Parkering för rörelsehindrade"]
       },
       {
         "@type": "WebSite",
@@ -146,7 +146,15 @@
         "name": "Var får jag parkera med MC i Stockholm?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Växla till MC-läge (fordonsväljaren i headern) så visar ParkSpot både dedikerade MC-rutor och vanliga bilplatser där en MC också får stå – i båda lägena (Nu och Natt). På en vanlig gata betalar en MC samma taxa som en bil; på en dedikerad MC-ruta gäller en lägre taxa – kontrollera alltid skylten."
+          "text": "Växla till MC-läge (fordonsväljaren i headern) så visar ParkSpot både dedikerade MC-rutor och vanliga bilplatser där en MC också får stå – i båda lägena (Nu och Natt). MC-läget gäller även moped klass 1, som enligt Stockholms trafikföreskrifter får parkera på samma dedikerade platser som MC. På en vanlig gata betalar en MC samma taxa som en bil; på en dedikerad MC-ruta gäller en lägre taxa – kontrollera alltid skylten."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Var får jag parkera moped klass 1 i Stockholm?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Moped klass 1 räknas i Stockholms trafikföreskrifter tillsammans med motorcykel – välj MC-läge (fordonsväljaren i headern) så visar ParkSpot både dedikerade MC-rutor och vanliga bilplatser där en moped klass 1 också får stå. Samma taxa och regler som för MC gäller."
         }
       },
       {
@@ -800,7 +808,14 @@
       <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
         <h3 itemprop="name">Var får jag parkera med MC i Stockholm?</h3>
         <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">Växla till MC-läge (fordonsväljaren i headern) så visar ParkSpot både dedikerade MC-rutor och vanliga bilplatser där en MC också får stå – i båda lägena (Nu och Natt). På en vanlig gata betalar en MC samma taxa som en bil; på en dedikerad MC-ruta gäller en lägre taxa – kontrollera alltid skylten.</p>
+          <p itemprop="text">Växla till MC-läge (fordonsväljaren i headern) så visar ParkSpot både dedikerade MC-rutor och vanliga bilplatser där en MC också får stå – i båda lägena (Nu och Natt). MC-läget gäller även moped klass 1, som enligt Stockholms trafikföreskrifter får parkera på samma dedikerade platser som MC. På en vanlig gata betalar en MC samma taxa som en bil; på en dedikerad MC-ruta gäller en lägre taxa – kontrollera alltid skylten.</p>
+        </div>
+      </div>
+
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <h3 itemprop="name">Var får jag parkera moped klass 1 i Stockholm?</h3>
+        <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">Moped klass 1 räknas i Stockholms trafikföreskrifter tillsammans med motorcykel – välj MC-läge (fordonsväljaren i headern) så visar ParkSpot både dedikerade MC-rutor och vanliga bilplatser där en moped klass 1 också får stå. Samma taxa och regler som för MC gäller.</p>
         </div>
       </div>
 
@@ -847,7 +862,7 @@
     </div>
     <div id="veh-toggle" role="group" aria-label="Fordon">
       <button id="veh-bil" class="veh-opt" onclick="setVehicle('bil')" aria-label="Bil"></button>
-      <button id="veh-mc"  class="veh-opt" onclick="setVehicle('mc')"  aria-label="Motorcykel"></button>
+      <button id="veh-mc"  class="veh-opt" onclick="setVehicle('mc')"  aria-label="Motorcykel och moped klass 1"></button>
       <button id="veh-rh"  class="veh-opt" onclick="setVehicle('rh')"  aria-label="Rörelsehindrad – parkeringstillstånd"></button>
       <button id="veh-cykel" class="veh-opt" onclick="setVehicle('cykel')" aria-label="Cykel och moped klass 2"></button>
     </div>
@@ -2088,7 +2103,7 @@ async function mcRutorOverlay(lat, lng) {
       if (!dest) return;
       const { ring, info, titleOverride } = nyssSnartRing(s, new Date(), 'Dedikerad MC-plats – bilister får inte ta den.');
       L.marker(dest, { icon: mcPinIcon('#2563eb', ring), pane: 'markerPane', riseOnHover: true })
-        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', titleOverride || 'MC-ruta · bara MC får stå', '#2563eb', dest, info); })
+        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', titleOverride || 'MC-ruta · MC och moped klass 1 får stå', '#2563eb', dest, info); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
@@ -3625,8 +3640,12 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
     const badge = document.getElementById('count-badge');
     if (vehicleMode !== 'cykel') { badge.textContent = `${safe} trygga platser i natt`; badge.style.display = 'block'; }
+    // Samma "gäller även moped klass 1"-tillägg som renderModeIntro() – den här texten
+    // skriver över hint-elementet EFTER en sökning, så renderModeIntro:s variant syns bara
+    // innan man sökt (upptäckt vid test 2026-08-22, se project-minnet).
+    const mcSuffix = vehicleMode === 'mc' ? ' Gäller även moped klass 1.' : '';
     document.getElementById('hint').innerHTML =
-      `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.</span>` +
+      `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.${mcSuffix}</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
 
     loadZonesForViewport(getKey());
@@ -4045,8 +4064,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
     const badge = document.getElementById('count-badge');
     if (vehicleMode !== 'cykel') { badge.textContent = `${okNu} gator där du får stå nu`; badge.style.display = 'block'; }
+    // Samma "gäller även moped klass 1"-tillägg som renderModeIntro() – se kommentaren i
+    // showSafeStreetsV2Flow för varför detta behövs som ett eget ställe.
+    const mcSuffix = vehicleMode === 'mc' ? ' Gäller även moped klass 1.' : '';
     document.getElementById('hint').innerHTML =
-      `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för tider och vägbeskrivning.</span>` +
+      `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för tider och vägbeskrivning.${mcSuffix}</span>` +
       '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
     loadZonesForViewport(getKey());
     sheetSnapTo('peek');
@@ -4316,7 +4338,7 @@ function updateLegend(mode) {
     : `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;${shape}"></div>Nyss städad – bra chans</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;${shape}"></div>Gott om tid – bra möjlighet just nu</div>`;
   const mcRow = vehicleMode === 'mc'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (bara MC)</div>
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (MC &amp; moped klass 1)</div>
        ${ringRows('border-radius:50%', '#2563eb')}`
     : vehicleMode === 'rh'
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #0c5a70;border-radius:5px"></div>Reserverad plats – tillstånd krävs</div>
@@ -4926,9 +4948,13 @@ function renderModeIntro() {
   // se project-minnet 2026-08-18) – appen målar därför inga gator i det här läget, bara nålar
   // för Stockholms dedikerade platser. Samma text oavsett Nu/Natt eftersom regeln inte skiljer.
   const cykelIntro = `<b>Cykel &amp; moped klass 2</b> visar Stockholms dedikerade cykel- och mopedplatser i närheten. Du får normalt ställa cykeln/mopeden var som helst annars, så länge den inte är i vägen – kartan visar inga förbudsgator för cykel. Tryck på ${tapTargetPhraseAny()} för detaljer.`;
+  // MC-läget delar sin färgförklaring med bilen (samma gatufärger) – därför ingen egen
+  // intro-text som cykelns, bara en kort tillagd mening om att moped klass 1 räknas hit med
+  // (Stockholms trafikföreskrifter, verifierat 2026-08-22 mot 7 RDT-originalbeslut).
+  const mcSuffix = vehicleMode === 'mc' ? ' Gäller även moped klass 1.' : '';
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
-  hintEl.innerHTML = `<span class="hint-main">${vehicleMode === 'cykel' ? cykelIntro : (intro[currentMode] || intro.uc2)}</span>` + disclaimer;
+  hintEl.innerHTML = `<span class="hint-main">${vehicleMode === 'cykel' ? cykelIntro : (intro[currentMode] || intro.uc2) + mcSuffix}</span>` + disclaimer;
 }
 
 function setMode(mode) {
