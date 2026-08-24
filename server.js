@@ -315,6 +315,109 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
   return a <= b ? (cur >= a && cur <= b) : (cur >= a || cur <= b);
 }
 
+// ── PILOT: Sundbyberg-adapter ────────────────────────────────────────────────
+// ISOLERAD OCH ADDITIV. Rör inte en enda Stockholm-väg: allt nedan lever under
+// /sbg/* och har egen cache. Syftet är att bevisa att en ANNAN kommuns data kan
+// översättas till EXAKT samma GeoJSON-kontrakt som /servicedagar-bbox redan
+// levererar, så att klienten i förlängningen inte behöver ändras alls.
+// Källa: gis.sundbyberg.se (öppen ArcGIS REST, ingen nyckel).
+// OBS licens: servern är öppen men Sundbyberg publicerar 0 datamängder på
+// dataportal.se → åtkomlig ≠ licensierad. Måste klaras med kommunen före drift.
+const SBG_HOST  = 'gis.sundbyberg.se';
+const SBG_BAS   = '/arcgis/rest/services/Sundbybergskartan_trafik/MapServer';
+const SBG_LAGER = [70, 169];        // 70 = vintersäsong, 169 = året runt. 168 är TOMT.
+const SBG_TTL   = 6 * 60 * 60 * 1000;
+let sbgCache = null, sbgTs = 0, sbgInflight = null;
+
+// ⚠ VECKODAGSSKALOR: Sundbybergs ArcGIS räknar 0 = måndag. JS getDay() (och
+// SCHED_API_DAYS ovan) räknar 0 = söndag. Utan konverteringen läses tisdag som
+// onsdag – tyst och fel. Detta är kärnan i vad ett stads-adapterlager måste göra.
+const sbgDagTillJs = arc => (arc + 1) % 7;
+
+// Tid-koder → HHMM, samma format som Stockholms START_TIME/END_TIME (0 = 00:00, 600 = 06:00).
+const SBG_TID = { 1:[0,600], 2:[600,900], 3:[800,1600], 4:[0,2400], 6:[800,1200], 7:[800,1500], 8:[1200,1500] };
+// Servicedatum-koder → säsongsfönster (månad*100+dag), samma semantik som cleaningActiveOn.
+const SBG_SASONG = { 1:[1101,515], 2:[1101,331], 3:'alltid', 5:'ejJuli' };
+
+function sbgHamtaLager(id) {
+  return new Promise((resolve) => {
+    const q = `?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&f=json`;
+    const chunks = [];
+    const r = https.request({ hostname: SBG_HOST, port: 443, path: SBG_BAS + '/' + id + '/query' + q,
+                              method: 'GET', agent: keepAliveAgent }, (resp) => {
+      resp.on('data', c => chunks.push(c));
+      resp.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); } });
+    });
+    r.on('error', () => resolve(null));
+    r.setTimeout(20000, () => r.destroy());
+    r.end();
+  });
+}
+
+// Bygger 7 dagar i Stockholm-kontraktets form. Säsong filtreras vid REQUEST (som
+// Stockholm-schemat), så cachen är datum-oberoende.
+function sbgBygg() {
+  if (sbgInflight) return sbgInflight;
+  if (sbgCache && Date.now() - sbgTs < SBG_TTL) return Promise.resolve(sbgCache);
+  sbgInflight = (async () => {
+    const geo = [[], [], [], [], [], [], []];
+    const svar = await Promise.all(SBG_LAGER.map(sbgHamtaLager));
+    for (const j of svar) {
+      for (const f of (j && j.features) || []) {
+        const a = f.attributes || {};
+        // Lager 70 lagrar Servicedag som HELTAL, lager 169 som STRÄNG – tvinga typen.
+        const arcDag = a.Servicedag == null ? null : parseInt(a.Servicedag, 10);
+        const tid = SBG_TID[a.Tid];
+        const paths = (f.geometry && f.geometry.paths) || [];
+        if (arcDag == null || !tid || !paths.length) continue;
+        const dagar = arcDag === 7 ? [0,1,2,3,4,5,6] : [sbgDagTillJs(arcDag)];
+        for (const linje of paths) {
+          if (linje.length < 2) continue;
+          let minLng=Infinity, minLat=Infinity, maxLng=-Infinity, maxLat=-Infinity;
+          for (const c of linje) {
+            if (c[0]<minLng) minLng=c[0]; if (c[0]>maxLng) maxLng=c[0];
+            if (c[1]<minLat) minLat=c[1]; if (c[1]>maxLat) maxLat=c[1];
+          }
+          for (const d of dagar) {
+            geo[d].push({
+              type: 'Feature',
+              properties: {
+                // Sundbyberg har INGET gatunamnsfält. Ärligt null hellre än ett påhittat
+                // namn – klientens granngate-spärr (checkStreetName) kan inte byggas här.
+                STREET_NAME: null,
+                START_TIME: tid[0], END_TIME: tid[1],
+                ADDRESS: '<Adress saknas>',
+                // Additiva Sundbyberg-fält (krockar inte med Stockholms nycklar).
+                SBG_OID: a.OBJECTID, SBG_ZON: a.Parkeringszon_taxa,
+                SBG_PLATSER: a.Antal_p_platser, SBG_AVGIFT_TID: a.Avgift_tid,
+                SBG_MOBILKOD: a.Mobilkod_taxa, SBG_SASONG: a.Servicedatum
+              },
+              geometry: { type: 'LineString', coordinates: linje },
+              _bb: [minLng, minLat, maxLng, maxLat],
+              _sasong: a.Servicedatum
+            });
+          }
+        }
+      }
+    }
+    sbgCache = geo; sbgTs = Date.now();
+    return geo;
+  })().finally(() => { sbgInflight = null; });
+  return sbgInflight;
+}
+
+// Gäller säsongen på datumet d? Samma årsskifts-wrap som Stockholms städsäsonger.
+function sbgSasongAktiv(kod, d) {
+  const spec = SBG_SASONG[kod];
+  if (!spec) return false;
+  if (spec === 'alltid') return true;
+  if (spec === 'ejJuli') return d.getMonth() !== 6;
+  const md = (d.getMonth() + 1) * 100 + d.getDate();
+  const [a, b] = spec;
+  return a <= b ? (md >= a && md <= b) : (md >= a || md <= b);
+}
+// ── PILOT slut ───────────────────────────────────────────────────────────────
+
 http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
@@ -485,6 +588,34 @@ http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'no-store');
     finish(req, res, 200, Buffer.from(JSON.stringify({ semver: APP_SEMVER, version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT })));
+
+  } else if (reqUrl.pathname === '/sbg/servicedagar-bbox') {
+    // PILOT: Sundbybergs städdata i EXAKT samma svarsform som /servicedagar-bbox.
+    // Ligger sist i kedjan → kan omöjligt skugga någon befintlig Stockholm-väg.
+    // ?dag=<0-6, JS-skala 0=söndag, eller svenskt namn>&bbox=minLng,minLat,maxLng,maxLat
+    const tolkaDag = s => { s = (s || '').toLowerCase().trim();
+      return /^\d$/.test(s) ? +s : SCHED_API_DAYS.indexOf(s); };
+    const dag = tolkaDag(reqUrl.searchParams.get('dag'));
+    const bbox = (reqUrl.searchParams.get('bbox') || '').split(',').map(Number);
+    if (!(dag >= 0 && dag <= 6) || bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
+      res.end(JSON.stringify({ error: 'dag (0-6 eller veckodagsnamn) och bbox=minLng,minLat,maxLng,maxLat krävs' }));
+      return;
+    }
+    const varm = !!sbgCache;
+    sbgBygg().then(geo => {
+      const [aLng, aLat, bLng, bLat] = bbox;
+      const idag = new Date();
+      const features = (geo[dag] || [])
+        .filter(f => sbgSasongAktiv(f._sasong, idag))
+        .filter(f => !(f._bb[2] < aLng || f._bb[0] > bLng || f._bb[3] < aLat || f._bb[1] > bLat))
+        .map(f => ({ type: f.type, properties: f.properties, geometry: f.geometry }));
+      send(req, res, 200, 'application/json; charset=utf-8',
+           Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), varm ? 'HIT' : 'MISS');
+    }).catch(() => {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
+      res.end(JSON.stringify({ error: 'Sundbybergs data otillgänglig' }));
+    });
 
   } else {
     // Servera statiska filer (index.html)
