@@ -406,6 +406,84 @@ function sbgBygg() {
   return sbgInflight;
 }
 
+// ── PILOT: Sundbybergs Parkeringszoner → P_TILLATEN-formad GeoJSON ───────────
+// Appen ritar gator ur LTFR_P_TILLATEN_GEOM och förväntar sig geometri i SWEREF99
+// (EPSG:3011), INTE WGS84 – toAllowedSegment lagrar den som linesSweref.
+// Sundbybergs data ligger redan i 3011 nativt. Men bbox från klienten kommer i 4326.
+// Ingen proj4 finns server-side, så vi hämtar samma lager i BÅDA projektionerna
+// (två anrop, cachade 6h) och parar ihop dem på OBJECTID: 4326 för bbox-filtrering,
+// 3011 för geometrin som skickas ut.
+const SBG_ZONLAGER = 166;
+let sbgZonCache = null, sbgZonTs = 0, sbgZonInflight = null;
+const SBG_ZONNAMN = { 18:'E', 19:'D', 20:'C', 21:'B', 22:'A' };
+const SBG_ZONPRIS = { A:45, B:30, C:20, D:35, E:15 };   // verifierat mot sundbyberg.se
+
+function sbgHamtaZoner(outSR) {
+  return new Promise((resolve) => {
+    const q = `?where=1%3D1&outFields=*&returnGeometry=true&outSR=${outSR}&f=json`;
+    const chunks = [];
+    const r = https.request({ hostname: SBG_HOST, port: 443, path: SBG_BAS + '/' + SBG_ZONLAGER + '/query' + q,
+                              method: 'GET', agent: keepAliveAgent }, (resp) => {
+      resp.on('data', c => chunks.push(c));
+      resp.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); } });
+    });
+    r.on('error', () => resolve(null));
+    r.setTimeout(20000, () => r.destroy());
+    r.end();
+  });
+}
+
+function sbgByggZoner() {
+  if (sbgZonInflight) return sbgZonInflight;
+  if (sbgZonCache && Date.now() - sbgZonTs < SBG_TTL) return Promise.resolve(sbgZonCache);
+  sbgZonInflight = (async () => {
+    const [j4326, j3011] = await Promise.all([sbgHamtaZoner(4326), sbgHamtaZoner(3011)]);
+    // OBJECTID → bbox i WGS84 (bara för filtrering)
+    const bboxPerOid = new Map();
+    for (const f of (j4326 && j4326.features) || []) {
+      let minLng=Infinity, minLat=Infinity, maxLng=-Infinity, maxLat=-Infinity;
+      for (const linje of (f.geometry && f.geometry.paths) || []) for (const c of linje) {
+        if (c[0]<minLng) minLng=c[0]; if (c[0]>maxLng) maxLng=c[0];
+        if (c[1]<minLat) minLat=c[1]; if (c[1]>maxLat) maxLat=c[1];
+      }
+      if (isFinite(minLng)) bboxPerOid.set(f.attributes.OBJECTID, [minLng, minLat, maxLng, maxLat]);
+    }
+    const ut = [];
+    for (const f of (j3011 && j3011.features) || []) {
+      const a = f.attributes || {};
+      const bb = bboxPerOid.get(a.OBJECTID);
+      const paths = (f.geometry && f.geometry.paths) || [];
+      if (!bb || !paths.length) continue;
+      const zon  = SBG_ZONNAMN[Math.round(a.Parkeringszon_taxa)] || null;
+      const pris = zon ? SBG_ZONPRIS[zon] : null;
+      for (const linje of paths) {
+        if (linje.length < 2) continue;
+        ut.push({
+          type: 'Feature',
+          properties: {
+            // Minsta uppsättning som toAllowedSegment läser. Allt annat lämnas null
+            // så appens heuristiker (besöksficka, ändamålsplats, säsong) inte utlöses
+            // på gissade värden – Sundbyberg har helt enkelt inte de begreppen.
+            VEHICLE: 'fordon',
+            VF_PLATS_TYP: pris != null ? 'P Avgift' : 'P',
+            PARKING_RATE: pris != null ? String(pris) : null,
+            VF_METER: null, VF_PLATSER: a.Antal_p_platser ?? null,
+            START_TIME: null, END_TIME: null, DAY_TYPE: null,
+            STREET_NAME: null,        // finns inte i Sundbybergs data
+            SBG_OID: a.OBJECTID, SBG_ZON: zon, SBG_PRIS: pris,
+            SBG_AVGIFT_TID: a.Avgift_tid, SBG_MOBILKOD: a.Mobilkod_taxa
+          },
+          geometry: { type: 'LineString', coordinates: linje },   // SWEREF99 EPSG:3011
+          _bb: bb
+        });
+      }
+    }
+    sbgZonCache = ut; sbgZonTs = Date.now();
+    return ut;
+  })().finally(() => { sbgZonInflight = null; });
+  return sbgZonInflight;
+}
+
 // Gäller säsongen på datumet d? Samma årsskifts-wrap som Stockholms städsäsonger.
 function sbgSasongAktiv(kod, d) {
   const spec = SBG_SASONG[kod];
@@ -589,29 +667,62 @@ http.createServer((req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     finish(req, res, 200, Buffer.from(JSON.stringify({ semver: APP_SEMVER, version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT })));
 
+  } else if (reqUrl.pathname === '/sbg/wfs-tillaten') {
+    // PILOT: Sundbybergs parkeringszoner i P_TILLATEN-form (SWEREF99), så appens
+    // befintliga fetchLayer/toAllowedSegment kan läsa dem utan att ändras.
+    // ?BBOX=minLng,minLat,maxLng,maxLat[,EPSG:4326] – samma sträng klienten redan bygger.
+    const rawBbox = reqUrl.searchParams.get('BBOX') || reqUrl.searchParams.get('bbox') || '';
+    const bbox = rawBbox.split(',').slice(0, 4).map(Number);
+    if (bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
+      res.end(JSON.stringify({ error: 'BBOX=minLng,minLat,maxLng,maxLat krävs' }));
+      return;
+    }
+    const varmZ = !!sbgZonCache;
+    sbgByggZoner().then(list => {
+      const [aLng, aLat, bLng, bLat] = bbox;
+      const features = list
+        .filter(f => !(f._bb[2] < aLng || f._bb[0] > bLng || f._bb[3] < aLat || f._bb[1] > bLat))
+        .map(f => ({ type: f.type, properties: f.properties, geometry: f.geometry }));
+      send(req, res, 200, 'application/json; charset=utf-8',
+           Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), varmZ ? 'HIT' : 'MISS');
+    }).catch(() => {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
+      res.end(JSON.stringify({ error: 'Sundbybergs zondata otillgänglig' }));
+    });
+
   } else if (reqUrl.pathname === '/sbg/servicedagar-bbox') {
     // PILOT: Sundbybergs städdata i EXAKT samma svarsform som /servicedagar-bbox.
     // Ligger sist i kedjan → kan omöjligt skugga någon befintlig Stockholm-väg.
     // ?dag=<0-6, JS-skala 0=söndag, eller svenskt namn>&bbox=minLng,minLat,maxLng,maxLat
+    // Stödjer BÅDE ?dag= (en dag → FeatureCollection) och ?dagar=0,1,…  (flera dagar →
+    // { dagar: { "0": FeatureCollection, … } }), exakt som Stockholms motsvarighet.
     const tolkaDag = s => { s = (s || '').toLowerCase().trim();
       return /^\d$/.test(s) ? +s : SCHED_API_DAYS.indexOf(s); };
-    const dag = tolkaDag(reqUrl.searchParams.get('dag'));
+    const flera = reqUrl.searchParams.has('dagar');
+    const dagar = flera ? (reqUrl.searchParams.get('dagar') || '').split(',').map(tolkaDag)
+                        : [tolkaDag(reqUrl.searchParams.get('dag'))];
     const bbox = (reqUrl.searchParams.get('bbox') || '').split(',').map(Number);
-    if (!(dag >= 0 && dag <= 6) || bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
+    if (!dagar.length || dagar.some(d => !(d >= 0 && d <= 6)) ||
+        bbox.length !== 4 || bbox.some(v => !isFinite(v))) {
       res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
-      res.end(JSON.stringify({ error: 'dag (0-6 eller veckodagsnamn) och bbox=minLng,minLat,maxLng,maxLat krävs' }));
+      res.end(JSON.stringify({ error: 'dag/dagar (0-6 eller veckodagsnamn) och bbox=minLng,minLat,maxLng,maxLat krävs' }));
       return;
     }
     const varm = !!sbgCache;
     sbgBygg().then(geo => {
       const [aLng, aLat, bLng, bLat] = bbox;
       const idag = new Date();
-      const features = (geo[dag] || [])
-        .filter(f => sbgSasongAktiv(f._sasong, idag))
-        .filter(f => !(f._bb[2] < aLng || f._bb[0] > bLng || f._bb[3] < aLat || f._bb[1] > bLat))
-        .map(f => ({ type: f.type, properties: f.properties, geometry: f.geometry }));
+      const utsnitt = d => ({ type: 'FeatureCollection',
+        features: (geo[d] || [])
+          .filter(f => sbgSasongAktiv(f._sasong, idag))
+          .filter(f => !(f._bb[2] < aLng || f._bb[0] > bLng || f._bb[3] < aLat || f._bb[1] > bLat))
+          .map(f => ({ type: f.type, properties: f.properties, geometry: f.geometry })) });
+      const kropp = flera
+        ? { dagar: Object.fromEntries(dagar.map(d => [d, utsnitt(d)])) }
+        : utsnitt(dagar[0]);
       send(req, res, 200, 'application/json; charset=utf-8',
-           Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), varm ? 'HIT' : 'MISS');
+           Buffer.from(JSON.stringify(kropp)), varm ? 'HIT' : 'MISS');
     }).catch(() => {
       res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
       res.end(JSON.stringify({ error: 'Sundbybergs data otillgänglig' }));
