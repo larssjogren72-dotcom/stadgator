@@ -430,16 +430,28 @@ function sbgBygg() {
 // Ingen proj4 finns server-side, så vi hämtar samma lager i BÅDA projektionerna
 // (två anrop, cachade 6h) och parar ihop dem på OBJECTID: 4326 för bbox-filtrering,
 // 3011 för geometrin som skickas ut.
-const SBG_ZONLAGER = 166;
+// Lagren som tillsammans utgör Sundbybergs motsvarighet till LTFR_P_TILLATEN_GEOM.
+// I Stockholm ligger bil/MC/RH/cykel i SAMMA lager och skiljs åt av fältet VEHICLE.
+// Sundbyberg har dem som separata lager utan fordonsfält → adaptern sätter VEHICLE och
+// VF_PLATS_TYP till exakt de värden appens predikat letar efter:
+//   isMcExclusive  → MC_VEHICLES  = motorcykel | mc | moped-klass1
+//   isRhPlats      → /rörelsehindrad/i i VF_PLATS_TYP, eller RH_VEHICLES
+//   isCykelPlats   → CYKEL_VEHICLES = cykel | moped-klass2
+const SBG_TILLATEN_LAGER = [
+  { id:166, vehicle:'fordon',         platsTyp:null,                                 zon:true  },
+  { id: 67, vehicle:'motorcykel',     platsTyp:'Reserverad p-plats motorcykel',      zon:false },
+  { id: 68, vehicle:'rörelsehindrade',platsTyp:'Reserverad p-plats rörelsehindrade', zon:false },
+  { id:164, vehicle:'cykel',          platsTyp:'Reserverad p-plats cykel',           zon:false },
+];
 let sbgZonCache = null, sbgZonTs = 0, sbgZonInflight = null;
 const SBG_ZONNAMN = { 18:'E', 19:'D', 20:'C', 21:'B', 22:'A' };
 const SBG_ZONPRIS = { A:45, B:30, C:20, D:35, E:15 };   // verifierat mot sundbyberg.se
 
-function sbgHamtaZoner(outSR) {
+function sbgHamtaLagerSR(id, outSR) {
   return new Promise((resolve) => {
     const q = `?where=1%3D1&outFields=*&returnGeometry=true&outSR=${outSR}&f=json`;
     const chunks = [];
-    const r = https.request({ hostname: SBG_HOST, port: 443, path: SBG_BAS + '/' + SBG_ZONLAGER + '/query' + q,
+    const r = https.request({ hostname: SBG_HOST, port: 443, path: SBG_BAS + '/' + id + '/query' + q,
                               method: 'GET', agent: keepAliveAgent }, (resp) => {
       resp.on('data', c => chunks.push(c));
       resp.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); } });
@@ -450,52 +462,78 @@ function sbgHamtaZoner(outSR) {
   });
 }
 
+// Cykelparkeringen är PUNKTER (143 st), inte linjer. Appen kräver linesSweref för att
+// överhuvudtaget se en plats (toAllowedSegment → featureLines), och använder första
+// punkten som nålens läge. Punkten är den äkta uppgiften; den korta linjen är bara en
+// bärare av samma koordinat, i storleksordningen av ett faktiskt cykelställ.
+const SBG_PUNKT_LANGD_M = 3;
+function sbgPunktTillLinje(g) {
+  const p = (g.points && g.points[0]) || (g.x != null ? [g.x, g.y] : null);
+  if (!p) return null;
+  const h = SBG_PUNKT_LANGD_M / 2;          // SWEREF99 är i meter → rakt av
+  return [[p[0] - h, p[1]], [p[0] + h, p[1]]];
+}
+// Plockar ut linjer ur en ArcGIS-geometri oavsett om den är polyline eller punkt.
+function sbgLinjer(g) {
+  if (!g) return [];
+  if (g.paths) return g.paths.filter(l => l.length >= 2);
+  const l = sbgPunktTillLinje(g);
+  return l ? [l] : [];
+}
+
 function sbgByggZoner() {
   if (sbgZonInflight) return sbgZonInflight;
   if (sbgZonCache && Date.now() - sbgZonTs < SBG_TTL) return Promise.resolve(sbgZonCache);
   sbgZonInflight = (async () => {
-    const [j4326, j3011] = await Promise.all([sbgHamtaZoner(4326), sbgHamtaZoner(3011)]);
-    // OBJECTID → bbox i WGS84 (bara för filtrering)
-    const bboxPerOid = new Map();
-    for (const f of (j4326 && j4326.features) || []) {
-      let minLng=Infinity, minLat=Infinity, maxLng=-Infinity, maxLat=-Infinity;
-      for (const linje of (f.geometry && f.geometry.paths) || []) for (const c of linje) {
-        if (c[0]<minLng) minLng=c[0]; if (c[0]>maxLng) maxLng=c[0];
-        if (c[1]<minLat) minLat=c[1]; if (c[1]>maxLat) maxLat=c[1];
-      }
-      if (isFinite(minLng)) bboxPerOid.set(f.attributes.OBJECTID, [minLng, minLat, maxLng, maxLat]);
-    }
     const ut = [];
-    for (const f of (j3011 && j3011.features) || []) {
-      const a = f.attributes || {};
-      const bb = bboxPerOid.get(a.OBJECTID);
-      const paths = (f.geometry && f.geometry.paths) || [];
-      if (!bb || !paths.length) continue;
-      const zon  = SBG_ZONNAMN[Math.round(a.Parkeringszon_taxa)] || null;
-      const pris = zon ? SBG_ZONPRIS[zon] : null;
-      for (const linje of paths) {
-        if (linje.length < 2) continue;
-        ut.push({
-          type: 'Feature',
-          properties: {
-            // Minsta uppsättning som toAllowedSegment läser. Allt annat lämnas null
-            // så appens heuristiker (besöksficka, ändamålsplats, säsong) inte utlöses
-            // på gissade värden – Sundbyberg har helt enkelt inte de begreppen.
-            VEHICLE: 'fordon',
-            VF_PLATS_TYP: pris != null ? 'P Avgift' : 'P',
-            PARKING_RATE: pris != null ? String(pris) : null,
-            VF_METER: null, VF_PLATSER: a.Antal_p_platser ?? null,
-            START_TIME: null, END_TIME: null, DAY_TYPE: null,
-            // Samma OBJECTID-uppslag som städlagret → identiskt namn på båda sidor,
-            // vilket är hela poängen: kopplingen blir exakt i stället för geometrisk gissning.
-            STREET_NAME: sbgGata(a.OBJECTID),
-            SBG_OID: a.OBJECTID, SBG_ZON: zon, SBG_PRIS: pris,
-            SBG_AVGIFT_TID: a.Avgift_tid, SBG_MOBILKOD: a.Mobilkod_taxa
-          },
-          geometry: { type: 'LineString', coordinates: linje },   // SWEREF99 EPSG:3011
-          _bb: bb
-        });
+    for (const lag of SBG_TILLATEN_LAGER) {
+      const [j4326, j3011] = await Promise.all([
+        sbgHamtaLagerSR(lag.id, 4326), sbgHamtaLagerSR(lag.id, 3011)]);
+      // OBJECTID → bbox i WGS84 (bara för filtrering; geometrin tas från 3011-svaret)
+      const bboxPerOid = new Map();
+      for (const f of (j4326 && j4326.features) || []) {
+        let minLng=Infinity, minLat=Infinity, maxLng=-Infinity, maxLat=-Infinity;
+        for (const linje of sbgLinjer(f.geometry)) for (const c of linje) {
+          if (c[0]<minLng) minLng=c[0]; if (c[0]>maxLng) maxLng=c[0];
+          if (c[1]<minLat) minLat=c[1]; if (c[1]>maxLat) maxLat=c[1];
+        }
+        if (isFinite(minLng)) bboxPerOid.set(f.attributes.OBJECTID, [minLng, minLat, maxLng, maxLat]);
       }
+      let n = 0;
+      for (const f of (j3011 && j3011.features) || []) {
+        const a = f.attributes || {};
+        const bb = bboxPerOid.get(a.OBJECTID);
+        const linjer = sbgLinjer(f.geometry);
+        if (!bb || !linjer.length) continue;
+        const zon  = lag.zon ? (SBG_ZONNAMN[Math.round(a.Parkeringszon_taxa)] || null) : null;
+        const pris = zon ? SBG_ZONPRIS[zon] : null;
+        for (const linje of linjer) {
+          ut.push({
+            type: 'Feature',
+            properties: {
+              // Minsta uppsättning som toAllowedSegment läser. Allt annat lämnas null
+              // så appens heuristiker (besöksficka, ändamålsplats, säsong) inte utlöses
+              // på gissade värden – Sundbyberg har helt enkelt inte de begreppen.
+              VEHICLE: lag.vehicle,
+              VF_PLATS_TYP: lag.platsTyp || (pris != null ? 'P Avgift' : 'P'),
+              PARKING_RATE: pris != null ? String(pris) : null,
+              VF_METER: null, VF_PLATSER: a.Antal_p_platser ?? null,
+              START_TIME: null, END_TIME: null, DAY_TYPE: null,
+              // Samma OBJECTID-uppslag som städlagret → identiskt namn på båda sidor.
+              // OBS: bara zonlagret (166) delar OID med städlagren; MC/RH/cykel har
+              // egna OID-serier och får därför oftast null. Det är korrekt – de är
+              // egna ytor, inte samma sträcka som en bilplats.
+              STREET_NAME: lag.zon ? sbgGata(a.OBJECTID) : null,
+              SBG_OID: a.OBJECTID, SBG_LAGER: lag.id, SBG_ZON: zon, SBG_PRIS: pris,
+              SBG_AVGIFT_TID: a.Avgift_tid ?? null, SBG_MOBILKOD: a.Mobilkod_taxa ?? null
+            },
+            geometry: { type: 'LineString', coordinates: linje },   // SWEREF99 EPSG:3011
+            _bb: bb
+          });
+          n++;
+        }
+      }
+      console.log(`[Pilot] Sundbyberg lager ${lag.id} (${lag.vehicle}): ${n} segment`);
     }
     sbgZonCache = ut; sbgZonTs = Date.now();
     return ut;
