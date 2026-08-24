@@ -323,6 +323,23 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
 // Källa: gis.sundbyberg.se (öppen ArcGIS REST, ingen nyckel).
 // OBS licens: servern är öppen men Sundbyberg publicerar 0 datamängder på
 // dataportal.se → åtkomlig ≠ licensierad. Måste klaras med kommunen före drift.
+// Gatunamn per OBJECTID, förgenererad av pilot/bygg-sbg-gatunamn.js.
+// Sundbybergs data saknar namnfält, och appens TRE städmatchare är alla nycklade på
+// STREET_NAME – utan namn kastas varenda städpost tyst (mätt: 55 av 55, 0 träffar).
+// Städ- och zonlagren delar OBJECTID OCH geometri, så samma uppslag ger båda samma
+// namn → exakt koppling utan risk att fånga grannagatans schema.
+// Saknas filen fungerar allt annat som förut, bara utan städkoppling.
+let SBG_GATUNAMN = {};
+try {
+  SBG_GATUNAMN = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'pilot', 'sbg-gatunamn.json'), 'utf8').replace(/^﻿/, ''));
+  const n = Object.values(SBG_GATUNAMN).filter(Boolean).length;
+  console.log(`[Pilot] Sundbyberg-gatunamn: ${n} av ${Object.keys(SBG_GATUNAMN).length} OID har namn`);
+} catch {
+  console.log('[Pilot] Sundbyberg-gatunamn saknas (kör: node pilot/bygg-sbg-gatunamn.js) – städkoppling av');
+}
+const sbgGata = oid => SBG_GATUNAMN[oid] || null;
+
 const SBG_HOST  = 'gis.sundbyberg.se';
 const SBG_BAS   = '/arcgis/rest/services/Sundbybergskartan_trafik/MapServer';
 const SBG_LAGER = [70, 169];        // 70 = vintersäsong, 169 = året runt. 168 är TOMT.
@@ -382,9 +399,9 @@ function sbgBygg() {
             geo[d].push({
               type: 'Feature',
               properties: {
-                // Sundbyberg har INGET gatunamnsfält. Ärligt null hellre än ett påhittat
-                // namn – klientens granngate-spärr (checkStreetName) kan inte byggas här.
-                STREET_NAME: null,
+                // Namnet kommer från OSM via OBJECTID-tabellen, inte från kommunen.
+                // Utan det kastar appens städmatchare posten (se SBG_GATUNAMN ovan).
+                STREET_NAME: sbgGata(a.OBJECTID),
                 START_TIME: tid[0], END_TIME: tid[1],
                 ADDRESS: '<Adress saknas>',
                 // Additiva Sundbyberg-fält (krockar inte med Stockholms nycklar).
@@ -469,7 +486,9 @@ function sbgByggZoner() {
             PARKING_RATE: pris != null ? String(pris) : null,
             VF_METER: null, VF_PLATSER: a.Antal_p_platser ?? null,
             START_TIME: null, END_TIME: null, DAY_TYPE: null,
-            STREET_NAME: null,        // finns inte i Sundbybergs data
+            // Samma OBJECTID-uppslag som städlagret → identiskt namn på båda sidor,
+            // vilket är hela poängen: kopplingen blir exakt i stället för geometrisk gissning.
+            STREET_NAME: sbgGata(a.OBJECTID),
             SBG_OID: a.OBJECTID, SBG_ZON: zon, SBG_PRIS: pris,
             SBG_AVGIFT_TID: a.Avgift_tid, SBG_MOBILKOD: a.Mobilkod_taxa
           },
