@@ -14,6 +14,30 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.8.3 – 2026-08-25
+En latent bugg i regelmotorn plus ett nytt verktyg. **Stockholms beteende är
+oförändrat** — det är mätt, inte antaget.
+
+`andamalActiveAt()` returnerade `null` när en ändamålsplats (lastplats, taxi,
+på-/avstigning) hade klockslag men saknade både `DAY_TYPE` och `START_WEEKDAY`.
+`null` betyder "rör inte segmentet", så en aktiv lastplats hade sluppit igenom och
+sträckan kunnat visas grön. Det strider mot funktionens egen försiktighetsprincip:
+vaktens uppgift är att fånga ETT tolkbart villkor, och tiden ÄR tolkbar. Tom
+dagangivelse betyder alla dagar, inte "okänt". Nu returneras `true`.
+
+Uppmätt i åtta områden (Vasastan, Norrmalm, Gamla stan, Södermalm, Östermalm,
+Kungsholmen, Hägersten, Bromma): 11 308 P_TILLATEN-poster, 1 552 ändamålsplatser,
+och **noll av dem når den ändrade raden** — alla har både tid och dag. Domarna före
+och efter är identiska (1 538 inaktiva, 14 aktiva, 0 otolkbara). Buggen är alltså
+latent i Stockholm men blir verklig så snart en stad skriver lastplatser utan
+dagangivelse, vilket Sundbyberg gör i 35 av 74 fall.
+
+Nytt verktyg `verktyg/stadskoll.js` (rör ingen appkod): läser av vilken data en stad
+publicerar och matchar mot vad appen påstår, så frågan "vilka påståenden kan appen
+göra här, och vilka måste den tiga om" går att svara på innan någon utvecklar något.
+Går alltid ner till lagren, aldrig bara tjänsternas namn.
+`9411ea8`, `71c5f5f`
+
 ## v1.8.2 – 2026-08-25
 Bottenlådans höjd kommer nu från `85%` i stället för `85vh`, så CSS och JS inte kan
 glida isär. Lådan är absolutpositionerad i `#app` (`position:relative; height:100%`),
