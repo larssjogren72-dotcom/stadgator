@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.8.4 – 2026-08-25
+"Över natten" missade ändamålsplatser helt. Läget frågade bara om **städning** i
+morgon bitti, så en lastplats som blir aktiv 07:00 föll rakt igenom färgkedjan till
+grön "Trygg över natten" — utan ett ord om att bilen måste flyttas. Nu-läget hade
+rätt hela tiden; det var specifikt natt-läget som aldrig ställde morgondagens fråga
+om segmentets *egna* tidsfönster.
+
+Fixen speglar städlogiken i stället för att uppfinna en ny: det finns **två** slags
+morgonhinder, inte ett. Städningen kommer från gatan, ändamålsplatsen från segmentet
+självt — och det som öppnar **först** binder, för bilen måste vara borta innan det
+första fönstret börjar. Samma `overnightCleaningTier` avgör natt/morgon/sen. Texten
+skiljer på vad som kommer: "Lastplats imorgon 07–19" mot "Servas imorgon 07–19".
+
+Omfattning i fem innerstadsområden: 1 197 påverkade segment (1 164 lastplatser,
+30 på-/avstigning, 2 taxiplatser, 1 skolskjuts). Av 1 552 ändamålsplatser är **noll**
+aktiva kl 22–04 men **1 442 aktiva kl 07:00** — felet biter alltså på morgonen, vilket
+är precis vad natt-läget lovar: att bilen kan stå kvar tills du hämtar den.
+
+Verifierat i samma vy före och efter: grön 588 → 550 (−38), amber 104 → 142 (+38),
+och röd/lila/rosa/orange samt totala antalet linjer exakt oförändrade. Tio amber-segment
+klickade via riktig klickväg: nio städsegment behöll sin ordagranna text, ett fick den
+nya lastplatstexten. Marktestat mot originalföreskriften `0180 2018:02726`
+(Kungstensgatan), där data, sträcklängd 12 m och sida stämmer med beslutet.
+`b7766af`
+
 ## v1.8.3 – 2026-08-25
 En latent bugg i regelmotorn plus ett nytt verktyg. **Stockholms beteende är
 oförändrat** — det är mätt, inte antaget.
