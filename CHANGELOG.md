@@ -14,6 +14,29 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.8.2 – 2026-08-25
+Bottenlådans höjd kommer nu från `85%` i stället för `85vh`, så CSS och JS inte kan
+glida isär. Lådan är absolutpositionerad i `#app` (`position:relative; height:100%`),
+så procenten räknas mot appens faktiska höjd — exakt det tal `sheetCompute()` läser
+som `appH`. Med `vh` fanns två oberoende sanningar: på iOS är `vh` den *stora*
+vyporten (adressfältet borträknat) medan `window.innerHeight` är den faktiska, och de
+är oense så fort adressfältet syns. Initiala peek-läget gick från
+`translateY(calc(85vh - 118px))` till `calc(100% - 118px)` — procent i `translateY`
+syftar på elementets egen höjd, alltså samma innebörd utan vyport-beroende.
+
+Omfattningen, ärligt: `full`, `peek` och `min` härleds alla relativt lådans egen höjd
+och tog till stor del ut sig själva, så detta var ett **proportionsfel, inte ett
+överflöde**. Där CSS och JS redan var ense: 690 px, identiskt före och efter. Med
+simulerat adressfält (app 730 av 812) gav gamla koden 690 px = 94,5 % av appen i
+stället för 85 %. Lådan stack aldrig ut nedanför appen — den var för hög i förhållande
+till skärmen, vilket förskjuter `half`/`full` och den plats legenden får.
+
+Ej ändrat, men dokumenterat i ARKITEKTUR.md §9: i `full`/`half` hamnar legenden under
+lådan (uppmätt överlapp 193 px) eftersom `fitLegendHeight()` har ett golv på 120 px som
+vinner över att få plats. Avsiktligt, och sannolikt det som upplevts som "hoptryckt
+legend".
+`da29528`
+
 ## v1.8.1 – 2026-08-25
 Vakthund som håller kartans canvas i takt med sin container, efter att Lars
 återskapat frysningen live 24/8 och fotograferat den. Bilden visade en *riven*
