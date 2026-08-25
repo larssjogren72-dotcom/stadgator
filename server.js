@@ -669,12 +669,21 @@ http.createServer((req, res) => {
         if (f.name !== name) continue;
         const bb = f.bb;
         if (lng < bb[0]-dLng || lng > bb[2]+dLng || lat < bb[1]-dLat || lat > bb[3]+dLat) continue;
-        if (!inSeasonNow(f, today)) continue;
+        // Poster UTANFÖR säsong hoppades tidigare över helt. Det gjorde att en gata med
+        // vinterschema (1/11–15/5) i augusti föll ut som TOMT schema, och klienten skrev
+        // "Ingen registrerad servicedag" – sakligt fel, schemat finns och vilar. Uppmätt
+        // 2026-08-25: 1 195 av 1 225 säsongsposter är vilande bara på måndagar.
+        // Nu följer de med, märkta `vilande` + när de vaknar, så klienten kan säga sanningen.
+        const aktiv = inSeasonNow(f, today);
         let hit = false;
         for (const ln of f.lines) { for (let i=0; i<ln.length-1; i++) { if (segDistM(lat, lng, ln[i], ln[i+1]) <= 25) { hit = true; break; } } if (hit) break; }
         if (!hit) continue;
-        const k = f.day+'_'+f.s+'_'+f.e;
-        if (!seen.has(k)) { seen.add(k); schedule.push({ day: f.day, s: f.s, e: f.e }); }
+        const k = f.day+'_'+f.s+'_'+f.e+'_'+(aktiv?'a':'v');
+        if (!seen.has(k)) {
+          seen.add(k);
+          schedule.push(aktiv ? { day: f.day, s: f.s, e: f.e }
+                              : { day: f.day, s: f.s, e: f.e, vilande: true, sm: f.sm, sd: f.sd });
+        }
       }
       send(req, res, 200, 'application/json; charset=utf-8', Buffer.from(JSON.stringify({ schedule })), warm ? 'HIT' : 'MISS');
     }).catch(() => {
@@ -723,6 +732,58 @@ http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'no-store');
     finish(req, res, 200, Buffer.from(JSON.stringify({ semver: APP_SEMVER, version: APP_VERSION, sha: APP_SHA || null, källa: APP_SRC, startad: APP_BUILT })));
+
+  } else if (reqUrl.pathname === '/sbg/schedule') {
+    // PILOT: samma kontrakt som Stockholms /schedule – { schedule:[{day,s,e,vilande?,sm?,sd?}] }.
+    // Möjligt först sedan adaptern fyller STREET_NAME (pilot/sbg-gatunamn.json); uppslaget
+    // sker på namn + 25 m, exakt som Stockholm. Vilande säsonger följer med, av samma skäl
+    // som där: annars påstår kortet "ingen registrerad servicedag" om en vinterstädad gata.
+    const lat  = parseFloat(reqUrl.searchParams.get('lat'));
+    const lng  = parseFloat(reqUrl.searchParams.get('lng'));
+    const name = (reqUrl.searchParams.get('name') || '').toLowerCase().trim();
+    if (!isFinite(lat) || !isFinite(lng) || !name) {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(400);
+      res.end(JSON.stringify({ error: 'lat/lng/name krävs' })); return;
+    }
+    const varmS = !!sbgCache;
+    sbgBygg().then(geo => {
+      const idag = new Date();
+      const mLng = 111320 * Math.cos(lat * Math.PI / 180);
+      const dLat = 25/111320 + 1e-4, dLng = 25/mLng + 1e-4;
+      const seen = new Set(), schedule = [];
+      for (let dag = 0; dag < 7; dag++) {
+        for (const f of geo[dag] || []) {
+          const p = f.properties || {};
+          if ((p.STREET_NAME || '').toLowerCase().trim() !== name) continue;
+          const bb = f._bb;
+          if (lng < bb[0]-dLng || lng > bb[2]+dLng || lat < bb[1]-dLat || lat > bb[3]+dLat) continue;
+          const linje = f.geometry.coordinates;
+          let traff = false;
+          for (let i = 0; i < linje.length - 1; i++) {
+            if (segDistM(lat, lng, linje[i], linje[i+1]) <= 25) { traff = true; break; }
+          }
+          if (!traff) continue;
+          const aktiv = sbgSasongAktiv(f._sasong, idag);
+          const k = dag+'_'+p.START_TIME+'_'+p.END_TIME+'_'+(aktiv?'a':'v');
+          if (seen.has(k)) continue;
+          seen.add(k);
+          if (aktiv) schedule.push({ day: dag, s: p.START_TIME, e: p.END_TIME });
+          else {
+            // Säsongens startmånad/dag ur kommunens kodlista, i samma form som Stockholm.
+            const spec = SBG_SASONG[f._sasong];
+            const start = Array.isArray(spec) ? spec[0] : null;      // t.ex. 1101
+            schedule.push({ day: dag, s: p.START_TIME, e: p.END_TIME, vilande: true,
+                            sm: start ? Math.floor(start/100) : null,
+                            sd: start ? start % 100 : null });
+          }
+        }
+      }
+      send(req, res, 200, 'application/json; charset=utf-8',
+           Buffer.from(JSON.stringify({ schedule })), varmS ? 'HIT' : 'MISS');
+    }).catch(() => {
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.writeHead(502);
+      res.end(JSON.stringify({ error: 'Sundbybergs schema otillgängligt' }));
+    });
 
   } else if (reqUrl.pathname === '/sbg/wfs-tillaten') {
     // PILOT: Sundbybergs parkeringszoner i P_TILLATEN-form (SWEREF99), så appens
