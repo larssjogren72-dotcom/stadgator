@@ -383,13 +383,22 @@
     /* Bottensheet (draggbar, svävar över kartan) */
     #bottom {
       position: absolute; left: 0; right: 0; bottom: 0;
-      height: 85vh; max-height: 85vh;
+      /* PROCENT, inte vh. #bottom är absolut­positionerad i #app (position:relative,
+         height:100%), så 85 % räknas mot appens FAKTISKA höjd – exakt samma tal som
+         sheetCompute() läser som `appH`. Med `85vh` var CSS och JS två oberoende
+         sanningar: på iOS är `vh` den STORA vyporten (adressfältet borträknat) medan
+         `window.innerHeight` är den faktiska, och de är oense så fort adressfältet syns.
+         Nu kan de inte glida isär, för det finns bara en källa. */
+      height: 85%; max-height: 85%;
       background: #ffffff;
       border-top: 1px solid var(--glass-border);
       border-radius: 18px 18px 0 0;
       box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
       display: flex; flex-direction: column;
-      transform: translateY(calc(85vh - 118px));   /* peek tills JS tar över */
+      /* Procent i translateY syftar på ELEMENTETS EGEN höjd, inte förälderns – så
+         `100% - 118px` betyder "dra ner hela lådan utom 118 px", vilket är precis vad
+         det gamla `85vh - 118px` försökte uttrycka. Nu utan vyport-beroende. */
+      transform: translateY(calc(100% - 118px));   /* peek tills JS tar över */
       transition: transform .28s cubic-bezier(.16,1,.3,1);
       z-index: 1050;
     }

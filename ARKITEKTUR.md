@@ -201,7 +201,19 @@ Läs-bara konsoltester på två ytterstadsplatser:
   `visualViewport.resize` och rättar med `invalidateSize({pan:false})`. Utfall loggas till
   localStorage, läsbart via `?kartlogg=1`. **Grundorsaken är inte bevisad** – vakthunden är ett
   skyddsnät som dessutom samlar bevis, inte en verifierad fix.
-- ⬜ **`vh` vs `innerHeight` på iOS:** `#bottom` får höjd från CSS `85vh` medan `sheetSnaps`
-  räknas från JS `window.innerHeight` (index.html ~4386). På iOS är `vh` den stora vyporten
-  (adressfält dolt) och `innerHeight` den faktiska – de är oense så fort adressfältet syns.
-  Känd strukturell skörhet, EJ åtgärdad, ej bevisad som orsak till något.
+- ✅ **`vh` vs `innerHeight` på iOS – ÅTGÄRDAD 2026-08-25.** `#bottom` fick höjd från CSS `85vh`
+  medan `sheetSnaps` räknas från JS `window.innerHeight`. På iOS är `vh` den stora vyporten
+  (adressfält dolt) och `innerHeight` den faktiska → två oberoende sanningar.
+  **Fix:** `height: 85%` i stället för `85vh`. `#bottom` är absolutpositionerad i `#app`
+  (`position:relative; height:100%`), så procenten räknas mot appens faktiska höjd – exakt det
+  tal `sheetCompute()` läser som `appH`. Det initiala peek-läget gick från
+  `translateY(calc(85vh - 118px))` till `calc(100% - 118px)`; procent i `translateY` syftar på
+  elementets egen höjd, så det uttrycker samma sak utan vyport-beroende.
+  Uppmätt: identiskt (690 px) där de redan var ense; med simulerat adressfält (app 730 av 812)
+  gav gamla koden 690 px = 94,5 % av appen i stället för 85 %. Proportionsfel, inget överflöde.
+- ⬜ **Legenden hamnar under lådan i `full`/`half`:** `fitLegendHeight()` har ett golv på 120 px
+  (`Math.max(120, plats)`) som vinner över att få plats. Uppmätt överlapp 193 px i `full`.
+  Avsiktligt (oläsligt under 120 px) och oförändrat av fixen ovan – men det är detta Lars såg
+  som "legenden hoptryckt". Funktionen läser dessutom lådans LIVE-geometri
+  (`getBoundingClientRect().top`) i stället för det redan kända mål-snappet `sheetSnaps[nivå]`,
+  vilket ger ett mellanläge om den anropas mitt i lådans transition.
