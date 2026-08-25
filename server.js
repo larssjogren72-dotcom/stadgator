@@ -437,12 +437,49 @@ function sbgBygg() {
 //   isMcExclusive  → MC_VEHICLES  = motorcykel | mc | moped-klass1
 //   isRhPlats      → /rörelsehindrad/i i VF_PLATS_TYP, eller RH_VEHICLES
 //   isCykelPlats   → CYKEL_VEHICLES = cykel | moped-klass2
+//   ändamålsplats → NUMERISK VF_PLATS_TYP ('7' = Lastplats, se ANDAMAL_LABELS i index.html)
 const SBG_TILLATEN_LAGER = [
   { id:166, vehicle:'fordon',         platsTyp:null,                                 zon:true  },
   { id: 67, vehicle:'motorcykel',     platsTyp:'Reserverad p-plats motorcykel',      zon:false },
   { id: 68, vehicle:'rörelsehindrade',platsTyp:'Reserverad p-plats rörelsehindrade', zon:false },
   { id:164, vehicle:'cykel',          platsTyp:'Reserverad p-plats cykel',           zon:false },
+  // Lastplatser: ett "hål" som pausar gatans angivelser på sin sträcka (R3 i
+  // PARKERINGSREGLER-SKYLTAR.md). Stockholm bär dem i P_TILLATEN med numerisk
+  // VF_PLATS_TYP, så vi mappar dit och slipper nytt appbegrepp helt.
+  // Uppmätt 2026-08-25: 74 st, varav 7 ligger inuti en p-zon och 18 gäller natten.
+  { id: 69, vehicle:'fordon',         platsTyp:'7',                                  zon:false, lastplats:true },
 ];
+
+// Sundbyberg lägger lastplatsens villkor som FRITEXT i Lastplats_information.
+// Census över alla 74 (2026-08-25): "06-16" ×35 · tomt ×12 · "Ständig" ×6 ·
+// "07:00-10:00 Vardagar" ×3 · "06-16 Vardagar" ×2 · "06-21" ×2 · "07-14" ×2 ·
+// "07:00-10:00 Fredagar" ×2 · och enstaka "Tisdag 06-16", "00-06", "08-18", "0-22 meter".
+const SBG_VECKODAGAR = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
+function sbgLastplatsVillkor(txt) {
+  const s = String(txt ?? '').trim();
+  // ⚠️ "0-22 meter" är en STRÄCKA (tilläggstavla T1), inte ett klockslag. Läses den som
+  // 00–22 blir natten felaktigt fri. Meter-fall får därför okänd tid, inte påhittad.
+  const harMeter = /meter/i.test(s);
+  const m = harMeter ? null : s.match(/(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?/);
+
+  // Känd tid → använd den. "Ständig", tomt eller enbart meter → gäller HELA DYGNET.
+  // Det är appens egen försiktighetsprincip för just den här funktionen ("vi flaggar
+  // hellre en lastplats för mycket än släpper igenom en aktiv", index.html ~3001).
+  // De 12 tomma är tvetydiga – kan vara ständiga, kan vara oregistrerade. Att gissa
+  // "ingen begränsning" vore att gissa åt det håll som kostar användaren en bot.
+  const kandTid = !!m;
+  const start = m ? (+m[1] * 100 + (+(m[2] || 0))) : 0;
+  const slut  = m ? (+m[3] * 100 + (+(m[4] || 0))) : 2400;
+
+  const dayType = /vardag/i.test(s) ? 'vardag' : null;
+  // (ar) som EGEN grupp – annars kräver mönstret minst "tisdaga" och missar bara "Tisdag".
+  // Datan har båda formerna: "Fredagar"/"Måndagar" men "Tisdag 06-16".
+  let weekday = null;
+  if (!dayType) for (let i = 0; i < 7; i++)
+    if (new RegExp(SBG_VECKODAGAR[i] + '(ar)?\\b', 'i').test(s)) { weekday = SBG_VECKODAGAR[i]; break; }
+
+  return { start, slut, dayType, weekday, kandTid };
+}
 let sbgZonCache = null, sbgZonTs = 0, sbgZonInflight = null;
 const SBG_ZONNAMN = { 18:'E', 19:'D', 20:'C', 21:'B', 22:'A' };
 const SBG_ZONPRIS = { A:45, B:30, C:20, D:35, E:15 };   // verifierat mot sundbyberg.se
@@ -499,7 +536,7 @@ function sbgByggZoner() {
         }
         if (isFinite(minLng)) bboxPerOid.set(f.attributes.OBJECTID, [minLng, minLat, maxLng, maxLat]);
       }
-      let n = 0;
+      let n = 0, nKandTid = 0, nOkandTid = 0;
       for (const f of (j3011 && j3011.features) || []) {
         const a = f.attributes || {};
         const bb = bboxPerOid.get(a.OBJECTID);
@@ -507,6 +544,8 @@ function sbgByggZoner() {
         if (!bb || !linjer.length) continue;
         const zon  = lag.zon ? (SBG_ZONNAMN[Math.round(a.Parkeringszon_taxa)] || null) : null;
         const pris = zon ? SBG_ZONPRIS[zon] : null;
+        const last = lag.lastplats ? sbgLastplatsVillkor(a.Lastplats_information) : null;
+        if (last) { if (last.kandTid) nKandTid++; else nOkandTid++; }
         for (const linje of linjer) {
           ut.push({
             type: 'Feature',
@@ -518,7 +557,12 @@ function sbgByggZoner() {
               VF_PLATS_TYP: lag.platsTyp || (pris != null ? 'P Avgift' : 'P'),
               PARKING_RATE: pris != null ? String(pris) : null,
               VF_METER: null, VF_PLATSER: a.Antal_p_platser ?? null,
-              START_TIME: null, END_TIME: null, DAY_TYPE: null,
+              // Bara lastplatser bär tidsvillkor. Övriga lager lämnas null, som förut.
+              START_TIME:    last ? last.start   : null,
+              END_TIME:      last ? last.slut    : null,
+              DAY_TYPE:      last ? last.dayType : null,
+              START_WEEKDAY: last ? last.weekday : null,
+              SBG_LASTPLATS_INFO: last ? (a.Lastplats_information ?? null) : undefined,
               // Samma OBJECTID-uppslag som städlagret → identiskt namn på båda sidor.
               // OBS: bara zonlagret (166) delar OID med städlagren; MC/RH/cykel har
               // egna OID-serier och får därför oftast null. Det är korrekt – de är
@@ -533,7 +577,9 @@ function sbgByggZoner() {
           n++;
         }
       }
-      console.log(`[Pilot] Sundbyberg lager ${lag.id} (${lag.vehicle}): ${n} segment`);
+      console.log(`[Pilot] Sundbyberg lager ${lag.id} (${lag.vehicle}): ${n} segment`
+        + (lag.lastplats ? `  · lastplats: ${nKandTid} med känt tidsfönster, `
+                         + `${nOkandTid} utan (behandlas som hela dygnet)` : ''));
     }
     sbgZonCache = ut; sbgZonTs = Date.now();
     return ut;
