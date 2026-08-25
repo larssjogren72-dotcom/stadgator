@@ -14,6 +14,50 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.8.0 – 2026-08-25
+Regelgranskning mot vägmärkesförordningens E19 och C35: en utmärkt specialplats
+*pausar* gatans angivelser på sin sträcka, och en reglering gäller bara den sida
+skylten står på. Fyra fynd därifrån, plus ett femte som föll ut ur en helt annan
+utredning (vilande städsäsong). Alla mätta mot riktig data i sex
+innerstadsområden (Vasastan S+N, Norrmalm, Södermalm, Östermalm, Kungsholmen).
+
+**MC-rutor styrs nu av sin EGNA städföreskrift på alla nivåer**, inte bara
+"städas nu" – resten (nyss/snart/trygg/risk) hämtades tidigare från gatan.
+Uppmätt har 64 av 64 MC-rutor en egen föreskrift, och dagen skiljer sig ofta från
+gatans: Holländargatan har både en måndagsruta och en onsdagsruta. Den ruta som
+saknar gatunamn fick tidigare ingen städdom alls och visades utan varning natten
+den faktiskt städas. Kortet visar nu rutans eget veckoschema.
+
+**Cykelplatser påstår inte längre gatans städdag som faktum** när stödet bara är
+en grovt dragen bilstädlinje som råkar passera. Av 16 sådana fall hade bara 1 en
+vertex inom 3 m vid båda ändarna – kommunen har varken ritat runt eller genom
+platserna (Rådmansgatan: 62 m linje på 2 punkter). Nu gul ring i stället för grön
+och texten "Gatan städas måndagar 00–06 – gäller sannolikt inte här". En plats med
+egen föreskrift påstår fortfarande, som förr.
+
+**Städmatchningen låser till gatans egen sida innan veckodagarna jämförs.**
+25-metersgränsen spänner över de flesta innerstadsgator, och dagsloopen gick i
+tidsordning – låg egen sida på 0 m och grannsidan på 12 m med en tidigare dag,
+vann grannsidan. 34 segment svarade med andra sidans nästa städning; nu 0. De 30
+som därmed tystnade är Narvavägen, vars egen sida har säsong 1/12–15/5 och alltså
+inte städas i augusti – borttagna falska varningar, inte tystade riktiga.
+
+**MC-kortet visade schemat två gånger**, gatans i kalenderraden och rutans i
+klockraden, när dagarna sammanföll.
+
+**Vilande städsäsong sägs nu rakt ut.** Hittad via Sundbyberg-piloten, men felet
+satt i Stockholm: `/schedule` hoppade över poster utanför säsong helt, så en gata
+med vinterschema (1/11–15/5) föll i augusti ut som tomt schema och kortet skrev
+"Ingen registrerad servicedag – kontrollera skylt". Schemat är registrerat, det
+vilar. Uppmätt mot live-API:t: 5 964 av 6 171 säsongsposter vilar just nu
+(96,6 %), fördelat mån–fre, och 1 465 gator saknade därför städtext helt. Nu står
+det "Servas måndagar 08–16 · vilande till 1 nov". Gatufärgerna var hela tiden
+korrekta – de går via `/servicedagar-bbox` och gatorna städas faktiskt inte i
+augusti – så det var en textbugg, inte en säkerhetsbugg. De 64 gator som har både
+en aktiv och en vilande säsong visar fortsatt bara den aktiva.
+
+`355d46d` … `164b02f`
+
 ## v1.7.1 – 2026-08-22
 Moped klass 1 tillagt i MC-parkeringstexten, appen och SEO-sidorna. Verifierat
 mot 7 RDT-originalbeslut (2018–2026, 6 stadsdelar) att moped klass 1 juridiskt
