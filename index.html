@@ -4026,8 +4026,36 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
   // Anropas som f(ll, namn, nu) = nästa städSTART efter nu.
   // f.senaste(ll, namn, nu)     = senaste städSLUT före nu (för "nyss städad" – slås ihop med
   // f i den enda Nu-vyn, så den ersätter det Morgon/Kväll tidigare visade som egna lägen).
+  // R1 i PARKERINGSREGLER-SKYLTAR.md: en reglering gäller bara den sida av gatan där skylten
+  // står. Två sidor är två oberoende segment och får aldrig dela regler.
+  //
+  // Problemet som fixas: dagsloopen nedan går i TIDSORDNING och returnerade första dag som gav
+  // träff. Avståndet användes bara som ja/nej-filter på 25 m, aldrig för att jämföra kandidater.
+  // 25 m spänner över de flesta gator, så låg den egna sidans linje på 0 m och grannsidans på
+  // 12 m med en tidigare veckodag, vann grannsidan. Appen svarade då med ANDRA SIDANS nästa
+  // städning. Uppmätt 2026-08-25 över sex innerstadsområden: 53 segment har kandidater med olika
+  // dagar inom 25 m, och i 34 av dem svarade appen en annan dag än den linje som låg på 0 m
+  // (Dannemoragatan dag 2 @0 m -> appen sa dag 3; Narvavägen dag 1 @0 m -> appen sa dag 3).
+  // Konsekvens: en gata visades som trygg natten den faktiskt städas.
+  //
+  // Fixen: lås först till segmentets EGEN sida genom att ta kortaste avståndet över ALLA dagar,
+  // och godta sedan bara kandidater inom den + SIDO_MARGINAL_M. Marginalen rymmer normal
+  // ritnoggrannhet inom samma parkeringsfält (89 % av alla matchningar ligger inom 2 m) utan
+  // att släppa in andra sidan (som ligger en gatubredd bort, uppmätt 8-25 m).
+  const SIDO_MARGINAL_M = 3;
   const sok = (ll, name, now, bakat) => {
     if (!name || !ll) return null;
+    // Steg 1: hur nära ligger den närmaste städlinjen på gatan, oavsett veckodag?
+    let narmast = Infinity;
+    for (let d = 0; d < 7; d++) {
+      for (const s of perDag[d].get(name) || []) {
+        const dist = distPointToSegmentLL(ll, s.a, s.b);
+        if (dist < narmast) narmast = dist;
+      }
+    }
+    if (!isFinite(narmast) || narmast > 25) return null;
+    const tak = Math.min(25, narmast + SIDO_MARGINAL_M);   // aldrig lösare än den gamla gränsen
+    // Steg 2: samma dagsloop som förr, men bara bland linjer på den egna sidan.
     // i går till 7, inte 6 (bakåt: 0 till -7). Annars får en gata som städas EN gång i veckan
     // fel svar exakt på sin egen städdag: onsdag 09:10 har onsdagsfönstret 00–06 passerat, och
     // nästa tillfälle är nästa onsdag = i+7. Med i<=6 blev svaret felaktigt "ingen städning den
@@ -4040,7 +4068,7 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
       let bast = null;
       for (const s of kand) {
         if (!cleaningActiveOn(s.p, dat)) continue;
-        if (distPointToSegmentLL(ll, s.a, s.b) > 25) continue;
+        if (distPointToSegmentLL(ll, s.a, s.b) > tak) continue;
         const t = new Date(dat);
         const hm = bakat ? s.end : s.start;
         t.setHours(Math.floor(hm / 100), hm % 100, 0, 0);
