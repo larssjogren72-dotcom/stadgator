@@ -2121,6 +2121,13 @@ function nyssSnartRing(s, now, baseInfo) {
       info: natt ? `Städas i natt ${fmtClock(s.nattInfo.start)}–${fmtClock(s.nattInfo.end)} – inte säkert att lämna över natten.`
                  : `Servas imorgon ${fmtClock(s.nattInfo.start)}–${fmtClock(s.nattInfo.end)} – flytta innan.` };
   }
+  // R7-hedgen (se hedgadStadText): gatans städlinje sammanfaller med platsen, men stödet bär
+  // inte ett påstående. GUL ring, inte grön – grönt hade betytt "trygg över natten", vilket är
+  // precis det R7 varnar för. Ring och text säger nu samma sak: vi vet inte, och det lutar åt
+  // att gatans städdag inte gäller här. Ligger sist så en EGEN föreskrift (nyss/snart/trygg/
+  // risk ovan) alltid vinner över hedgen.
+  if (s.stadOsaker) return { ring: '#fcd34d',
+    info: (s.ownScheduleText ? s.ownScheduleText + ' – ' : '') + 'kontrollera skylten på plats.' };
   return { ring: null, info: baseInfo };
 }
 
@@ -2138,6 +2145,29 @@ function styrandeForbudsrad(rader, now) {
     if (nextStart && nextStart.when - now < narmastTid) { narmastTid = nextStart.when - now; narmast = p; }
   }
   return aktiv || narmast;
+}
+
+// R7 i PARKERINGSREGLER-SKYLTAR.md: en utmärkt specialplats PAUSAR gatans städdagsförbud på
+// sin sträcka (R3). Städförbudet gäller ändå i hålet OM föreskriftens geometri täcker platsen –
+// i verkligheten markerat med gul städskylt på platsens egen stolpe. Saknas det stödet ska
+// appen varken påstå att det städas eller att det är fritt, utan säga att det sannolikt inte
+// gäller och hänvisa till skylten. Skälet är asymmetrisk risk: en felaktig "fritt" kostar
+// användaren en bortförd cykel.
+//
+// Varför vi hamnar här: bilens städlinje sammanfaller geometriskt med cykelplatsen, men den
+// sammanfallningen bevisar ingenting. Uppmätt 2026-08-25 över sex innerstadsområden: av 16
+// koincidenta cykelplatser hade bara 1 en vertex inom 3 m vid BÅDA ändarna. Median till
+// närmaste vertex 4 m, på platser som är 4–11 m långa. Kammakargatan har närmaste punkt 88 m
+// bort. Linjerna är grovt dragna längs kvarteren (Rådmansgatan: 62 m på 2 punkter) – kommunen
+// har alltså varken ritat runt eller genom platserna, och vi kan inte läsa in ett beslut.
+//
+// ⚠️ PROVISORISKT: Lars mailade Trafikkontoret 2026-08-25 för besked om vad som faktiskt
+// gäller. Kommer ett svar kan formuleringen och grenen behöva göras om.
+function hedgadStadText(p) {
+  const day = SV_WEEKDAYS.indexOf((p.START_WEEKDAY || '').toLowerCase());
+  if (day < 0 || p.START_TIME == null) return null;
+  return `Gatan städas ${SV_DAYS[day].toLowerCase()}ar ${fmtClock(p.START_TIME)}–${fmtClock(p.END_TIME)}`
+       + ' – gäller sannolikt inte här';
 }
 
 // Bygger "Servas onsdagar 00–06" ur en plats EGNA förbudsposter (flera fönster slås ihop).
@@ -2338,12 +2368,26 @@ async function fetchCykelPlatser(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
       if (schedule.length) s.ownScheduleText = scheduleText(schedule);
     }
     // Ingen egen citation-koppling → kolla om rutan geometriskt SAMMANFALLER med en bils
-    // städlinje (Norra Agnegatan 2026-08-21, se coincidentCarRecord för resonemanget). Bara
-    // om cit/ownScheduleText inte redan gav ett svar - citation-kopplingen är starkast när den
-    // finns, det här är ett kompletterande, svagare-men-fortfarande-geometriskt-bekräftat spår.
+    // städlinje (Norra Agnegatan 2026-08-21, se coincidentCarRecord för resonemanget).
+    //
+    // ÄNDRAT 2026-08-25 (R7, se hedgadStadText): sammanfallningen gav tidigare rutan bilens
+    // schema som FAKTUM via applyCoincidentCleaning – "Servas måndagar 00–06" plus grön
+    // "trygg över natten". Mätningen visade att stödet inte bär: linjerna saknar artikulering
+    // vid platserna, så sammanfallningen säger bara att rutan ligger på ett kvarter där gatan
+    // städas. Nu hedgas det i stället: gul ring + "gäller sannolikt inte här".
     if (!s.cleaningNow && !s.ownScheduleText) {
       const carRecord = coincidentCarRecord(s, carForbud);
-      if (carRecord) applyCoincidentCleaning(s, carRecord, now);
+      if (carRecord) {
+        // Pågår gatans städning just NU behålls den starka signalen: nålen döljs helt
+        // (segs.filter(!cleaningNow) nedan). Det är säkra hållet och oförändrat beteende.
+        if (forbudActiveAt(carRecord, now) === true) {
+          s.cleaningNow = true; s.cleaningEnd = carRecord.END_TIME;
+        } else {
+          // Annars: varken "servas" eller "trygg" – säg att vi inte vet, och åt vilket håll.
+          s.stadOsaker = true;
+          s.ownScheduleText = hedgadStadText(carRecord) || s.ownScheduleText;
+        }
+      }
     }
     return s;
   });
