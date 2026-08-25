@@ -2515,7 +2515,18 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   // exempel - Onkel Adams Väg - vid stadTierFor-fixen i fetchCykelPlatser ovan). MC/RH är riktiga
   // bilplatser där gatans schema är sakligt korrekt "bevis" - de behåller raden oförändrad. ──
   const cleanRow = document.getElementById('clean-row');
-  const isSpecial = (statusColor === GAGATA_COLOR || statusColor === UTESERVERING_COLOR || statusColor === CYKEL_COLOR);
+  // MC tillagd 2026-08-25 (Lars fynd): MC-kortet visade "Servas måndagar 00–06" på TVÅ rader
+  // – gatans schema i kalenderraden och rutans eget i klockraden – när rutans dag råkade vara
+  // samma som gatans (Holländargatan: både gatan och MC-rutan 0180 2026-00990 har måndag 00–06).
+  // Dubbleringen var symptomet; felet var att gatans schema alls visades på en specialplats.
+  // Det är gatunivå-arv, felkatalogens fel 3 i PARKERINGSREGLER-SKYLTAR.md, borttaget ur
+  // dataflödet i 3ab8a90 men kvarlevande här. MC har numera alltid sitt EGNA schema i
+  // klockraden (uppmätt: 64 av 64 MC-rutor har egen föreskrift), så gatans behövs inte.
+  // ⚠️ Villkoret måste vara platstypen, INTE "nastaStad är satt": vanliga gatusegment skickar
+  // också ett åttonde argument (nästa städning, se drawParkingSegment) och ska behålla sin
+  // kalenderrad. Ett första försök som testade nastaStad slog ut veckoschemat på ALLA gatukort.
+  const isSpecial = (statusColor === GAGATA_COLOR || statusColor === UTESERVERING_COLOR
+                  || statusColor === CYKEL_COLOR || isMcRuta);
   const seq = ++cardSeq;   // guard: ett nyare kort ska inte skrivas över av ett gammalt svar
   // Tom text ⇒ dölj hela raden. Annars renderades kalenderikonen ensam utan text
   // (syns när en stad saknar schema-uppslag och fetchScheduleText ger '').
