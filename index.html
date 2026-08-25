@@ -3009,7 +3009,13 @@ function andamalActiveAt(s, d) {
   // "måndag OCH torsdag", API:et har måndag två gånger; Norrtullsgatan "tisdag OCH
   // onsdag", API:et bara tisdag). Vi visar den dag datan har – aldrig fler.
   if (s.andamalWeekday) return SV_WEEKDAYS[dag] === String(s.andamalWeekday).toLowerCase();
-  return null;
+  // Klockslag men INGEN dagangivelse = gäller alla dagar. Att returnera null här vore att
+  // tyst släppa igenom en aktiv ändamålsplats, tvärtemot försiktighetsprincipen ovan:
+  // vaktens uppgift är att fånga ETT tolkbart villkor, och tiden ÄR tolkbar.
+  // Mätt 2026-08-25: 1 552 ändamålsplatser i åtta Stockholmsområden – ALLA har både tid och
+  // dag, så noll poster nådde hit. Stockholm påverkas alltså inte. Sundbybergs lastplatser
+  // (lager 69) skrivs däremot oftast som bara "06-16" utan dag, 35 av 74.
+  return true;
 }
 // Chip: bär tiden (detaljraden ger då handlingen – se dedup-regeln i Nu-flödet).
 function andamalTxt(s) {
