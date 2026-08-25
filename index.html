@@ -1794,24 +1794,48 @@ async function fetchScheduleText(name, dest) {
   const { schedule } = await r.json();
   return scheduleText(schedule);
 }
+// Månadsnamn i "vilande till 1 nov". Böjs inte, står alltid efter en siffra.
+const SV_MAN_KORT = ['jan','feb','mars','april','maj','juni','juli','aug','sep','okt','nov','dec'];
+
 function scheduleText(schedule) {
   if (!schedule || !schedule.length) return 'Ingen registrerad servicedag – kontrollera skylt';
-  const byWin = new Map();                       // "start_end" → [veckodagar]
-  schedule.forEach(x => {
-    if (x.s == null) return;
-    const k = x.s + '_' + x.e;
-    if (!byWin.has(k)) byWin.set(k, []);
-    byWin.get(k).push(x.day);
-  });
-  if (!byWin.size) return 'Servas (tid ej angiven) – kontrollera skylt';
-  const parts = [];
-  byWin.forEach((days, k) => {
-    const [s, e] = k.split('_').map(Number);
-    const ds = [...new Set(days)].sort((a, b) => a - b).map(d => SV_DAYS[d].toLowerCase() + 'ar');
-    const dl = ds.length === 1 ? ds[0] : ds.slice(0, -1).join(', ') + ' & ' + ds.slice(-1);
-    parts.push(`${dl} ${fmtClock(s)}–${fmtClock(e)}`);
-  });
-  return 'Servas ' + parts.join(' · ');
+  // Aktiva och vilande (ur säsong) formateras var för sig. En gata kan ha båda: innerstadsgator
+  // har ofta ett vinterschema OCH ett sommarschema, och då är det ena aktivt medan det andra vilar.
+  // Bara /schedule kan skicka `vilande` – de tre andra anroparna bygger sina rader ur
+  // P_FORBUD-citations, som saknar säsongsfält och därför alltid faller i `aktiva`.
+  const grupp = (rader) => {
+    const byWin = new Map();                     // "start_end" → [veckodagar]
+    rader.forEach(x => {
+      if (x.s == null) return;
+      const k = x.s + '_' + x.e;
+      if (!byWin.has(k)) byWin.set(k, []);
+      byWin.get(k).push(x.day);
+    });
+    const parts = [];
+    byWin.forEach((days, k) => {
+      const [s, e] = k.split('_').map(Number);
+      const ds = [...new Set(days)].sort((a, b) => a - b).map(d => SV_DAYS[d].toLowerCase() + 'ar');
+      const dl = ds.length === 1 ? ds[0] : ds.slice(0, -1).join(', ') + ' & ' + ds.slice(-1);
+      parts.push(`${dl} ${fmtClock(s)}–${fmtClock(e)}`);
+    });
+    return parts;
+  };
+  const aktiva  = grupp(schedule.filter(x => !x.vilande));
+  const vilande = grupp(schedule.filter(x =>  x.vilande));
+
+  if (aktiva.length) {
+    // Aktivt schema vinner raden. Ett vilande schema bredvid nämns inte – det är brus när
+    // gatan ändå städas den här säsongen.
+    return 'Servas ' + aktiva.join(' · ');
+  }
+  if (vilande.length) {
+    // Bara vilande: säg VAD som gäller och NÄR det vaknar. Att svara "ingen registrerad
+    // servicedag" här vore fel – schemat finns, det gäller bara inte just nu.
+    const start = schedule.find(x => x.vilande && x.sm != null);
+    const nar = start ? `vilande till ${start.sd || 1} ${SV_MAN_KORT[start.sm - 1]}` : 'vilande just nu';
+    return 'Servas ' + vilande.join(' · ') + ' · ' + nar;
+  }
+  return 'Servas (tid ej angiven) – kontrollera skylt';
 }
 
 // Ikoner som inline SVG – ingen CDN som kan blockeras (lärdom från leaflet-rotate).

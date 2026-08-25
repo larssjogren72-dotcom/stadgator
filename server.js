@@ -431,12 +431,25 @@ http.createServer((req, res) => {
         if (f.name !== name) continue;
         const bb = f.bb;
         if (lng < bb[0]-dLng || lng > bb[2]+dLng || lat < bb[1]-dLat || lat > bb[3]+dLat) continue;
-        if (!inSeasonNow(f, today)) continue;
+        // Poster UTANFÖR säsong hoppades tidigare över helt. Det gjorde att en gata med
+        // vinterschema (1/11–15/5) i augusti föll ut som TOMT schema, och klienten skrev
+        // "Ingen registrerad servicedag" – sakligt fel, schemat finns och vilar. Uppmätt
+        // 2026-08-25: 5 964 av 6 171 säsongsposter är vilande just nu, på 1 530 gator,
+        // fördelat mån–fre (vanligast säsong 1/11–15/5 med 5 754 poster).
+        // Nu följer de med, märkta `vilande` + när de vaknar, så klienten kan säga sanningen.
+        // Gatufärgerna berörs inte – de går via /servicedagar-bbox + cleaningActiveOn.
+        const aktiv = inSeasonNow(f, today);
         let hit = false;
         for (const ln of f.lines) { for (let i=0; i<ln.length-1; i++) { if (segDistM(lat, lng, ln[i], ln[i+1]) <= 25) { hit = true; break; } } if (hit) break; }
         if (!hit) continue;
-        const k = f.day+'_'+f.s+'_'+f.e;
-        if (!seen.has(k)) { seen.add(k); schedule.push({ day: f.day, s: f.s, e: f.e }); }
+        // Nyckeln skiljer aktiv från vilande så att en gata med BÅDA säsongerna
+        // (vanligt i innerstan) kan få med sig båda posterna för samma dag+tid.
+        const k = f.day+'_'+f.s+'_'+f.e+'_'+(aktiv?'a':'v');
+        if (!seen.has(k)) {
+          seen.add(k);
+          schedule.push(aktiv ? { day: f.day, s: f.s, e: f.e }
+                              : { day: f.day, s: f.s, e: f.e, vilande: true, sm: f.sm, sd: f.sd });
+        }
       }
       send(req, res, 200, 'application/json; charset=utf-8', Buffer.from(JSON.stringify({ schedule })), warm ? 'HIT' : 'MISS');
     }).catch(() => {
