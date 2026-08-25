@@ -1,6 +1,6 @@
 {
   "name": "stadgator",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Hitta fria parkeringsplatser vid städgator i Stockholm",
   "main": "server.js",
   "scripts": {

@@ -14,6 +14,35 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.8.1 – 2026-08-25
+Vakthund som håller kartans canvas i takt med sin container, efter att Lars
+återskapat frysningen live 24/8 och fotograferat den. Bilden visade en *riven*
+rendering: baskartan målad över hela containern medan överläggen (taxa-zoner +
+p-linjer) bara täckte översta tredjedelen — vilket utesluter den tidigare ledande
+teorin om en nätverksstall, som hade fryst hela vyn intakt.
+
+Mekanismen: vektorlagren ritas på EN canvas (`L.canvas`). Leaflet håller den i takt
+med containern via `trackResize`, men korrigeringen kör inuti `requestAnimationFrame`.
+Stryper iOS rAF — tangentbord, adressfält som fälls in, minnestryck — kör den aldrig
+och ingenting försöker igen. Eftersom canvas-renderaren dessutom *träffkollar* mot
+canvasen blir kartan död för tryck utanför den, vilket känns som en låst app.
+
+`kartSynkKoll()` jämför `map.getSize()` med containern och rättar med
+`invalidateSize({pan:false})` vid mer än 2 px avvikelse — var 2:a sekund plus vid
+`visibilitychange`, `pageshow`, `orientationchange` och `visualViewport.resize`.
+Intervallet är poängen: felet uppstår när en händelse fick köra men dess uppföljning
+inte gjorde det, så en ny händelse kan inte förutsättas komma. Utfall loggas till
+localStorage och överlever omstart — läsbart via `?kartlogg=1` efter en frysning.
+
+Verifierat: inducerad äkta desynk (container 499→620 utan resize-event, Leaflet kvar
+på 499) rättad inom 1,3 s; **0 utslag på 25 s normal drift**. Före detta anropades
+`invalidateSize` noll gånger i hela filen och det fanns ingen återhämtningsväg alls.
+
+⚠️ Grundorsaken är **inte bevisad** — detta är ett skyddsnät som samlar bevis, inte en
+verifierad fix. Den kända `85vh`-mot-`innerHeight`-skörheten i lådan är inte åtgärdad.
+Båda dokumenterade i ARKITEKTUR.md §9.
+`91068a8`
+
 ## v1.8.0 – 2026-08-25
 Regelgranskning mot vägmärkesförordningens E19 och C35: en utmärkt specialplats
 *pausar* gatans angivelser på sin sträcka, och en reglering gäller bara den sida
