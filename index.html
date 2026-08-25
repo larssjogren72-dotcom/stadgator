@@ -2060,6 +2060,28 @@ function nyssSnartRing(s, now, baseInfo) {
 
 // MC-rutorna som ETT eget lager – visas i ALLA lägen (Nu/Morgon/Kväll/Natt) när MC är valt,
 // oberoende av vilket flöde som ritar gatorna. Återanvänder P_TILLATEN-hämtaren.
+// Vilken av platsens EGNA förbudsposter styr just nu? En plats kan ha flera fönster
+// (olika veckodagar). Aktiv post vinner; annars den vars nästa tillfälle ligger närmast.
+// Returnerar null om ingen post har ett användbart tidsvillkor.
+function styrandeForbudsrad(rader, now) {
+  let aktiv = null, narmast = null, narmastTid = Infinity;
+  for (const p of rader || []) {
+    if (p.START_TIME == null) continue;
+    if (forbudActiveAt(p, now) === true) { aktiv = p; break; }
+    const { nextStart } = forbudWeeklyOccurrence(p, now);
+    if (nextStart && nextStart.when - now < narmastTid) { narmastTid = nextStart.when - now; narmast = p; }
+  }
+  return aktiv || narmast;
+}
+
+// Bygger "Servas onsdagar 00–06" ur en plats EGNA förbudsposter (flera fönster slås ihop).
+function egetSchemaText(rader) {
+  const schedule = (rader || [])
+    .map(p => ({ s: p.START_TIME, e: p.END_TIME, day: SV_WEEKDAYS.indexOf((p.START_WEEKDAY || '').toLowerCase()) }))
+    .filter(x => x.day >= 0 && x.s != null);
+  return schedule.length ? scheduleText(schedule) : null;
+}
+
 async function fetchMcRutor(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   const deg  = (radius / 111000) * 1.8;
   const bbox = `${lng-deg},${lat-deg},${lng+deg},${lat+deg},EPSG:4326`;
@@ -2070,11 +2092,26 @@ async function fetchMcRutor(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   ]);
   const now = new Date();
   return tillRaw.map(toAllowedSegment).filter(s => isMcExclusive(s.vehicle)).map(s => {
+    // Har rutan en EGEN städföreskrift? Då styr den ALLT – gatans schema ignoreras helt.
+    // Tidigare gatades den egna posten bara till cleaningNow, medan nyss/snart/trygg/risk
+    // hämtades från gatan via stadTierFor. Det gav fel svar så fort dagarna skiljer sig, och
+    // det gör de ofta: uppmätt 2026-08-25 i Vasastan har 11 av 11 MC-rutor egen föreskrift,
+    // t.ex. Holländargatan MC 0180 2025-05141 = ONSDAG 00-06 medan gatan städas MÅNDAG.
+    // Att låna gatans dag till en ruta med egen dag är felkatalogens fel 3 (gatunivå-arv åt
+    // fel håll) i PARKERINGSREGLER-SKYLTAR.md, och R3 säger dessutom att specialplatsen
+    // pausar gatans angivelser på sin sträcka. Egen post = stadens eget, exakta svar.
+    const ownRows = (s.citation && cleanByCitation.get(s.citation)) || [];
+    if (ownRows.length) {
+      s.ownScheduleText = egetSchemaText(ownRows) || s.ownScheduleText;
+      const rad = styrandeForbudsrad(ownRows, now);
+      if (rad) { applyCoincidentCleaning(s, rad, now); return s; }
+    }
+    // Ingen egen föreskrift → gatans schema som förut. MC-rutan ÄR en bilplats på samma
+    // fysiska gata, så bilens städlogik är sakligt rimlig här (till skillnad från cykel).
     const first = s.linesSweref[0] && s.linesSweref[0][0];
     const dest = first && toLatLng(first[0], first[1]);
-    const cit = citationCleaningNow(s.citation, cleanByCitation, now);
     const tier = stadTierFor(dest, s.street, stadCtx, now);
-    if (cit || (tier && tier.tier === 'aktiv')) { s.cleaningNow = true; s.cleaningEnd = cit ? cit.end : tier.end; }
+    if (tier && tier.tier === 'aktiv')      { s.cleaningNow = true; s.cleaningEnd = tier.end; }
     else if (tier && tier.tier === 'nyss')  { s.nyssStadad = true; s.nyssInfo = tier.info; }
     else if (tier && tier.tier === 'snart') { s.stadasSnart = true; s.snartInfo = tier.info; }
     else if (tier && tier.tier === 'trygg') { s.tryggNatt = true; }
@@ -2103,7 +2140,11 @@ async function mcRutorOverlay(lat, lng) {
       if (!dest) return;
       const { ring, info, titleOverride } = nyssSnartRing(s, new Date(), 'Dedikerad MC-plats – bilister får inte ta den.');
       L.marker(dest, { icon: mcPinIcon('#2563eb', ring), pane: 'markerPane', riseOnHover: true })
-        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', titleOverride || 'MC-ruta · MC och moped klass 1 får stå', '#2563eb', dest, info); })
+        // Sista argumentet: rutans EGET veckoschema ur dess egen föreskrift (aldrig gatans).
+        // Uppmätt 2026-08-25: 64 av 64 MC-rutor i sex innerstadsområden har en egen städ-
+        // föreskrift, och dagen skiljer sig ofta från gatans – därför är den värd att visa.
+        // doljTaxa/visaRattigheter lämnas undefined = oförändrat beteende (MC-taxaraden kvar).
+        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', titleOverride || 'MC-ruta · MC och moped klass 1 får stå', '#2563eb', dest, info, undefined, undefined, s.ownScheduleText); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
