@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Sundbyberg-pilot · ParkSpot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<style>
+:root{
+  --papper:#eef1ef; --plan:#fbfcfb; --ink:#101a1c; --ink2:#4a5b5e; --ink3:#8b9b9e;
+  --rule:#d3dbd9; --accent:#0d6e6e; --plat:#e7ebe9; --rut:rgba(16,26,28,.05);
+  --gron:#16a34a; --stad:#f59e0b; --blaa:#38bdf8;
+  --varn-bg:#fdf6e9; --varn-ram:#e6d3a8; --varn-ink:#6b4a12;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --papper:#0a1214; --plan:#101c1f; --ink:#e3ecec; --ink2:#93a9ab; --ink3:#5d7275;
+  --rule:#1e3033; --accent:#3fb6ad; --plat:#0d191c; --rut:rgba(227,236,236,.055);
+  --varn-bg:#20180a; --varn-ram:#4a3a16; --varn-ink:#e8c887;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papper);color:var(--ink);line-height:1.55;
+  font-family:ui-monospace,"IBM Plex Mono",Menlo,Consolas,monospace;font-size:14px}
+.wrap{max-width:1100px;margin:0 auto;padding:26px 18px 60px}
+h1{font-size:22px;margin:0 0 6px;letter-spacing:-.02em}
+.pilot{display:inline-block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);border:1px solid var(--accent);padding:3px 8px;margin-bottom:12px}
+.lead{color:var(--ink2);margin:0 0 18px;max-width:70ch;font-size:13px}
+.rad{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+button,select{font:inherit;font-size:12.5px;background:var(--plan);color:var(--ink);
+  border:1px solid var(--rule);padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tal{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin-bottom:18px}
+.tal>div{background:var(--plan);padding:12px 14px}
+.tal b{display:block;font-size:22px;line-height:1.15}
+.tal span{font-size:11px;color:var(--ink2)}
+.plat{background:var(--plat);border:1px solid var(--rule);padding:8px;overflow-x:auto;margin-bottom:14px}
+svg{display:block;width:100%;height:auto;min-width:520px}
+.seg{cursor:pointer}
+.seg:hover{stroke-width:12}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--ink2);margin-bottom:22px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sv{width:14px;height:4px;flex:none}
+table{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid var(--rule)}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule);background:var(--plan)}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3)}
+td.num{text-align:right}
+tr:last-child td{border-bottom:0}
+a{color:var(--accent)}
+.varn{background:var(--varn-bg);border:1px solid var(--varn-ram);border-left:3px solid var(--varn-ink);
+  padding:13px 16px;font-size:12.5px;color:var(--varn-ink);margin-bottom:20px}
+.varn b{display:block;margin-bottom:5px}
+#status{color:var(--ink2);font-size:12.5px}
+.fel{color:#b91c1c}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pilot">Pilot · rör ej Stockholm</div>
+  <h1>Sundbyberg — live ur adaptern</h1>
+  <p class="lead">Den här sidan hämtar ingenting förbakat. Den anropar
+  <code>/sbg/servicedagar-bbox</code> på din lokala server, som i sin tur hämtar från
+  Sundbybergs ArcGIS och översätter svaret till <em>exakt samma GeoJSON-kontrakt</em> som
+  Stockholms <code>/servicedagar-bbox</code> redan levererar. Fungerar detta, fungerar
+  mappningslagret.</p>
+
+  <div class="rad">
+    <button id="ladda">Hämta om från servern</button>
+    <select id="omrade">
+      <option value="17.9680,59.3595,17.9755,59.3632">Centrala Sundbyberg</option>
+      <option value="17.9600,59.3560,17.9850,59.3680">Större utsnitt</option>
+      <option value="17.9300,59.3500,18.0100,59.3900">Hela kommunen</option>
+    </select>
+    <span id="status">Laddar…</span>
+  </div>
+
+  <div class="tal" id="tal"></div>
+  <div class="plat"><svg id="karta" viewBox="0 0 1000 600" role="img" aria-label="Städsegment i Sundbyberg"></svg></div>
+  <div class="legend">
+    <span><i class="sv" style="background:var(--gron)"></i> Trygg i natt</span>
+    <span><i class="sv" style="background:var(--stad)"></i> Städas i natt</span>
+    <span><i class="sv" style="background:var(--blaa)"></i> Flytta imorgon</span>
+  </div>
+
+  <div class="varn">
+    <b>Gatunamn saknas — med flit</b>
+    Sundbybergs data har inget namnfält, så adaptern skickar <code>STREET_NAME: null</code>
+    i stället för ett påhittat namn. Därför står det bara OID nedan. I Stockholm används
+    <code>STREET_NAME</code> för att inte råka plocka grannagatans regel — den spärren går
+    inte att bygga här. Klicka en rad för att se platsen i Google Maps.
+  </div>
+
+  <table>
+    <thead><tr><th>OID</th><th>Städas</th><th>Status</th><th class="num">Platser</th><th class="num">Zon</th><th>Karta</th></tr></thead>
+    <tbody id="rader"></tbody>
+  </table>
+</div>
+
+<script>
+(function(){
+  var DAG = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
+  var ZONPRIS = {18:['E',15],19:['D',35],20:['C',20],21:['B',30],22:['A',45]};
+  var $ = function(id){ return document.getElementById(id); };
+
+  function hhmm(v){ var s=String(v).padStart(4,'0'); return s.slice(0,2)+':'+s.slice(2); }
+
+  // Samma fråga som appens "Över natten": öppnar städfönstret innan jag hämtar bilen?
+  function status(dag, start, idag){
+    var imorgon = (idag+1)%7;
+    if (dag===imorgon && start < 700) return {f:'var(--stad)', t:'Städas i natt', k:'stad'};
+    if (dag===imorgon)                return {f:'var(--blaa)', t:'Flytta imorgon', k:'flytta'};
+    var till = (dag-idag+7)%7;
+    return {f:'var(--gron)', t:'Trygg ('+DAG[dag]+', om '+till+' d)', k:'trygg'};
+  }
+
+  function rita(segs){
+    var svg=$('karta');
+    if(!segs.length){ svg.innerHTML=''; return; }
+    var minLng=1e9,maxLng=-1e9,minLat=1e9,maxLat=-1e9;
+    segs.forEach(function(s){ s.geometry.coordinates.forEach(function(c){
+      if(c[0]<minLng)minLng=c[0]; if(c[0]>maxLng)maxLng=c[0];
+      if(c[1]<minLat)minLat=c[1]; if(c[1]>maxLat)maxLat=c[1];
+    });});
+    var pl=(maxLng-minLng)*0.05||0.001, pb=(maxLat-minLat)*0.07||0.001;
+    minLng-=pl;maxLng+=pl;minLat-=pb;maxLat+=pb;
+    var kx=Math.cos((minLat+maxLat)/2*Math.PI/180), W=1000;
+    var H=Math.max(220,Math.round(W*((maxLat-minLat)/((maxLng-minLng)*kx))));
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    var X=function(l){return (l-minLng)/(maxLng-minLng)*W;};
+    var Y=function(l){return H-(l-minLat)/(maxLat-minLat)*H;};
+    var mPerLng=111320*kx, bredd=(maxLng-minLng)*mPerLng, rut=(50/bredd)*W;
+    var h='<defs><pattern id="r" width="'+rut.toFixed(2)+'" height="'+rut.toFixed(2)+'" patternUnits="userSpaceOnUse">'+
+          '<path d="M '+rut.toFixed(2)+' 0 L 0 0 0 '+rut.toFixed(2)+'" fill="none" stroke="var(--rut)" stroke-width="1"/></pattern></defs>'+
+          '<rect width="'+W+'" height="'+H+'" fill="url(#r)"/>';
+    segs.forEach(function(s){
+      var d=s.geometry.coordinates.map(function(c,i){return (i?'L':'M')+X(c[0]).toFixed(1)+' '+Y(c[1]).toFixed(1);}).join(' ');
+      h+='<path class="seg" data-oid="'+s.properties.SBG_OID+'" d="'+d+'" stroke="'+s._st.f+
+         '" stroke-width="8" stroke-linecap="round" fill="none"><title>OID '+s.properties.SBG_OID+' · '+s._st.t+'</title></path>';
+    });
+    svg.innerHTML=h;
+    [].forEach.call(svg.querySelectorAll('.seg'),function(p){
+      p.addEventListener('click',function(){
+        var r=document.querySelector('tr[data-oid="'+p.getAttribute('data-oid')+'"]');
+        if(r){ r.scrollIntoView({behavior:'smooth',block:'center'}); r.style.outline='2px solid var(--accent)';
+               setTimeout(function(){r.style.outline='';},1600); }
+      });
+    });
+  }
+
+  function ladda(){
+    var bbox=$('omrade').value, idag=new Date().getDay();
+    $('status').textContent='Hämtar från /sbg/servicedagar-bbox …';
+    $('status').className='';
+    var jobb=[0,1,2,3,4,5,6].map(function(d){
+      return fetch('/sbg/servicedagar-bbox?dag='+d+'&bbox='+bbox)
+        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(j){ return (j.features||[]).map(function(f){ f._dag=d; return f; }); });
+    });
+    Promise.all(jobb).then(function(delar){
+      var segs=[].concat.apply([],delar);
+      segs.forEach(function(s){ s._st=status(s._dag, s.properties.START_TIME, idag); });
+      var n={trygg:0,stad:0,flytta:0}, platser=0;
+      segs.forEach(function(s){ n[s._st.k]++; platser+=(s.properties.SBG_PLATSER||0); });
+      $('tal').innerHTML=
+        '<div><b style="color:var(--gron)">'+n.trygg+'</b><span>trygga i natt</span></div>'+
+        '<div><b style="color:var(--stad)">'+n.stad+'</b><span>städas i natt</span></div>'+
+        '<div><b>'+segs.length+'</b><span>segment i säsong</span></div>'+
+        '<div><b>'+platser+'</b><span>p-platser</span></div>';
+      rita(segs);
+      segs.sort(function(a,b){ return a._dag-b._dag || a.properties.SBG_OID-b.properties.SBG_OID; });
+      $('rader').innerHTML=segs.map(function(s){
+        var p=s.properties, z=ZONPRIS[Math.round(p.SBG_ZON)];
+        var c=s.geometry.coordinates[Math.floor(s.geometry.coordinates.length/2)];
+        return '<tr data-oid="'+p.SBG_OID+'">'+
+          '<td>'+p.SBG_OID+'</td>'+
+          '<td>'+DAG[s._dag]+' '+hhmm(p.START_TIME)+'–'+hhmm(p.END_TIME)+'</td>'+
+          '<td style="color:'+s._st.f+'">'+s._st.t+'</td>'+
+          '<td class="num">'+(p.SBG_PLATSER==null?'–':p.SBG_PLATSER)+'</td>'+
+          '<td class="num">'+(z?z[0]+' · '+z[1]+' kr':'–')+'</td>'+
+          '<td><a href="https://www.google.com/maps/search/?api=1&query='+c[1].toFixed(6)+','+c[0].toFixed(6)+
+          '" target="_blank" rel="noopener">öppna ↗</a></td></tr>';
+      }).join('');
+      $('status').textContent='Klart · '+segs.length+' segment i säsong · '+new Date().toLocaleTimeString('sv-SE');
+    }).catch(function(e){
+      $('status').textContent='Fel: '+e.message+' — kör servern på denna port?';
+      $('status').className='fel';
+    });
+  }
+
+  $('ladda').addEventListener('click',ladda);
+  $('omrade').addEventListener('change',ladda);
+  ladda();
+})();
+</script>
+</body>
+</html>
