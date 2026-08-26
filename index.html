@@ -1062,6 +1062,17 @@ const STAD = ST_SBG
       // Sundbyberg publicerar inga förbudsdata och har inga p-hus i vår källa.
       // Flaggorna gör att appen TIGER där datan tiger i stället för att gissa.
       harForbud:false, harPhus:false, harTaxaZoner:false,
+      // ⚠ MAXTID SAKNAS HELT. Kontrollerat 2026-08-26 mot ALLA 48 karttjänster på
+      // gis.sundbyberg.se, inte bara de vi använder: de enda tidsfälten i parkerings-
+      // lagren är `Tid` (städtid), `Avgift_tid` (när det kostar) och `P_30_Min` (ett
+      // 30-minutersfönster satt på 18 av 812 segment). `Typ_av_parkering` betyder
+      // längsgående kontra vinkelparkering. Inget fält bär "2 tim".
+      // Fältbevis: skylt vid vändplanen på norra Brunnsgatan (59.363734, 17.968813)
+      // säger 2 tim; segmentet 14 m därifrån (OID 1926) hade inget som antydde det och
+      // ritades grönt "Trygg över natten". Att lämna bilen där ger kontrollavgift.
+      // Dimensionen saknas för HELA kommunen, så det gäller varje grön uc2-linje –
+      // det är inte ett trasigt segment utan en lucka i källan.
+      harMaxtid:false,
       // Schema-uppslaget är en URL, inte en ja/nej-flagga: varje stad pekar ut sin egen
       // endpoint med samma kontrakt. Tom sträng = staden saknar uppslag. Att hålla
       // skillnaden i konfigurationen i stället för i if-satser är det som gör nästa stad
@@ -1070,6 +1081,10 @@ const STAD = ST_SBG
   : { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
       center:[59.332, 18.065], zoom:13,
       harForbud:true,  harPhus:true,  harTaxaZoner:true,
+      // Stockholm HAR begreppet maxtid: MAX_MINUTES/MAX_HOURS finns i registret (ofta
+      // tomma, men fältet existerar) och VF_METER pekar ut de äkta korttidsfickorna.
+      // Därför får Stockholm fortsätta säga "Trygg över natten" som förut.
+      harMaxtid:true,
       schemaUrl:'/schedule' };
 
 // Källtexten under platskorten. Måste följa staden – annars påstår appen att en
@@ -3796,7 +3811,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     // Tidsmedveten: morgondagens städning tolkas efter när den börjar (beslut A 2026-06-17):
     //   natt (<07) = du sover, kan ej flytta → undvik · morgon (07–10) = flytta innan start
     //   sen (≥10)  = du har åkt på morgonen → trygg över natten ändå.
-    let safe = 0, städas = 0;
+    let safe = 0, städas = 0, kollaTid = 0;
     allowed.forEach(s => {
       if (vehicleMode === 'cykel') return;   // cykel-läget målar inga gator, bara nålar (se cykelPlatserOverlay)
       const first = s.linesSweref[0] && s.linesSweref[0][0];
@@ -3834,7 +3849,9 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
       // Detaljraden KOMPLETTERAR chipet (upprepar aldrig): har chipet tiden → ge handlingen; saknar tid → ge tiden.
       // Ingen städinstruktion för platser man inte får använda.
-      const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
+      // `let`, inte `const`: maxtid-fällningen längre ner skriver om raden för städer
+      // som saknar maxtid i datan.
+      let infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : (isRhPlats(s) || ejForDig) ? ''
                     // "ikväll" var fel i VARJE fall den visades: grenen utlöses bara när fönstret
                     // börjar före 07:00 (ON_NIGHT_HM), så klockslaget ligger alltid mellan 00:00
@@ -3855,6 +3872,22 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
                     : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
                     : '';
+      // ── Städer utan maxtid i datan får inte säga "Trygg över natten" ──────────
+      // "Trygg över natten" är ett påstående om VARAKTIGHET. Saknar staden maxtid-
+      // dimensionen helt (se STAD.harMaxtid) kan appen veta att du får parkera, men
+      // inte hur länge – och en skylt kan säga 2 tim. Fäll därför till samma blå nivå
+      // appen redan använder för Stockholms korttidsfickor; färgen står redan i
+      // förklaringen, så användaren möter inget nytt begrepp.
+      // Görs EFTER kedjan i stället för i tre grenar: då kan Stockholm bevisligen inte
+      // påverkas (hela blocket hoppas över när harMaxtid är sant) och nya gröna grenar
+      // fångas automatiskt i framtiden.
+      // Nu-läget rörs INTE – "får du stå just nu" är sant även med en tidsgräns.
+      if (!STAD.harMaxtid && color === '#16a34a') {
+        color = '#38bdf8';
+        txt   = 'Får parkera – kontrollera tidsgräns';
+        infoRow = 'Maxtid saknas i kommunens data – skylten avgör';
+        safe--; kollaTid++;
+      }
       drawParkingSegment(s, color, txt, dest, infoRow, grp);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
@@ -3869,7 +3902,15 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
 
     const badge = document.getElementById('count-badge');
-    if (vehicleMode !== 'cykel') { badge.textContent = `${safe} trygga platser i natt`; badge.style.display = 'block'; }
+    // Saknar staden maxtid i datan finns inga "trygga" platser att räkna – då hade badgen
+    // sagt "0 trygga platser i natt", vilket ser ut som att appen är trasig i stället för
+    // ärlig. Räkna det den faktiskt visar i stället.
+    if (vehicleMode !== 'cykel') {
+      badge.textContent = STAD.harMaxtid
+        ? `${safe} trygga platser i natt`
+        : `${kollaTid} platser – kontrollera tidsgräns`;
+      badge.style.display = 'block';
+    }
     // Samma "gäller även moped klass 1"-tillägg som renderModeIntro() – den här texten
     // skriver över hint-elementet EFTER en sökning, så renderModeIntro:s variant syns bara
     // innan man sökt (upptäckt vid test 2026-08-22, se project-minnet).
@@ -3880,7 +3921,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
     loadZonesForViewport(getKey());
     sheetSnapTo('peek');   // mät peek mot färgraden
-    console.log(`[UC2-v2] säkra=${safe} | städas=${städas} | tillåtna=${allowed.length} | förbud=${forbiddenLines.length} | städsegment=${cleaningSegs.length}`);
+    console.log(`[UC2-v2] säkra=${safe} | kontrollera-tid=${kollaTid} | städas=${städas} | tillåtna=${allowed.length} | förbud=${forbiddenLines.length} | städsegment=${cleaningSegs.length}`);
   } catch(e) {
     console.error('[UC2-v2]', e);
     document.getElementById('hint').textContent = 'Fel: ' + (e.message || 'okänt');
@@ -4638,9 +4679,15 @@ function updateLegend(mode) {
        <label class="lgnd-switch"><input type="checkbox" ${dimBlocked ? 'checked' : ''} onchange="toggleDim()"><span class="lgnd-switch-track"></span><span class="lgnd-switch-thumb"></span></label></div>
      ${dimBlocked ? `<div class="lgnd-hidden-note">Nedtonade, inte dolda – tomt betyder «ingen data», inte «fritt».</div>` : ''}
      <div class="lgnd-feedback"><a href="#" onclick="event.preventDefault(); window.__openFeedback && window.__openFeedback();">💬 Skicka feedback</a></div>`;
+  // Saknar staden maxtid i datan fälls varje grön uc2-linje till blått (se STAD.harMaxtid),
+  // så raden "Trygg över natten" skulle förklara en färg som aldrig ritas. Byt ut den mot
+  // en rad som säger VARFÖR, i stället för att bara utelämna den.
+  const uc2TryggRad = STAD.harMaxtid
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Trygg över natten</div>`
+    : `<div class="lgnd-hidden-note">${STAD.namn} publicerar ingen maxtid – appen kan visa var du får parkera, men inte hur länge. Skylten avgör.</div>`;
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Trygg över natten</div>
+       ${uc2TryggRad}
        ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Möjlig att parkera – kontrollera tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>

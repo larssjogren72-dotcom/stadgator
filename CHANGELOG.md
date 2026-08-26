@@ -46,6 +46,29 @@ följer med, avstängd. Mätningen täcker index, servicedagar, tre bbox-uttag, 
 schedule-uppslag med riktigt innehåll, WFS tillåten + taxa, fem SEO-sidor, sitemap,
 robots, llms och 404. Verifierat mot tre riktiga serverstarter, inte påtvingade värden.
 
+**Sundbyberg säger inte längre "Trygg över natten".** Lars gick Brunnsgatan med skylt i
+handen: vid vändplanen i norr (59.363734, 17.968813) står **2 tim**, och appen ritade grönt
+"Trygg över natten" på segmentet 14 meter därifrån. Att följa appen där ger kontrollavgift.
+
+Orsaken är inte ett trasigt segment utan en lucka i källan: **maxtid finns inte i
+Sundbybergs data.** Kontrollerat mot alla 48 karttjänster kommunen publicerar – de enda
+tidsfälten i parkeringslagren är städtid, avgiftstid och ett 30-minutersfönster satt på 18
+av 812 segment. `Typ_av_parkering` visade sig betyda längsgående kontra vinkelparkering.
+
+Ny kapabilitetsflagga `STAD.harMaxtid`. Är den falsk fälls varje grön "Trygg över natten"
+till den blå nivå appen redan använder för Stockholms korttidsfickor: **"Får parkera –
+kontrollera tidsgräns"**, med detaljraden "Maxtid saknas i kommunens data – skylten avgör".
+Förklaringen byter ut sin "Trygg över natten"-rad mot en mening som säger varför, och
+räknaren säger "N platser – kontrollera tidsgräns" i stället för "0 trygga platser".
+**Nu-läget rörs inte** – "får du stå just nu" är sant även med en tidsgräns.
+
+Fällningen ligger EFTER färgkedjan, inte i tre grenar. Då kan Stockholm inte påverkas
+(hela blocket hoppas över när `harMaxtid` är sant) och framtida gröna grenar fångas
+automatiskt. Uppmätt i appen, Vasastan, före och efter: **identiska färgräkningar och
+badgetexter i båda lägena** (natt 571 gröna / 310 röda / 113 amber, "201 trygga platser i
+natt"; nu 615 / 360 / 19, "221 gator där du får stå nu"). I Sundbyberg blev exakt de 184
+gröna blå, inget annat rördes, och Nu-läget står kvar på 185 gröna.
+
 Mätverktyget hade själv två fel som gömde sanningen och nu är lagade: fyra svar visade
 "samma längd, olika hash", vilket var WFS-svarens tidsstämpel med millisekunder som
 normaliseringen missade – inte en beteendeändring utan en trasig mätsticka. Och fyra
