@@ -328,8 +328,29 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
 // Fallerar en stad loggas det och servern startar ändå: en trasig pilotstad ska
 // aldrig kunna ta ner Stockholm.
 const STADSNAMN = ['sundbyberg'];
+
+// ── AV I DRIFT, PÅ LOKALT ────────────────────────────────────────────────────
+// Koden bor i huvudversionen så att den ALDRIG halkar efter Stockholm-fixarna –
+// det var hela problemet med att ha Sundbyberg på en egen kopia. Men den är
+// avstängd när appen kör skarpt, för Sundbyberg har inte gett oss lov ännu
+// (deras kartserver är åtkomlig, men åtkomlig ≠ licensierad).
+//
+// Railway sätter RAILWAY_GIT_COMMIT_SHA → där är detta produktion → av.
+// På Lars dator finns ingen sådan variabel → på, utan att han behöver göra något.
+// Vill man tvinga: STADER=sundbyberg slår på, STADER=av stänger av. Den dagen
+// kommunen säger ja räcker det att sätta variabeln i Railway – ingen kodändring,
+// ingen ihopslagning, inget som kan följa med av misstag.
+const I_DRIFT   = VERSION_ENV.some(k => (process.env[k] || '').trim());
+const STADER_ENV = (process.env.STADER || '').trim().toLowerCase();
+const STADER_PA = STADER_ENV === 'av'  ? false
+                : STADER_ENV           ? true
+                : !I_DRIFT;
+if (!STADER_PA) {
+  console.log(`[Städer] avstängda${I_DRIFT ? ' (drift)' : ''} – bara Stockholm serveras`);
+}
+
 const STADER = [];
-for (const namn of STADSNAMN) {
+for (const namn of (STADER_PA ? STADSNAMN : [])) {
   try {
     const skapa = require('./cities/' + namn);
     STADER.push(skapa({ https, fs, path, keepAliveAgent, segDistM, SCHED_API_DAYS, send, rot: __dirname }));
@@ -556,6 +577,10 @@ http.createServer((req, res) => {
         body = Buffer.from(String(data)
           .split('__APP_VERSION__').join(APP_VERSION)
           .split('__APP_SEMVER__').join(APP_SEMVER)
+          // Klienten måste veta om stadsadaptrarna är påslagna. Utan detta hade
+          // ?stad=sundbyberg i drift ritat en tom karta och tigit om varför –
+          // appen hade frågat efter /sbg/-adresser som inte finns.
+          .split('__STADER_PA__').join(STADER_PA ? '1' : '0')
           .split('__APP_BUILT__').join(APP_BUILT), 'utf8');
       }
       finish(req, res, 200, body);

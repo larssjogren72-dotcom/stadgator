@@ -1045,7 +1045,17 @@ const DEBUG_MODE = /[?&]debug=1/.test(location.search);
 // Stockholm-vägen och inget beteende ändras. Flaggan finns enbart för att kunna
 // testa mappningslagret mot en andra kommun utan att röra det som fungerar.
 // Backa ut: ta bort parametern (direkt), eller `git checkout master` (helt).
-const ST_SBG = /[?&]stad=sundbyberg/.test(location.search);
+//
+// AV I DRIFT: servern stämplar in om stadsadaptrarna är påslagna (se STADER_PA i
+// server.js). Är de av existerar inte /sbg/-adresserna, och då ska ?stad=sundbyberg
+// inte låtsas fungera – appen faller tillbaka på Stockholm i stället för att rita en
+// tom karta och tiga om varför. Öppnas filen direkt från disk står platshållaren kvar
+// orörd, och då är vi lokalt → på.
+const STADER_PA = (function (v) { return /^__/.test(v) ? true : v === '1'; })('__STADER_PA__');
+const ST_SBG = STADER_PA && /[?&]stad=sundbyberg/.test(location.search);
+if (!STADER_PA && /[?&]stad=/.test(location.search)) {
+  console.warn('[ParkSpot] Stadsadaptrar är avstängda på den här servern – visar Stockholm.');
+}
 const STAD = ST_SBG
   ? { id:'sundbyberg', namn:'Sundbyberg', geokodSuffix:', Sundbyberg',
       center:[59.3610, 17.9713], zoom:15,
