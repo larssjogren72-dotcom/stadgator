@@ -14,6 +14,12 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.11.2 – 2026-08-26
+**"Nyss städad" syns nu även när hela staden är blå.** Den ljusblå glowen försvann bland
+övriga blå linjer i Sundbyberg. Ersatt med en mörk infattning runt linjen – färgkontrast
+och form i stället för en nyansskillnad inom samma kulör. Stockholms gröna variant är
+oförändrad (verifierat: 28 halo-linjer vid Sjöviksvägen, oförändrat före och efter).
+
 ## v1.11.1 – 2026-08-26
 **Debug-klockan kan resa till ett annat datum, inte bara ett annat klockslag.**
 `?debugtid=` tar nu även `2026-08-28T07:00`, vilket krävs för att nå en annan veckodag –

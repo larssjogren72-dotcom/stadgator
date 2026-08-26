@@ -213,6 +213,17 @@ halon följer linjens färg (ljusblå i stället för ljusgrön). Att visa när 
 till är appens kärnvärde – det får inte försvinna när en stad saknar korttids-signal.
 Orört är också städ-orange, förbud, gågata, uteservering och "ej för dig"-lila.
 
+**Emfas måste kontrastera mot omgivningen, inte mot sin egen linje.** Första försöket gav
+"nyss städad" en ljusblå glow under den blå linjen – samma två-steg-ljusare-relation som den
+gröna. Lars foto 2026-08-26: den syntes knappt. Skälet är att i en stad utan korttids-signal
+är i princip ALLT blått, så en ljusare blå försvinner i mängden; i Stockholm fungerar den
+gröna glowen därför att grönt är ovanligt bland rött och lila. Blå nyss städad har därför
+en **mörk infattning** (`#075985`, bredd 12 under linjens 7) i stället för en ljus glow:
+den kontrasterar både mot den ljusa kartan och mot övriga blå linjer, och ingen annan
+linjetyp använder mörk infattning. Linjens egen färg är oförändrad. Att de två städerna
+får olika emfas-teknik är inte en inkonsekvens utan samma regel: emfasen ska synas där den
+står, och omgivningen skiljer sig.
+
 **Följdtexter.** Förklaringsrutan, läges-chippet och intro-texten får inte beskriva en färg
 som aldrig ritas – alla tre följer flaggan. Samma skäl tog bort taxa-prisstegen ur
 förklaringen i städer utan taxazoner (`STAD.harTaxaZoner`), där den förklarade något

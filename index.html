@@ -2241,7 +2241,19 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
     const latlngs = line.map(c => toLatLng(c[0], c[1]));
     if (nyssStadad) {
       // Glow under själva linjen – bredare, ljusare, ointeraktiv (tar inget klick).
-      L.polyline(latlngs, { color: color === '#38bdf8' ? '#bae6fd' : '#86efac', weight: 13, opacity: 0.55, interactive: false }).addTo(grp);
+      // ⚠ Emfasen måste kontrastera mot OMGIVNINGEN, inte bara mot sin egen linje.
+      // I Stockholm är grönt ovanligt bland rött och lila, så en ljusare grön glow räcker.
+      // I en stad utan korttids-signal är i princip ALLT blått – då försvinner en ljusblå
+      // glow i mängden (Lars foto 2026-08-26: "syntes för dåligt"). Samma fel som kommentaren
+      // högre upp varnar för: ögat söker av en karta på FÄRGKONTRAST och FORM, inte på
+      // nyansskillnader inom samma kulör. Därför en MÖRK infattning i stället för en ljus
+      // glow: den kontrasterar både mot den ljusa kartan och mot de övriga blå linjerna,
+      // och ingen annan linjetyp använder mörk infattning – signalen är alltså unik.
+      // Linjens EGEN färg är oförändrad: laglighetsavläsningen påverkas inte.
+      const bla = color === '#38bdf8';
+      L.polyline(latlngs, bla
+        ? { color: '#075985', weight: 12, opacity: 0.95, interactive: false }
+        : { color: '#86efac', weight: 13, opacity: 0.55, interactive: false }).addTo(grp);
     } else if (hiddenGem) {
       // Amber-300 under amber-500 – samma två-steg-ljusare-relation som gröna glowen ovan.
       L.polyline(latlngs, { color: '#fcd34d', weight: 13, opacity: 0.55, interactive: false }).addTo(grp);
@@ -4935,7 +4947,7 @@ function updateLegend(mode) {
   const nowStaRad = STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Nyss städad – bra chans</div>`
-    : `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;box-shadow:0 0 0 3px #bae6fd"></div>Nyss städad – bra chans</div>
+    : `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;box-shadow:0 0 0 3px #075985"></div>Nyss städad – bra chans</div>
        <div class="lgnd-hidden-note">${STAD.namn} pekar inte ut vilka platser som är korttid, så appen kan inte lova hur länge du får stå. Därför blått i stället för grönt – skylten avgör.</div>`;
   const nowLegend =
       `<hr class="lgnd-sep">
