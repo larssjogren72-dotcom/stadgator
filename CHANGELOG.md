@@ -14,6 +14,22 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.8.5 – 2026-08-26
+Textfix: "Flytta bilen innan 06 **ikväll**" → "innan 06 **i morgon**". Klockan 06 är
+inte på kvällen. Felet fanns i varje fall texten visades — natt-grenen utlöses bara
+när fönstret börjar före 07:00, så klockslaget ligger alltid mellan 00:00 och 06:59.
+Nålarnas motsvarande text har alltid sagt "i morgon"; gatuvägen var den avvikande.
+Midnatt behåller sin egen formulering ("innan midnatt") — då öppnar fönstret faktiskt
+ikväll, och det är tydligare än "innan 00 i morgon".
+
+Kontrollerat vilka lägen som berörs: **cykel/moped klass 2 berörs inte** (läget ritar
+inga gatlinjer alls — uppmätt 5 mot bilens 1173). **Rörelsehindrad-läget berörs, och
+ska göra det**: trafikförordningen 13 kap. 8 § ger tillståndet "rätt att parkera under
+högst tre timmar där parkering enligt en lokal trafikföreskrift är förbjuden" — en
+städdag är en sådan föreskrift, alltså tre timmar och inte undantag. Att tysta
+varningen där vore falsk trygghet för den grupp som har svårast att flytta bilen snabbt.
+`35c7650`
+
 ## v1.8.4 – 2026-08-25
 "Över natten" missade ändamålsplatser helt. Läget frågade bara om **städning** i
 morgon bitti, så en lastplats som blir aktiv 07:00 föll rakt igenom färgkedjan till
