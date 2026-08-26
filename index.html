@@ -1081,9 +1081,19 @@ const STAD = ST_SBG
   : { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
       center:[59.332, 18.065], zoom:13,
       harForbud:true,  harPhus:true,  harTaxaZoner:true,
-      // Stockholm HAR begreppet maxtid: MAX_MINUTES/MAX_HOURS finns i registret (ofta
-      // tomma, men fältet existerar) och VF_METER pekar ut de äkta korttidsfickorna.
-      // Därför får Stockholm fortsätta säga "Trygg över natten" som förut.
+      // Flaggan betyder "staden har en SIGNAL för vilka platser som är tidsbegränsade",
+      // inte "staden har en siffra för maxtiden". Skillnaden är viktig och mätt
+      // 2026-08-26 på 9 491 segment i sex stadsdelar:
+      //   MAX_MINUTES  24 (0,3 %) · MAX_HOURS 106 (1,1 %) · MAX_DAYS 0
+      //   → Stockholms maxtid-FÄLT är i praktiken tomma, precis som jag först trodde
+      //     att bara Sundbyberg var. Fältens existens är alltså INTE skälet.
+      // Skälet är att Stockholm ändå pekar ut VILKEN SORTS plats det är:
+      //   VF_PLATS_TYP  9 384 (98,9 %) – "P Avgift, boende", "P-avgift endast besök",
+      //                 "Avgiftsfri parkering", reserverade platser …
+      //   VF_METER      3 237 (34,1 %) – signalen för äkta korttidsfickor
+      // Appen kan därför skilja långtidsplats från korttidsficka och färga dem olika,
+      // även utan minutsiffran. Sundbybergs motsvarande fält (`Typ_av_parkering`) säger
+      // bara längsgående kontra vinkelparkering – ingen sådan uppdelning finns.
       harMaxtid:true,
       schemaUrl:'/schedule' };
 
