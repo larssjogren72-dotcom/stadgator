@@ -190,3 +190,30 @@ Läs-bara konsoltester på två ytterstadsplatser:
 - ⬜ **Innerstadstäckning:** en `testTackning()` på Norrmalm för komplett matris (låg risk – innerstad är mest reglerad).
 - ⬜ **Tröskelfinjustering:** 12 m fungerade på Svartviksslingan; verifiera på fler gator (smala/breda) innan hårdkodning.
 - ⬜ **Prestanda P_FORBUD−P_TILLATEN:** O(n×m) punktjämförelse per sökning – bygg enkelt rutnäts-index om det behövs.
+  (Mätt 2026-08-24 och avfärdad som frysningsorsak: isolerad loop = 3 ms i Gamla Stan, ~220k jämförelser. Kvar som teoretisk risk, inte praktisk.)
+- ⬜ **Kartans storlekssynk (iOS):** vektorlagren ritas på EN canvas (`L.canvas`). Leaflet håller
+  canvasen i takt med containern via `trackResize`, men korrigeringen kör inuti
+  `requestAnimationFrame`. Stryper iOS rAF (tangentbord, adressfält som fälls in, minnestryck)
+  kör den aldrig, och inget försöker igen → baskartan täcker hela containern medan överläggen
+  bara täcker den gamla ytan, och kartan blir död för tryck där canvasen inte når.
+  **Mildrat 2026-08-25** med en vakthund (`kartSynkKoll`, index.html) som jämför `map.getSize()`
+  med containern var 2:a sekund + vid `visibilitychange`/`pageshow`/`orientationchange`/
+  `visualViewport.resize` och rättar med `invalidateSize({pan:false})`. Utfall loggas till
+  localStorage, läsbart via `?kartlogg=1`. **Grundorsaken är inte bevisad** – vakthunden är ett
+  skyddsnät som dessutom samlar bevis, inte en verifierad fix.
+- ✅ **`vh` vs `innerHeight` på iOS – ÅTGÄRDAD 2026-08-25.** `#bottom` fick höjd från CSS `85vh`
+  medan `sheetSnaps` räknas från JS `window.innerHeight`. På iOS är `vh` den stora vyporten
+  (adressfält dolt) och `innerHeight` den faktiska → två oberoende sanningar.
+  **Fix:** `height: 85%` i stället för `85vh`. `#bottom` är absolutpositionerad i `#app`
+  (`position:relative; height:100%`), så procenten räknas mot appens faktiska höjd – exakt det
+  tal `sheetCompute()` läser som `appH`. Det initiala peek-läget gick från
+  `translateY(calc(85vh - 118px))` till `calc(100% - 118px)`; procent i `translateY` syftar på
+  elementets egen höjd, så det uttrycker samma sak utan vyport-beroende.
+  Uppmätt: identiskt (690 px) där de redan var ense; med simulerat adressfält (app 730 av 812)
+  gav gamla koden 690 px = 94,5 % av appen i stället för 85 %. Proportionsfel, inget överflöde.
+- ⬜ **Legenden hamnar under lådan i `full`/`half`:** `fitLegendHeight()` har ett golv på 120 px
+  (`Math.max(120, plats)`) som vinner över att få plats. Uppmätt överlapp 193 px i `full`.
+  Avsiktligt (oläsligt under 120 px) och oförändrat av fixen ovan – men det är detta Lars såg
+  som "legenden hoptryckt". Funktionen läser dessutom lådans LIVE-geometri
+  (`getBoundingClientRect().top`) i stället för det redan kända mål-snappet `sheetSnaps[nivå]`,
+  vilket ger ett mellanläge om den anropas mitt i lådans transition.

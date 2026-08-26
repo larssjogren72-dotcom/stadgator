@@ -383,13 +383,22 @@
     /* Bottensheet (draggbar, svävar över kartan) */
     #bottom {
       position: absolute; left: 0; right: 0; bottom: 0;
-      height: 85vh; max-height: 85vh;
+      /* PROCENT, inte vh. #bottom är absolut­positionerad i #app (position:relative,
+         height:100%), så 85 % räknas mot appens FAKTISKA höjd – exakt samma tal som
+         sheetCompute() läser som `appH`. Med `85vh` var CSS och JS två oberoende
+         sanningar: på iOS är `vh` den STORA vyporten (adressfältet borträknat) medan
+         `window.innerHeight` är den faktiska, och de är oense så fort adressfältet syns.
+         Nu kan de inte glida isär, för det finns bara en källa. */
+      height: 85%; max-height: 85%;
       background: #ffffff;
       border-top: 1px solid var(--glass-border);
       border-radius: 18px 18px 0 0;
       box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
       display: flex; flex-direction: column;
-      transform: translateY(calc(85vh - 118px));   /* peek tills JS tar över */
+      /* Procent i translateY syftar på ELEMENTETS EGEN höjd, inte förälderns – så
+         `100% - 118px` betyder "dra ner hela lådan utom 118 px", vilket är precis vad
+         det gamla `85vh - 118px` försökte uttrycka. Nu utan vyport-beroende. */
+      transform: translateY(calc(100% - 118px));   /* peek tills JS tar över */
       transition: transform .28s cubic-bezier(.16,1,.3,1);
       z-index: 1050;
     }
@@ -909,7 +918,7 @@
   <div id="diag-panel" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);overflow:auto;padding:16px;">
     <div style="max-width:600px;margin:0 auto;background:#0d1f3a;border-radius:12px;padding:16px;color:#f0f6fc;font-size:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <strong style="font-size:14px;">🔬 LTFR_FORESKRIFT_GEOM – schema</strong>
+        <strong id="diag-title" style="font-size:14px;">🔬 LTFR_FORESKRIFT_GEOM – schema</strong>
         <button onclick="document.getElementById('diag-panel').style.display='none'"
                 style="background:#ef4444;border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">✕ Stäng</button>
       </div>
@@ -1845,6 +1854,8 @@ function scheduleText(schedule) {
   if (!schedule || !schedule.length) return 'Ingen registrerad servicedag – kontrollera skylt';
   // Aktiva och vilande (ur säsong) formateras var för sig. En gata kan ha båda: innerstadsgator
   // har ofta ett vinterschema OCH ett sommarschema, och då är det ena aktivt medan det andra vilar.
+  // Bara /schedule kan skicka `vilande` – de tre andra anroparna bygger sina rader ur
+  // P_FORBUD-citations, som saknar säsongsfält och därför alltid faller i `aktiva`.
   const grupp = (rader) => {
     const byWin = new Map();                     // "start_end" → [veckodagar]
     rader.forEach(x => {
@@ -3781,7 +3792,15 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
       const cl = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());   // null | {start,end}
-      const tier = cl ? overnightCleaningTier(cl.start) : null;                        // null|'natt'|'morgon'|'sen'
+      // TVÅ slags morgonhinder, inte ett: städningen kommer från GATAN, ändamålsplatsen
+      // (lastplats/taxi/på-avstigning) från SEGMENTET självt. Det som öppnar FÖRST binder –
+      // bilen måste vara borta innan det första fönstret börjar. Tidigare frågades bara om
+      // städning, så en lastplats 07–19 blev "Trygg över natten". Se andamalStartImorgon.
+      const aStart = andamalStartImorgon(s);
+      const hinder = [ cl ? { start: cl.start, end: cl.end, lastplats: false } : null,
+                       aStart != null ? { start: aStart, end: s.andamalEnd, lastplats: true } : null ]
+                     .filter(Boolean).sort((a, b) => a.start - b.start)[0] || null;
+      const tier = hinder ? overnightCleaningTier(hinder.start) : null;                // null|'natt'|'morgon'|'sen'
       // Se Nu-flödet: "får jag stå här alls" före "när städas det". En MC-ruta i MC-läget är
       // tillåten och behåller därför sin städvarning (grenen nedan ligger kvar efter tier).
       const ejForDig = !vehicleAllowed(s.vehicle);
@@ -3791,8 +3810,11 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // "Trygg över natten" och räknas som en trygg plats i badgen.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
       else if (ejForDig)               { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
-      else if (tier === 'natt')        { color = '#f59e0b'; txt = `Städas i natt ${fmtClock(cl.start)}–${fmtClock(cl.end)} – ej säkert att lämna bilen`; städas++; }
-      else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(cl.start)}`; städas++; }
+      else if (tier === 'natt')        { color = '#f59e0b'; städas++;
+        txt = hinder.lastplats
+          ? `${andamalNamnFor(s)} ${fmtClock(hinder.start)}–${fmtClock(hinder.end)} – ej säkert att lämna bilen`
+          : `Städas i natt ${fmtClock(hinder.start)}–${fmtClock(hinder.end)} – ej säkert att lämna bilen`; }
+      else if (tier === 'morgon')      { color = '#f59e0b'; txt = `Får stå · flytta innan ${fmtClock(hinder.start)}`; städas++; }
       else if (tier === 'sen')         { color = '#16a34a'; txt = `Trygg över natten`; safe++; }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; städas++; }
@@ -3804,9 +3826,21 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // Ingen städinstruktion för platser man inte får använda.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : (isRhPlats(s) || ejForDig) ? ''
-                    : tier === 'natt'   ? `Flytta ${vehicleWord()} ${cl.start === 0 ? 'innan midnatt' : `innan ${fmtClock(cl.start)} ikväll`}`
-                    : tier === 'morgon' ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)}`
-                    : tier === 'sen'    ? `Servas imorgon ${fmtClock(cl.start)}–${fmtClock(cl.end)} · du hinner åka först`
+                    // "ikväll" var fel i VARJE fall den visades: grenen utlöses bara när fönstret
+                    // börjar före 07:00 (ON_NIGHT_HM), så klockslaget ligger alltid mellan 00:00
+                    // och 06:59 – aldrig på kvällen. Nålarnas motsvarande text (nyssSnartRing,
+                    // ~rad 2087) har alltid sagt "i morgon"; gatuvägen var den avvikande.
+                    // Midnatt behåller sin egen formulering: då öppnar fönstret faktiskt ikväll,
+                    // och "innan midnatt" är tydligare än "innan 00 i morgon".
+                    : tier === 'natt'   ? `Flytta ${vehicleWord()} ${hinder.start === 0 ? 'innan midnatt' : `innan ${fmtClock(hinder.start)} i morgon`}`
+                    // Detaljraden säger VAD som kommer, chipet sa NÄR. Lastplats och städning
+                    // är olika saker för användaren även om åtgärden (flytta bilen) är samma.
+                    : tier === 'morgon' ? (hinder.lastplats
+                        ? `${andamalNamnFor(s)} imorgon ${fmtClock(hinder.start)}–${fmtClock(hinder.end)}`
+                        : `Servas imorgon ${fmtClock(hinder.start)}–${fmtClock(hinder.end)}`)
+                    : tier === 'sen'    ? (hinder.lastplats
+                        ? `${andamalNamnFor(s)} imorgon ${fmtClock(hinder.start)}–${fmtClock(hinder.end)} · du hinner åka först`
+                        : `Servas imorgon ${fmtClock(hinder.start)}–${fmtClock(hinder.end)} · du hinner åka först`)
                     : (s.avgiftsfriTidsbegransad && s.cleaningNow) ? (s.cleaningTxt || 'Inte tillåtet just nu enligt skylt')
                     : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
@@ -3871,6 +3905,21 @@ function overnightCleaningTier(start) {
   if (start < ON_SAFE_HM)  return 'morgon';
   return 'sen';
 }
+
+// När öppnar segmentets EGEN ändamålsplats i morgon? null = inte aktiv i morgon alls.
+// En lastplats som börjar 07:00 är samma sorts hinder som en städning som börjar 07:00:
+// bilen måste vara borta innan dess. Uc2 ställde tidigare bara städfrågan, så en lastplats
+// 07–19 målades "Trygg över natten" utan ett ord om att den måste flyttas.
+// Uppmätt 2026-08-25 i åtta Stockholmsområden: av 1 552 ändamålsplatser är 0 aktiva kl 22–04,
+// 77 kl 06:00 och 1 442 kl 07:00 – felet biter alltså på morgonen, inte mitt i natten.
+function andamalStartImorgon(s) {
+  if (!s.andamal || s.andamalStart == null || s.andamalEnd == null) return null;
+  const d = tomorrow();
+  d.setHours(Math.floor(s.andamalStart / 100), s.andamalStart % 100, 0, 0);
+  return andamalActiveAt(s, d) === true ? s.andamalStart : null;
+}
+// "Lastplats" / "Taxiplats" / … – samma etiketter som Nu-flödet använder (andamalTxt).
+const andamalNamnFor = s => ANDAMAL_LABELS[s.andamal] || 'Ändamålsplats';
 
 // Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
 // (latlng, gatunamn) → bool. Namn + geometri (lat/lng) hindrar granngata-läcka.
@@ -4662,6 +4711,140 @@ function toggleLegend() {
   applyLegendState();
 }
 
+// ── Kartans storlekssynk: vakthund, självläkning och logg ────────────────────
+// VARFÖR: p-linjerna ritas på EN canvas (L.canvas, se initMap). Leaflet håller canvasen
+// och sin egen storleksuppfattning i synk med containern via `trackResize` – men den
+// korrigeringen kör inuti requestAnimationFrame. Stryper iOS rAF (tangentbord upp/ner,
+// adressfältet som fälls in, minnestryck) hinner den aldrig köra, och ingenting försöker
+// igen. Följden: baskartan målas över HELA containern medan överläggen (taxa-zoner +
+// p-linjer) bara täcker den gamla, mindre ytan. Och eftersom canvas-renderaren träffkollar
+// mot canvasen blir resten av kartan DÖD för tryck – det känns som att appen låst sig.
+// Lars fotograferade exakt den signaturen 2026-08-24 (Wallingatan).
+//
+// INTERVALLET är själva poängen, inte bara händelserna: felet uppstår när en händelse fick
+// köra men dess uppföljning inte gjorde det. Då kan man inte förutsätta att en NY händelse
+// kommer och räddar situationen — något måste titta efter av sig självt.
+const KARTSYNK_TROSKEL_PX   = 2;      // under detta = delpixel-avrundning, inte desynk
+const KARTSYNK_INTERVALL_MS = 2000;
+const KARTLOGG_MAX          = 20;
+let kartloggCache = null;
+
+function kartloggLas() {
+  if (kartloggCache) return kartloggCache;
+  try { kartloggCache = JSON.parse(localStorage.getItem('ps_kartlogg') || '[]'); }
+  catch (e) { kartloggCache = []; }
+  return kartloggCache;
+}
+function kartloggSkriv(post) {
+  const logg = kartloggLas();
+  logg.push(post);
+  while (logg.length > KARTLOGG_MAX) logg.shift();
+  try { localStorage.setItem('ps_kartlogg', JSON.stringify(logg)); } catch (e) {}
+}
+function rensaKartlogg() {
+  kartloggCache = [];
+  try { localStorage.removeItem('ps_kartlogg'); } catch (e) {}
+}
+
+function kartMatt() {
+  const wrap = document.getElementById('map-wrap');
+  const c    = document.querySelector('#map canvas');
+  const s    = (map && map.getSize) ? map.getSize() : null;
+  const wr   = wrap ? wrap.getBoundingClientRect() : null;
+  const cr   = c ? c.getBoundingClientRect() : null;
+  return {
+    leaflet:   s  ? [s.x, s.y] : null,
+    container: wr ? [Math.round(wr.width), Math.round(wr.height)] : null,
+    canvas:    cr ? [Math.round(cr.width), Math.round(cr.height)] : null,
+    innerH: window.innerHeight, dpr: Math.round(window.devicePixelRatio * 100) / 100,
+    dold: document.hidden
+  };
+}
+
+// Returnerar true om något rättades. Ofarlig att köra hur ofta som helst: rör inget
+// när måtten stämmer, och `pan:false` gör att användarens vy aldrig flyttar sig.
+function kartSynkKoll(anledning) {
+  if (!map || !map.getSize) return false;
+  const fore = kartMatt();
+  if (!fore.leaflet || !fore.container) return false;
+  // Container 0×0 = elementet är dolt eller ännu inte layoutat. Att synka Leaflet till noll
+  // vore meningslöst och skulle dessutom logga brus varje gång. Vänta tills det finns en yta.
+  if (fore.container[0] === 0 || fore.container[1] === 0) return false;
+  const dx = Math.abs(fore.leaflet[0] - fore.container[0]);
+  const dy = Math.abs(fore.leaflet[1] - fore.container[1]);
+  if (dx <= KARTSYNK_TROSKEL_PX && dy <= KARTSYNK_TROSKEL_PX) return false;
+
+  map.invalidateSize({ pan: false });
+
+  // Uppstarts-korrigeringen (#app är display:none tills appen visas → Leaflet mäter 0×0)
+  // är förväntad och händer varje laddning. Logga den inte, annars trycker den ut de
+  // riktiga händelserna ur den begränsade loggen.
+  const uppstart = fore.leaflet[0] === 0 && fore.leaflet[1] === 0;
+  if (!uppstart) {
+    kartloggSkriv({ t: new Date().toISOString(), anledning, avvikelse: [dx, dy],
+                    fore, efter: kartMatt() });
+    console.warn(`[ParkSpot] Kartstorlek ur synk (${anledning}): Leaflet ${fore.leaflet} `
+               + `vs container ${fore.container} – rättat.`);
+  }
+  return true;
+}
+
+function startaKartSynkVakt() {
+  kartSynkKoll('start');
+  setInterval(() => { if (!document.hidden) kartSynkKoll('intervall'); }, KARTSYNK_INTERVALL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) kartSynkKoll('synlig'); });
+  window.addEventListener('pageshow', () => kartSynkKoll('pageshow'));
+  // Orienteringsbytet rapporteras innan layouten hunnit sätta sig – mät efter en tick.
+  window.addEventListener('orientationchange', () => setTimeout(() => kartSynkKoll('orientering'), 250));
+  // Tangentbord upp/ner på iOS syns här men inte i window.resize.
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => kartSynkKoll('visualViewport'));
+}
+
+// ── ?kartlogg=1 – läs vad vakthunden fångat ──────────────────────────────────
+// Loggen ligger i localStorage och ÖVERLEVER omstart av appen. Det är hela poängen:
+// efter en frysning går det att öppna parkspot.se/?kartlogg=1 och se om vakthunden
+// slog till, när, och med vilken avvikelse – i stället för att gissa i efterhand.
+const KARTLOGG_VY = /[?&]kartlogg=1/.test(location.search);
+
+function visaKartlogg() {
+  const panel = document.getElementById('diag-panel');
+  const ut    = document.getElementById('diag-output');
+  const titel = document.getElementById('diag-title');
+  if (!panel || !ut) return;
+  if (titel) titel.textContent = '🩺 Kartsynk – vakthundens logg';
+  const logg = kartloggLas(), nu = kartMatt();
+  // Korta etiketter: panelen läses på telefon, och långa rader radbryts mitt i ett mått.
+  const j = v => v ? '[' + v.join(',') + ']' : '–';
+  const rad = (m) => 'L' + j(m.leaflet) + ' C' + j(m.container) + ' canvas' + j(m.canvas);
+  const iSynk = nu.leaflet && nu.container
+    && nu.leaflet[0] === nu.container[0] && nu.leaflet[1] === nu.container[1];
+  const rader = [
+    'L = Leaflets storlek · C = containern',
+    'De ska vara lika. Canvas ska vara ca 1,2× C.',
+    '',
+    'NULÄGE   ' + (iSynk ? '✓ i synk' : '⚠ AVVIKER'),
+    '  ' + rad(nu),
+    '  innerH ' + nu.innerH + ' · dpr ' + nu.dpr,
+    '  v' + (APP_SEMVER || 'lokal') + ' (' + APP_VERSION + ')',
+    '',
+    logg.length ? logg.length + ' händelse(r), senaste först:'
+                : 'Inga händelser loggade – vakthunden har aldrig behövt rätta något.'
+  ];
+  for (const p of [...logg].reverse()) {
+    rader.push('',
+      '── ' + p.t.slice(0, 19).replace('T', ' ') + '  (' + p.anledning + ')',
+      '   avvikelse ' + j(p.avvikelse) + ' px',
+      '   före  ' + rad(p.fore),
+      '   efter ' + rad(p.efter),
+      '   innerH ' + p.fore.innerH + ' · dpr ' + p.fore.dpr + ' · dold ' + p.fore.dold);
+  }
+  ut.style.color = '#e6edf3';
+  ut.textContent = rader.join('\n');
+  panel.style.display = 'block';
+}
+window.visaKartlogg = visaKartlogg;
+window.rensaKartlogg = rensaKartlogg;
+
 function initMap() {
   // Canvas-renderare med tolerance → större (osynlig) klickyta på ALLA linjer
   // app-brett → lättare att träffa en gata, konsekvent, och snabbare för många segment.
@@ -4732,6 +4915,19 @@ function initMap() {
   startGeolocation();
   initSuggestions();
   initSheet();
+  startaKartSynkVakt();          // håller canvasen i takt med containern, se kartSynkKoll
+  if (KARTLOGG_VY) {
+    // Synlig badge av samma skäl som ?debugtid= har en: annars är det lätt att glömma
+    // att man står i ett diagnostikläge och läsa det som vanlig drift.
+    const b = document.createElement('div');
+    b.textContent = '🩺 KARTLOGG';
+    b.style.cssText = 'position:fixed;top:8px;left:8px;z-index:99999;background:#0f766e;'
+      + 'color:#fff;font:700 12px/1 system-ui;padding:6px 10px;border-radius:6px;cursor:pointer;'
+      + 'box-shadow:0 2px 8px rgba(0,0,0,.3)';
+    b.onclick = visaKartlogg;
+    document.body.appendChild(b);
+    setTimeout(visaKartlogg, 600);
+  }
 }
 
 // ── Min position ──────────────────────────────────────────────────────────────

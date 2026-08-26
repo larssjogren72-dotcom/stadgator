@@ -14,6 +14,167 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.8.5 – 2026-08-26
+Textfix: "Flytta bilen innan 06 **ikväll**" → "innan 06 **i morgon**". Klockan 06 är
+inte på kvällen. Felet fanns i varje fall texten visades — natt-grenen utlöses bara
+när fönstret börjar före 07:00, så klockslaget ligger alltid mellan 00:00 och 06:59.
+Nålarnas motsvarande text har alltid sagt "i morgon"; gatuvägen var den avvikande.
+Midnatt behåller sin egen formulering ("innan midnatt") — då öppnar fönstret faktiskt
+ikväll, och det är tydligare än "innan 00 i morgon".
+
+Kontrollerat vilka lägen som berörs: **cykel/moped klass 2 berörs inte** (läget ritar
+inga gatlinjer alls — uppmätt 5 mot bilens 1173). **Rörelsehindrad-läget berörs, och
+ska göra det**: trafikförordningen 13 kap. 8 § ger tillståndet "rätt att parkera under
+högst tre timmar där parkering enligt en lokal trafikföreskrift är förbjuden" — en
+städdag är en sådan föreskrift, alltså tre timmar och inte undantag. Att tysta
+varningen där vore falsk trygghet för den grupp som har svårast att flytta bilen snabbt.
+`35c7650`
+
+## v1.8.4 – 2026-08-25
+"Över natten" missade ändamålsplatser helt. Läget frågade bara om **städning** i
+morgon bitti, så en lastplats som blir aktiv 07:00 föll rakt igenom färgkedjan till
+grön "Trygg över natten" — utan ett ord om att bilen måste flyttas. Nu-läget hade
+rätt hela tiden; det var specifikt natt-läget som aldrig ställde morgondagens fråga
+om segmentets *egna* tidsfönster.
+
+Fixen speglar städlogiken i stället för att uppfinna en ny: det finns **två** slags
+morgonhinder, inte ett. Städningen kommer från gatan, ändamålsplatsen från segmentet
+självt — och det som öppnar **först** binder, för bilen måste vara borta innan det
+första fönstret börjar. Samma `overnightCleaningTier` avgör natt/morgon/sen. Texten
+skiljer på vad som kommer: "Lastplats imorgon 07–19" mot "Servas imorgon 07–19".
+
+Omfattning i fem innerstadsområden: 1 197 påverkade segment (1 164 lastplatser,
+30 på-/avstigning, 2 taxiplatser, 1 skolskjuts). Av 1 552 ändamålsplatser är **noll**
+aktiva kl 22–04 men **1 442 aktiva kl 07:00** — felet biter alltså på morgonen, vilket
+är precis vad natt-läget lovar: att bilen kan stå kvar tills du hämtar den.
+
+Verifierat i samma vy före och efter: grön 588 → 550 (−38), amber 104 → 142 (+38),
+och röd/lila/rosa/orange samt totala antalet linjer exakt oförändrade. Tio amber-segment
+klickade via riktig klickväg: nio städsegment behöll sin ordagranna text, ett fick den
+nya lastplatstexten. Marktestat mot originalföreskriften `0180 2018:02726`
+(Kungstensgatan), där data, sträcklängd 12 m och sida stämmer med beslutet.
+`b7766af`
+
+## v1.8.3 – 2026-08-25
+En latent bugg i regelmotorn plus ett nytt verktyg. **Stockholms beteende är
+oförändrat** — det är mätt, inte antaget.
+
+`andamalActiveAt()` returnerade `null` när en ändamålsplats (lastplats, taxi,
+på-/avstigning) hade klockslag men saknade både `DAY_TYPE` och `START_WEEKDAY`.
+`null` betyder "rör inte segmentet", så en aktiv lastplats hade sluppit igenom och
+sträckan kunnat visas grön. Det strider mot funktionens egen försiktighetsprincip:
+vaktens uppgift är att fånga ETT tolkbart villkor, och tiden ÄR tolkbar. Tom
+dagangivelse betyder alla dagar, inte "okänt". Nu returneras `true`.
+
+Uppmätt i åtta områden (Vasastan, Norrmalm, Gamla stan, Södermalm, Östermalm,
+Kungsholmen, Hägersten, Bromma): 11 308 P_TILLATEN-poster, 1 552 ändamålsplatser,
+och **noll av dem når den ändrade raden** — alla har både tid och dag. Domarna före
+och efter är identiska (1 538 inaktiva, 14 aktiva, 0 otolkbara). Buggen är alltså
+latent i Stockholm men blir verklig så snart en stad skriver lastplatser utan
+dagangivelse, vilket Sundbyberg gör i 35 av 74 fall.
+
+Nytt verktyg `verktyg/stadskoll.js` (rör ingen appkod): läser av vilken data en stad
+publicerar och matchar mot vad appen påstår, så frågan "vilka påståenden kan appen
+göra här, och vilka måste den tiga om" går att svara på innan någon utvecklar något.
+Går alltid ner till lagren, aldrig bara tjänsternas namn.
+`9411ea8`, `71c5f5f`
+
+## v1.8.2 – 2026-08-25
+Bottenlådans höjd kommer nu från `85%` i stället för `85vh`, så CSS och JS inte kan
+glida isär. Lådan är absolutpositionerad i `#app` (`position:relative; height:100%`),
+så procenten räknas mot appens faktiska höjd — exakt det tal `sheetCompute()` läser
+som `appH`. Med `vh` fanns två oberoende sanningar: på iOS är `vh` den *stora*
+vyporten (adressfältet borträknat) medan `window.innerHeight` är den faktiska, och de
+är oense så fort adressfältet syns. Initiala peek-läget gick från
+`translateY(calc(85vh - 118px))` till `calc(100% - 118px)` — procent i `translateY`
+syftar på elementets egen höjd, alltså samma innebörd utan vyport-beroende.
+
+Omfattningen, ärligt: `full`, `peek` och `min` härleds alla relativt lådans egen höjd
+och tog till stor del ut sig själva, så detta var ett **proportionsfel, inte ett
+överflöde**. Där CSS och JS redan var ense: 690 px, identiskt före och efter. Med
+simulerat adressfält (app 730 av 812) gav gamla koden 690 px = 94,5 % av appen i
+stället för 85 %. Lådan stack aldrig ut nedanför appen — den var för hög i förhållande
+till skärmen, vilket förskjuter `half`/`full` och den plats legenden får.
+
+Ej ändrat, men dokumenterat i ARKITEKTUR.md §9: i `full`/`half` hamnar legenden under
+lådan (uppmätt överlapp 193 px) eftersom `fitLegendHeight()` har ett golv på 120 px som
+vinner över att få plats. Avsiktligt, och sannolikt det som upplevts som "hoptryckt
+legend".
+`da29528`
+
+## v1.8.1 – 2026-08-25
+Vakthund som håller kartans canvas i takt med sin container, efter att Lars
+återskapat frysningen live 24/8 och fotograferat den. Bilden visade en *riven*
+rendering: baskartan målad över hela containern medan överläggen (taxa-zoner +
+p-linjer) bara täckte översta tredjedelen — vilket utesluter den tidigare ledande
+teorin om en nätverksstall, som hade fryst hela vyn intakt.
+
+Mekanismen: vektorlagren ritas på EN canvas (`L.canvas`). Leaflet håller den i takt
+med containern via `trackResize`, men korrigeringen kör inuti `requestAnimationFrame`.
+Stryper iOS rAF — tangentbord, adressfält som fälls in, minnestryck — kör den aldrig
+och ingenting försöker igen. Eftersom canvas-renderaren dessutom *träffkollar* mot
+canvasen blir kartan död för tryck utanför den, vilket känns som en låst app.
+
+`kartSynkKoll()` jämför `map.getSize()` med containern och rättar med
+`invalidateSize({pan:false})` vid mer än 2 px avvikelse — var 2:a sekund plus vid
+`visibilitychange`, `pageshow`, `orientationchange` och `visualViewport.resize`.
+Intervallet är poängen: felet uppstår när en händelse fick köra men dess uppföljning
+inte gjorde det, så en ny händelse kan inte förutsättas komma. Utfall loggas till
+localStorage och överlever omstart — läsbart via `?kartlogg=1` efter en frysning.
+
+Verifierat: inducerad äkta desynk (container 499→620 utan resize-event, Leaflet kvar
+på 499) rättad inom 1,3 s; **0 utslag på 25 s normal drift**. Före detta anropades
+`invalidateSize` noll gånger i hela filen och det fanns ingen återhämtningsväg alls.
+
+⚠️ Grundorsaken är **inte bevisad** — detta är ett skyddsnät som samlar bevis, inte en
+verifierad fix. Den kända `85vh`-mot-`innerHeight`-skörheten i lådan är inte åtgärdad.
+Båda dokumenterade i ARKITEKTUR.md §9.
+`91068a8`
+
+## v1.8.0 – 2026-08-25
+Regelgranskning mot vägmärkesförordningens E19 och C35: en utmärkt specialplats
+*pausar* gatans angivelser på sin sträcka, och en reglering gäller bara den sida
+skylten står på. Fyra fynd därifrån, plus ett femte som föll ut ur en helt annan
+utredning (vilande städsäsong). Alla mätta mot riktig data i sex
+innerstadsområden (Vasastan S+N, Norrmalm, Södermalm, Östermalm, Kungsholmen).
+
+**MC-rutor styrs nu av sin EGNA städföreskrift på alla nivåer**, inte bara
+"städas nu" – resten (nyss/snart/trygg/risk) hämtades tidigare från gatan.
+Uppmätt har 64 av 64 MC-rutor en egen föreskrift, och dagen skiljer sig ofta från
+gatans: Holländargatan har både en måndagsruta och en onsdagsruta. Den ruta som
+saknar gatunamn fick tidigare ingen städdom alls och visades utan varning natten
+den faktiskt städas. Kortet visar nu rutans eget veckoschema.
+
+**Cykelplatser påstår inte längre gatans städdag som faktum** när stödet bara är
+en grovt dragen bilstädlinje som råkar passera. Av 16 sådana fall hade bara 1 en
+vertex inom 3 m vid båda ändarna – kommunen har varken ritat runt eller genom
+platserna (Rådmansgatan: 62 m linje på 2 punkter). Nu gul ring i stället för grön
+och texten "Gatan städas måndagar 00–06 – gäller sannolikt inte här". En plats med
+egen föreskrift påstår fortfarande, som förr.
+
+**Städmatchningen låser till gatans egen sida innan veckodagarna jämförs.**
+25-metersgränsen spänner över de flesta innerstadsgator, och dagsloopen gick i
+tidsordning – låg egen sida på 0 m och grannsidan på 12 m med en tidigare dag,
+vann grannsidan. 34 segment svarade med andra sidans nästa städning; nu 0. De 30
+som därmed tystnade är Narvavägen, vars egen sida har säsong 1/12–15/5 och alltså
+inte städas i augusti – borttagna falska varningar, inte tystade riktiga.
+
+**MC-kortet visade schemat två gånger**, gatans i kalenderraden och rutans i
+klockraden, när dagarna sammanföll.
+
+**Vilande städsäsong sägs nu rakt ut.** Hittad via Sundbyberg-piloten, men felet
+satt i Stockholm: `/schedule` hoppade över poster utanför säsong helt, så en gata
+med vinterschema (1/11–15/5) föll i augusti ut som tomt schema och kortet skrev
+"Ingen registrerad servicedag – kontrollera skylt". Schemat är registrerat, det
+vilar. Uppmätt mot live-API:t: 5 964 av 6 171 säsongsposter vilar just nu
+(96,6 %), fördelat mån–fre, och 1 465 gator saknade därför städtext helt. Nu står
+det "Servas måndagar 08–16 · vilande till 1 nov". Gatufärgerna var hela tiden
+korrekta – de går via `/servicedagar-bbox` och gatorna städas faktiskt inte i
+augusti – så det var en textbugg, inte en säkerhetsbugg. De 64 gator som har både
+en aktiv och en vilande säsong visar fortsatt bara den aktiva.
+
+`355d46d` … `164b02f`
+
 ## v1.7.1 – 2026-08-22
 Moped klass 1 tillagt i MC-parkeringstexten, appen och SEO-sidorna. Verifierat
 mot 7 RDT-originalbeslut (2018–2026, 6 stadsdelar) att moped klass 1 juridiskt
