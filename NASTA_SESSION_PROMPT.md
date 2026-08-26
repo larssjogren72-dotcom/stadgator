@@ -47,47 +47,62 @@ sessioner som du INTE ska upprepa misstagen från.
 - WFS-proxyn (`/wfs/server/wfs?...&typeNames=ltfr:LAGERNAMN&...`) kan hämtas direkt, även
   hela stadens dataset i ett anrop (`count=40000` fungerade för P_FORBUD, 39 287 poster).
 
-## Var vi lämnade det (2026-08-26)
+## Var vi lämnade det (2026-08-26, kvällen)
 
-**19 commits ligger LOKALT på master, inget pushat. Live är fortfarande v1.8.5.**
-Pusha bara på Lars uttryckliga "pusha" — det är en skarp driftsättning.
+**Allt är pushat. Live på parkspot.se är v1.11.2.** Inget ligger och väntar lokalt.
 
-### Vad som gjordes i dag
-1. **Sundbyberg flyttades in i huvudversionen** (v1.9.0), men **avstängd i drift**.
-   Strömbrytare i `server.js`: Railway sätter `RAILWAY_GIT_COMMIT_SHA` → av. Lars dator
-   → på. `STADER=sundbyberg` tvingar på, `STADER=av` tvingar av. Är den av laddas
-   adaptern inte ens, så inga anrop går mot Sundbybergs server från drift.
-   Stadskoden bor i **`cities/sundbyberg.js`** bakom kontraktet `{ id, prefix, hantera }`.
-   Stockholm bevisat orört: 21 vägar mätta före/efter, 20 byte-identiska (den 21:a är
-   `index.html` som växer med den avstängda stadskoden).
-2. **Sundbyberg säger inte längre "Trygg över natten".** Lars gick Brunnsgatan med
-   skylt i handen; vid vändplanen (59.363734, 17.968813) står **2 tim** medan appen
-   ritade grönt. Ny flagga `STAD.harMaxtid` fäller grönt till blått
-   "Får parkera – kontrollera tidsgräns". Fällningen ligger EFTER färgkedjan, så
-   Stockholm kan inte påverkas och framtida gröna grenar fångas automatiskt.
+⚠️ Den här filen påstod tidigare "19 commits lokalt, live v1.8.5". Det var sant när det
+skrevs mitt på dagen men blev fel samma kväll — arbetet fortsatte och pushades. Läs
+alltid `git rev-list --count origin/master..master` och `package.json` innan du litar
+på en statusrad i ett dokument.
 
-### Öppna trådar
-- **Licensen med Sundbyberg är obesvarad.** Mejlet ligger färdigt (scratchpad
-  `mejl_sundbyberg.txt`, adress `stadsmiljoochtrafiknamnden@sundbyberg.se`) men är
-  INTE skickat. Inget av Sundbyberg får publiceras innan de svarat ja.
-- **`?debugtid=HH:MM` fick jag inte att fungera** — kartan ritade inget med den
-  påslagen. Ej felsökt, ej bekräftat trasig. Utan parametern fungerar allt.
-- **Glow-effekterna ("nyss städad", "gott om tid") är INTE verifierade i dag** —
-  de kräver att städningen ligger 2–7 h bort och det inföll inte. Hänger ihop med
-  `debugtid` ovan.
-- **Sekundär text i Sundbyberg-läget skaver:** bannern säger "ingen förbudsdata"
-  fast slutsatsen blev att Sundbyberg uttrycker förbud genom segmentets frånvaro;
-  sidfoten listar Stockholms stadsdelar; sökrutan föreslår "Hornsgatan 10";
-  taxaskalan 1–5 visas fast Sundbyberg använder A–E.
-- Sedan tidigare: ODD_EVEN-förbud (195 poster) ej hanterade; legenden under lådan
-  i full/half; 17 gamla lokala grenar.
+### Dagens kedja, i ordning
+| version | vad |
+|---|---|
+| v1.9.0  | Sundbyberg flyttades in i huvudversionen, avstängd i drift |
+| v1.10.0 | Föraren väljer kartapp: Google Maps, Apple Kartor eller Waze |
+| v1.11.0 | Inget grönt i städer som inte kan skilja korttid från långtid |
+| v1.11.1 | Debug-klockan kan resa till ett annat datum, och fryser inte längre |
+| v1.11.2 | "Nyss städad" syns även när hela staden är blå |
 
-### Två mätfällor från i dag som inte får upprepas
-- **Ett nollresultat kan bevisa att metoden är blind.** Sökning efter maxtid gav
-  0 träffar i 2 040 Sundbyberg-föreskrifter i RDT — men ordet finns 0 gånger i
-  RDT:s egen datakatalog också, alltså kan textsökning aldrig hitta det. Värdena
-  ligger som frastkoder (`Fras121_Q=13`). Säg "finns inte i något fält jag kan
-  läsa", aldrig "finns inte".
-- **Kontrollera att testvägarna ger innehåll.** Fyra av mina jämförelsevägar gav
-  tomma svar respektive 404 och rapporterade glatt "identiska" — de jämförde
-  ingenting med ingenting. Plocka testpunkter ur systemets egen data.
+### Sundbyberg: läget nu
+Koden bor i `cities/sundbyberg.js` bakom kontraktet `{ id, prefix, hantera }` och tänds
+med en env-variabel i Railway (`STADER=sundbyberg`). I drift är den **av** — Railway
+sätter `RAILWAY_GIT_COMMIT_SHA`, och då laddas adaptern inte ens, så inga anrop går mot
+Sundbybergs server. På Lars dator är den på utan handpåläggning.
+
+🔴 **Licensen är fortfarande obesvarad.** Mejlet ligger färdigt men är INTE skickat
+(`stadsmiljoochtrafiknamnden@sundbyberg.se`). Inget av Sundbyberg får publiceras innan
+de svarat ja. Det är den enda spärren som återstår.
+
+Regeln heter numera **`STAD.skiljerKorttid`** (hette `harMaxtid` under förmiddagen) och
+gäller **båda lägena** — Sundbyberg är blått dag och natt. Skälet är skarpare formulerat
+än det jag först skrev: alla 808 bilsegment i kommunens data bär en enda platstyp,
+"P Avgift", så appen kan inte skilja en tvåtimmarsficka från en långtidsplats. Stockholm
+klarar det via `VF_PLATS_TYP` (98,9 % ifyllt) och `VF_METER` (34,1 %) — inte via
+`MAX_MINUTES`/`MAX_HOURS`, som är ifyllda på bara 1,4 % och alltså inte är skälet.
+
+### Öppet
+- Licensen ovan.
+- ODD_EVEN-förbud (195 poster) hanteras fortfarande inte — blockerar Solna, som kör
+  jämna/udda veckor.
+- Solna: datan finns men allt är stängt utåt (ingen WFS, WMS `queryable="0"`, REST 401).
+  Kräver kontakt med kommunen.
+- Sekundär text i Sundbyberg-läget: bannern säger "ingen förbudsdata" fast slutsatsen
+  blev att förbud uttrycks genom segmentets frånvaro; sidfoten listar Stockholms
+  stadsdelar; sökrutan föreslår "Hornsgatan 10".
+- 17 gamla lokala grenar kvar att städa.
+
+### Tre mätfällor från i dag som inte får upprepas
+1. **Ett nollresultat kan bevisa att metoden är blind.** Sökning efter maxtid gav 0 av
+   2 040 Sundbyberg-föreskrifter i RDT — men ordet finns 0 gånger i RDT:s egen
+   datakatalog också, så textsökning kan aldrig hitta det. Värdena ligger som
+   frastkoder (`Fras121_Q=13`). Säg "finns inte i något fält jag kan läsa", aldrig
+   "finns inte".
+2. **Kontrollera att testvägarna ger innehåll.** Fyra jämförelsevägar gav tomma svar
+   respektive 404 och rapporterade "identiska" — de jämförde ingenting med ingenting.
+   Plocka testpunkter ur systemets egen data.
+3. **En frusen klocka ser ut som en trasig app.** `?debugtid=` höll `Date.now()` stilla,
+   och då blev Leaflets animeringar aldrig klara → kartan ritade inget. Jag rapporterade
+   det som "fick inte debugtid att fungera" utan att hitta orsaken; den satt i
+   debugverktyget, inte i appen. Fixat i v1.11.1.
