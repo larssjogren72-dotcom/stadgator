@@ -3764,7 +3764,13 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // Ingen städinstruktion för platser man inte får använda.
       const infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     : (isRhPlats(s) || ejForDig) ? ''
-                    : tier === 'natt'   ? `Flytta ${vehicleWord()} ${hinder.start === 0 ? 'innan midnatt' : `innan ${fmtClock(hinder.start)} ikväll`}`
+                    // "ikväll" var fel i VARJE fall den visades: grenen utlöses bara när fönstret
+                    // börjar före 07:00 (ON_NIGHT_HM), så klockslaget ligger alltid mellan 00:00
+                    // och 06:59 – aldrig på kvällen. Nålarnas motsvarande text (nyssSnartRing,
+                    // ~rad 2087) har alltid sagt "i morgon"; gatuvägen var den avvikande.
+                    // Midnatt behåller sin egen formulering: då öppnar fönstret faktiskt ikväll,
+                    // och "innan midnatt" är tydligare än "innan 00 i morgon".
+                    : tier === 'natt'   ? `Flytta ${vehicleWord()} ${hinder.start === 0 ? 'innan midnatt' : `innan ${fmtClock(hinder.start)} i morgon`}`
                     // Detaljraden säger VAD som kommer, chipet sa NÄR. Lastplats och städning
                     // är olika saker för användaren även om åtgärden (flytta bilen) är samma.
                     : tier === 'morgon' ? (hinder.lastplats
