@@ -14,6 +14,18 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.11.0 – 2026-08-26
+**Inget grönt i städer som inte pekar ut sin korttidsparkering.** Sundbyberg visar nu
+blått "kontrollera tidsgräns" både dag och natt i stället för grönt. Skälet är mätt:
+alla 808 bilsegment i kommunens data bär en enda platstyp, "P Avgift", så appen kan
+inte skilja en tvåtimmarsficka från en långtidsplats – och korttidsplatserna finns
+i verkligheten. Regeln (`STAD.skiljerKorttid`, tidigare `harMaxtid`) gäller nu båda
+lägena och alla städer: kan staden inte skilja korttid från långtid ritas inget grönt.
+Städsignalerna är orörda – "nyss städad" finns kvar, i blått. Förklaringsrutan,
+läges-chippet och intro-texten följer med. Också rättat: taxa-prisstegen visades i
+förklaringen även i städer utan taxazoner. **Stockholm är orört** (verifierat: 602
+gröna segment i Nu, 602 i Natt, "Trygg över natten" och prisstegen kvar).
+
 ## v1.10.0 – 2026-08-26
 **Välj navigeringsapp: Google Maps, Apple Kartor eller Waze.** Navigeringsknappen på
 platskortet är nu delad – vänstra delen kör igång i vald app, pilen till höger öppnar

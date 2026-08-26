@@ -186,6 +186,40 @@ Ett tryck i lådan både väljer och startar navigeringen; valet sparas i webbl�
 
 ---
 
+## 8.2 Inget grönt i städer som inte pekar ut sin korttidsparkering (2026-08-26)
+
+En enda regel, lika i alla städer och båda lägena, styrd av `STAD.skiljerKorttid`:
+
+> Kan staden inte skilja korttidsplats från långtidsplats – inget grönt, någonstans.
+
+**Varför regeln, inte ett stadsundantag.** Grönt betyder "säkrast". I Stockholm är det
+något appen *läser*: `VF_PLATS_TYP` finns på 98,9 % av segmenten i sex olika typer och
+`VF_METER` på 34 % – staden registrerar alltså systematiskt vilka platser som är korttid.
+I Sundbyberg bär **alla 808 bilsegment en enda typ, "P Avgift"** (uppmätt 2026-08-26).
+Där vore grönt något appen *antar*. Utfallen skiljer sig därför att datan skiljer sig –
+måttstocken är densamma.
+
+**Ingen klocka i villkoret.** Blått gäller dygnet runt, inte "dagtid". Time-gatades Nu-läget
+skulle samma gata vara grön i Nu och blå i Natt klockan 22 – två färger för samma gata i
+samma ögonblick. Sundbyberg publicerar visserligen en avgiftstid (681 segment säger
+08:00–21:00), men avgiftstid och maxtid är olika fakta; att använda det ena som mått på
+det andra är samma sorts gissning som skylt-kontra-föreskrift-glappet på Kungstensgatan.
+
+**Kostnaderna är osymmetriska.** Ett felaktigt grönt kan kosta en bot; ett felaktigt blått
+kostar en blick på skylten.
+
+**Städsignalen överlever färgbytet.** Fällningen sker EFTER "nyss städad"-uppslaget, och
+halon följer linjens färg (ljusblå i stället för ljusgrön). Att visa när städningen slår
+till är appens kärnvärde – det får inte försvinna när en stad saknar korttids-signal.
+Orört är också städ-orange, förbud, gågata, uteservering och "ej för dig"-lila.
+
+**Följdtexter.** Förklaringsrutan, läges-chippet och intro-texten får inte beskriva en färg
+som aldrig ritas – alla tre följer flaggan. Samma skäl tog bort taxa-prisstegen ur
+förklaringen i städer utan taxazoner (`STAD.harTaxaZoner`), där den förklarade något
+kartan aldrig visar.
+
+---
+
 ## 9. Vad detta INTE ska bli (medvetna nej)
 
 - ❌ Inga flikar / lägesväljare som delar appen i "appar".
