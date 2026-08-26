@@ -3895,7 +3895,9 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       if (!STAD.harMaxtid && color === '#16a34a') {
         color = '#38bdf8';
         txt   = 'Får parkera – kontrollera tidsgräns';
-        infoRow = 'Maxtid saknas i kommunens data – skylten avgör';
+        // Förarens språk, inte vårt. "Maxtid saknas i kommunens data" beskrev VÅRT
+        // problem; den som står vid bilen vill veta vad det betyder för hen.
+        infoRow = 'Vi vet inte hur länge du får stå här – skylten avgör';
         safe--; kollaTid++;
       }
       drawParkingSegment(s, color, txt, dest, infoRow, grp);
