@@ -14,6 +14,43 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.9.0 – 2026-08-26
+**Sundbyberg flyttar in i huvudversionen – avstängd i drift.** Ingen synlig
+förändring för användarna: Stockholm är oförändrat och Sundbyberg syns inte publikt.
+
+Sundbyberg har legat på en egen gren sedan pilotstarten. Det höll så länge grenen var
+ung, men den började halka efter. Varje Stockholm-fix måste plockas över för hand, och
+en gren som ligger efter är en gren där redan lagade buggar kryper tillbaka. Piloten
+hittade dessutom sex buggar i Stockholm som fick flyttas åt andra hållet. Två kopior av
+appen som driver isär är en sämre affär än en kopia med en strömbrytare.
+
+Nu bor koden i huvudversionen men är avstängd när appen kör skarpt. Sundbybergs
+kartserver är öppet åtkomlig, men åtkomlig är inte samma sak som licensierad – frågan
+är ställd till kommunen och obesvarad. Inget av Sundbyberg når publiken förrän de
+svarar ja.
+
+| läge | vad som händer |
+|---|---|
+| Railway (drift) | av – adaptern laddas inte ens, inga anrop mot Sundbybergs server |
+| Lars dator | på – ingen handpåläggning behövs |
+| `STADER=sundbyberg` | på, även i drift – så publicering blir en variabel, inte en kodändring |
+| `STADER=av` | av, oavsett läge |
+
+Stadskoden ligger i `cities/sundbyberg.js` bakom ett kontrakt (`id`, `prefix`,
+`hantera`). Stad nummer tre blir en fil att kopiera i stället för ett block att väva in
+i `server.js`, och stadskod kan inte längre råka blandas in i en kärn-commit.
+
+**Stockholm bevisat orört:** 21 vägar mätta före och efter – 20 byte-identiska. Den enda
+som skiljer är `index.html`, som växer 328 252 → 334 073 tecken; det är stadskoden som
+följer med, avstängd. Mätningen täcker index, servicedagar, tre bbox-uttag, tre
+schedule-uppslag med riktigt innehåll, WFS tillåten + taxa, fem SEO-sidor, sitemap,
+robots, llms och 404. Verifierat mot tre riktiga serverstarter, inte påtvingade värden.
+
+Mätverktyget hade själv två fel som gömde sanningen och nu är lagade: fyra svar visade
+"samma längd, olika hash", vilket var WFS-svarens tidsstämpel med millisekunder som
+normaliseringen missade – inte en beteendeändring utan en trasig mätsticka. Och fyra
+testvägar pekade fel (tomma scheman, en 404), alltså testade de ingenting.
+
 ## v1.8.5 – 2026-08-26
 Textfix: "Flytta bilen innan 06 **ikväll**" → "innan 06 **i morgon**". Klockan 06 är
 inte på kvällen. Felet fanns i varje fall texten visades — natt-grenen utlöses bara
