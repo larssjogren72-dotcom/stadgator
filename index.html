@@ -574,10 +574,14 @@
       width: 44px; flex-shrink: 0; border: none; cursor: pointer;
       background: linear-gradient(135deg, #22c55e, #15803d);
       box-shadow: inset 1px 0 0 rgba(255,255,255,0.28);
-      color: #fff; font-size: 13px; font-family: inherit;
+      color: #fff; font-family: inherit;
       display: flex; align-items: center; justify-content: center;
       -webkit-tap-highlight-color: transparent;
     }
+    /* Chevron i stället för triangel-tecken: ett tecken renderas i olika storlek på
+       olika enheter och läses som skiljetecken. En ritad pil håller samma vikt som
+       pin-ikonen till vänster – den ser ut som en kontroll, inte som text. */
+    #nav-more svg { width: 22px; height: 22px; display: block; }
     #nav-more:active { background: #15803d; }
 
     /* Val av navigeringsapp – liten bottenlåda, samma språk som cookie-banderollen */
@@ -1010,7 +1014,9 @@
           <span id="gmaps-label">Navigera hit</span>
         </a>
         <button id="nav-more" type="button" onclick="navPickerOpen()"
-                aria-label="Byt navigeringsapp" title="Byt navigeringsapp">&#9662;</button>
+                aria-label="Byt navigeringsapp" title="Byt navigeringsapp"><svg viewBox="0 0 24 24" fill="none"
+                stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"
+                aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
       </div>
     </div>
     <button id="phus-btn" onclick="phusToggle()" style="display:none">
