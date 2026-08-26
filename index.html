@@ -1068,28 +1068,51 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
 <script>
 
-// ── Debug: simulera annan klocka (?debugtid=HH:MM i URL:en) ─────────────────
+// ── Debug: simulera annan tidpunkt (?debugtid= i URL:en) ───────────────────
 // Enda syfte: testa tidsberoende logik (hidden-gem-fönstret, NU_HORIZON_H, SENASTE_H m.fl.)
-// utan att vänta till rätt klockslag på riktigt. Måste köras FÖRST, innan något annat i
-// sidan hinner göra new Date(). Helt inaktiv (0 kostnad, 0 risk) om parametern saknas –
-// TILLFÄLLIGT verktyg, ta bort innan produktion om det inte visar sig användbart löpande.
+// utan att vänta till rätt tillfälle på riktigt. Datan förändras ALDRIG – bara klockan är
+// flyttad, så städscheman, förbud och zoner är kommunens äkta poster hela vägen. Måste
+// köras FÖRST, innan något annat i sidan hinner göra new Date(). Helt inaktiv (0 kostnad,
+// 0 risk) om parametern saknas.
+//
+// Två former:
+//   ?debugtid=07:00              – idag, angiven tid (som förut)
+//   ?debugtid=2026-08-28T07:00   – annat DATUM också, vilket krävs för att nå en annan
+//                                  VECKODAG (Sundbyberg städar bara tisdag och fredag).
+//
+// Klockan går vidare i simulerat läge (fast förskjutning), den står inte stilla. En
+// fastfrusen Date.now() får Leaflets animeringar att aldrig bli klara – kartan ser då ut
+// att hänga, och man tror att det är appen som är trasig i stället för testverktyget.
 (function initDebugClock() {
-  const m = /[?&]debugtid=(\d{1,2}):(\d{2})/.exec(location.search);
+  const m = /[?&]debugtid=([^&]+)/.exec(location.search);
   if (!m) return;
   const RealDate = Date;
-  const fixed = new RealDate();
-  fixed.setHours(+m[1], +m[2], 0, 0);
-  const fixedMs = fixed.getTime();
+  // ⚠ Måste frås FÖRE window.Date byts: `Date.now = …` sätts genom proxyn på RealDate
+  // själv, så en referens till RealDate.now efteråt pekar på den NYA funktionen – den
+  // anropar sig själv i all oändlighet (RangeError, upptäckt vid test 2026-08-26).
+  const riktigNu = RealDate.now.bind(RealDate);
+  const txt = decodeURIComponent(m[1]).replace('+', ' ').trim();
+  let mal;
+  const bara = /^(\d{1,2}):(\d{2})$/.exec(txt);
+  if (bara) { mal = new RealDate(); mal.setHours(+bara[1], +bara[2], 0, 0); }
+  else      { mal = new RealDate(txt.replace(' ', 'T')); }
+  if (isNaN(mal.getTime())) {
+    console.warn('[Debug] Kunde inte tolka ?debugtid=' + txt + ' – riktig tid används.');
+    return;
+  }
+  const skift = mal.getTime() - riktigNu();
   window.Date = new Proxy(RealDate, {
-    construct(target, args) { return args.length === 0 ? new target(fixedMs) : new target(...args); }
+    construct(target, args) { return args.length === 0 ? new target(riktigNu() + skift) : new target(...args); }
   });
-  Date.now = () => fixedMs;
-  console.warn('[Debug] Klockan simulerad till ' + m[1] + ':' + m[2] + ' – ta bort ?debugtid= i adressfältet för riktig tid.');
+  Date.now = () => riktigNu() + skift;
+  const etikett = mal.toLocaleString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  console.warn('[Debug] Tiden simulerad till ' + etikett + ' – ta bort ?debugtid= i adressfältet för riktig tid.');
   // Synlig badge, inte bara konsolloggen – annars är det för lätt att glömma att klockan är
   // förfalskad och läsa falska resultat som riktiga (eller missa att den inte slog an alls).
   window.addEventListener('DOMContentLoaded', () => {
     const b = document.createElement('div');
-    b.textContent = '⏱ DEBUG ' + m[1] + ':' + m[2];
+    b.id = 'debug-tid-badge';
+    b.textContent = '⏱ SIMULERAD TID · ' + etikett;
     b.style.cssText = 'position:fixed;top:8px;left:8px;z-index:99999;background:#dc2626;' +
       'color:#fff;font:700 12px/1 system-ui;padding:6px 10px;border-radius:6px;' +
       'box-shadow:0 2px 8px rgba(0,0,0,.3)';
