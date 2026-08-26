@@ -96,7 +96,7 @@
           "MC-parkering i alla lägen (dedikerade mc-rutor)",
           "Cykel- och mopedparkering (moped klass 2)",
           "Reserverade platser för rörelsehindrade med parkeringstillstånd",
-          "Navigering med Google Maps"
+          "Navigering med Google Maps, Apple Kartor eller Waze"
         ]
       }
     ]
@@ -554,17 +554,64 @@
     .garage-note { font-size: 11.5px; color: rgba(15,23,42,0.50); line-height: 1.5; padding: 12px 2px 4px; }
     .garage-empty { font-size: 13px; color: var(--muted); line-height: 1.6; padding: 10px 2px 18px; }
 
+    /* Delad navigeringsknapp: vänster = kör i vald app, höger = byt app.
+       Skuggan/radien bor på omslaget så de två halvorna ser ut som EN knapp. */
+    .nav-split {
+      display: flex; width: 100%; border-radius: 11px; overflow: hidden;
+      box-shadow: 0 3px 14px rgba(34,197,94,0.3);
+    }
     #gmaps-btn {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       background: linear-gradient(135deg, #22c55e, #15803d);
-      color: #fff; padding: 10px 16px; border-radius: 11px;
-      text-decoration: none; font-size: 14px; font-weight: 700; width: 100%;
-      box-shadow: 0 3px 14px rgba(34,197,94,0.3);
+      color: #fff; padding: 10px 16px; border-radius: 0;
+      text-decoration: none; font-size: 14px; font-weight: 700; flex: 1; min-width: 0;
       border: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
       transition: transform .1s;
     }
-    #gmaps-btn svg { width: 15px; height: 15px; }
+    #gmaps-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
     #gmaps-btn:active { transform: scale(0.98); }
+    #nav-more {
+      width: 44px; flex-shrink: 0; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      box-shadow: inset 1px 0 0 rgba(255,255,255,0.28);
+      color: #fff; font-size: 13px; font-family: inherit;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #nav-more:active { background: #15803d; }
+
+    /* Val av navigeringsapp – liten bottenlåda, samma språk som cookie-banderollen */
+    #nav-picker {
+      position: fixed; inset: 0; z-index: 4200; display: none;
+      align-items: flex-end; justify-content: center;
+      background: rgba(15,23,42,0.28);
+    }
+    #nav-picker.on { display: flex; }
+    .navp-card {
+      background: #fff; width: 100%; max-width: 460px;
+      border-radius: 18px 18px 0 0; overflow: hidden;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-shadow: 0 -12px 40px rgba(0,0,0,0.28);
+      font-family: 'Inter', sans-serif;
+    }
+    .navp-head {
+      font-size: 12.5px; color: rgba(15,23,42,0.55); font-weight: 500;
+      padding: 14px 18px 10px; border-bottom: 1px solid var(--glass-border);
+    }
+    .navp-row {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 14px 18px; background: none; border: none; cursor: pointer;
+      border-bottom: 1px solid var(--glass-border);
+      font-family: inherit; font-size: 15px; color: var(--text); text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .navp-row:active { background: rgba(15,23,42,0.05); }
+    .navp-row .navp-name { flex: 1; }
+    .navp-row .navp-check { color: var(--accent); font-size: 15px; font-weight: 700; }
+    .navp-cancel {
+      width: 100%; padding: 14px; background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 14px; color: rgba(15,23,42,0.55);
+    }
 
     /* Legend */
     .legend {
@@ -779,6 +826,15 @@
   </div>
 </div>
 
+<!-- ── Val av navigeringsapp ── -->
+<div id="nav-picker" onclick="if(event.target===this)navPickerClose()">
+  <div class="navp-card">
+    <div class="navp-head">Öppna med</div>
+    <div id="navp-rows"></div>
+    <button class="navp-cancel" type="button" onclick="navPickerClose()">Avbryt</button>
+  </div>
+</div>
+
 <!-- ── Integritet & ansvar ── -->
 <div id="privacy-modal">
   <div class="privacy-card">
@@ -945,13 +1001,17 @@
       <div id="next-clean-row" style="display:none"></div>
       <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
-      <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5
-                   c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-        Navigera hit
-      </a>
+      <div class="nav-split">
+        <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5
+                     c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span id="gmaps-label">Navigera hit</span>
+        </a>
+        <button id="nav-more" type="button" onclick="navPickerOpen()"
+                aria-label="Byt navigeringsapp" title="Byt navigeringsapp">&#9662;</button>
+      </div>
     </div>
     <button id="phus-btn" onclick="phusToggle()" style="display:none">
       <span class="phus-p">P</span>
@@ -1145,6 +1205,105 @@ function seasonText(p) { if (p.START_MONTH == null) return null; const sd = p.ST
 // ── API-nyckel ───────────────────────────────────────────────────────────────
 // Servern håller nyckeln (env/.apikey) och ersätter klientens i varje anrop.
 // 'server' är en dummy så URL:erna blir välformade – användaren behöver ingen egen.
+// ════════════════════════════════════════════════════════════════════════
+// NAVIGERINGSAPP – Google Maps (standard), Apple Kartor, Waze.
+// En enda källa för ALLA navigeringslänkar i appen (stora knappen, listornas ↗ och
+// kartpopupen) så att beteendet blir identiskt på varje yta. Valet sparas i webbläsaren.
+// Ärlighet om plattform: maps.apple.com öppnar bara appen på iPhone/iPad/Mac – på Android
+// och Windows landar man på en tom webbsida, därför visas raden inte alls där.
+// Waze går inte att kontrollera: universallänken öppnar appen om den finns, annars
+// Wazes webbkarta. Det går inte att upptäcka installerade appar från en webbsida.
+// ════════════════════════════════════════════════════════════════════════
+var IS_APPLE = (function () {
+  try {
+    var ua = navigator.userAgent || '';
+    // iPad på iPadOS 13+ säger "Macintosh" – båda träffas av samma test, och maps.apple.com
+    // fungerar på både macOS och iOS, så en gemensam träff är rätt nivå här.
+    return /iPhone|iPad|iPod|Macintosh|Mac OS X/.test(ua);
+  } catch (e) { return false; }
+})();
+
+var NAV_APPS = {
+  google: {
+    name: 'Google Maps', color: '#EA4335', always: true,
+    url: function (lat, lng) { return 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=driving'; },
+    label: 'Navigera hit'
+  },
+  apple: {
+    name: 'Apple Kartor', color: '#0A84FF', always: false,
+    url: function (lat, lng) { return 'https://maps.apple.com/?daddr=' + lat + ',' + lng + '&dirflg=d'; },
+    label: 'Navigera med Apple Kartor'
+  },
+  waze: {
+    name: 'Waze', color: '#33CCFF', always: true,
+    url: function (lat, lng) { return 'https://waze.com/ul?ll=' + lat + ',' + lng + '&navigate=yes'; },
+    label: 'Navigera med Waze'
+  }
+};
+function navAppAvailable(id) { var a = NAV_APPS[id]; return !!a && (a.always || IS_APPLE); }
+function getNavApp() {
+  var id;
+  try { id = localStorage.getItem('nav_app'); } catch (e) { id = null; }
+  // Sparat val som inte går att använda på den här enheten (Apple Kartor på Android)
+  // faller tillbaka till Google – aldrig en knapp som leder till en tom sida.
+  return navAppAvailable(id) ? id : 'google';
+}
+function setNavApp(id) {
+  if (!navAppAvailable(id)) id = 'google';
+  try { localStorage.setItem('nav_app', id); } catch (e) {}
+  try { if (window.gtag) gtag('event', 'nav_app_val', { event_category: 'navigering', event_label: id }); } catch (e) {}
+  navRefreshAll();
+}
+function navUrl(lat, lng) { return NAV_APPS[getNavApp()].url(lat, lng); }
+
+// Stora knappens mål hålls kvar så att länken kan skrivas om om appen byts medan kortet är uppe.
+var navDest = null;
+function setNavDest(lat, lng) { navDest = { lat: lat, lng: lng }; navRefreshAll(); }
+function navRefreshAll() {
+  var app = NAV_APPS[getNavApp()];
+  var btn = document.getElementById('gmaps-btn');
+  if (btn && navDest) btn.href = app.url(navDest.lat, navDest.lng);
+  var lab = document.getElementById('gmaps-label');
+  if (lab) lab.textContent = app.label;
+  // Listornas små ↗-knappar följer samma val, utan egen meny (beslut 2026-08-26: alternativ A).
+  var links = document.querySelectorAll('a[data-navlat]');
+  for (var i = 0; i < links.length; i++) {
+    links[i].href = app.url(links[i].getAttribute('data-navlat'), links[i].getAttribute('data-navlng'));
+  }
+}
+function navPinSvg(color) {
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + color + '" aria-hidden="true">'
+    + '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5'
+    + 'c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
+}
+function navPickerOpen() {
+  var box = document.getElementById('nav-picker'), rows = document.getElementById('navp-rows');
+  if (!box || !rows) return;
+  var cur = getNavApp(), html = '';
+  ['google', 'apple', 'waze'].forEach(function (id) {
+    if (!navAppAvailable(id)) return;
+    var a = NAV_APPS[id];
+    html += '<button class="navp-row" type="button" onclick="navPickerPick(&quot;' + id + '&quot;)">'
+         +    navPinSvg(a.color)
+         +    '<span class="navp-name">' + a.name + '</span>'
+         +    (id === cur ? '<span class="navp-check">✓</span>' : '')
+         +  '</button>';
+  });
+  rows.innerHTML = html;
+  box.classList.add('on');
+}
+function navPickerClose() {
+  var box = document.getElementById('nav-picker');
+  if (box) box.classList.remove('on');
+}
+function navPickerPick(id) {
+  setNavApp(id);
+  navPickerClose();
+  // Ett tryck ska både välja OCH köra igång – man öppnade menyn för att navigera.
+  var btn = document.getElementById('gmaps-btn');
+  if (btn && navDest) window.open(btn.href, '_blank', 'noopener');
+}
+
 function getKey() { return localStorage.getItem('sthlm_key') || 'server'; }
 
 // ── Cookie-samtycke (GDPR) ───────────────────────────────────────────────────
@@ -2552,8 +2711,7 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
     taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa, z.name)}${mcNote}</span>`;
     taxaRow.style.display = 'flex';
   } else { taxaRow.style.display = 'none'; }
-  if (dest) document.getElementById('gmaps-btn').href =
-    `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+  if (dest) setNavDest(dest.lat, dest.lng);
 
   // ── Meta: veckoschemat (beviset bakom hjälten). Gågata/uteservering har sin info i hjälten.
   // Cykel/moped också undantaget (2026-08-21): denna rad slår upp SCHEMAT FÖR GATUNAMNET, utan
@@ -2756,7 +2914,7 @@ function renderGarageRows(gs) {
             <span class="sl-dist">${distStr(g.dist)}</span>
           </div>
         </div>
-        <a class="sl-nav" href="https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving"
+        <a class="sl-nav" href="${navUrl(g.lat, g.lng)}" data-navlat="${g.lat}" data-navlng="${g.lng}"
            target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>
       </div>`).join('')
     + `<div class="garage-note">ⓘ Live-tillgång visas ej – antalet är husets kapacitet. Kontrollera skylten på plats.</div>`;
@@ -2782,8 +2940,7 @@ function selectGarage(g, marker) {
     + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
   taxaRow.style.display = 'block';
   document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för garage
-  document.getElementById('gmaps-btn').href =
-    `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
+  setNavDest(g.lat, g.lng);
   document.getElementById('hint').style.display = 'none';
   document.getElementById('garage-list').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
@@ -5362,9 +5519,7 @@ function buildStreetList(features) {
     const from    = p.START_TIME || '', to = p.END_TIME || '';
     const time    = (from && to) ? `${from}–${to}` : '';
     const distStr = dist < 1000 ? `${dist} m` : `${(dist/1000).toFixed(1)} km`;
-    const mapsUrl = ll
-      ? `https://www.google.com/maps/dir/?api=1&destination=${ll.lat},${ll.lng}&travelmode=driving`
-      : '#';
+    const mapsUrl = ll ? navUrl(ll.lat, ll.lng) : '#';
 
     const item = document.createElement('div');
     item.className = 'sl-item';
@@ -5378,8 +5533,8 @@ function buildStreetList(features) {
           <span class="sl-dist">${distStr} bort</span>
         </div>
       </div>
-      <a class="sl-nav" href="${mapsUrl}" target="_blank" rel="noopener"
-         onclick="event.stopPropagation()">↗</a>`;
+      <a class="sl-nav" href="${mapsUrl}"${ll ? ` data-navlat="${ll.lat}" data-navlng="${ll.lng}"` : ''}
+         target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>`;
 
     item.addEventListener('click', () => {
       const match = allLayers.find(({ feat }) => feat === f);
@@ -5658,7 +5813,7 @@ async function showSafeStreetsNearby(lat, lng, overpassP = null, foreskriftP = n
           L.DomEvent.stopPropagation(e);
           allPolylines.forEach(p => p.setStyle(p._warn ? WARN_LINE : SAFE_LINE));
           pl.setStyle(selStyle);
-          const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`;
+          const url = navUrl(s.lat, s.lng);
           const warnText = s.hasBoende ? 'Boendeparkering – max 3 tim' : 'Kontrollera parkeringsskylt';
           const hint = s.hasWarn ? `<br><em style="color:#f59e0b;font-size:12px">⚠️ ${warnText}</em>` : '';
           pl.bindPopup(
@@ -5746,7 +5901,7 @@ function buildSafeStreetList(streets) {
   list.innerHTML = '';
   streets.forEach(({ name, lat, lng, dist, hasWarn, hasBoende }) => {
     const distStr = dist < 1000 ? `${dist} m` : `${(dist/1000).toFixed(1)} km`;
-    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    const mapsUrl = navUrl(lat, lng);
     const item    = document.createElement('div');
     item.className = 'sl-item';
     const badge = hasWarn
@@ -5760,8 +5915,8 @@ function buildSafeStreetList(streets) {
           <span class="sl-dist">${distStr} bort</span>
         </div>
       </div>
-      <a class="sl-nav" href="${mapsUrl}" target="_blank" rel="noopener"
-         onclick="event.stopPropagation()">↗</a>`;
+      <a class="sl-nav" href="${mapsUrl}" data-navlat="${lat}" data-navlng="${lng}"
+         target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>`;
     list.appendChild(item);
   });
   document.getElementById('hint').style.display         = 'none';

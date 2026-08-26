@@ -14,6 +14,15 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.10.0 – 2026-08-26
+**Välj navigeringsapp: Google Maps, Apple Kartor eller Waze.** Navigeringsknappen på
+platskortet är nu delad – vänstra delen kör igång i vald app, pilen till höger öppnar
+en liten låda med apparna. Valet sparas och gäller även listornas ↗-knappar och
+kartpopupen. Google Maps är standard för nya användare, precis som förut.
+Apple Kartor visas bara på iPhone/iPad/Mac (länken öppnar ingen app på Android/Windows).
+Waze går inte att kontrollera från en webbsida – länken öppnar appen om den finns,
+annars Wazes webbkarta.
+
 ## v1.9.0 – 2026-08-26
 **Sundbyberg flyttar in i huvudversionen – avstängd i drift.** Ingen synlig
 förändring för användarna: Stockholm är oförändrat och Sundbyberg syns inte publikt.

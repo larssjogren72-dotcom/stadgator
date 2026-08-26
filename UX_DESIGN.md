@@ -164,6 +164,28 @@ Resultaten *rankas alltid* efter chans – inte bara visas. Konkret:
 
 ---
 
+## 8.1 Navigeringsknappen – delad knapp, ett minne (2026-08-26)
+
+Kortet har **en** huvudhandling, inte tre likvärdiga. Knappen är därför delad:
+vänstra delen kör igång i den app användaren redan valt, en smal högerdel (44 px,
+pil nedåt) öppnar en liten bottenlåda med Google Maps, Apple Kartor och Waze.
+Ett tryck i lådan både väljer och startar navigeringen; valet sparas i webbläsaren.
+
+- **Standard är Google Maps** för alla nya användare – ingen tyst plattformsgissning.
+- **Etiketten avslöjar vilken app som startar** ("Navigera hit" = Google, annars
+  "Navigera med Waze" / "Navigera med Apple Kartor"). Den som aldrig rör pilen ser
+  exakt samma knapp som tidigare.
+- **Listornas små ↗-knappar följer samma val, utan egen meny.** En dold långtryckning
+  på en 38 px-knapp skulle vara både osynlig och lätt att träffa fel – man byter app
+  på kortet, inte i listan.
+- **Apple Kartor visas bara på Apple-enheter.** `maps.apple.com` öppnar ingen app på
+  Android/Windows, och en knapp som ibland leder till en tom sida är falsk trygghet.
+  Sparat "apple"-val faller tillbaka till Google om enheten byts.
+- **Ärlig gräns:** en webbsida kan inte se om Waze är installerat. Länken öppnar appen
+  om den finns, annars Wazes webbkarta.
+
+---
+
 ## 9. Vad detta INTE ska bli (medvetna nej)
 
 - ❌ Inga flikar / lägesväljare som delar appen i "appar".
