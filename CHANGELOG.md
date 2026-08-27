@@ -14,6 +14,48 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.12.0 – 2026-08-27
+**Appen visste hur länge man fick stå – men sa det bara ibland. Och Göteborg blev stad tre.**
+
+⚠️ **Det här ändrar kartan i Stockholm.** 260 gatusegment på 148 gator som sagt "Trygg över
+natten" blir blå med en tidsgräns. Registret har hela tiden sagt max 15 min–4 tim på dem;
+appen läste bara aldrig fältet. Nästan alla är avgiftsfria ytterstadsplatser – Kista,
+Hässelby, Tensta, Rinkeby, Vällingby – alltså precis där man letar när bilen ska stå natten
+över. Mätt över sex stadsdelar: 57 av 8 102 segment bär en maxtid, 55 av dem under ett dygn.
+
+**Maxtiden blev ett eget fält.** `MAX_MINUTES/HOURS/DAYS` läses nu och skrivs alltid om av
+appen själv, aldrig kopierad ur källan. En känd maxtid under ett dygn fäller grönt till blått
+i Natt-läget – tröskeln är räknad, inte vald: 18:00 → 08:00 är 14 timmar, så inte ens
+"12 tim" räcker. Nu-läget byter aldrig färg av en tidsgräns, men säger den numera:
+"Får stå nu · max 30 min".
+
+**En formulering i stället för fem.** Appen hade fyra olika blå texter plus en femte i
+förklaringsrutan. Nu gäller samma klausul överallt: känd tid → "max 30 min", okänd →
+"kontrollera tidsgräns". Lägets eget verb står före ("Får stå nu" / "Får parkera") – det
+ska skilja sig, klausulen inte. Förklaringsrutan säger "Tidsgräns – var uppmärksam på tiden".
+
+**Städscheman som gäller varannan vecka lästes som varje vecka.** Ny veckoparitet i
+städlogiken (ISO 8601). Stockholm har inga sådana poster och är oförändrat, men i Göteborg
+gäller det 1 597 av 2 002 – felet hade slagit varannan vecka utan att synas. Städraden visar
+det nu: "Servas onsdagar 09–12 jämna veckor".
+
+**Cykelställ ritas bara i cykelläget.** Ett cykelställ målades lila "ej för dig" för bilister.
+Det förhindrar inget – ingen bilist överväger att ställa bilen i ett cykelställ – och kostade
+läsbarhet. MC-rutor och handikapplatser är kvar, för de förhindrar riktiga misstag.
+
+**Göteborg som tredje stad** (`?stad=goteborg`, avstängd i drift som Sundbyberg).
+Trafikkontorets öppna WFS utan nyckel: städning med säsong och veckoparitet, maxtider,
+taxor, boende, MC, rörelsehindrade, lastplatser och 1 691 cykelparkeringar. Staden publicerar
+inga parkeringsförbud, vilket sägs rakt ut i appen. Till skillnad från Sundbyberg pekar
+Göteborg ut hur länge man får stå – därför finns grönt "Trygg över natten" där.
+
+**Kapabilitetsflaggor blev adresser.** `harPhus`/`harTaxaZoner` var ja/nej med Stockholms-
+adresser bakom sig; en ny stad med `true` hade fått Stockholms garage och zoner som sina egna.
+Nu pekar varje stad ut sina egna källor, och tom adress betyder att staden saknar källan.
+
+**Bakgrundskartan kräver nyckel.** CARTO stämplar "API KEY REQUIRED" i varje kartruta utan
+nyckel. Stöd för `CARTO_KEY` inlagt; utan nyckel fungerar allt som förut, bara med stämpeln.
+
 ## v1.11.2 – 2026-08-26
 **"Nyss städad" syns nu även när hela staden är blå.** Den ljusblå glowen försvann bland
 övriga blå linjer i Sundbyberg. Ersatt med en mörk infattning runt linjen – färgkontrast
