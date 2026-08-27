@@ -2201,19 +2201,25 @@ function scheduleText(schedule) {
   // Bara /schedule kan skicka `vilande` – de tre andra anroparna bygger sina rader ur
   // P_FORBUD-citations, som saknar säsongsfält och därför alltid faller i `aktiva`.
   const grupp = (rader) => {
-    const byWin = new Map();                     // "start_end" → [veckodagar]
+    // Nyckeln bär VECKOPARITETEN med. Utan den slogs "onsdagar udda veckor" ihop med
+    // "onsdagar varje vecka" till en enda rad utan förbehåll – och i Göteborg gäller
+    // 80 % av städningen varannan vecka, så raden hade tigit om det vanligaste fallet.
+    // Städer utan pariteten (Stockholm) skickar inget fält → nyckeln blir som förut.
+    const byWin = new Map();                     // "start_end_paritet" → [veckodagar]
     rader.forEach(x => {
       if (x.s == null) return;
-      const k = x.s + '_' + x.e;
+      const k = x.s + '_' + x.e + '_' + (x.veckor || '');
       if (!byWin.has(k)) byWin.set(k, []);
       byWin.get(k).push(x.day);
     });
     const parts = [];
     byWin.forEach((days, k) => {
-      const [s, e] = k.split('_').map(Number);
+      const bitar = k.split('_');
+      const s = +bitar[0], e = +bitar[1], veckor = bitar[2];
       const ds = [...new Set(days)].sort((a, b) => a - b).map(d => SV_DAYS[d].toLowerCase() + 'ar');
       const dl = ds.length === 1 ? ds[0] : ds.slice(0, -1).join(', ') + ' & ' + ds.slice(-1);
-      parts.push(`${dl} ${fmtClock(s)}–${fmtClock(e)}`);
+      // Kommunens eget ordval ("udda veckor"/"jämna veckor") – inget nytt begrepp att lära sig.
+      parts.push(`${dl} ${fmtClock(s)}–${fmtClock(e)}` + (veckor ? ` ${veckor} veckor` : ''));
     });
     return parts;
   };
@@ -4686,6 +4692,14 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = `Får stå nu · ${tidsklausul(s.maxMinutes)}`; okNu++; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = `Får stå nu · besöksplats, ${tidsklausul(s.maxMinutes)}`; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
+      // ── Vet vi hur länge, så säg det – även när svaret är ett rent ja ────────
+      // "Får stå nu" är sant om en 30-minutersplats, men det är inte HELA sanningen,
+      // och siffran finns i datan. Bara på gröna: en varning ("Städas nu – flytta
+      // bilen") ska inte få ett lugnande maxtidstillägg efter sig, och de blå
+      // grenarna ovan bär redan klausulen.
+      // Nu-läget byter ALDRIG färg av en maxtid – det är Natt-lägets regel.
+      // Uttrycks som samma klausul som överallt annars (se tidsklausul).
+      if (color === '#16a34a' && s.maxMinutes != null) txt += ` · ${tidsklausul(s.maxMinutes)}`;
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
       // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
       // "Kort besök går bra" är ett FAKTUM (du hinner därifrån innan fönstret börjar), inte en
