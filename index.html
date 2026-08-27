@@ -1234,6 +1234,28 @@ function apiDay(d)  { return API_DAYS[d.getDay()]; }
 function fmtDate(d) { return `${SV_DAYS[d.getDay()]} ${d.getDate()} ${SV_MONTHS[d.getMonth()]}`; }
 // Klockslag: 800 → "08", 1630 → "16:30"
 function fmtClock(n) { if (n == null || n === '') return ''; const h = Math.floor(n/100), m = n%100; return m ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` : String(h).padStart(2,'0'); }
+// ISO-veckonummer (svensk standard: veckan tillhör det år dess TORSDAG ligger i).
+// Behövs för städscheman som bara gäller jämna eller udda veckor. Stockholm har inga
+// sådana poster; Göteborg har det på 1 597 av 2 002 (80 %), så utan detta blir varannan
+// vecka fel – inte en kantfallsmiss utan halva sanningen.
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dag = t.getUTCDay() || 7;               // mån=1 … sön=7 (JS har söndag=0)
+  t.setUTCDate(t.getUTCDate() + 4 - dag);       // hoppa till veckans torsdag
+  const nyar = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t - nyar) / 86400000 + 1) / 7);
+}
+// Gäller posten den här veckan? Fälten är stadsneutrala och sätts av respektive adapter.
+// Saknas de helt (Stockholm) gäller posten varje vecka – befintligt beteende, oförändrat.
+// ⚠ Båda falska tolkas OCKSÅ som varje vecka, med flit: att dölja en städning som
+// faktiskt gäller kostar en bot, att visa en som inte gäller kostar en onödig flytt.
+function weekParityMatches(p, date) {
+  const udda = p.ODD_WEEKS, jamna = p.EVEN_WEEKS;
+  if (udda == null && jamna == null) return true;    // dimensionen finns inte i staden
+  if (udda && jamna) return true;                    // uttryckligen varje vecka
+  if (!udda && !jamna) return true;                  // okänt mönster → visa (se ovan)
+  return (isoWeek(date) % 2 === 1) ? !!udda : !!jamna;
+}
 // Säsong/datumintervall för städning – null = året runt
 function seasonText(p) { if (p.START_MONTH == null) return null; const sd = p.START_DAY||1, ed = p.END_DAY||1; return `${sd} ${SV_MONTHS[p.START_MONTH-1]}–${ed} ${SV_MONTHS[p.END_MONTH-1]}`; }
 
@@ -4153,6 +4175,10 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 // Säsongskoll per gata: är städposten aktiv på datumet? (58% av datan är säsong,
 // mest vinter 1/11–15/5 i ytterstaden.) Saknar START_MONTH → året runt → alltid aktiv.
 function cleaningActiveOn(p, date) {
+  // Veckoparitet FÖRE säsongen, med flit: 1 527 av Göteborgs 2 002 städposter saknar
+  // säsong men HAR jämn/udda-vecka. Låg testet efter raden nedan skulle de returnera
+  // true direkt och paritetsvillkoret aldrig prövas – tyst fel varannan vecka.
+  if (!weekParityMatches(p, date)) return false;
   if (p.START_MONTH == null) return true;
   const md  = (m, d) => m * 100 + (d || 1);
   const cur = md(date.getMonth() + 1, date.getDate());
