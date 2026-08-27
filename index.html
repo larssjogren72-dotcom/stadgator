@@ -591,6 +591,25 @@
       background: rgba(15,23,42,0.28);
     }
     #nav-picker.on { display: flex; }
+    /* Stadsväljaren delar utseende med navigeringsvalet – bara egen nod. */
+    #stad-picker {
+      position: fixed; inset: 0; z-index: 4200; display: none;
+      align-items: flex-end; justify-content: center;
+      background: rgba(15,23,42,0.28);
+    }
+    #stad-picker.on { display: flex; }
+    /* Undertexten säger vad staden FAKTISKT har. Utan den ser städerna
+       likvärdiga ut, och skillnaden är den sort som kan kosta en bot. */
+    .stadp-under { display:block; font-size:12.5px; color: var(--muted); margin-top:2px; }
+    .stadp-namn  { display:block; font-weight:600; }
+    /* Stadsnamnet i rubriken är en tryckyta. Prickad understrykning + pil
+       signalerar det utan att skrika – staden byts i princip aldrig. */
+    #stadval-btn {
+      background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer;
+      border-bottom:2px dotted rgba(15,23,42,0.35); line-height:1.05;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #stadval-btn .stadval-pil { font-size:.7em; color: var(--muted); margin-left:2px; }
     .navp-card {
       background: #fff; width: 100%; max-width: 460px;
       border-radius: 18px 18px 0 0; overflow: hidden;
@@ -836,6 +855,18 @@
     <div class="navp-head">Öppna med</div>
     <div id="navp-rows"></div>
     <button class="navp-cancel" type="button" onclick="navPickerClose()">Avbryt</button>
+  </div>
+</div>
+
+<!-- ── Val av stad ── Egen låda, men ÅTERANVÄNDER navigeringsvalets utseende
+     (.navp-*). Samma form, samma avbryt – användaren möter inget nytt språk.
+     Egen DOM-nod och inte samma element: två lådor som delar innehållsyta
+     hade kunnat skriva över varandras rader. -->
+<div id="stad-picker" onclick="if(event.target===this)stadPickerClose()">
+  <div class="navp-card">
+    <div class="navp-head">Välj stad</div>
+    <div id="stadp-rows"></div>
+    <button class="navp-cancel" type="button" onclick="stadPickerClose()">Avbryt</button>
   </div>
 </div>
 
@@ -1141,10 +1172,25 @@ const DEBUG_MODE = /[?&]debug=1/.test(location.search);
 // tom karta och tiga om varför. Öppnas filen direkt från disk står platshållaren kvar
 // orörd, och då är vi lokalt → på.
 const STADER_PA = (function (v) { return /^__/.test(v) ? true : v === '1'; })('__STADER_PA__');
-// Stad väljs med ?stad=<id>. En uppslagstabell i stället för en if-kedja: stad
-// nummer fyra ska vara en post att lägga till, inte en gren att väva in.
-const VALD_STAD = STADER_PA ? ((location.search.match(/[?&]stad=([a-zåäö]+)/i) || [])[1] || '').toLowerCase() : '';
-if (!STADER_PA && /[?&]stad=/.test(location.search)) {
+// Stad väljs med ?stad=<id> eller i väljaren, och kommer ihåg till nästa besök.
+// En uppslagstabell i stället för en if-kedja: stad nummer fyra ska vara en post
+// att lägga till, inte en gren att väva in.
+//
+// ORDNINGEN: adressraden vinner över det sparade valet. Att följa en delad länk är
+// en avsiktlig handling, och då ska den också SPARAS (Lars beslut 2026-08-27) –
+// annars hoppar appen tillbaka nästa gång och länken känns trasig.
+const STAD_LAGRAD = 'parkspot_stad';
+function lasSparadStad() {
+  try { return (localStorage.getItem(STAD_LAGRAD) || '').toLowerCase(); } catch (e) { return ''; }
+}
+function sparaStad(id) { try { localStorage.setItem(STAD_LAGRAD, id); } catch (e) {} }
+
+const STAD_UR_URL = ((location.search.match(/[?&]stad=([a-zåäö]+)/i) || [])[1] || '').toLowerCase();
+const VALD_STAD = STADER_PA ? (STAD_UR_URL || lasSparadStad()) : '';
+// En delad länk SPARAS (Lars beslut): den som följer `?stad=goteborg` ska inte
+// kastas tillbaka till Stockholm nästa besök – då känns länken trasig. Sparas
+// bara om staden finns; ett felstavat ?stad= ska inte fastna i webbläsaren.
+if (!STADER_PA && (STAD_UR_URL || lasSparadStad())) {
   console.warn('[ParkSpot] Stadsadaptrar är avstängda på den här servern – visar Stockholm.');
 }
 const STADER_CFG = {};
@@ -1161,6 +1207,10 @@ STADER_CFG.sundbyberg =
       heltStadenUrl:'',            // ingen hela-staden-fallback utanför Stockholm
       tillatenUrl:'/sbg/wfs-tillaten',
       phusUrl:'', phusTyp:null, phusRubrik:'Parkeringshus nära',
+      // Listas INTE i stadsväljaren: gis.sundbyberg.se svarar inte alls sedan
+      // 2026-08-27 (TCP vägras direkt), så valet hade lett till en tom karta.
+      // ?stad=sundbyberg fungerar oförändrat för den som redan har länken.
+      visaIVal:false, valUnder:'Pilot – karttjänsten svarar inte',
       taxaZon:null,
       pilot:true,
       disclaimer:'<span class="hint-disclaimer">Baseras på Sundbybergs öppna data. Kommunen publicerar '
@@ -1207,6 +1257,7 @@ STADER_CFG.goteborg =
       // inte på typ, och kallar listan det den ÄR i stället för att gissa. En betald
       // yta löser användarens problem lika bra; det är bara namnet som hade ljugit.
       phusTyp:null, phusRubrik:'Avgiftsparkering nära',
+      visaIVal:true, valUnder:'Pilot – staden publicerar inga parkeringsförbud',
       // Göteborgs taxa är LINJER per nivå, inte polygoner med distriktsnamn.
       // Zonritningen kan inte matas av det; priset visas per segment i stället.
       // OBS att Göteborgs taxenummer inte är jämförbara med Stockholms
@@ -1242,6 +1293,7 @@ STADER_CFG.stockholm =
       // Stockholm har ett typfält och filtrerar till garage – "sista utväg" betyder
       // p-hus här. Regeln är oförändrad, den har bara flyttat till konfigurationen.
       phusTyp:/garage/i, phusRubrik:'Parkeringshus nära',
+      visaIVal:true, valUnder:'Full data – även parkeringsförbud',
       taxaZon:{ layer:'ltfr:LTFR_TAXA_VIEW', bbox:'17.74,59.20,18.22,59.45,EPSG:4326' },
       pilot:false,
       disclaimer:'<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>',
@@ -1267,6 +1319,10 @@ STADER_CFG.stockholm =
 const STAD = STADER_CFG[VALD_STAD] || STADER_CFG.stockholm;
 if (VALD_STAD && !STADER_CFG[VALD_STAD]) {
   console.warn(`[ParkSpot] Okänd stad "${VALD_STAD}" – visar Stockholm.`);
+  // Ett felstavat ?stad= ska inte fastna i webbläsaren och följa med för evigt.
+  try { localStorage.removeItem(STAD_LAGRAD); } catch (e) {}
+} else if (STAD_UR_URL && STADER_CFG[STAD_UR_URL]) {
+  sparaStad(STAD_UR_URL);          // delad länk → kom ihåg (se kommentaren ovan)
 }
 
 // Källtexten under platskorten. Måste följa staden – annars påstår appen att en
@@ -1467,6 +1523,46 @@ function navPickerOpen() {
 function navPickerClose() {
   var box = document.getElementById('nav-picker');
   if (box) box.classList.remove('on');
+}
+
+// ── Stadsväljare ─────────────────────────────────────────────────────────────
+// Listar städer med visaIVal, PLUS den man står i även om den inte listas
+// normalt (annars ser en Sundbyberg-besökare en lista där ingen stad är vald).
+function stadPickerOpen() {
+  var box = document.getElementById('stad-picker'), rows = document.getElementById('stadp-rows');
+  if (!box || !rows || !STADER_PA) return;
+  var html = '';
+  // Ordningen sätts medvetet, inte av i vilken ordning städerna råkar stå i
+  // konfigurationen: fullständiga städer först, sedan piloter, båda i bokstavs-
+  // ordning. Den med mest data ska mötas först – det är den appen kan mest om.
+  Object.keys(STADER_CFG).sort(function (a, b) {
+    var pa = STADER_CFG[a].pilot ? 1 : 0, pb = STADER_CFG[b].pilot ? 1 : 0;
+    return pa !== pb ? pa - pb : STADER_CFG[a].namn.localeCompare(STADER_CFG[b].namn, 'sv');
+  }).forEach(function (id) {
+    var s = STADER_CFG[id];
+    if (!s.visaIVal && id !== STAD.id) return;
+    html += '<button class="navp-row" type="button" onclick="stadPickerPick(&quot;' + id + '&quot;)">'
+         +    '<span class="navp-name"><span class="stadp-namn">' + s.namn + '</span>'
+         +      '<span class="stadp-under">' + (s.valUnder || '') + '</span></span>'
+         +    (id === STAD.id ? '<span class="navp-check">✓</span>' : '')
+         +  '</button>';
+  });
+  rows.innerHTML = html;
+  box.classList.add('on');
+}
+function stadPickerClose() {
+  var box = document.getElementById('stad-picker');
+  if (box) box.classList.remove('on');
+}
+// Byte kräver omladdning: STAD är låst vid sidladdning, adaptrarna har egna
+// adresser och alla cachar är stadsspecifika. Att försöka byta i flykten hade
+// gett en karta med två städers data i sig. `?stad=` sätts i adressen så att
+// läget syns och går att dela vidare.
+function stadPickerPick(id) {
+  if (!STADER_CFG[id]) return;
+  sparaStad(id);
+  if (id === STAD.id) { stadPickerClose(); return; }
+  location.href = location.pathname + '?stad=' + encodeURIComponent(id);
 }
 function navPickerPick(id) {
   setNavApp(id);
@@ -5373,10 +5469,26 @@ function initMap() {
       s.textContent = '#phus-btn{display:none!important}';
       document.head.appendChild(s);
     }
-    // Rubriken säger annars "ParkSpot Stockholm" över en Sundbyberg-karta.
-    const h1 = document.querySelector('.hd-left h1');
-    if (h1) h1.textContent = 'ParkSpot ' + STAD.namn;
     document.title = 'ParkSpot ' + STAD.namn + ' – pilot';
+  }
+  // Rubriken NAMNGER staden och är därför också platsen där man byter den.
+  // Att göra just det ordet tryckbart lägger till noll ny yta – och staden byts
+  // i princip aldrig, så den ska inte konkurrera med fordons- och lägesvalen
+  // som används varje besök. Renderas alltid, även i Stockholm.
+  const h1 = document.querySelector('.hd-left h1');
+  if (h1) {
+    h1.textContent = '';
+    h1.append('ParkSpot ');
+    if (STADER_PA) {
+      const b = document.createElement('button');
+      b.id = 'stadval-btn'; b.type = 'button';
+      b.setAttribute('aria-label', 'Byt stad – nu ' + STAD.namn);
+      b.innerHTML = STAD.namn + '<span class="stadval-pil" aria-hidden="true">▾</span>';
+      b.onclick = stadPickerOpen;
+      h1.append(b);
+    } else {
+      h1.append(STAD.namn);
+    }
   }
   map = L.map('map', { center:STAD.center, zoom:STAD.zoom, zoomControl:true,
                        renderer: L.canvas({ tolerance: 12 }) });
