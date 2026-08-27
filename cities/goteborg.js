@@ -93,6 +93,17 @@ module.exports = function skapaGoteborg(delade) {
     if (g.type === 'MultiLineString') return g.coordinates.filter(l => l.length >= 2);
     return [];
   }
+  // Cykelparkeringarna är PUNKTER, inte linjer. Appen kräver linesSweref för att
+  // överhuvudtaget se en plats (toAllowedSegment → featureLines) och använder första
+  // punkten som nålens läge. Punkten är den ÄKTA uppgiften; den korta linjen är bara
+  // en bärare av samma koordinat, i storleksordningen av ett faktiskt cykelställ.
+  // Samma lösning som Sundbybergs cykellager. SWEREF99 är i meter → rakt av.
+  const PUNKT_LANGD_M = 3;
+  function punktTillLinje(g) {
+    if (!g || g.type !== 'Point' || !Array.isArray(g.coordinates)) return null;
+    const [x, y] = g.coordinates, h = PUNKT_LANGD_M / 2;
+    return isFinite(x) && isFinite(y) ? [[x - h, y], [x + h, y]] : null;
+  }
   function bboxAv(ls) {
     let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
     for (const l of ls) for (const p of l) {
@@ -187,7 +198,9 @@ module.exports = function skapaGoteborg(delade) {
     'parkering:taxa_a','parkering:taxa_22','parkering:taxa_24',
     'parkering:Taxa_9','parkering:Taxa_12','parkering:Taxa_62',
     'parkering:tidsbegransad','parkering:boende',
-    'parkering:mc','parkering:handikapp','parkering:lastplats'
+    'parkering:mc','parkering:handikapp','parkering:lastplats',
+    // Annan arbetsyta (cykel:), men WFS 1.1.0 tar den i SAMMA anrop - verifierat.
+    'cykel:cykelparkeringar'
   ].join(',');
 
   const lagerAv = f => String(f && f.id || '').split('.')[0];
@@ -201,6 +214,10 @@ module.exports = function skapaGoteborg(delade) {
     if (lager === 'mc')        return { VEHICLE: 'motorcykel',      VF_PLATS_TYP: 'Reserverad p-plats motorcykel' };
     if (lager === 'handikapp') return { VEHICLE: 'rörelsehindrade', VF_PLATS_TYP: 'Reserverad p-plats rörelsehindrade' };
     if (lager === 'lastplats') return { VEHICLE: 'fordon',          VF_PLATS_TYP: '7' };
+    // CYKEL_VEHICLES = cykel | moped-klass2. Appen behandlar dem lika (moped klass 2
+    // följer cykelns regler), så 'cykel' räcker - vi hittar inte på en undertyp
+    // Göteborg inte anger.
+    if (lager === 'cykelparkeringar') return { VEHICLE: 'cykel', VF_PLATS_TYP: 'Reserverad p-plats cykel' };
     // Bil: boende är ett PÅLÄGG på samma sträcka, inte en egen plats (se nedan).
     return { VEHICLE: 'fordon', VF_PLATS_TYP: boende ? 'P Avgift, boende' : (arTaxa(lager) ? 'P Avgift' : 'P') };
   }
@@ -212,6 +229,7 @@ module.exports = function skapaGoteborg(delade) {
   // fel. Vi skickar därför kommunens PRISTEXT, som inte innehåller ordet taxa.
   function prisText(lager, p) {
     if (lager === 'tidsbegransad') return 'avgiftsfri';   // lagret är per definition utan avgift
+    if (lager === 'cykelparkeringar') return 'avgiftsfri';  // kommunala cykelställ är avgiftsfria
     if (lager === 'boende')        return 'boende';
     return falt(p, 'ParkingCost') || null;
   }
@@ -257,7 +275,9 @@ module.exports = function skapaGoteborg(delade) {
       const lager = lagerAv(f);
       if (lager === 'boende') continue;                 // tas via pålägget nedan
       const p = f.properties || {};
-      const ls = linjer(f.geometry);
+      // Cykelställen är punkter; allt annat är linjer eller ytor.
+      const punktLinje = lager === 'cykelparkeringar' ? punktTillLinje(f.geometry) : null;
+      const ls = punktLinje ? [punktLinje] : linjer(f.geometry);
       if (!ls.length) { ytor++; continue; }             // yta – se kommentaren vid linjer()
 
       const geomNyckel = JSON.stringify(f.geometry.coordinates);
@@ -271,8 +291,14 @@ module.exports = function skapaGoteborg(delade) {
         // ingen motsvarighet – och maxtiden bär redan den informationen, bättre.
         // Null, aldrig ett hittepåvärde: annars utlöses besöksficke-heuristiken.
         VF_METER: null,
-        VF_PLATSER: falt(p, 'ParkingSpaces') || falt(p, 'TotalParkningSpaces') || null,
-        STREET_NAME: falt(p, 'SiteName') || null,
+        // Cykellagret har egna fältnamn (adress/antal_platser) och saknar LTF-nummer.
+        // Adressen skickas ORÖRD som den står hos kommunen ("Östra Hamngatan 23") –
+        // den är kortets rubrik, och att klippa bort husnumret för att den ska likna
+        // ett gatunamn vore att förvanska uppgiften utan att vinna något: cykel-
+        // flödet slår medvetet aldrig upp bilens städschema på gatunamn.
+        VF_PLATSER: falt(p, 'ParkingSpaces') || falt(p, 'TotalParkningSpaces')
+                 || falt(p, 'antal_platser') || null,
+        STREET_NAME: falt(p, 'SiteName') || falt(p, 'adress') || null,
         CITATION: falt(p, 'LtfRegulationNumber') || null,
         // Additiva Göteborgsfält – krockar inte med Stockholms nycklar.
         GBG_LAGER: lager,
