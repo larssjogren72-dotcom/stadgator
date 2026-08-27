@@ -4163,6 +4163,22 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
                     : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
                     : '';
+      // ── En känd maxtid under ett dygn räcker inte för att lämna bilen i natt ──
+      // Samma sorts påstående som blocket nedan, fast tvärtom: här VET vi hur länge.
+      // Tröskeln är ett dygn (Lars beslut 2026-08-27). Skälet är räknat, inte valt:
+      // ställer man bilen 18:00 och hämtar 08:00 är det 14 timmar, så inte ens
+      // "12 tim" räcker – och att fälla för mycket kostar en blick på skylten medan
+      // att fälla för lite kostar en kontrollavgift.
+      // Ligger FÖRE blocket nedan med flit: en känd siffra ska vinna över det
+      // generella "vi vet inte". Görs efter färgkedjan av samma skäl som där –
+      // nya gröna grenar fångas automatiskt i stället för att glömmas.
+      if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER) {
+        color = '#38bdf8';
+        txt   = `Får parkera · ${tidsklausul(s.maxMinutes)}`;
+        // Chipet bär redan siffran → detaljraden ger FÖLJDEN, upprepar den inte.
+        infoRow = 'För kort för att lämna bilen över natten';
+        safe--; kollaTid++;
+      }
       // ── Städer utan maxtid i datan får inte säga "Trygg över natten" ──────────
       // "Trygg över natten" är ett påstående om VARAKTIGHET. Saknar staden maxtid-
       // dimensionen helt (se STAD.skiljerKorttid) kan appen veta att du får parkera, men
@@ -4247,6 +4263,9 @@ function cleaningActiveOn(p, date) {
 //   morgon (07–10) → du kan flytta först på morgonen → "flytta innan {start}"
 //   sen   (≥10:00) → du har åkt innan städningen → trygg över natten ändå.
 const ON_NIGHT_HM = 700, ON_SAFE_HM = 1000;
+// Kortaste maxtid som ändå duger för att lämna bilen över natten. Ett dygn:
+// 18:00 → 08:00 är 14 timmar, så "12 tim" räcker inte heller. Se uc2-renderingen.
+const NATT_MIN_MINUTER = 1440;
 function overnightCleaningTier(start) {
   if (start == null) return 'morgon';                  // okänt fönster → behandla som varning
   if (start < ON_NIGHT_HM) return 'natt';
