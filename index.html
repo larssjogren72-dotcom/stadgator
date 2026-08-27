@@ -1210,7 +1210,7 @@ STADER_CFG.sundbyberg =
       servicedagarUrl:'/sbg/servicedagar-bbox',
       heltStadenUrl:'',            // ingen hela-staden-fallback utanför Stockholm
       tillatenUrl:'/sbg/wfs-tillaten',
-      phusUrl:'', phusTyp:null, phusRubrik:'Parkeringshus nära',
+      phusUrl:'', phusTyp:null, phusRubrik:'Parkeringshus nära', phusEtikett:'Garage',
       // Listas INTE i stadsväljaren: gis.sundbyberg.se svarar inte alls sedan
       // 2026-08-27 (TCP vägras direkt), så valet hade lett till en tom karta.
       // ?stad=sundbyberg fungerar oförändrat för den som redan har länken.
@@ -1260,7 +1260,7 @@ STADER_CFG.goteborg =
       // parkeringsyta, och bara 71 av 923 avslöjar det i namnet. Vi filtrerar därför
       // inte på typ, och kallar listan det den ÄR i stället för att gissa. En betald
       // yta löser användarens problem lika bra; det är bara namnet som hade ljugit.
-      phusTyp:null, phusRubrik:'Avgiftsparkering nära',
+      phusTyp:null, phusRubrik:'Parkeringsanläggningar nära', phusEtikett:'Parkeringsanläggning',
       visaIVal:true, valUnder:'Staden publicerar inga parkeringsförbud',
       // Göteborgs taxa är LINJER per nivå, inte polygoner med distriktsnamn.
       // Zonritningen kan inte matas av det; priset visas per segment i stället.
@@ -1299,7 +1299,7 @@ STADER_CFG.stockholm =
       phusUrl:'/phus',
       // Stockholm har ett typfält och filtrerar till garage – "sista utväg" betyder
       // p-hus här. Regeln är oförändrad, den har bara flyttat till konfigurationen.
-      phusTyp:/garage/i, phusRubrik:'Parkeringshus nära',
+      phusTyp:/garage/i, phusRubrik:'Parkeringshus nära', phusEtikett:'Garage',
       visaIVal:true, valUnder:'Full data – även parkeringsförbud',
       taxaZon:{ layer:'ltfr:LTFR_TAXA_VIEW', bbox:'17.74,59.20,18.22,59.45,EPSG:4326' },
       pilot:false,
@@ -3132,7 +3132,7 @@ async function fetchNearbyGarages(lat, lng, radius = 1000) {
               && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud)
     .map(a => ({
       name: a.Name || 'Parkeringshus', lat: a.AdressLatitud, lng: a.AdressLongitud,
-      spaces: a.AntalBesokPlatser, taxa: garageTaxaText(a),
+      spaces: a.AntalBesokPlatser, taxa: garageTaxaText(a), agare: a.Agare || '',
       dist: Math.round(map.distance([lat, lng], [a.AdressLatitud, a.AdressLongitud]))
     }))
     .filter(x => x.dist <= radius)
@@ -3243,13 +3243,30 @@ function selectGarage(g, marker) {
 
   document.getElementById('street-name').textContent = g.name;
   const bd = document.getElementById('badge-district');
-  bd.textContent = '🅿 Garage';
+  // Ordet måste vara SANT för staden. Stockholm filtrerar faktiskt på garage och kan
+  // säga "Garage". Göteborg har inget typfält alls, men datan säger något annat äkta:
+  // det här är parkering på kvartersmark, inte längs en gatukant. "Avgiftsparkering"
+  // dög inte – nästan all gatuparkering i centrala Göteborg är också avgiftsbelagd,
+  // så det ordet skiljer ingenting (Lars 2026-08-27).
+  bd.textContent = '🅿 ' + STAD.phusEtikett;
   bd.style.background = 'rgba(129,140,248,.14)'; bd.style.borderColor = 'rgba(129,140,248,.4)'; bd.style.color = '#3730a3';
   const bt = document.getElementById('badge-time');
   bt.style.display = ''; bt.textContent = `${g.spaces} platser`;
   bt.style.background = 'rgba(129,140,248,.1)'; bt.style.borderColor = 'rgba(129,140,248,.3)'; bt.style.color = '#3730a3';
   const taxaRow = document.getElementById('taxa-row');
-  taxaRow.innerHTML = (g.taxa ? `💰 <b>${escHtml(g.taxa)}</b><br>` : '')
+  // Vem som driver anläggningen är riktig data och läses aldrig som ett gatunamn.
+  // Behövs i Göteborg, där kommunen döper anläggningar efter gatan de ligger på:
+  // "Kristinelundsgatan" finns BÅDE som gata med 11 p-sträckor och som anläggning
+  // med 25 platser, och rubriken ensam kan omöjligt skilja dem åt.
+  // ⚠ badge-district/badge-time sätts ovan men SYNS INTE – deras förälder är
+  // display:none sedan hjälte-designen kom. Det betyder att även platsantalet har
+  // varit osynligt på garagekortet. Upptäckt 2026-08-27 när Lars påpekade att kortet
+  // inte visade att Kristinelundsgatan var en anläggning. Därför står både etiketten
+  // och antalet här, i raden som faktiskt renderas.
+  taxaRow.innerHTML = `🅿 <b>${escHtml(STAD.phusEtikett)}</b>`
+    + (g.spaces ? ` · ${g.spaces} platser` : '') + '<br>'
+    + (g.agare ? `🏢 ${escHtml(g.agare)}<br>` : '')
+    + (g.taxa ? `💰 <b>${escHtml(g.taxa)}</b><br>` : '')
     + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
   taxaRow.style.display = 'block';
   document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för garage
