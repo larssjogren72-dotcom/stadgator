@@ -1150,7 +1150,18 @@ const STAD = ST_SBG
       center:[59.3610, 17.9713], zoom:15,
       // Sundbyberg publicerar inga förbudsdata och har inga p-hus i vår källa.
       // Flaggorna gör att appen TIGER där datan tiger i stället för att gissa.
-      harForbud:false, harPhus:false, harTaxaZoner:false,
+      harForbud:false,
+      // ── Datakällor som ADRESSER, inte ja/nej ────────────────────────────
+      // Tom sträng/null = staden saknar källan → appen tiger. Se kommentaren
+      // vid Stockholms motsvarigheter för varför ja/nej var direkt farligt.
+      servicedagarUrl:'/sbg/servicedagar-bbox',
+      heltStadenUrl:'',            // ingen hela-staden-fallback utanför Stockholm
+      tillatenUrl:'/sbg/wfs-tillaten',
+      phusUrl:'',
+      taxaZon:null,
+      pilot:true,
+      disclaimer:'<span class="hint-disclaimer">Baseras på Sundbybergs öppna data. Kommunen publicerar '
+        + 'inga parkeringsförbud – kontrollera alltid skylten på plats.</span>',
       // ⚠ MAXTID SAKNAS HELT. Kontrollerat 2026-08-26 mot ALLA 48 karttjänster på
       // gis.sundbyberg.se, inte bara de vi använder: de enda tidsfälten i parkerings-
       // lagren är `Tid` (städtid), `Avgift_tid` (när det kostar) och `P_30_Min` (ett
@@ -1173,7 +1184,20 @@ const STAD = ST_SBG
       schemaUrl:'/sbg/schedule' }
   : { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
       center:[59.332, 18.065], zoom:13,
-      harForbud:true,  harPhus:true,  harTaxaZoner:true,
+      harForbud:true,
+      // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
+      // `/phus` är Stockholm Parkerings EGET API och taxezonerna är Stockholms egna
+      // polygoner med en Stockholms-bbox inbakad. En ny stad som satte flaggan till
+      // true hade alltså fått STOCKHOLMS garage och STOCKHOLMS zoner presenterade
+      // som sina egna – tyst, och utan att någon kod såg fel ut. Som adresser kan
+      // det felet inte uppstå: en stad utan källa har ingen adress att peka på.
+      servicedagarUrl:'/servicedagar-bbox',
+      heltStadenUrl:'/proxy/servicedagar/weekday',   // hela staden – bara Stockholm
+      tillatenUrl:'',              // tomt = Stockholms WFS via nyckel (se fetchLayer)
+      phusUrl:'/phus',
+      taxaZon:{ layer:'ltfr:LTFR_TAXA_VIEW', bbox:'17.74,59.20,18.22,59.45,EPSG:4326' },
+      pilot:false,
+      disclaimer:'<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>',
       // Flaggan betyder "staden PEKAR UT vilka platser som är korttid", inte "staden har
       // en siffra för maxtiden". Den styr en enda regel, lika i alla städer och båda lägena:
       //   Kan staden inte skilja korttidsplats från långtidsplats – inget grönt, någonstans.
@@ -1194,11 +1218,8 @@ const STAD = ST_SBG
 
 // Källtexten under platskorten. Måste följa staden – annars påstår appen att en
 // Sundbyberg-gata "baseras på Stockholms öppna data", vilket är direkt falskt.
-// I Sundbyberg saknas dessutom förbudsdata helt, och det ska sägas rakt ut.
-const DISCLAIMER_HTML = ST_SBG
-  ? '<span class="hint-disclaimer">Baseras på Sundbybergs öppna data. Kommunen publicerar '
-    + 'inga parkeringsförbud – kontrollera alltid skylten på plats.</span>'
-  : '<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>';
+// Saknar staden förbudsdata ska det stå rakt ut. Texten bor i STAD (se ovan).
+const DISCLAIMER_HTML = STAD.disclaimer;
 if (DEBUG_MODE) {
   window.addEventListener('DOMContentLoaded', () => {
     const b = document.createElement('div');
@@ -1577,9 +1598,9 @@ function launchApp() {
 // cleaningActiveOn / buildCleaningMatcher / 25 m-matchningen är helt orörda.
 // Utan bbox, eller om den nya vägen fallerar, används den gamla hela-staden-hämtningen.
 async function fetchServicedays(apiKey, day, bbox = null) {
-  const bas    = ST_SBG ? '/sbg/servicedagar-bbox' : '/servicedagar-bbox';
-  const nyUrl  = bbox ? `${bas}?dag=${encodeURIComponent(day)}&bbox=${bbox.join(',')}` : null;
-  const gammal = `/proxy/servicedagar/weekday/${day}?outputFormat=json&apiKey=${encodeURIComponent(apiKey)}`;
+  const bas    = STAD.servicedagarUrl;
+  const nyUrl  = bbox && bas ? `${bas}?dag=${encodeURIComponent(day)}&bbox=${bbox.join(',')}` : null;
+  const gammal = `${STAD.heltStadenUrl}/${day}?outputFormat=json&apiKey=${encodeURIComponent(apiKey)}`;
   if (nyUrl) {
     try {
       const r = await fetch(nyUrl);
@@ -1589,9 +1610,10 @@ async function fetchServicedays(apiKey, day, bbox = null) {
       console.warn('[Städgator] bbox-städdata misslyckades:', e.message);
     }
   }
-  // PILOT: fallbacken går mot STOCKHOLMS hela-staden-proxy. Den får aldrig användas
-  // för en annan stad – då hade Sundbyberg tyst ritats med Stockholms städdata.
-  if (ST_SBG) return { features: [] };
+  // Fallbacken går mot STOCKHOLMS hela-staden-proxy. Den får aldrig användas för en
+  // annan stad – då hade den staden tyst ritats med Stockholms städdata. Tom adress
+  // = staden har ingen sådan källa, och då finns inget att falla tillbaka på.
+  if (!STAD.heltStadenUrl) return { features: [] };
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const r = await fetch(gammal);
@@ -1646,18 +1668,18 @@ function clearZonesFromMap() {
 // sökning OCH varje panorering: uppmätt 5 anrop / 813 KB under en kort session.
 // Nu: hämta EN gång per sidladdning, rita om från minnet när flödena rensat lagren.
 // Zonerna ändras inte med vyn och taxor ändras högst någon gång per år.
-const ZON_BBOX_STAD = '17.74,59.20,18.22,59.45,EPSG:4326';
 let zonData = null, zonHamtning = null;              // rådata + single-flight
 
 async function loadZonesForViewport(apiKey) {        // (bounds behövs inte längre)
-  // PILOT: taxa-zonerna är Stockholms egna polygoner. Sundbybergs pris ligger i
-  // stället per gatusegment (SBG_ZON/SBG_PRIS) → rita inga zoner alls där.
-  if (!STAD.harTaxaZoner) return;
+  // Taxa-zonerna är Stockholms egna polygoner, och BBOX:en nedan är Stockholms.
+  // Lager och bbox bor därför i stadskonfigurationen: null = staden har inga zoner
+  // att rita (Sundbybergs pris ligger per gatusegment, Göteborgs likaså).
+  if (!STAD.taxaZon) return;
   try {
     if (!zonData) {
       // single-flight: flera flöden startar samtidigt vid sidladdning → ett enda anrop
       if (!zonHamtning) {
-        zonHamtning = fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=ltfr:LTFR_TAXA_VIEW&outputFormat=application/json&BBOX=${ZON_BBOX_STAD}`)
+        zonHamtning = fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${STAD.taxaZon.layer}&outputFormat=application/json&BBOX=${STAD.taxaZon.bbox}`)
           .then(r => r.ok ? r.json() : null).catch(() => null);
       }
       zonData = await zonHamtning;
@@ -2866,9 +2888,9 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').re
 function loadGarageData() {
   // PILOT: /phus är Stockholm Parkerings eget API. Sundbyberg finns inte i det, så
   // ett anrop hade listat Stockholms-garage för en Sundbyberg-sökning. Svara tomt.
-  if (!STAD.harPhus) return Promise.resolve([]);
+  if (!STAD.phusUrl) return Promise.resolve([]);
   if (!garageDataPromise) {
-    garageDataPromise = fetch('/phus')
+    garageDataPromise = fetch(STAD.phusUrl)
       .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
       .catch(e => { garageDataPromise = null; throw e; });   // tillåt nytt försök
   }
@@ -3200,13 +3222,13 @@ async function loadActiveGagataLines(lat, lng, radius = 700) {
 
 // Lager 2 – generisk WFS-källadapter (ett anrop för alla lager)
 async function fetchLayer(layer, bbox) {
-  // PILOT: Sundbyberg har bara en motsvarighet till P_TILLATEN (parkeringszoner).
-  // Förbudslager, gågator och föreskriftslinjer finns inte → tom lista, aldrig
-  // gissade värden. Adaptern levererar samma fält och SWEREF99 som Stockholm.
-  if (ST_SBG) {
+  // Städer utanför Stockholm har en egen adress som levererar MOTSVARIGHETEN till
+  // P_TILLATEN i samma fältform och SWEREF99. Övriga lager (förbud, gågator,
+  // föreskriftslinjer) finns inte där → tom lista, aldrig gissade värden.
+  if (STAD.tillatenUrl) {
     if (layer !== 'LTFR_P_TILLATEN_GEOM') return [];
-    const r = await fetch(`/sbg/wfs-tillaten?BBOX=${bbox}`);
-    if (!r.ok) throw new Error(`sbg-tillaten: HTTP ${r.status}`);
+    const r = await fetch(`${STAD.tillatenUrl}?BBOX=${bbox}`);
+    if (!r.ok) throw new Error(`${STAD.id}-tillaten: HTTP ${r.status}`);
     return (await r.json()).features || [];
   }
   const key = getKey();
@@ -4345,7 +4367,7 @@ let nastaStadUppslag = null;
 // Uppmätt: hela veckan = 104 kB i Vasastan, mot 4 046 kB för TVÅ dagar tidigare.
 async function fetchServicedaysWeek(lat, lng) {
   try {
-    const r = await fetch(`${ST_SBG ? '/sbg' : ''}/servicedagar-bbox?dagar=0,1,2,3,4,5,6&bbox=${servicedagarBbox(lat, lng).join(',')}`);
+    const r = await fetch(`${STAD.servicedagarUrl}?dagar=0,1,2,3,4,5,6&bbox=${servicedagarBbox(lat, lng).join(',')}`);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return (await r.json()).dagar || null;
   } catch (e) {
@@ -4922,10 +4944,10 @@ function updateLegend(mode) {
        ${ringRows('border-radius:5px', RH_COLOR)}` : '';
   // Taxa 1–5 är en ORDNAD prisskala (dyrast→billigast), inte fem fristående kategorier →
   // en kompakt färgstege i stället för fem staplade rader (samma info, en fjärdedel av höjden).
-  // Bara städer där zonerna faktiskt RITAS (se STAD.harTaxaZoner, som redan avbryter
+  // Bara städer där zonerna faktiskt RITAS (se STAD.taxaZon, som redan avbryter
   // refreshZones). Förklaringen visade annars Stockholms prisstege i Sundbyberg, där
   // ingen zon finns – en färgskala som förklarar något kartan aldrig visar.
-  const taxaScale = !STAD.harTaxaZoner ? '' :
+  const taxaScale = !STAD.taxaZon ? '' :
     `<div class="lgnd-taxa-label">Taxa · dyrast → billigast</div>
      <div class="lgnd-taxa-bar">${Object.values(ZONE_STYLES).map((s, i) =>
        `<div class="lgnd-taxa-seg" style="background:${s.fill};color:${s.color}">${i + 1}</div>`
@@ -5180,7 +5202,7 @@ function initMap() {
   // app-brett → lättare att träffa en gata, konsekvent, och snabbare för många segment.
   // PILOT: omisskännlig markering när appen INTE kör Stockholm. Injiceras bara i
   // pilotläget – i normalläget körs inte den här raden alls.
-  if (ST_SBG) {
+  if (STAD.pilot) {
     const b = document.createElement('div');
     b.textContent = 'PILOT · ' + STAD.namn + ' · ingen förbudsdata – kontrollera skylt';
     b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#0d6e6e;'
