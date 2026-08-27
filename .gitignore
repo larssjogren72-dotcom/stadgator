@@ -7,3 +7,6 @@ node_modules/
 overpass_test.json
 server_test.log
 *.log
+
+# CARTO-nyckel för bakgrundskartan (samma mönster som .apikey)
+.cartokey

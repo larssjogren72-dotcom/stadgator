@@ -1299,6 +1299,20 @@ function apiDay(d)  { return API_DAYS[d.getDay()]; }
 function fmtDate(d) { return `${SV_DAYS[d.getDay()]} ${d.getDate()} ${SV_MONTHS[d.getMonth()]}`; }
 // Klockslag: 800 → "08", 1630 → "16:30"
 function fmtClock(n) { if (n == null || n === '') return ''; const h = Math.floor(n/100), m = n%100; return m ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` : String(h).padStart(2,'0'); }
+// ── Bakgrundskarta ───────────────────────────────────────────────────────────
+// CARTO kräver sedan 2025 en nyckel för sina bakgrundskartor. Utan nyckel serveras
+// rutorna ändå – men med texten "API KEY REQUIRED" instämplad I BILDEN. Den ger
+// HTTP 200 och är en fullt giltig PNG, så varken statuskod eller bildbredd avslöjar
+// den. Enda dugliga kontrollen är att titta på rutan.
+// Servern stämplar in nyckeln nedan (tom sträng = ingen nyckel → oförändrat beteende).
+// Nyckeln är INTE hemlig: webbläsaren hämtar rutorna direkt från cartocdn.com, så den
+// syns i utvecklarverktygen. Den bor utanför koden för att kunna bytas, inte döljas.
+const CARTO_KEY = (function (v) { return /^__CARTO/.test(v) ? '' : v; })('__CARTO_KEY__');
+function cartoUrl(stil) {
+  return `https://{s}.basemaps.cartocdn.com/${stil}/{z}/{x}/{y}{r}.png`
+       + (CARTO_KEY ? `?key=${CARTO_KEY}` : '');
+}
+
 // ── Maxtid ───────────────────────────────────────────────────────────────────
 // Hur länge man får stå. Stockholm bär det i MAX_MINUTES/MAX_HOURS/MAX_DAYS (fälten
 // finns men är i praktiken tomma – uppmätt 24 + 106 + 0 av 9 491 segment). Andra
@@ -5349,13 +5363,13 @@ function initMap() {
                        renderer: L.canvas({ tolerance: 12 }) });
   map.createPane('zonesPane').style.zIndex = 350; // under gator (400)
   // Bakgrundskarta utan text
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+  L.tileLayer(cartoUrl('light_nolabels'), {
     attribution:'© <a href="https://osm.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
     maxZoom:19, keepBuffer:4          // behåll fler tiles runt vyn → färre färska fade-ins vid pan
   }).addTo(map);
 
   // Gatunamn som eget lager — alltid längst upp, ovanpå zoner och linjer
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+  L.tileLayer(cartoUrl('light_only_labels'), {
     maxZoom:19, zIndex:650, keepBuffer:4
   }).addTo(map);
 

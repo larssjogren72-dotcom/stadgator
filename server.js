@@ -16,6 +16,22 @@ if (!API_KEY) {
 console.log(API_KEY ? '[ParkSpot] Server-API-nyckel laddad – användare behöver ingen egen.'
                     : '[ParkSpot] Ingen server-nyckel – faller tillbaka på klientens nyckel.');
 
+// CARTO-nyckel för bakgrundskartan. Samma mönster som ovan: env-variabel (Railway)
+// eller lokal .cartokey-fil. Saknas den fungerar allt precis som förut – kartan bär
+// då bara CARTOs "API KEY REQUIRED"-vattenstämpel, som är en NOTIS, inte en spärr.
+//
+// ⚠ Detta är INTE en hemlighet på samma sätt som Stockholms nyckel. Kartrutorna
+// hämtas av besökarens webbläsare direkt från cartocdn.com, så nyckeln står i
+// adressen och syns i utvecklarverktygen. Att hålla den utanför koden handlar om
+// att kunna byta den utan kodändring och slippa den i versionshistoriken – inte
+// om att dölja den. Stockholms nyckel gömmer servern på riktigt (den proxas).
+let CARTO_KEY = (process.env.CARTO_KEY || '').trim();
+if (!CARTO_KEY) {
+  try { CARTO_KEY = fs.readFileSync(path.join(__dirname, '.cartokey'), 'utf8').trim(); } catch {}
+}
+console.log(CARTO_KEY ? '[ParkSpot] CARTO-nyckel laddad – bakgrundskartan utan vattenstämpel.'
+                      : '[ParkSpot] Ingen CARTO-nyckel – bakgrundskartan visar "API KEY REQUIRED".');
+
 // ── Appversion ───────────────────────────────────────────────────────────────
 // Stämplas in i index.html vid SERVERING. Filen skickas redan med no-store, så
 // stämpeln är alltid färsk och kräver inget byggsteg.
@@ -581,6 +597,9 @@ http.createServer((req, res) => {
           // ?stad=sundbyberg i drift ritat en tom karta och tigit om varför –
           // appen hade frågat efter /sbg/-adresser som inte finns.
           .split('__STADER_PA__').join(STADER_PA ? '1' : '0')
+          // Tom sträng = ingen nyckel. Klienten lägger då inte på någon ?key=,
+          // vilket är exakt dagens beteende.
+          .split('__CARTO_KEY__').join(encodeURIComponent(CARTO_KEY))
           .split('__APP_BUILT__').join(APP_BUILT), 'utf8');
       }
       finish(req, res, 200, body);
