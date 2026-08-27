@@ -606,10 +606,14 @@
        signalerar det utan att skrika – staden byts i princip aldrig. */
     #stadval-btn {
       background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer;
-      border-bottom:2px dotted rgba(15,23,42,0.35); line-height:1.05;
+      border-bottom:2px dotted rgba(15,23,42,0.55); line-height:1.05;
       -webkit-tap-highlight-color: transparent;
     }
-    #stadval-btn .stadval-pil { font-size:.7em; color: var(--muted); margin-left:2px; }
+    /* Pilen matchar .when-caret ('Byt ▾') – accentfärg och tydlig storlek. En
+       nedtonad grå pil på .7em gick inte att upptäcka; en kontroll ingen HITTAR är
+       inte diskret, den är osynlig. Andra gången samma miss, se projektminnet. */
+    #stadval-btn .stadval-pil { font-size:19px; color: var(--accent); margin-left:4px;
+      line-height:1; vertical-align:baseline; }
     .navp-card {
       background: #fff; width: 100%; max-width: 460px;
       border-radius: 18px 18px 0 0; overflow: hidden;
@@ -1257,7 +1261,7 @@ STADER_CFG.goteborg =
       // inte på typ, och kallar listan det den ÄR i stället för att gissa. En betald
       // yta löser användarens problem lika bra; det är bara namnet som hade ljugit.
       phusTyp:null, phusRubrik:'Avgiftsparkering nära',
-      visaIVal:true, valUnder:'Pilot – staden publicerar inga parkeringsförbud',
+      visaIVal:true, valUnder:'Staden publicerar inga parkeringsförbud',
       // Göteborgs taxa är LINJER per nivå, inte polygoner med distriktsnamn.
       // Zonritningen kan inte matas av det; priset visas per segment i stället.
       // OBS att Göteborgs taxenummer inte är jämförbara med Stockholms
@@ -1270,7 +1274,10 @@ STADER_CFG.goteborg =
       // utan ett enda fel. Appen får därför visa grönt "Trygg över natten" –
       // och fäller det till blått där maxtiden är under ett dygn.
       skiljerKorttid:true,
-      pilot:true,
+      // Göteborg är INTE pilot längre (Lars 2026-08-27). Varningen om att staden
+      // saknar förbudsdata står kvar i disclaimern nedan, som säger samma sak
+      // utförligare och alltid syns – banderollen tillförde bara ordet "PILOT".
+      pilot:false,
       disclaimer:'<span class="hint-disclaimer">Baseras på Göteborgs öppna data. Staden publicerar '
         + 'inga parkeringsförbud – en gata utan färg betyder «ingen uppgift», inte «fritt». '
         + 'Kontrollera alltid skylten på plats.</span>',
@@ -5444,8 +5451,10 @@ window.rensaKartlogg = rensaKartlogg;
 function initMap() {
   // Canvas-renderare med tolerance → större (osynlig) klickyta på ALLA linjer
   // app-brett → lättare att träffa en gata, konsekvent, och snabbare för många segment.
-  // PILOT: omisskännlig markering när appen INTE kör Stockholm. Injiceras bara i
-  // pilotläget – i normalläget körs inte den här raden alls.
+  // PILOT-banderoll: omisskännlig markering för en stad vi ännu inte står för fullt
+  // ut. Göteborg är INTE pilot längre (Lars 2026-08-27) – varningen om att staden
+  // saknar förbudsdata finns kvar i disclaimern under sökrutan, som säger samma sak
+  // utförligare och alltid syns. Sundbyberg är kvar som pilot.
   if (STAD.pilot) {
     const b = document.createElement('div');
     b.textContent = 'PILOT · ' + STAD.namn + ' · ingen förbudsdata – kontrollera skylt';
@@ -5455,21 +5464,24 @@ function initMap() {
     document.body.appendChild(b);
     // Skjut ned hela appen exakt bannerns höjd, annars täcker den rubriken.
     document.body.style.paddingTop = b.offsetHeight + 'px';
-    // P-hus-knappen döljs när staden saknar ANLÄGGNINGSKÄLLA – inte för att den är
-    // pilot. Skillnaden blev verklig 2026-08-27: Sundbyberg finns inte i Stockholm
-    // Parkerings API och knappen hade bara kunnat svara "inga hittade", vilket antyder
-    // att det finns några. Göteborg HAR en egen källa (923 anläggningar) och ska visa
-    // knappen fast staden är pilot. Villkoret följer alltså adressen, inte pilotflaggan.
-    // Elementet får INTE tas bort ur DOM:en: flyToAndShow sätter .style.display på det
-    // rakt av och kraschar på null. Och en inline-regel räcker inte heller – samma rad
-    // skriver över den vid varje sökning. En stilregel med !important vinner däremot
-    // över inline-stil utan !important. (Båda felen upptäckta i test, inte i teorin.)
-    if (!STAD.phusUrl) {
-      const s = document.createElement('style');
-      s.textContent = '#phus-btn{display:none!important}';
-      document.head.appendChild(s);
-    }
-    document.title = 'ParkSpot ' + STAD.namn + ' – pilot';
+  }
+  // P-hus-knappen döljs när staden saknar ANLÄGGNINGSKÄLLA – inte för att den är pilot.
+  // Låg tidigare INNE i pilot-blocket, vilket var fel: en icke-pilot utan källa hade
+  // visat en knapp som bara kunde svara "inga hittade", vilket antyder att det finns
+  // några. Villkoret följer adressen, och står nu för sig självt.
+  // Elementet får INTE tas bort ur DOM:en: flyToAndShow sätter .style.display på det
+  // rakt av och kraschar på null. Och en inline-regel räcker inte heller – samma rad
+  // skriver över den vid varje sökning. En stilregel med !important vinner däremot
+  // över inline-stil utan !important. (Båda felen upptäckta i test, inte i teorin.)
+  if (!STAD.phusUrl) {
+    const s = document.createElement('style');
+    s.textContent = '#phus-btn{display:none!important}';
+    document.head.appendChild(s);
+  }
+  // Fliktiteln följer staden oavsett pilotstatus – annars stod det "ParkSpot Stockholm"
+  // över en Göteborgskarta så fort pilotmärkningen togs bort.
+  if (STAD.id !== 'stockholm') {
+    document.title = 'ParkSpot ' + STAD.namn + (STAD.pilot ? ' – pilot' : ' – var får du parkera?');
   }
   // Rubriken NAMNGER staden och är därför också platsen där man byter den.
   // Att göra just det ordet tryckbart lägger till noll ny yta – och staden byts
