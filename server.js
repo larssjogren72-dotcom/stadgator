@@ -327,7 +327,7 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
 //
 // Fallerar en stad loggas det och servern startar ändå: en trasig pilotstad ska
 // aldrig kunna ta ner Stockholm.
-const STADSNAMN = ['sundbyberg'];
+const STADSNAMN = ['sundbyberg', 'goteborg'];
 
 // ── AV I DRIFT, PÅ LOKALT ────────────────────────────────────────────────────
 // Koden bor i huvudversionen så att den ALDRIG halkar efter Stockholm-fixarna –

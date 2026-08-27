@@ -1141,12 +1141,15 @@ const DEBUG_MODE = /[?&]debug=1/.test(location.search);
 // tom karta och tiga om varför. Öppnas filen direkt från disk står platshållaren kvar
 // orörd, och då är vi lokalt → på.
 const STADER_PA = (function (v) { return /^__/.test(v) ? true : v === '1'; })('__STADER_PA__');
-const ST_SBG = STADER_PA && /[?&]stad=sundbyberg/.test(location.search);
+// Stad väljs med ?stad=<id>. En uppslagstabell i stället för en if-kedja: stad
+// nummer fyra ska vara en post att lägga till, inte en gren att väva in.
+const VALD_STAD = STADER_PA ? ((location.search.match(/[?&]stad=([a-zåäö]+)/i) || [])[1] || '').toLowerCase() : '';
 if (!STADER_PA && /[?&]stad=/.test(location.search)) {
   console.warn('[ParkSpot] Stadsadaptrar är avstängda på den här servern – visar Stockholm.');
 }
-const STAD = ST_SBG
-  ? { id:'sundbyberg', namn:'Sundbyberg', geokodSuffix:', Sundbyberg',
+const STADER_CFG = {};
+STADER_CFG.sundbyberg =
+    { id:'sundbyberg', namn:'Sundbyberg', geokodSuffix:', Sundbyberg',
       center:[59.3610, 17.9713], zoom:15,
       // Sundbyberg publicerar inga förbudsdata och har inga p-hus i vår källa.
       // Flaggorna gör att appen TIGER där datan tiger i stället för att gissa.
@@ -1181,8 +1184,43 @@ const STAD = ST_SBG
       // endpoint med samma kontrakt. Tom sträng = staden saknar uppslag. Att hålla
       // skillnaden i konfigurationen i stället för i if-satser är det som gör nästa stad
       // billig att lägga till.
-      schemaUrl:'/sbg/schedule' }
-  : { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
+      schemaUrl:'/sbg/schedule' };
+
+STADER_CFG.goteborg =
+    { id:'goteborg', namn:'Göteborg', geokodSuffix:', Göteborg',
+      center:[57.7009, 11.9668], zoom:15,
+      // Göteborg publicerar INGEN förbudsdata. Kontrollerat 2026-08-26 mot både
+      // Trafikkontorets WFS och stadens öppna datakatalog: ordet "förbud" finns
+      // bara i beskrivningen av städsträckorna. Appen kan alltså säga var man FÅR
+      // stå, aldrig var man INTE får – och en tom gata betyder "vi vet inget".
+      harForbud:false,
+      servicedagarUrl:'/gbg/servicedagar-bbox',
+      heltStadenUrl:'',              // ingen hela-staden-källa utanför Stockholm
+      tillatenUrl:'/gbg/wfs-tillaten',
+      // P-hus finns i Göteborg, men bara bakom data.goteborg.se som kräver
+      // registrering. Tom adress tills den nyckeln finns – hellre tyst än
+      // Stockholms garage i en Göteborgssökning.
+      phusUrl:'',
+      // Göteborgs taxa är LINJER per nivå, inte polygoner med distriktsnamn.
+      // Zonritningen kan inte matas av det; priset visas per segment i stället.
+      // OBS att Göteborgs taxenummer inte är jämförbara med Stockholms
+      // (Taxa 1 = 34 kr/tim här, 55 kr/tim där) – därför skickar adaptern
+      // kommunens pristext, aldrig taxesiffran.
+      taxaZon:null,
+      // ⚠ SANT här, till skillnad från Sundbyberg: Göteborg PEKAR UT hur länge.
+      // Uppmätt 2026-08-27: maxtid finns på 3 641 av 3 755 bilsegment, i nio
+      // värden från "30 min" till "7 dygn", och alla 4 042 posterna tolkades
+      // utan ett enda fel. Appen får därför visa grönt "Trygg över natten" –
+      // och fäller det till blått där maxtiden är under ett dygn.
+      skiljerKorttid:true,
+      pilot:true,
+      disclaimer:'<span class="hint-disclaimer">Baseras på Göteborgs öppna data. Staden publicerar '
+        + 'inga parkeringsförbud – en gata utan färg betyder «ingen uppgift», inte «fritt». '
+        + 'Kontrollera alltid skylten på plats.</span>',
+      schemaUrl:'/gbg/schedule' };
+
+STADER_CFG.stockholm =
+    { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
       center:[59.332, 18.065], zoom:13,
       harForbud:true,
       // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
@@ -1215,6 +1253,12 @@ const STAD = ST_SBG
       // bara längsgående kontra vinkelparkering – ingen sådan uppdelning finns.
       skiljerKorttid:true,
       schemaUrl:'/schedule' };
+
+// Okänt ?stad= faller tillbaka på Stockholm i stället för att rita tom karta.
+const STAD = STADER_CFG[VALD_STAD] || STADER_CFG.stockholm;
+if (VALD_STAD && !STADER_CFG[VALD_STAD]) {
+  console.warn(`[ParkSpot] Okänd stad "${VALD_STAD}" – visar Stockholm.`);
+}
 
 // Källtexten under platskorten. Måste följa staden – annars påstår appen att en
 // Sundbyberg-gata "baseras på Stockholms öppna data", vilket är direkt falskt.
