@@ -11,3 +11,4 @@ server_test.log
 # CARTO-nyckel för bakgrundskartan (samma mönster som .apikey)
 .cartokey
 cartokey.txt
+gbgkey.txt

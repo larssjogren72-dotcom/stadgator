@@ -340,6 +340,70 @@ module.exports = function skapaGoteborg(delade) {
     return ut;
   }
 
+  // ═══ PARKERINGSANLÄGGNINGAR ("p-hus") ══════════════════════════════════════
+  // Källan är den NYCKELFRIA kartdatan, inte data.goteborg.se. Det nyckelskyddade
+  // ParkingService mättes 2026-08-27 och gav ingenting:
+  //   • FreeSpaces (realtidslediga platser) är TOMT på alla 3 511 poster i alla tre
+  //     endpoints. Fältet finns i schemat men fylls aldrig.
+  //   • CurrentParkingCost är ifyllt MEN FEL: 668 av 764 jämförbara (87 %) motsäger
+  //     anläggningens egna prisfönster. Kl 16:21 en torsdag – mitt i högtaxan 08–22 –
+  //     svarade API:et 2 kr/tim (nattpriset) där datan säger 18, 32, 13, 20 kr/tim.
+  // Här räknar vi i stället ut priset SJÄLVA ur de strukturerade fönstren, som
+  // stämmer med kommunens egen pristext. Därför blir Göteborgs pris rätt, inte fel.
+  const PHUS_LAGER = 'parkering:privat';
+  let phusCache = null, phusTs = 0, phusInflight = null;
+
+  function byggPhus() {
+    if (phusInflight) return phusInflight;
+    if (phusCache && Date.now() - phusTs < TTL) return Promise.resolve(phusCache);
+    phusInflight = (async () => {
+      const j = await hamta(wfsUrl(PHUS_LAGER, null, 'EPSG:4326'));
+      const ut = [];
+      for (const f of (j && j.features) || []) {
+        const p = f.properties || {};
+        const g = f.geometry;
+        const c = g && g.type === 'Point' ? g.coordinates : null;
+        if (!c) continue;
+        ut.push({
+          Name: falt(p, 'SiteName') || 'Parkering',
+          Adress: falt(p, 'SiteName') || null,
+          Agare: falt(p, 'Owner') || null,
+          // Göteborg saknar helt ett fält för anläggningstyp. Vi hittar INTE på ett –
+          // klienten filtrerar inte på typ här (STAD.phusTyp = null).
+          Anlaggningstyp: null,
+          AntalBesokPlatser: +falt(p, 'ParkingSpaces') || 0,
+          AdressLatitud: c[1], AdressLongitud: c[0],
+          GBG_TELEFONKOD: falt(p, 'PhoneParkingCode') || null,
+          GBG_PRISTEXT: falt(p, 'ParkingCost') || null,
+          // Rådata för prisberäkningen – priset räknas ut vid REQUEST, inte här,
+          // annars hade cachen frusit gårdagens klockslag.
+          _hog: +falt(p, 'HighChargePricePerHour'),
+          _lag: +falt(p, 'LowChargePricePerHour'),
+          _v: [falt(p, 'HighChargeWeekdayStart'), falt(p, 'HighChargeWeekdayStop')],
+          _l: [falt(p, 'HighChargeSaturdayStart'), falt(p, 'HighChargeSaturdayStop')],
+          _s: [falt(p, 'HighChargeSundayStart'), falt(p, 'HighChargeSundayStop')]
+        });
+      }
+      console.log(`[Göteborg] parkeringsanläggningar: ${ut.length} inlästa`
+        + ` (${ut.filter(x => x.AntalBesokPlatser > 0).length} med känt platsantal)`);
+      phusCache = ut; phusTs = Date.now();
+      return ut;
+    })().finally(() => { phusInflight = null; });
+    return phusInflight;
+  }
+
+  // Vad kostar det just NU? Fönstren är heltalstimmar ("08"/"22") i kommunens data.
+  // Saknas de returneras null och klienten visar ingen prisrad alls – hellre tyst
+  // än ett påhittat pris.
+  function prisNu(a, d) {
+    const dag = d.getDay(), tim = d.getHours();
+    const f = dag === 0 ? a._s : dag === 6 ? a._l : a._v;
+    const s = parseInt(f && f[0], 10), e = parseInt(f && f[1], 10);
+    if (!isFinite(a._hog) || !isFinite(a._lag) || !isFinite(s) || !isFinite(e)) return null;
+    const hog = s <= e ? (tim >= s && tim < e) : (tim >= s || tim < e);
+    return hog ? a._hog : a._lag;
+  }
+
   // ── Vägar ──────────────────────────────────────────────────────────────────
   function tolkaBbox(str) {
     const b = String(str || '').split(',').slice(0, 4).map(Number);
@@ -391,6 +455,31 @@ module.exports = function skapaGoteborg(delade) {
         send(req, res, 200, 'application/json; charset=utf-8',
              Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), varm ? 'HIT' : 'MISS');
       }).catch(() => fel(res, 502, 'Göteborgs parkeringsdata otillgänglig'));
+      return true;
+    }
+
+    // ── Parkeringsanläggningar i samma form som Stockholms /phus ────────────
+    if (reqUrl.pathname === '/gbg/phus') {
+      const varm = !!phusCache;
+      byggPhus().then(list => {
+        const nu = new Date();
+        const kropp = list.map(a => {
+          const kr = prisNu(a, nu);
+          return {
+            Name: a.Name, Adress: a.Adress, Agare: a.Agare,
+            Anlaggningstyp: a.Anlaggningstyp,
+            AntalBesokPlatser: a.AntalBesokPlatser,
+            AdressLatitud: a.AdressLatitud, AdressLongitud: a.AdressLongitud,
+            // Klientens garageTaxaText läser den här listan och skriver "N kr/tim"
+            // när Tidsenhet innehåller "tim". Tomt när priset inte går att räkna ut.
+            BesokstaxaCollection: kr == null ? [] : [{ Taxa: kr, Tidsenhet: 'timme' }],
+            ZonkodCollection: [],
+            GBG_TELEFONKOD: a.GBG_TELEFONKOD, GBG_PRISTEXT: a.GBG_PRISTEXT
+          };
+        });
+        send(req, res, 200, 'application/json; charset=utf-8',
+             Buffer.from(JSON.stringify(kropp)), varm ? 'HIT' : 'MISS');
+      }).catch(() => fel(res, 502, 'Göteborgs parkeringsanläggningar otillgängliga'));
       return true;
     }
 

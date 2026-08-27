@@ -1022,7 +1022,7 @@
     <button id="phus-btn" onclick="phusToggle()" style="display:none">
       <span class="phus-p">P</span>
       <span class="mini-spinner phus-spin"></span>
-      <span class="phus-label">Parkeringshus nära</span>
+      <span class="phus-label">Parkeringshus nära</span><!-- ersätts av STAD.phusRubrik vid rendering -->
       <span class="phus-arrow">›</span>
     </button>
     </div>
@@ -1160,7 +1160,7 @@ STADER_CFG.sundbyberg =
       servicedagarUrl:'/sbg/servicedagar-bbox',
       heltStadenUrl:'',            // ingen hela-staden-fallback utanför Stockholm
       tillatenUrl:'/sbg/wfs-tillaten',
-      phusUrl:'',
+      phusUrl:'', phusTyp:null, phusRubrik:'Parkeringshus nära',
       taxaZon:null,
       pilot:true,
       disclaimer:'<span class="hint-disclaimer">Baseras på Sundbybergs öppna data. Kommunen publicerar '
@@ -1197,10 +1197,16 @@ STADER_CFG.goteborg =
       servicedagarUrl:'/gbg/servicedagar-bbox',
       heltStadenUrl:'',              // ingen hela-staden-källa utanför Stockholm
       tillatenUrl:'/gbg/wfs-tillaten',
-      // P-hus finns i Göteborg, men bara bakom data.goteborg.se som kräver
-      // registrering. Tom adress tills den nyckeln finns – hellre tyst än
-      // Stockholms garage i en Göteborgssökning.
-      phusUrl:'',
+      // Anläggningarna kommer från den NYCKELFRIA kartdatan, inte från
+      // data.goteborg.se. Det nyckelskyddade API:et mättes 2026-08-27 och gav inget:
+      // FreeSpaces tomt på alla 3 511 poster, och CurrentParkingCost fel i 87 % av
+      // fallen (svarade nattpriset 2 kr/tim mitt i högtaxan 08–22). Se projektminnet.
+      phusUrl:'/gbg/phus',
+      // ⚠ Göteborg har INGET fält för anläggningstyp – inget skiljer p-hus från öppen
+      // parkeringsyta, och bara 71 av 923 avslöjar det i namnet. Vi filtrerar därför
+      // inte på typ, och kallar listan det den ÄR i stället för att gissa. En betald
+      // yta löser användarens problem lika bra; det är bara namnet som hade ljugit.
+      phusTyp:null, phusRubrik:'Avgiftsparkering nära',
       // Göteborgs taxa är LINJER per nivå, inte polygoner med distriktsnamn.
       // Zonritningen kan inte matas av det; priset visas per segment i stället.
       // OBS att Göteborgs taxenummer inte är jämförbara med Stockholms
@@ -1233,6 +1239,9 @@ STADER_CFG.stockholm =
       heltStadenUrl:'/proxy/servicedagar/weekday',   // hela staden – bara Stockholm
       tillatenUrl:'',              // tomt = Stockholms WFS via nyckel (se fetchLayer)
       phusUrl:'/phus',
+      // Stockholm har ett typfält och filtrerar till garage – "sista utväg" betyder
+      // p-hus här. Regeln är oförändrad, den har bara flyttat till konfigurationen.
+      phusTyp:/garage/i, phusRubrik:'Parkeringshus nära',
       taxaZon:{ layer:'ltfr:LTFR_TAXA_VIEW', bbox:'17.74,59.20,18.22,59.45,EPSG:4326' },
       pilot:false,
       disclaimer:'<span class="hint-disclaimer">Baseras på Stockholms öppna data – kontrollera alltid skylten på plats.</span>',
@@ -3012,7 +3021,12 @@ function garageTaxaText(a) {
 async function fetchNearbyGarages(lat, lng, radius = 1000) {
   const all = await loadGarageData();
   return (all || [])
-    .filter(a => /garage/i.test(a.Anlaggningstyp || '') && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud)
+    // Vilka anläggningar som räknas skiljer sig åt: Stockholm har ett typfält och
+    // filtrerar till garage, Göteborg har INGET sådant fält alls (inget skiljer p-hus
+    // från öppen parkeringsyta, och bara 71 av 923 avslöjar det i namnet). Därför bor
+    // filtret i stadskonfigurationen. Tom regel = ingen typfiltrering.
+    .filter(a => (!STAD.phusTyp || STAD.phusTyp.test(a.Anlaggningstyp || ''))
+              && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud)
     .map(a => ({
       name: a.Name || 'Parkeringshus', lat: a.AdressLatitud, lng: a.AdressLongitud,
       spaces: a.AntalBesokPlatser, taxa: garageTaxaText(a),
@@ -3048,7 +3062,7 @@ function setPhusBtn(back) {
   if (!btn) return;
   btn.classList.toggle('back', back);
   btn.querySelector('.phus-p').textContent     = back ? '‹' : 'P';
-  btn.querySelector('.phus-label').textContent = back ? 'Tillbaka till gatorna' : 'Parkeringshus nära';
+  btn.querySelector('.phus-label').textContent = back ? 'Tillbaka till gatorna' : STAD.phusRubrik;
   btn.querySelector('.phus-arrow').style.display = back ? 'none' : '';
 }
 
@@ -3084,7 +3098,7 @@ async function showGarageList() {
     showToast('Kunde inte hämta parkeringshus just nu. Försök igen om en stund.');
   } finally {
     btn.classList.remove('loading');
-    if (!inGarageView) lbl.textContent = 'Parkeringshus nära';
+    if (!inGarageView) lbl.textContent = STAD.phusRubrik;
   }
 }
 
@@ -3098,14 +3112,14 @@ function renderGarageRows(gs) {
     list.style.display = 'block'; sheetSnapTo('peek'); return;
   }
   list.innerHTML =
-    `<div class="garage-head"><h2>Parkeringshus nära</h2><span>${gs.length} inom 1 km</span></div>`
+    `<div class="garage-head"><h2>${STAD.phusRubrik}</h2><span>${gs.length} inom 1 km</span></div>`
     + gs.map((g, i) => `
       <div class="sl-item garage-row" data-i="${i}">
         <div class="phus-ic">P</div>
         <div class="sl-info">
           <div class="sl-name">${escHtml(g.name)}</div>
           <div class="sl-sub">
-            <span class="sl-badge phus-cap">Garage · ${g.spaces} platser</span>
+            <span class="sl-badge phus-cap">${STAD.phusTyp ? 'Garage · ' : ''}${g.spaces} platser</span>
             ${g.taxa ? `<span class="sl-badge sl-time">${escHtml(g.taxa)}</span>` : ''}
             <span class="sl-dist">${distStr(g.dist)}</span>
           </div>
@@ -5345,15 +5359,20 @@ function initMap() {
     document.body.appendChild(b);
     // Skjut ned hela appen exakt bannerns höjd, annars täcker den rubriken.
     document.body.style.paddingTop = b.offsetHeight + 'px';
-    // P-hus-knappen ska inte synas: Sundbyberg finns inte i Stockholm Parkerings API,
-    // så den hade bara kunnat svara "inga hittade" – vilket antyder att det finns några.
+    // P-hus-knappen döljs när staden saknar ANLÄGGNINGSKÄLLA – inte för att den är
+    // pilot. Skillnaden blev verklig 2026-08-27: Sundbyberg finns inte i Stockholm
+    // Parkerings API och knappen hade bara kunnat svara "inga hittade", vilket antyder
+    // att det finns några. Göteborg HAR en egen källa (923 anläggningar) och ska visa
+    // knappen fast staden är pilot. Villkoret följer alltså adressen, inte pilotflaggan.
     // Elementet får INTE tas bort ur DOM:en: flyToAndShow sätter .style.display på det
     // rakt av och kraschar på null. Och en inline-regel räcker inte heller – samma rad
     // skriver över den vid varje sökning. En stilregel med !important vinner däremot
     // över inline-stil utan !important. (Båda felen upptäckta i test, inte i teorin.)
-    const s = document.createElement('style');
-    s.textContent = '#phus-btn{display:none!important}';
-    document.head.appendChild(s);
+    if (!STAD.phusUrl) {
+      const s = document.createElement('style');
+      s.textContent = '#phus-btn{display:none!important}';
+      document.head.appendChild(s);
+    }
     // Rubriken säger annars "ParkSpot Stockholm" över en Sundbyberg-karta.
     const h1 = document.querySelector('.hd-left h1');
     if (h1) h1.textContent = 'ParkSpot ' + STAD.namn;
