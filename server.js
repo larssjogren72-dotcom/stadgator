@@ -27,7 +27,15 @@ console.log(API_KEY ? '[ParkSpot] Server-API-nyckel laddad – användare behöv
 // om att dölja den. Stockholms nyckel gömmer servern på riktigt (den proxas).
 let CARTO_KEY = (process.env.CARTO_KEY || '').trim();
 if (!CARTO_KEY) {
-  try { CARTO_KEY = fs.readFileSync(path.join(__dirname, '.cartokey'), 'utf8').trim(); } catch {}
+  // ⚠ BOM-strip före trim(). Filen skapas för hand på Windows, och PowerShell skriver
+  // ett osynligt inledande tecken (U+FEFF) med -Encoding utf8. trim() tar INTE bort det,
+  // så nyckeln hade blivit obrukbar utan att något syntes. Samma fälla som
+  // pilot/sbg-gatunamn.json redan hanterar. Citattecken städas också bort – att klistra
+  // in nyckeln med "..." runt är ett naturligt misstag.
+  try {
+    CARTO_KEY = fs.readFileSync(path.join(__dirname, '.cartokey'), 'utf8')
+      .replace(/^﻿/, '').trim().replace(/^["']|["']$/g, '').trim();
+  } catch {}
 }
 console.log(CARTO_KEY ? '[ParkSpot] CARTO-nyckel laddad – bakgrundskartan utan vattenstämpel.'
                       : '[ParkSpot] Ingen CARTO-nyckel – bakgrundskartan visar "API KEY REQUIRED".');
