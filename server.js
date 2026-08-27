@@ -32,10 +32,16 @@ if (!CARTO_KEY) {
   // så nyckeln hade blivit obrukbar utan att något syntes. Samma fälla som
   // pilot/sbg-gatunamn.json redan hanterar. Citattecken städas också bort – att klistra
   // in nyckeln med "..." runt är ett naturligt misstag.
-  try {
-    CARTO_KEY = fs.readFileSync(path.join(__dirname, '.cartokey'), 'utf8')
-      .replace(/^﻿/, '').trim().replace(/^["']|["']$/g, '').trim();
-  } catch {}
+  // Två filnamn accepteras. `.cartokey` följer mönstret från .apikey, men ett namn
+  // som börjar med punkt är besvärligt att skapa i Windows: Utforskaren vägrar och
+  // Anteckningar lägger tyst på .txt. `cartokey.txt` går att skapa var som helst.
+  for (const namn of ['.cartokey', 'cartokey.txt']) {
+    try {
+      CARTO_KEY = fs.readFileSync(path.join(__dirname, namn), 'utf8')
+        .replace(/^﻿/, '').trim().replace(/^["']|["']$/g, '').trim();
+    } catch { continue; }
+    if (CARTO_KEY) break;
+  }
 }
 console.log(CARTO_KEY ? '[ParkSpot] CARTO-nyckel laddad – bakgrundskartan utan vattenstämpel.'
                       : '[ParkSpot] Ingen CARTO-nyckel – bakgrundskartan visar "API KEY REQUIRED".');
