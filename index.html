@@ -2332,6 +2332,18 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
   if (vehicleMode === 'rh' && isRhPlats(s)) return;   // ritas som nål av rhPlatserOverlay
   if (s.gagata) return;                          // gågata ritas som streckad linje (FORESKRIFT) – ej dubbel heldragen
   if (mc && isMcExclusive(s.vehicle)) return;   // MC-rutor ritas av mcRutorOverlay (samma i alla lägen)
+  // ── Cykelställ ritas BARA i cykelläget ────────────────────────────────────
+  // Frågan är inte "får jag stå här" utan "förhindrar färgen ett misstag jag kan göra?".
+  //   MC-ruta i bil-läget  → JA. "Där får jag nog plats" är ett verkligt misstag.
+  //   RH-plats i bil-läget → JA. Att ta en handikapplats är vanligt och kännbart.
+  //   Cykelställ i bil-läget → NEJ. Ingen bilist överväger att ställa bilen i ett cykelställ.
+  // Därför försvinner bara cykeln här. ⚠ Skriv ALDRIG om skälet till "blir aldrig grön
+  // för bil" – det gäller MC och RH också, och den som läser det drar bort dem med.
+  // Gäller alla städer. Utlöstes av Göteborg (2026-08-27), där 112 cykelställ blev
+  // lila prickar i bil-läget, men mätningen visar att Stockholm har samma form:
+  // MC median 5,2 m, cykel 5,0 m – 43 % av cykelplatserna är under 5 m. Bilsegment
+  // är median 36 m. Cykelläget självt målar redan inga gator alls, bara nålar.
+  if (vehicleMode !== 'cykel' && isCykelPlats(s.vehicle)) return;
   let weight = 6, opacity = 0.95, drawColor = color;
   // MC-läge: byt bara KULÖR för "ej för bil"-lila → tyst grått (samma otherColor-konvention
   // som legenden redan använder). Opaciteten sätts INTE här längre – det körde helt vid sidan
