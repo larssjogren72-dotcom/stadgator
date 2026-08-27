@@ -1255,6 +1255,33 @@ function apiDay(d)  { return API_DAYS[d.getDay()]; }
 function fmtDate(d) { return `${SV_DAYS[d.getDay()]} ${d.getDate()} ${SV_MONTHS[d.getMonth()]}`; }
 // Klockslag: 800 → "08", 1630 → "16:30"
 function fmtClock(n) { if (n == null || n === '') return ''; const h = Math.floor(n/100), m = n%100; return m ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` : String(h).padStart(2,'0'); }
+// ── Maxtid ───────────────────────────────────────────────────────────────────
+// Hur länge man får stå. Stockholm bär det i MAX_MINUTES/MAX_HOURS/MAX_DAYS (fälten
+// finns men är i praktiken tomma – uppmätt 24 + 106 + 0 av 9 491 segment). Andra
+// städers adaptrar fyller SAMMA fält, så det här är stadsneutralt och inte en gren.
+// Returnerar minuter, eller null när staden inte säger något alls.
+function maxTidMinuter(p) {
+  const n = v => (v == null || v === '' || isNaN(+v)) ? null : +v;
+  const min = n(p.MAX_MINUTES), tim = n(p.MAX_HOURS), dyg = n(p.MAX_DAYS);
+  if (min == null && tim == null && dyg == null) return null;
+  return ((min || 0) + (tim || 0) * 60 + (dyg || 0) * 1440) || null;
+}
+// Skrivs ALLTID om av oss, aldrig kopierad ur källan: ett oväntat värde i kommunens
+// data ska inte kunna hamna rakt i gränssnittet.
+function fmtMaxTid(minuter) {
+  if (minuter == null) return '';
+  if (minuter < 60)                            return `${minuter} min`;
+  if (minuter % 1440 === 0 && minuter >= 2880) return `${minuter / 1440} dygn`;
+  if (minuter % 60 === 0)                      return `${minuter / 60} tim`;
+  return `${Math.floor(minuter / 60)} tim ${minuter % 60} min`;
+}
+// EN formulering för tidsgränsen, identisk i alla lägen, alla städer och alla ytor.
+// Vet vi tiden säger vi den; vet vi den inte säger vi det rakt ut. Lägets eget verb
+// ("Får stå nu" / "Får parkera") står FÖRE klausulen – det ska skilja sig, klausulen inte.
+function tidsklausul(maxMinuter) {
+  return maxMinuter != null ? `max ${fmtMaxTid(maxMinuter)}` : 'kontrollera tidsgräns';
+}
+
 // ISO-veckonummer (svensk standard: veckan tillhör det år dess TORSDAG ligger i).
 // Behövs för städscheman som bara gäller jämna eller udda veckor. Stockholm har inga
 // sådana poster; Göteborg har det på 1 597 av 2 002 (80 %), så utan detta blir varannan
@@ -3665,6 +3692,10 @@ function toAllowedSegment(f) {
     platsTyp,
     visitorOnly,
     visitorShort: visitorOnly && vfMeter != null && vfMeter <= SHORT_VISITOR_M,
+    // Hur länge man får stå, i minuter. null = staden säger inget. Styr ENBART texten
+    // här och nu (tidsklausul) – vilken FÄRG en maxtid ska ge är en egen fråga som inte
+    // är avgjord, så inget segment byter färg av att fältet börjar läsas.
+    maxMinutes: maxTidMinuter(p),
     // Ändamålsplats: spara RÅDATAN, aldrig utfallet – aktiv/inaktiv beror på klockan
     // och måste räknas om vid varje rendering (jfr cache-regeln för säsong/dagtyp).
     andamal: andamalKod(p.VF_PLATS_TYP),
@@ -4104,8 +4135,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; städas++; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
-      else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = 'Får parkera – kontrollera tidsgräns'; }
-      else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksparkering – kontrollera tid'; }
+      else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = `Får parkera · ${tidsklausul(s.maxMinutes)}`; }
+      else if (s.visitorShort)         { color = '#38bdf8'; txt = `Får parkera · besöksplats, ${tidsklausul(s.maxMinutes)}`; }
       else                             { color = '#16a34a'; txt = 'Trygg över natten'; safe++; }
       // Detaljraden KOMPLETTERAR chipet (upprepar aldrig): har chipet tiden → ge handlingen; saknar tid → ge tiden.
       // Ingen städinstruktion för platser man inte får använda.
@@ -4144,7 +4175,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // Nu-läget rörs INTE – "får du stå just nu" är sant även med en tidsgräns.
       if (!STAD.skiljerKorttid && color === '#16a34a') {
         color = '#38bdf8';
-        txt   = 'Får parkera – kontrollera tidsgräns';
+        txt   = `Får parkera · ${tidsklausul(s.maxMinutes)}`;
         // Förarens språk, inte vårt. "Maxtid saknas i kommunens data" beskrev VÅRT
         // problem; den som står vid bilen vill veta vad det betyder för hen.
         infoRow = 'Vi vet inte hur länge du får stå här – skylten avgör';
@@ -4589,8 +4620,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) { color = '#16a34a'; txt = 'Får stå nu'; okNu++; }
-      else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = 'Får parkera – kontrollera tidsgräns'; okNu++; }
-      else if (s.visitorShort)         { color = '#38bdf8'; txt = 'Besöksplats – får stå nu (kort tid)'; okNu++; }
+      else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = `Får stå nu · ${tidsklausul(s.maxMinutes)}`; okNu++; }
+      else if (s.visitorShort)         { color = '#38bdf8'; txt = `Får stå nu · besöksplats, ${tidsklausul(s.maxMinutes)}`; okNu++; }
       else                             { color = '#16a34a'; txt = s.visitorOnly ? 'Får stå nu · besöksplats' : 'Får stå nu'; okNu++; }
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
       // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
@@ -4638,7 +4669,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // Orört: städ-orange, förbud, gågata, uteservering och "ej för dig"-lila.
       if (!STAD.skiljerKorttid && color === '#16a34a') {
         color   = '#38bdf8';
-        txt     = 'Får parkera – kontrollera tidsgräns';
+        txt     = `Får stå nu · ${tidsklausul(s.maxMinutes)}`;
         infoRow = 'Vi vet inte hur länge du får stå här – skylten avgör';
       }
       drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hiddenGem);
@@ -4977,7 +5008,7 @@ function updateLegend(mode) {
       `<hr class="lgnd-sep">
        ${uc2TryggRad}
        ${mcRow}
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Möjlig att parkera – kontrollera tid</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>
@@ -5002,7 +5033,7 @@ function updateLegend(mode) {
        ${nowStaRad}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas idag – tryck för exakt tid</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>Gott om tid – bra möjlighet just nu</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Möjlig att parkera – kontrollera tid</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>
        ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
