@@ -1,8 +1,20 @@
-# ParkSpot Stockholm
+# ParkSpot
 
-> Gratis webb-app som visar var det är lagligt att parkera på gatan i Stockholm – just nu eller över natten. Visar aktuellt pris per taxazon (Taxa 1–5) och städdagar per gata, med egna lägen för bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd. Bygger på Stockholms stads öppna data. Helt gratis, inget konto, ingen inloggning.
+> Gratis webb-app som visar var det är lagligt att parkera på gatan – just nu eller över natten. Täcker **Stockholm** och **Göteborg**. Visar städdagar per gata, tidsgränser, boendezoner och parkeringsanläggningar, med egna lägen för bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd. Bygger på kommunernas öppna data. Helt gratis, inget konto, ingen inloggning.
 
 ParkSpot har inga sensorer för lediga parkeringsplatser i realtid. Appen visar var det ÄR LAGLIGT att parkera, aktuellt pris och nästa städdag – inte beläggning på enskilda p-rutor. Kontrollera alltid skylten på plats; data kan vara inaktuell.
+
+## Städer
+
+### Stockholm — [parkspot.se](https://parkspot.se/)
+Fullständig data: parkeringsförbud, taxazoner (Taxa 1–5 med pris per timme), städdagar med säsong, boendeparkering, p-hus. En gata utan färg saknar uppgift i registret.
+
+### Göteborg — [parkspot.se/?stad=goteborg](https://parkspot.se/?stad=goteborg)
+Städdagar (med **jämna och udda veckor**, vilket är hur Göteborg städar – 80 % av gatorna städas varannan vecka), tidsgränser från 30 min till 7 dygn, 38 boendezoner, MC- och cykelplatser, platser för rörelsehindrade och 923 parkeringsanläggningar med aktuellt timpris.
+
+**Viktigt om Göteborg:** staden publicerar **inga parkeringsförbud** i sin öppna data. Appen kan därför visa var man får parkera, men aldrig var man inte får. En gata utan färg betyder "ingen uppgift", inte "fritt".
+
+**Boendezoner i Göteborg** (t.ex. `Boende Ö6`) är ett undantag från platsens tidsgräns, inte ett förbud för andra: utan tillstånd gäller skyltens tid, med tillstånd upp till 14 dygn. Ett `n` efter zonkoden (t.ex. `V5n`) betyder att tillståndet bara gäller kvällar och nätter, ungefär 18–09.
 
 ## Huvudsidor
 - [ParkSpot – live-kartan](https://parkspot.se/): Själva appen.

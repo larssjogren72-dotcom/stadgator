@@ -391,6 +391,59 @@ for (const namn of (STADER_PA ? STADSNAMN : [])) {
 }
 const stadFor = p => STADER.find(s => p.startsWith(s.prefix)) || null;
 
+// ── SEO-metadata per stad ────────────────────────────────────────────────────
+// Sökmotorer, sociala medier och AI-assistenter läser <title>, description och
+// og-taggar INNAN någon JavaScript kört. Klienten kan alltså inte rätta dem: en
+// delad länk till ?stad=goteborg förhandsvisades som "ParkSpot Stockholm" ända
+// tills detta byggdes (2026-08-28). Servern är enda stället som hinner före.
+//
+// Varumärket förblir "ParkSpot <Stad>" i stället för ett nationellt "ParkSpot":
+// 212 sidor rankar redan på det namnet, och att byta det hade riskerat en tillgång
+// som fungerar för att vinna en som ännu inte finns. Additivt före omskrivning.
+const SEO_STADER = {
+  stockholm: {
+    namn: 'ParkSpot Stockholm',
+    titel: 'ParkSpot Stockholm – var får du parkera?',
+    beskrivning: 'Se på karta var du får parkera i Stockholm – just nu eller över natten. Hitta lagliga platser och undvik städgator, förbud och böter.',
+    nyckelord: 'städgator stockholm imorgon, gratis parkering stockholm, nattparkering stockholm, parkering stockholm kväll, städdag stockholm karta, parkeringszoner stockholm, hitta parkering stockholm, lediga parkeringsplatser stockholm',
+    kanonisk: 'https://parkspot.se/'
+  },
+  goteborg: {
+    namn: 'ParkSpot Göteborg',
+    titel: 'ParkSpot Göteborg – var får du parkera?',
+    // Säger vad appen KAN i Göteborg (städdagar med veckoparitet, maxtider,
+    // boendezoner) utan att lova det staden inte publicerar – förbudsdata.
+    beskrivning: 'Se på karta var du får parkera i Göteborg – just nu eller över natten. Städdagar med jämna och udda veckor, maxtider, boendezoner och parkeringsanläggningar.',
+    nyckelord: 'parkering göteborg, städdagar göteborg, boendeparkering göteborg, nattparkering göteborg, parkeringszoner göteborg, gratis parkering göteborg, parkeringshus göteborg, städgator göteborg',
+    kanonisk: 'https://parkspot.se/?stad=goteborg'
+  },
+  sundbyberg: {
+    namn: 'ParkSpot Sundbyberg',
+    titel: 'ParkSpot Sundbyberg – var får du parkera?',
+    beskrivning: 'Se på karta var du får parkera i Sundbyberg – just nu eller över natten. Bygger på kommunens öppna data.',
+    nyckelord: 'parkering sundbyberg, städdagar sundbyberg, nattparkering sundbyberg',
+    kanonisk: 'https://parkspot.se/?stad=sundbyberg'
+  }
+};
+function metaFor(reqUrl) {
+  // Samma ordning som klienten: ?stad= vinner, annars Stockholm. Är adaptrarna
+  // avstängda serveras alltid Stockholm – annars hade metadatan lovat en stad
+  // appen inte kan visa.
+  let id = 'stockholm';
+  try {
+    const q = (reqUrl.searchParams.get('stad') || '').toLowerCase();
+    if (STADER_PA && SEO_STADER[q]) id = q;
+  } catch (e) {}
+  const s = SEO_STADER[id];
+  return {
+    '__META_TITEL__': s.titel,
+    '__META_BESKRIVNING__': s.beskrivning,
+    '__META_NYCKELORD__': s.nyckelord,
+    '__META_SAJTNAMN__': s.namn,
+    '__META_KANONISK__': s.kanonisk
+  };
+}
+
 http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
@@ -604,7 +657,7 @@ http.createServer((req, res) => {
       if (ext === '.html' || reqUrl.pathname === '/') {
         res.setHeader('Cache-Control', 'no-store, must-revalidate');
         // Stämpla in versionen. Går bara på HTML och bara på platshållarna – inget byggsteg.
-        body = Buffer.from(String(data)
+        let html = String(data)
           .split('__APP_VERSION__').join(APP_VERSION)
           .split('__APP_SEMVER__').join(APP_SEMVER)
           // Klienten måste veta om stadsadaptrarna är påslagna. Utan detta hade
@@ -614,7 +667,15 @@ http.createServer((req, res) => {
           // Tom sträng = ingen nyckel. Klienten lägger då inte på någon ?key=,
           // vilket är exakt dagens beteende.
           .split('__CARTO_KEY__').join(encodeURIComponent(CARTO_KEY))
-          .split('__APP_BUILT__').join(APP_BUILT), 'utf8');
+          .split('__APP_BUILT__').join(APP_BUILT);
+        // ── Metadata som följer staden ───────────────────────────────────────
+        // Titel, beskrivning och og-taggar läses av Google, Facebook, LinkedIn och
+        // AI-assistenter INNAN någon JavaScript kört. Att sätta dem i klienten hade
+        // alltså inte hjälpt: en delad Göteborgslänk förhandsvisades som
+        // "ParkSpot Stockholm" ända tills detta byggdes. Servern hinner före.
+        const meta = metaFor(reqUrl);
+        for (const nyckel of Object.keys(meta)) html = html.split(nyckel).join(meta[nyckel]);
+        body = Buffer.from(html, 'utf8');
       }
       finish(req, res, 200, body);
     });
