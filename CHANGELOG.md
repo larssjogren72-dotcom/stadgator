@@ -14,6 +14,50 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.13.0 – 2026-08-28
+**Göteborg går att välja – och slutar vara pilot.**
+
+**Stadsval i rubriken.** `ParkSpot Göteborg ▾` öppnar en lista med Stockholm och Göteborg,
+och valet kommer ihåg sig till nästa besök. Undertexterna säger vad städerna faktiskt har
+("Full data – även parkeringsförbud" mot "Staden publicerar inga parkeringsförbud") – utan
+dem ser de likvärdiga ut, och skillnaden är den sort som kan kosta en bot. En delad
+`?stad=`-länk sparas; en felstavad gör det inte. Sundbyberg listas inte medan kommunens
+karttjänst ligger nere, men länken dit fungerar oförändrat.
+
+**Pilotmärkningen borta för Göteborg.** Den gröna banderollen och "– pilot" i fliktiteln.
+Varningen finns kvar i texten under sökrutan, som säger samma sak utförligare.
+
+**Parkeringsanläggningar i Göteborg** – 923 stycken, med kapacitet, operatör och **rätt
+pris för stunden**. Priset räknas ut av appen ur kommunens prisfönster, eftersom stadens
+eget API svarar fel: uppmätt 2026-08-27 avvek 668 av 764 anläggningar (87 %) – mitt i
+högtaxan svarade det nattpriset 2 kr/tim där datan säger 18, 32 och 34. Realtidsfältet för
+lediga platser är dessutom tomt på alla 3 511 poster, så den uppgiften finns inte att visa.
+Listan heter "Parkeringsanläggningar nära" i Göteborg: staden har inget fält för
+anläggningstyp, och att kalla 923 platser för garage vore ett påstående datan inte gör.
+
+**Garagekortet visade inte att det var ett garage.** Rubriken var bara adressen, vilket blev
+obegripligt i Göteborg där anläggningar döps efter gatan – "Kristinelundsgatan" finns både
+som gata med 11 parkeringssträckor och som anläggning med 25 platser. Kortet visar nu typ,
+platsantal och operatör. På köpet rättat: platsantalet har varit **osynligt** på garagekortet
+i alla städer, eftersom det skrevs till ett element som är dolt sedan hjälte-designen kom.
+
+**Cykelläget i Göteborg sa "0 platser" fast staden har 1 691.** Lagret var inte inkopplat.
+Nu visas de. **Cykelställ ritas bara i cykelläget** – ett cykelställ målades tidigare lila
+"ej för dig" för bilister, vilket inte förhindrar något misstag någon gör, och kostade
+läsbarhet. MC-rutor och handikapplatser är kvar: de förhindrar riktiga misstag.
+
+**Boendezoner utan publicerad tidsgräns säger inte längre "Trygg över natten".** Ett foto på
+Vattugatan i Kungsladugård visade skylten "P 2 tim / Boende V5" på en sträcka där appen
+lovade en trygg natt. Göteborg publicerar boendezonen men inte tidsgränsen för 496 av 2 095
+sträckor. En boendezon förutsätter att en tidsgräns finns – tillståndet gäller enligt
+föreskriften "med avvikelse från gällande tidsbegränsning på platsen" – så grönt byggde ett
+löfte på ett hål i registret. De blir blå med "kontrollera tidsgräns". De 1 032 sträckor som
+har en publicerad dygnsgräns förblir gröna: där får du som saknar tillstånd faktiskt stå.
+
+**RH-räknaren säger "registrerade" i stället för "reserverade".** Ett fotograferat vägmärke
+saknades i alla fem källor vi har, inklusive OpenStreetMap. Räknaren var den enda ytan som
+påstod att listan var fullständig. Gäller alla städer.
+
 ## v1.12.0 – 2026-08-27
 **Appen visste hur länge man fick stå – men sa det bara ibland. Och Göteborg blev stad tre.**
 
