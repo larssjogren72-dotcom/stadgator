@@ -1,0 +1,292 @@
+[
+ {
+  "bokstav": "M",
+  "namn": "Mellanstaden",
+  "slug": "mellanstaden",
+  "zoner": [
+   "M4",
+   "M4n",
+   "M5",
+   "M5n"
+  ],
+  "stracker": 582,
+  "gator": 97,
+  "medStadning": 91,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Alfhemsgatan",
+   "Alströmergatan",
+   "Andra Långgatan",
+   "Annedals Trappor",
+   "Arkivgatan",
+   "Aschebergsgatan",
+   "Baldersgatan",
+   "Barnhusgatan",
+   "Bellmansgatan",
+   "Besvärsgatan",
+   "Bohusgatan",
+   "Brunnsgatan"
+  ]
+ },
+ {
+  "bokstav": "V",
+  "namn": "Väster",
+  "slug": "vaster",
+  "zoner": [
+   "V5",
+   "V5n",
+   "V6",
+   "V6n",
+   "V7",
+   "V7n"
+  ],
+  "stracker": 485,
+  "gator": 109,
+  "medStadning": 99,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Allmänna Vägen",
+   "Amerikagatan",
+   "Amiralitetsgatan",
+   "Ankargatan",
+   "Asperögatan",
+   "August Kobbsgatan",
+   "Bangatan",
+   "Bankebergsgatan",
+   "Birger Jarlsgatan",
+   "Birgittagatan",
+   "Bläsgatan",
+   "Bockhornsgatan"
+  ]
+ },
+ {
+  "bokstav": "Ö",
+  "namn": "Öster",
+  "slug": "oster",
+  "zoner": [
+   "Ö5",
+   "Ö5n",
+   "Ö6",
+   "Ö6n",
+   "Ö7",
+   "Ö7n"
+  ],
+  "stracker": 287,
+  "gator": 65,
+  "medStadning": 55,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Bagaregårdsgatan",
+   "Bauersgatan",
+   "Betaniagatan",
+   "Bielkegatan",
+   "Danska Vägen",
+   "Ejdergatan",
+   "Ernst Kristenssons Gata",
+   "Falkgatan",
+   "Gustavsgatan",
+   "Hebegatan",
+   "Hogenskildsgatan",
+   "Jakobsdalsgatan"
+  ]
+ },
+ {
+  "bokstav": "S",
+  "namn": "Söder",
+  "slug": "soder",
+  "zoner": [
+   "S5",
+   "S5n",
+   "S6",
+   "S6n",
+   "S7",
+   "S7n"
+  ],
+  "stracker": 267,
+  "gator": 57,
+  "medStadning": 50,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Bengt Lidnersgatan",
+   "Carlandersplatsen",
+   "Dalheimersgatan",
+   "Daniel Petterssons Gata",
+   "Dicksonsgatan",
+   "Doktor Belfrages Gata",
+   "Doktor Billqvists Gata",
+   "Doktor Bondesons Gata",
+   "Doktor Saléns Gata",
+   "Doktor Sydows Gata",
+   "Eklandagatan",
+   "Ekmansgatan"
+  ]
+ },
+ {
+  "bokstav": "H",
+  "namn": "Hisingen",
+  "slug": "hisingen",
+  "zoner": [
+   "H5",
+   "H5n",
+   "H6",
+   "H6n",
+   "H7",
+   "H7n"
+  ],
+  "stracker": 146,
+  "gator": 30,
+  "medStadning": 27,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Brämaregatan",
+   "Ekebergsgatan",
+   "Fjärdingsgatan",
+   "Godemansgatan",
+   "Hallegatan",
+   "Herkulesgatan",
+   "Hisingsgatan",
+   "Hjalmar Brantingsgatan",
+   "Hårdvallsgatan",
+   "Jägaregatan",
+   "Knapegatan",
+   "Kvillegatan"
+  ]
+ },
+ {
+  "bokstav": "C",
+  "namn": "Centrum",
+  "slug": "centrum",
+  "zoner": [
+   "C4",
+   "C4n"
+  ],
+  "stracker": 104,
+  "gator": 35,
+  "medStadning": 14,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Arsenalsgatan",
+   "Drottninggatan",
+   "Ekelundsgatan",
+   "Hvitfeldtsgatan",
+   "Hvitfeldtsplatsen",
+   "Ingenjörsgatan",
+   "Kaserntorget",
+   "Klädpressaregatan",
+   "Kronhusgatan",
+   "Kungsgatan",
+   "Kungshöjdsgatan",
+   "Köpmansgatan"
+  ]
+ },
+ {
+  "bokstav": "K",
+  "namn": "Kungsladugård",
+  "slug": "kungsladugard",
+  "zoner": [
+   "K9",
+   "K9n"
+  ],
+  "stracker": 63,
+  "gator": 20,
+  "medStadning": 20,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Fågelfängaregatan",
+   "Fågelfängaregatan ",
+   "Guvernörsgatan",
+   "Högsbogatan",
+   "Klintens Väg",
+   "Kungsladugårdsgatan",
+   "Kålgården",
+   "Kålgårdsgatan",
+   "Majgatan",
+   "Oxhagsgatan",
+   "Rörmyren",
+   "Skytteskogsgatan"
+  ]
+ },
+ {
+  "bokstav": "Ä",
+  "namn": "Änggården",
+  "slug": "anggarden",
+  "zoner": [
+   "Ä9",
+   "Ä9n"
+  ],
+  "stracker": 61,
+  "gator": 11,
+  "medStadning": 10,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Apotekaregatan",
+   "Askimsgatan",
+   "Carl Skottsbergs Gata",
+   "Fyradalersgatan",
+   "Håbergsstigen",
+   "Malmgårdsgatan",
+   "Storängsgatan",
+   "Särögatan",
+   "Thorild Wulffsgatan",
+   "Zon Änggården",
+   "Änggårdsplatsen"
+  ]
+ },
+ {
+  "bokstav": "G",
+  "namn": "Gamlestaden",
+  "slug": "gamlestaden",
+  "zoner": [
+   "G9",
+   "G9n"
+  ],
+  "stracker": 60,
+  "gator": 16,
+  "medStadning": 15,
+  "lat": 57.73203,
+  "lng": 12.01222,
+  "toppgator": [
+   "Ambrosiusgatan",
+   "Banérsgatan",
+   "Batterigatan",
+   "Björnekärrsgatan",
+   "Brahegatan",
+   "Fänriksgatan",
+   "Gamlestadstorget",
+   "Gamlestadsvägen",
+   "Götaholmsgatan",
+   "Harald Stakegatan",
+   "Holländaregatan",
+   "Konstapelsgatan"
+  ]
+ },
+ {
+  "bokstav": "L",
+  "namn": "Landala",
+  "slug": "landala",
+  "zoner": [
+   "L9",
+   "L9n"
+  ],
+  "stracker": 40,
+  "gator": 5,
+  "medStadning": 4,
+  "lat": null,
+  "lng": null,
+  "toppgator": [
+   "Egnahemsvägen",
+   "Kolonigatan",
+   "Ljunggatan",
+   "Zon Landala Egnahem",
+   "Zon Landalahöjd"
+  ]
+ }
+]

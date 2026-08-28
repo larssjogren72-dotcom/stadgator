@@ -94,7 +94,8 @@ const km = d => d < 1000 ? `${d} m` : `${(d/1000).toFixed(1)} km`;
 // ── Engelsk copy (turistsida) ────────────────────────────────────────────────
 const EN = {
   sub: 'street parking map',
-  cta: '📍 Open the live map — see free spots →',
+  // Samma rättelse som den svenska texten: appen visar inte lediga platser.
+  cta: '📍 Open the map — see where you may park →',
   tagline: 'Stop circling. Know where you can park — before you drive.',
   promise: 'ParkSpot shows legal on-street spots, the cheapest tariff and which streets are cleaned tomorrow. Drive calm, avoid fines.',
   disclaimer: 'Based on the City of Stockholm open data and may be out of date. Always check the local signs. ParkSpot is not liable for parking fines or towing.',
@@ -103,7 +104,16 @@ const EN = {
 };
 
 // ── Delad layout ─────────────────────────────────────────────────────────────
-function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [], extraLd = null }) {
+// `stad` läggs till med Stockholm som default: alla befintliga anrop saknar den och
+// får därför EXAKT samma utdata som förut (byte-verifierat på 211 sidor). Göteborgs
+// sidor skickar in sitt eget namn i stället för att vi skriver om varumärket överallt.
+const STADSNAMN_DEF = { namn: 'ParkSpot Stockholm', relText: 'Mer om parkering i Stockholm', karta: '/' };
+// ⚠ CTA-texten löd tidigare "se lediga platser live" (engelska: "see free spots") på
+// 213 sidor. Appen har INGA sensorer för beläggning – det står uttryckligen i llms.txt
+// och i appens egen ansvarstext. Marknadsföringen lovade alltså något produkten
+// förnekar, vilket är det snabbaste sättet att förlora förtroende för allt annat.
+// Knappens länk följer dessutom staden: en Göteborgssida ska inte leda till Stockholm.
+function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [], extraLd = null, stad = STADSNAMN_DEF }) {
   const hreflang = alts.length
     ? alts.map(a => `<link rel="alternate" hreflang="${a.lang}" href="${SITE}/${a.slug}">`).join('')
       + `<link rel="alternate" hreflang="x-default" href="${SITE}/${(alts.find(a => a.lang === 'sv') || alts[0]).slug}">`
@@ -114,12 +124,12 @@ function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng,
   } : null;
   const pageLd = { '@context':'https://schema.org','@type':'WebPage', name:title, url:`${SITE}/${slug}`,
     description:desc, inLanguage: en ? 'en' : 'sv',
-    isPartOf:{ '@type':'WebSite', '@id':`${SITE}/#website`, name:'ParkSpot Stockholm', url:SITE },
+    isPartOf:{ '@type':'WebSite', '@id':`${SITE}/#website`, name:stad.namn, url:SITE },
     publisher:{ '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot' } };
   const widget = (lat != null && match) ? cleaningWidget(lat, lng, match, en) : '';
   const faqHtml = faq && faq.length ? `<section class="card"><h2>${en ? EN.faqTitle : 'Vanliga frågor'}</h2>${faq.map(f =>
     `<h3>${esc(f.q)}</h3><p>${f.a}</p>`).join('')}</section>` : '';
-  const relHtml = related && related.length ? `<section class="card related"><h2>${en ? EN.relatedTitle : 'Mer om parkering i Stockholm'}</h2><ul>${
+  const relHtml = related && related.length ? `<section class="card related"><h2>${en ? EN.relatedTitle : stad.relText}</h2><ul>${
     related.map(r => `<li><a href="/${r.href}">${esc(r.text)}</a></li>`).join('')}</ul></section>` : '';
 
   return `<!DOCTYPE html><html lang="${en ? 'en' : 'sv'}"><head>
@@ -131,7 +141,7 @@ function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng,
 <meta property="og:type" content="article"><meta property="og:locale" content="sv_SE">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${SITE}/${slug}"><meta property="og:image" content="${SITE}/og-image-v2.png">
-<meta property="og:site_name" content="ParkSpot Stockholm">
+<meta property="og:site_name" content="${esc(stad.namn)}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234ade80'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-size='22' font-weight='bold' font-family='Arial' fill='%23080c1c'%3EP%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -172,12 +182,12 @@ ${extraLd ? `<script type="application/ld+json">${JSON.stringify(extraLd)}</scri
   footer a{color:#16a34a}
 </style></head>
 <body>
-<header class="top"><div class="wrap"><a class="brand" href="/"><span class="logo">P</span><span><b>ParkSpot Stockholm</b><span>${en ? EN.sub : 'parkering på karta'}</span></span></a></div></header>
+<header class="top"><div class="wrap"><a class="brand" href="/"><span class="logo">P</span><span><b>${esc(stad.namn)}</b><span>${en ? EN.sub : 'parkering på karta'}</span></span></a></div></header>
 <main class="wrap">
   <div class="hero">
     <h1>${esc(h1)}</h1>
     <p class="lead">${lead}</p>
-    <a class="cta" href="/">${en ? EN.cta : '📍 Öppna kartan – se lediga platser live →'}</a>
+    <a class="cta" href="${stad.karta}">${en ? EN.cta : '📍 Öppna kartan – se var du får parkera →'}</a>
   </div>
   ${widget}
   ${sections}
@@ -914,6 +924,10 @@ function aboutPage() {
     { href:'stadgator-stockholm', text:'Städgator i Stockholm' },
     { href:'parkering-over-natten-stockholm', text:'Parkera över natten' },
     { href:'parking-in-stockholm', text:'Parking in Stockholm (English)' },
+    // Enda länken från Stockholms sidor till Göteborg. Utan en intern länk är de nya
+    // sidorna föräldralösa: sitemap räcker för att bli hittad, men indexeras långsamt.
+    // Om-sidan är rätt ställe – det är där tjänsten beskrivs som helhet.
+    { href:'parkering-goteborg', text:'Parkering i Göteborg' },
   ];
   const extraLd = { '@context':'https://schema.org', '@graph':[
     { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:'ParkSpot Stockholm', url:SITE, logo:`${SITE}/og-image-v2.png`,
@@ -930,6 +944,162 @@ function aboutPage() {
     sections, faq, related, lat:null, lng:null, match:null, extraLd }));
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GÖTEBORG
+// ═══════════════════════════════════════════════════════════════════════════
+// Egna sidor byggda på Göteborgs öppna data (samma källa som appen). Allt är
+// ADDITIVT: Stockholms 211 sidor rörs inte – verifierat byte-identiskt i git.
+//
+// ⚠ TVÅ SAKER SOM MÅSTE STÅ PÅ VARJE GÖTEBORGSSIDA:
+//   1. Staden publicerar INGA parkeringsförbud. Sidorna får aldrig antyda att
+//      appen kan visa var man inte får stå – det kan den bara i Stockholm.
+//   2. Städningen går på JÄMNA/UDDA VECKOR. Inte ett kantfall utan hur Göteborg
+//      städar: 1 597 av 2 002 sträckor. Utelämnas det blir guiden fel varannan vecka.
+const GBG = { namn: 'ParkSpot Göteborg', relText: 'Mer om parkering i Göteborg', karta: '/?stad=goteborg' };
+const GBG_OMR = JSON.parse(fs.readFileSync(path.join(__dirname, 'goteborg.json'), 'utf8'));
+const GBG_FORBEHALL = 'Göteborg publicerar inga parkeringsförbud i sin öppna data. ParkSpot visar därför var du <b>får</b> parkera – aldrig var du inte får. En gata utan färg betyder «ingen uppgift», inte «fritt». Kontrollera alltid skylten.';
+
+function gbgRelated(utom) {
+  return [
+    { href:'parkering-goteborg', text:'Parkering i Göteborg – översikt' },
+    { href:'stadgator-goteborg', text:'Städdagar i Göteborg – jämna och udda veckor' },
+    { href:'boendeparkering-goteborg', text:'Boendeparkering i Göteborg – zoner och regler' },
+    { href:'parkeringsanlaggningar-goteborg', text:'Parkeringsanläggningar i Göteborg' },
+  ].filter(r => r.href !== utom);
+}
+
+function gbgPillar() {
+  const tot = GBG_OMR.reduce((s, o) => s + o.stracker, 0);
+  const omrLista = GBG_OMR.map(o =>
+    '<li><a href="/parkering-goteborg/' + o.slug + '">' + esc(o.namn) + '</a> – zon ' + esc(o.zoner.join(', ')) + ', ' + o.gator + ' gator</li>').join('');
+  const sections =
+    '<section class="card"><h2>Parkering i Göteborg på karta</h2>' +
+    '<p>ParkSpot visar var det är lagligt att parkera på gatan i Göteborg – <b>just nu</b> eller <b>över natten</b>. Underlaget är Göteborgs Stads öppna data: städdagar per gata, tidsgränser, boendezoner, taxor och parkeringsanläggningar.</p>' +
+    '<p>' + GBG_FORBEHALL + '</p></section>' +
+    '<section class="card"><h2>Tre saker som skiljer Göteborg från Stockholm</h2><ul>' +
+    '<li><b>Städningen går på jämna och udda veckor.</b> I Stockholm städas en gata samma veckodag varje vecka. I Göteborg städas de flesta gator <b>varannan</b> vecka – och vilken vecka det är avgör om du får stå kvar.</li>' +
+    '<li><b>Tidsgränsen står i registret.</b> Göteborg anger hur länge du får stå, från 30 minuter till 7 dygn. Det gör att appen kan skilja en halvtimmesficka från en plats du kan lämna bilen på över natten.</li>' +
+    '<li><b>Inga förbudsuppgifter.</b> Stockholm publicerar var man <i>inte</i> får stå. Göteborg gör inte det.</li>' +
+    '</ul></section>' +
+    '<section class="card"><h2>Boendeparkeringsområden</h2><p>Göteborg har ' + GBG_OMR.length + ' boendeparkeringsområden med totalt ' + tot + ' registrerade gatusträckor. Zonkoden på skylten – till exempel <b>Ö6</b> – består av områdets bokstav och ett taxenummer.</p><ul>' + omrLista + '</ul></section>';
+  const faq = [
+    { q:'Visar ParkSpot var man inte får parkera i Göteborg?', a:'Nej. Göteborg publicerar inga parkeringsförbud i sin öppna data. Appen visar var du får stå enligt registret – en gata utan färg betyder att uppgift saknas, inte att det är fritt.' },
+    { q:'Vad betyder jämna och udda veckor?', a:'De flesta gator i Göteborg städas varannan vecka. Skylten anger vilken. ParkSpot räknar ut vilken vecka det är och visar bara den städning som faktiskt gäller.' },
+    { q:'Kostar ParkSpot något?', a:'Nej, gratis och utan inloggning. Bygger på Göteborgs Stads öppna data.' },
+  ];
+  emit('parkering-goteborg', layout({
+    slug:'parkering-goteborg', title:'Parkering i Göteborg – var får du parkera? | ParkSpot',
+    desc:'Se på karta var du får parkera i Göteborg – nu eller över natten. Städdagar med jämna och udda veckor, tidsgränser, boendezoner och parkeringsanläggningar.',
+    h1:'Parkering i Göteborg',
+    lead:'Var får du stå, hur länge, och när städas gatan? ParkSpot visar det på karta – byggt på Göteborgs Stads öppna data.',
+    sections, faq, related: gbgRelated('parkering-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
+}
+
+function gbgStadgator() {
+  const sections =
+    '<section class="card"><h2>Städdagar i Göteborg – och varför veckan avgör</h2>' +
+    '<p>Göteborg städar de flesta gator <b>varannan vecka</b>. Skylten säger till exempel «Onsdag 09–12 udda veckor». Står du där en udda vecka blir det böter; en jämn vecka händer ingenting.</p>' +
+    '<p>Det gör Göteborg svårare än Stockholm att hålla reda på – veckodagen räcker inte, du måste veta vilket veckonummer det är. ParkSpot räknar ut det och visar bara den städning som gäller den här veckan.</p></section>' +
+    '<section class="card"><h2>Vanliga tidsfönster</h2><p>Tre fönster täcker nästan all städning i Göteborg:</p><ul>' +
+    '<li><b>09–12</b> – vanligast, oftast i bostadsområden</li>' +
+    '<li><b>02–07</b> – nattstädning, framför allt i centrala lägen</li>' +
+    '<li><b>08–10</b> – morgonstädning</li></ul>' +
+    '<p>Ett fönster som börjar före klockan sju är det som gör en gata olämplig att lämna bilen på över natten – du hinner inte flytta den.</p></section>' +
+    '<section class="card"><h2>Säsong</h2><p>En del gator städas bara delar av året, till exempel 1 oktober–30 april eller 15 mars–30 april. Utanför den perioden är de inte städgator. ParkSpot räknar bort dem när de vilar, och skriver ut när de vaknar igen.</p></section>' +
+    '<section class="card"><h2>Att tänka på</h2><p>' + GBG_FORBEHALL + '</p></section>';
+  const faq = [
+    { q:'Hur vet jag om det är jämn eller udda vecka?', a:'ParkSpot räknar ut veckonumret enligt svensk standard och visar bara den städning som gäller. På platskortet står det till exempel «Servas onsdagar 09–12 udda veckor».' },
+    { q:'Gäller boendetillstånd under städningen?', a:'Nej. Är parkering förbjuden en viss tid för städning gäller inte boendetillståndet under den tiden – det står uttryckligen i Göteborgs föreskrift om boendeparkering.' },
+    { q:'Städas alla gator i Göteborg?', a:'Nej. Registret innehåller cirka 470 gator med städdagar. En gata utan städuppgift kan ändå ha en skylt – kontrollera på plats.' },
+  ];
+  emit('stadgator-goteborg', layout({
+    slug:'stadgator-goteborg', title:'Städdagar i Göteborg – jämna och udda veckor | ParkSpot',
+    desc:'Så fungerar städdagar i Göteborg: de flesta gator städas varannan vecka. Se vilka gator som städas den här veckan på karta.',
+    h1:'Städdagar i Göteborg',
+    lead:'Göteborg städar varannan vecka. Veckodagen räcker inte – du måste veta vilken vecka. ParkSpot räknar ut det.',
+    sections, faq, related: gbgRelated('stadgator-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
+}
+
+function gbgBoende() {
+  const omrLista = GBG_OMR.map(o =>
+    '<li><a href="/parkering-goteborg/' + o.slug + '">' + esc(o.namn) + '</a> – ' + esc(o.zoner.join(', ')) + '</li>').join('');
+  const sections =
+    '<section class="card"><h2>Vad boendeparkering betyder i Göteborg</h2>' +
+    '<p>Ett boendetillstånd är ett <b>undantag från tidsgränsen</b> på platsen – inte ett förbud för alla andra. Står det «P 2 tim» och «Boende Ö6» på skylten gäller:</p><ul>' +
+    '<li><b>Utan tillstånd:</b> 2 timmar</li>' +
+    '<li><b>Med Ö6-tillstånd</b> (eller ett med högre taxenummer): upp till 14 dygn i följd</li></ul>' +
+    '<p>Zonkoden består av områdets bokstav och ett taxenummer. Ö6 betyder område Öster, taxa 6.</p></section>' +
+    '<section class="card"><h2>Bokstaven n – tillståndet som bara gäller på natten</h2>' +
+    '<p>Står det ett <b>n</b> efter taxenumret, till exempel <b>V5n</b>, gäller tillståndet bara kvällar och nätter: från klockan 18 till 09 påföljande dag, och från klockan 15 dagen före sön- och helgdag.</p>' +
+    '<p>Dagtid har den boende alltså <b>samma tidsgräns som alla andra</b>. Det är lätt att missa, och det gäller ungefär var fjärde boendesträcka i staden.</p></section>' +
+    '<section class="card"><h2>Städning slår ut tillståndet</h2><p>Är parkering förbjuden en viss tid för städning gäller boendetillståndet inte under den tiden. Det står uttryckligen i föreskriften.</p></section>' +
+    '<section class="card"><h2>Områden och zoner</h2><ul>' + omrLista + '</ul></section>' +
+    '<section class="card"><h2>Att tänka på</h2><p>' + GBG_FORBEHALL + '</p></section>';
+  const faq = [
+    { q:'Får jag parkera på en boendeparkering utan tillstånd?', a:'Ja, men bara så länge skyltens tidsgräns säger. Boendetillståndet är ett undantag från den gränsen för den som har det – inte ett förbud för övriga.' },
+    { q:'Vad betyder n i till exempel M4n?', a:'Att tillståndet bara gäller kvällar och nätter, ungefär 18–09, samt från klockan 15 dagen före sön- och helgdag. Dagtid gäller platsens vanliga tidsgräns även för boende.' },
+    { q:'Hur länge får jag stå med tillstånd?', a:'Högst 14 dygn i följd på samma plats.' },
+  ];
+  emit('boendeparkering-goteborg', layout({
+    slug:'boendeparkering-goteborg', title:'Boendeparkering i Göteborg – zoner, regler och n-suffixet | ParkSpot',
+    desc:'Så fungerar boendeparkering i Göteborg: zonkoder som Ö6 och V5n, vad som gäller utan tillstånd, och varför ett n betyder att tillståndet bara gäller på natten.',
+    h1:'Boendeparkering i Göteborg',
+    lead:'Ö6, M4n, V5 – vad betyder koderna på skylten, och vad gäller för dig som inte har tillstånd?',
+    sections, faq, related: gbgRelated('boendeparkering-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
+}
+
+function gbgAnlaggningar() {
+  const sections =
+    '<section class="card"><h2>Parkeringsanläggningar i Göteborg</h2>' +
+    '<p>När gatan är full finns drygt 900 avgiftsbelagda anläggningar i Göteborg – p-hus och parkeringsytor. De allra flesta drivs av Göteborgs Stads Parkering.</p>' +
+    '<p>ParkSpot visar kapacitet, vem som driver anläggningen och <b>vad det kostar just nu</b>. Priset räknas ut ur stadens egna prisfönster, eftersom det växlar över dygnet: många anläggningar har ett högre pris mellan 08 och 22 och ett lågt pris övrig tid.</p></section>' +
+    '<section class="card"><h2>Ingen realtid på lediga platser</h2>' +
+    '<p>Siffran som visas är <b>kapacitet</b>, inte lediga platser. Göteborg publicerar inget realtidsvärde för beläggning – fältet finns i stadens API men är tomt. ParkSpot visar därför aldrig «X lediga just nu», eftersom den uppgiften inte existerar.</p></section>' +
+    '<section class="card"><h2>Att tänka på</h2><p>' + GBG_FORBEHALL + '</p></section>';
+  const faq = [
+    { q:'Visar ParkSpot lediga platser i realtid?', a:'Nej. Siffran är anläggningens kapacitet. Göteborg publicerar ingen realtidsuppgift om beläggning.' },
+    { q:'Varför skiljer sig priset mot skylten?', a:'Priset som visas gäller den aktuella timmen. De flesta anläggningar har ett högre dagpris 08–22 och ett lägre pris övrig tid.' },
+  ];
+  emit('parkeringsanlaggningar-goteborg', layout({
+    slug:'parkeringsanlaggningar-goteborg', title:'Parkeringsanläggningar i Göteborg – pris och kapacitet | ParkSpot',
+    desc:'Drygt 900 avgiftsparkeringar i Göteborg med kapacitet, operatör och aktuellt timpris. Se dem på karta när gatan är full.',
+    h1:'Parkeringsanläggningar i Göteborg',
+    lead:'När gatan är full. Kapacitet, operatör och vad det kostar just nu.',
+    sections, faq, related: gbgRelated('parkeringsanlaggningar-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
+}
+
+function gbgOmrade(o) {
+  const natt = o.zoner.filter(z => /n$/.test(z));
+  const dag  = o.zoner.filter(z => !/n$/.test(z));
+  const gatuLista = o.toppgator.length
+    ? '<section class="card"><h2>Gator i ' + esc(o.namn) + '</h2><p>Ett urval av gatorna med registrerad parkering här:</p><ul>' +
+      o.toppgator.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></section>'
+    : '';
+  const nattText = natt.length
+    ? ' samt nattvarianterna <b>' + esc(natt.join(', ')) + '</b>'
+    : '';
+  const nattForklaring = natt.length
+    ? '<p>Ett <b>n</b> efter taxenumret betyder att tillståndet bara gäller mellan klockan 18 och 09, samt från klockan 15 dagen före sön- och helgdag. Dagtid gäller platsens vanliga tidsgräns även för boende.</p>'
+    : '';
+  const sections =
+    '<section class="card"><h2>Parkering i ' + esc(o.namn) + '</h2><p>' + esc(o.namn) + ' är ett av Göteborgs boendeparkeringsområden. Registret innehåller ' + o.stracker + ' gatusträckor fördelade på ' + o.gator + ' gator, varav ' + o.medStadning + ' har registrerade städdagar.</p></section>' +
+    '<section class="card"><h2>Zoner här</h2><p>Zonkoderna i ' + esc(o.namn) + ' är <b>' + esc(dag.join(', ')) + '</b>' + nattText + '.</p>' + nattForklaring +
+    '<p>Utan tillstånd gäller den tid som står på skylten. Med tillstånd för zonen får du stå upp till 14 dygn i följd.</p></section>' +
+    gatuLista +
+    '<section class="card"><h2>Att tänka på</h2><p>' + GBG_FORBEHALL + '</p></section>';
+  const faq = [
+    { q: 'Vilka boendezoner finns i ' + o.namn + '?', a: o.zoner.join(', ') + '. Bokstaven anger området och siffran taxenumret; ett n betyder att tillståndet bara gäller kvällar och nätter.' },
+    { q: 'Städas gatorna i ' + o.namn + ' varje vecka?', a: 'De flesta gator i Göteborg städas varannan vecka – jämna eller udda. Skylten anger vilken, och ParkSpot räknar ut om det gäller den här veckan.' },
+  ];
+  emit('parkering-goteborg/' + o.slug, layout({
+    slug:'parkering-goteborg/' + o.slug,
+    title:'Parkering i ' + o.namn + ', Göteborg – zoner och städdagar | ParkSpot',
+    desc:'Parkering i ' + o.namn + ': boendezoner ' + o.zoner.join(', ') + ', ' + o.gator + ' gator med registrerad parkering och ' + o.medStadning + ' med städdagar. Se på karta.',
+    h1:'Parkering i ' + o.namn,
+    lead:'Boendezoner, städdagar och tidsgränser i ' + o.namn + ' – på karta.',
+    sections, faq, related: gbgRelated(null), lat:o.lat, lng:o.lng, match:null, stad:GBG }));
+}
+
 aboutPage();
 pillarSummer(); pillarTaxa(); [1,2,3,4,5].forEach(taxaPage); pillarStadgator(); pillarOverNatten(); pillarGarages(); pillarEnglish();
 pillarHubs(); englishHub();
@@ -937,6 +1107,9 @@ DISTRICTS.forEach(d => { districtHub(d); billigare(d); overNatten(d); stadgator(
 DESTINATIONS.forEach(destination);
 DESTINATIONS.forEach(destinationEN);
 STREETS.forEach(streetPage);
+
+gbgPillar(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
+GBG_OMR.forEach(gbgOmrade);
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);
