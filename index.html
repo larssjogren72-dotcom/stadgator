@@ -1449,15 +1449,6 @@ function seasonText(p) { if (p.START_MONTH == null) return null; const sd = p.ST
 // Waze går inte att kontrollera: universallänken öppnar appen om den finns, annars
 // Wazes webbkarta. Det går inte att upptäcka installerade appar från en webbsida.
 // ════════════════════════════════════════════════════════════════════════
-var IS_APPLE = (function () {
-  try {
-    var ua = navigator.userAgent || '';
-    // iPad på iPadOS 13+ säger "Macintosh" – båda träffas av samma test, och maps.apple.com
-    // fungerar på både macOS och iOS, så en gemensam träff är rätt nivå här.
-    return /iPhone|iPad|iPod|Macintosh|Mac OS X/.test(ua);
-  } catch (e) { return false; }
-})();
-
 var NAV_APPS = {
   google: {
     name: 'Google Maps', color: '#EA4335', always: true,
@@ -1465,7 +1456,7 @@ var NAV_APPS = {
     label: 'Navigera hit'
   },
   apple: {
-    name: 'Apple Kartor', color: '#0A84FF', always: false,
+    name: 'Apple Kartor', color: '#0A84FF', always: true,
     url: function (lat, lng) { return 'https://maps.apple.com/?daddr=' + lat + ',' + lng + '&dirflg=d'; },
     label: 'Navigera med Apple Kartor'
   },
@@ -1475,7 +1466,14 @@ var NAV_APPS = {
     label: 'Navigera med Waze'
   }
 };
-function navAppAvailable(id) { var a = NAV_APPS[id]; return !!a && (a.always || IS_APPLE); }
+// Alla tre visas på alla enheter. Apple Kartor doldes tidigare utanför iPhone/iPad/Mac
+// med motiveringen att länken "inte öppnar någon app på Android/Windows". Det var sant
+// när regeln skrevs, men Apple har sedan dess lanserat Kartor på webben: verifierat
+// 2026-08-28 genom att öppna appens EGEN länk i Chrome på Windows – den laddade en
+// svensk karta med rätt destination inläst och val mellan bil, gång och cykel.
+// På en Apple-enhet öppnas appen, på övriga webbkartan. Ingen hamnar på en tom sida,
+// vilket var hela farhågan. En specialregel borttagen i stället för tillagd.
+function navAppAvailable(id) { return !!NAV_APPS[id]; }
 function getNavApp() {
   var id;
   try { id = localStorage.getItem('nav_app'); } catch (e) { id = null; }
