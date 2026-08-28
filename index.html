@@ -4890,9 +4890,36 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // och siffran finns i datan. Bara på gröna: en varning ("Städas nu – flytta
       // bilen") ska inte få ett lugnande maxtidstillägg efter sig, och de blå
       // grenarna ovan bär redan klausulen.
-      // Nu-läget byter ALDRIG färg av en maxtid – det är Natt-lägets regel.
-      // Uttrycks som samma klausul som överallt annars (se tidsklausul).
-      if (color === '#16a34a' && s.maxMinutes != null) txt += ` · ${tidsklausul(s.maxMinutes)}`;
+      // ── Kort tidsgräns fäller grönt till blått – SAMMA tröskel som Natt ──────
+      // Tidigare bytte Nu-läget aldrig färg av en maxtid, med motiveringen att
+      // "får du stå just nu" är sant även med en gräns. Det stämmer, men det var
+      // inte hela bilden: appen visade REDAN blått i Nu-läget för Stockholms
+      // korttidsfickor (grenen s.visitorShort ovan). Regeln fanns alltså, men
+      // villkoret var Stockholms – visitorShort kräver VF_METER, ett fält
+      // Göteborg inte har (cities/goteborg.js sätter det till null). Följden var
+      // att en gata med MAX_MINUTES: 30 i datan låg grön medan en Stockholmsficka
+      // där tiden är GISSAD ur längden låg blå. Vi visade minst där vi visste mest.
+      //
+      // Tröskeln är densamma som Natt-lägets (NATT_MIN_MINUTER, ett dygn) med
+      // flit – en regel, två lägen, två städer. Att den råkar vara generös spelar
+      // ingen roll: i Göteborgs data finns INGENTING mellan 4 tim och 24 tim
+      // (uppmätt 2026-08-28, 1 225 bilsträckor i sju stadsdelar: 30 min 247,
+      // 2 tim 87, 1 tim 11, 4 tim 6, 24 tim 546). Varje tröskel mellan 5 och 24
+      // timmar träffar exakt samma sträckor, så en egen Nu-tröskel vore en knapp
+      // utan verkan – och ett andra tal att hålla i synk.
+      //
+      // okNu rörs inte: blått i Nu betyder fortfarande "du får stå" (de blå
+      // grenarna ovan räknar också upp okNu), bara att klockan tickar.
+      if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER) {
+        color = '#38bdf8';
+        txt   = `Får stå nu · ${tidsklausul(s.maxMinutes)}`;
+      }
+      // Lång eller okänt lång gräns: färgen står kvar, men siffran ska ändå synas.
+      // "Får stå nu" är sant om en 24-timmarsplats, men det är inte HELA sanningen,
+      // och siffran finns i datan. Bara på gröna: en varning ("Städas nu – flytta
+      // bilen") ska inte få ett lugnande maxtidstillägg efter sig, och de blå
+      // grenarna bär redan klausulen.
+      else if (color === '#16a34a' && s.maxMinutes != null) txt += ` · ${tidsklausul(s.maxMinutes)}`;
       // Boendezon utan publicerad gräns: färgen står kvar – "får du stå just nu" är
       // sant – men chipet ska inte tiga om att en gräns finns. Samma klausul som
       // överallt annars, i sin okända form.
