@@ -3906,6 +3906,13 @@ function toAllowedSegment(f) {
     // här och nu (tidsklausul) – vilken FÄRG en maxtid ska ge är en egen fråga som inte
     // är avgjord, så inget segment byter färg av att fältet börjar läsas.
     maxMinutes: maxTidMinuter(p),
+    // Platsens ENDA registrerade tillåtelse är en boendezon. Då VET vi att en
+    // tidsgräns finns – boendetillståndet är per definition ett undantag från en
+    // sådan – men inte vilken. Det är starkare än "okänt": det är "känt att den
+    // finns, värdet saknas". Stockholm bär alltid boende ihop med en taxa i samma
+    // post och sätter aldrig fältet.
+    endastBoende: p.ENDAST_BOENDE === true,
+    boendeZon: p.BOENDE_ZON || null,
     // Ändamålsplats: spara RÅDATAN, aldrig utfallet – aktiv/inaktiv beror på klockan
     // och måste räknas om vid varje rendering (jfr cache-regeln för säsong/dagtyp).
     andamal: andamalKod(p.VF_PLATS_TYP),
@@ -4389,6 +4396,21 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
         infoRow = 'För kort för att lämna bilen över natten';
         safe--; kollaTid++;
       }
+      // ── Boendezon utan publicerad tidsgräns får inte heller säga "trygg" ──────
+      // Samma sorts påstående som ovan, fast utan siffra. En boendezon FÖRUTSÄTTER
+      // att det finns en tidsgräns (tillståndet gäller "med avvikelse från gällande
+      // tidsbegränsning på platsen", föreskrift 1480 2007-02789). Att gränsen inte
+      // är publicerad gör den inte obefintlig – och Lars foto på Vattugatan visar
+      // skylten "P 2 tim / Boende V5" på en sträcka där datan är tom.
+      // Grönt hade alltså påstått varaktighet utifrån ett hål i registret.
+      else if (color === '#16a34a' && s.endastBoende) {
+        color = '#38bdf8';
+        txt   = `Får parkera · ${tidsklausul(null)}`;
+        infoRow = s.boendeZon
+          ? `Boendezon ${s.boendeZon} – hur länge du får stå utan tillstånd står inte i stadens data`
+          : 'Boendezon – hur länge du får stå utan tillstånd står inte i stadens data';
+        safe--; kollaTid++;
+      }
       // ── Städer utan maxtid i datan får inte säga "Trygg över natten" ──────────
       // "Trygg över natten" är ett påstående om VARAKTIGHET. Saknar staden maxtid-
       // dimensionen helt (se STAD.skiljerKorttid) kan appen veta att du får parkera, men
@@ -4860,6 +4882,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // Nu-läget byter ALDRIG färg av en maxtid – det är Natt-lägets regel.
       // Uttrycks som samma klausul som överallt annars (se tidsklausul).
       if (color === '#16a34a' && s.maxMinutes != null) txt += ` · ${tidsklausul(s.maxMinutes)}`;
+      // Boendezon utan publicerad gräns: färgen står kvar – "får du stå just nu" är
+      // sant – men chipet ska inte tiga om att en gräns finns. Samma klausul som
+      // överallt annars, i sin okända form.
+      else if (color === '#16a34a' && s.endastBoende) txt += ` · ${tidsklausul(null)}`;
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
       // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
       // "Kort besök går bra" är ett FAKTUM (du hinner därifrån innan fönstret börjar), inte en

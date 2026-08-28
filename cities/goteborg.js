@@ -325,6 +325,19 @@ module.exports = function skapaGoteborg(delade) {
         VF_PLATSER: falt(p, 'ParkingSpaces') || null,
         STREET_NAME: falt(p, 'SiteName') || null,
         CITATION: falt(p, 'LtfRegulationNumber') || null,
+        // ⚠ HÄR VET VI ATT EN TIDSGRÄNS FINNS – MEN INTE VILKEN.
+        // Föreskriften om boendeparkering (1480 2007-02789) säger att tillståndet
+        // gäller "med avvikelse från gällande tidsbegränsning på platsen". En boendezon
+        // FÖRUTSÄTTER alltså att det finns en tidsgräns; den är bara inte publicerad
+        // för de här sträckorna. Uppmätt 2026-08-27: 496 av 2 095 boende-sträckor
+        // saknar tvilling, och 0 av dem går att koppla via föreskriftsnumret heller.
+        // Fältbevis (Lars foto, Vattugatan): skylten säger "P 2 tim / Boende V5" och
+        // längre fram "30 min / Boende V5n" – ingetdera finns i datan, medan
+        // grannagatorna 21 m bort HAR sina gränser publicerade. Stadens lucka, inte vår.
+        // Stadsneutralt fält: Stockholm bär alltid boende ihop med "P Avgift" i samma
+        // post och blir därför aldrig ensam – regeln kan inte utlösas där.
+        ENDAST_BOENDE: true,
+        BOENDE_ZON: falt(p, 'ResidentialParking') || null,
         GBG_LAGER: 'boende',
         GBG_BOENDE: falt(p, 'ResidentialParking') || null
       });
