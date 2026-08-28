@@ -930,12 +930,18 @@ function aboutPage() {
     { href:'parkering-goteborg', text:'Parkering i Göteborg' },
   ];
   const extraLd = { '@context':'https://schema.org', '@graph':[
-    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:'ParkSpot Stockholm', url:SITE, logo:`${SITE}/og-image-v2.png`,
+    // SYSKONMODELLEN (Lars beslut 2026-08-28): 'ParkSpot' är moderorganisationen och
+    // betjänar båda städerna. 'ParkSpot Stockholm' och 'ParkSpot Göteborg' är sajt-
+    // identiteterna, alltså syskon – inte två organisationer. Ett nationellt varumärke
+    // valdes bort för att 212 sidor redan rankar på det gamla namnet; additivt före
+    // omskrivning. Ändra inte det här utan att fråga.
+    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:['ParkSpot Stockholm','ParkSpot Göteborg'], url:SITE, logo:`${SITE}/og-image-v2.png`,
       description:'ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.',
-      areaServed:{ '@type':'City', name:'Stockholm', sameAs:'https://sv.wikipedia.org/wiki/Stockholm' } },
+      areaServed:[{ '@type':'City', name:'Stockholm', sameAs:'https://sv.wikipedia.org/wiki/Stockholm' },
+                  { '@type':'City', name:'Göteborg', sameAs:'https://sv.wikipedia.org/wiki/G%C3%B6teborg' }] },
     { '@type':'WebApplication', '@id':`${SITE}/#app`, name:'ParkSpot Stockholm', alternateName:'ParkSpot', url:SITE,
       applicationCategory:'TravelApplication', applicationSubCategory:'Parking', operatingSystem:'Web', inLanguage:'sv', isAccessibleForFree:true,
-      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:{ '@type':'City', name:'Stockholm' }, publisher:{ '@id':`${SITE}/#organization` },
+      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:[{ '@type':'City', name:'Stockholm' },{ '@type':'City', name:'Göteborg' }], publisher:{ '@id':`${SITE}/#organization` },
       description:'Visar var du får parkera lagligt just nu i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per zon, städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning.' } ] };
   emit('om-parkspot', layout({
     slug:'om-parkspot', title:'Om ParkSpot – gratis parkeringsapp för Stockholm | ParkSpot',

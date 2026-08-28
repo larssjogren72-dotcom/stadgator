@@ -1,4 +1,4 @@
-# Changelog – ParkSpot Stockholm
+# Changelog – ParkSpot
 
 Semantisk versionering (MAJOR.MINOR.PATCH), retroaktivt taggad från projektstart.
 v1.0.0 och framåt är den formella eran (från commit `923e63e`, då appen fick ett eget

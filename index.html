@@ -51,26 +51,29 @@
         "@type": "Organization",
         "@id": "https://parkspot.se/#organization",
         "name": "ParkSpot",
-        "alternateName": "ParkSpot Stockholm",
+        "alternateName": ["ParkSpot Stockholm", "ParkSpot Göteborg"],
         "url": "https://parkspot.se/",
         "logo": "https://parkspot.se/og-image-v2.png",
         "image": "https://parkspot.se/og-image-v2.png",
         "description": "ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.",
-        "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
+        "areaServed": [
+          { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
+          { "@type": "City", "name": "Göteborg", "sameAs": "https://sv.wikipedia.org/wiki/G%C3%B6teborg" }
+        ],
         "knowsAbout": ["Gatuparkering i Stockholm", "Parkeringstaxor (Taxa 1–5)", "Städgator och servicedagar", "Nattparkering", "Boendeparkering", "MC-parkering (motorcykel och moped klass 1)", "Cykel- och mopedparkering (moped klass 2)", "Parkering för rörelsehindrade"]
       },
       {
         "@type": "WebSite",
         "@id": "https://parkspot.se/#website",
         "url": "https://parkspot.se/",
-        "name": "ParkSpot Stockholm",
+        "name": "__META_SAJTNAMN__",
         "inLanguage": "sv",
         "publisher": { "@id": "https://parkspot.se/#organization" }
       },
       {
         "@type": "WebApplication",
         "@id": "https://parkspot.se/#app",
-        "name": "ParkSpot Stockholm",
+        "name": "__META_SAJTNAMN__",
         "alternateName": "ParkSpot",
         "url": "https://parkspot.se/",
         "description": "Visar på karta var du får parkera lagligt just nu i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per zon (Taxa 1–5), städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning. Bygger på Stockholms stads öppna data.",
@@ -85,7 +88,10 @@
         "image": "https://parkspot.se/og-image-v2.png",
         "screenshot": "https://parkspot.se/og-image-v2.png",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "SEK" },
-        "areaServed": { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
+        "areaServed": [
+          { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
+          { "@type": "City", "name": "Göteborg", "sameAs": "https://sv.wikipedia.org/wiki/G%C3%B6teborg" }
+        ],
         "publisher": { "@id": "https://parkspot.se/#organization" },
         "featureList": [
           "Laglig gatuparkering i realtid (läget Nu)",
