@@ -4927,11 +4927,14 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       //
       // Tröskeln är densamma som Natt-lägets (NATT_MIN_MINUTER, ett dygn) med
       // flit – en regel, två lägen, två städer. Att den råkar vara generös spelar
-      // ingen roll: i Göteborgs data finns INGENTING mellan 4 tim och 24 tim
-      // (uppmätt 2026-08-28, 1 225 bilsträckor i sju stadsdelar: 30 min 247,
-      // 2 tim 87, 1 tim 11, 4 tim 6, 24 tim 546). Varje tröskel mellan 5 och 24
-      // timmar träffar exakt samma sträckor, så en egen Nu-tröskel vore en knapp
-      // utan verkan – och ett andra tal att hålla i synk.
+      // ingen roll: Göteborgs maxtider klumpar ihop sig i botten. Hela lagret
+      // parkering:tidsbegransad, 2 338 poster (2026-08-28): 30 min 1 238,
+      // 2 tim 502, 1 tim 225, 4 tim 189, 24 tim 172, 12 tim 9, 3 tim 2, 6 tim 1.
+      // Mellan 4 tim och 24 tim ligger alltså 10 poster – 0,4 %. Varje tröskel
+      // mellan 5 och 24 timmar träffar i praktiken samma sträckor, så en egen
+      // Nu-tröskel vore en knapp utan verkan, och ett andra tal att hålla i synk.
+      // (En tidigare version av den här kommentaren sa "INGENTING mellan 4 och 24
+      // tim". Det gällde ett stickprov på sju stadsdelar, inte hela staden.)
       //
       // okNu rörs inte: blått i Nu betyder fortfarande "du får stå" (de blå
       // grenarna ovan räknar också upp okNu), bara att klockan tickar.
