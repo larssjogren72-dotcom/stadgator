@@ -4945,10 +4945,19 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // bilen") ska inte få ett lugnande maxtidstillägg efter sig, och de blå
       // grenarna bär redan klausulen.
       else if (color === '#16a34a' && s.maxMinutes != null) txt += ` · ${tidsklausul(s.maxMinutes)}`;
-      // Boendezon utan publicerad gräns: färgen står kvar – "får du stå just nu" är
-      // sant – men chipet ska inte tiga om att en gräns finns. Samma klausul som
-      // överallt annars, i sin okända form.
-      else if (color === '#16a34a' && s.endastBoende) txt += ` · ${tidsklausul(null)}`;
+      // Boendezon utan publicerad gräns: en boendezon FÖRUTSÄTTER att det finns en
+      // tidsgräns (tillståndet gäller "med avvikelse från gällande tidsbegränsning på
+      // platsen", föreskrift 1480 2007-02789) – vi vet bara inte vilken.
+      // Låg tidigare kvar som GRÖN med klausulen tillagd, vilket gav chipet
+      // "Får stå nu · kontrollera tidsgräns" på en grön gata (uppmätt 36 sträckor i
+      // Vegagatan-rutan). Grönt som ber dig kontrollera tidsgränsen motsäger sig
+      // självt, och nu när blått uttryckligen betyder "en gräns gäller" hör de hemma
+      // där. Natt-läget fällde dem redan (se motsvarande gren i uc2-flödet) – detta
+      // gör lägena överens.
+      else if (color === '#16a34a' && s.endastBoende) {
+        color = '#38bdf8';
+        txt   = `Får stå nu · ${tidsklausul(null)}`;
+      }
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
       // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
       // "Kort besök går bra" är ett FAKTUM (du hinner därifrån innan fönstret börjar), inte en
@@ -4970,6 +4979,14 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
                     : '';
+      // Boendezonens förklaring, ordagrant densamma som i Natt-flödet. Chipet säger att en
+      // gräns finns; detaljraden säger VARFÖR vi inte kan sätta en siffra på den. Sätts här
+      // och inte i färgkedjan ovan eftersom infoRow deklareras först nu.
+      if (color === '#38bdf8' && s.endastBoende && s.maxMinutes == null) {
+        infoRow = s.boendeZon
+          ? `Boendezon ${s.boendeZon} – hur länge du får stå utan tillstånd står inte i stadens data`
+          : 'Boendezon – hur länge du får stå utan tillstånd står inte i stadens data';
+      }
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
       // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
       // "Nästa städning" är dessutom irrelevant på platser man inte får använda.
