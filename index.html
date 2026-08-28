@@ -184,7 +184,7 @@
         "name": "Vet ParkSpot om en avgiftsfri plats har egna tidsbegränsningar?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Ja. Har platsen ett eget städ-/tidsschema visar ParkSpot exakt när det gäller och färgar gatan grön övrig tid. Saknas schemat helt visas platsen istället i ljusblått med \"kontrollera tidsgräns\", eftersom en begränsning (t.ex. P-skiva) då kan finnas utan att synas i vår data."
+          "text": "Ja, när staden har publicerat den. Finns tidsgränsen i registret visar ParkSpot den rakt ut (t.ex. \"max 2 tim\") och färgar gatan ljusblå – inte grön, eftersom grönt ska betyda att du kan stå utan att hålla koll på klockan. Har platsen ett eget städ-/tidsschema visar appen exakt när det gäller. Saknas uppgiften helt visas platsen ändå i ljusblått, då med \"kontrollera tidsgräns\", eftersom en begränsning (t.ex. P-skiva) kan finnas utan att synas i vår data."
         }
       }
     ]
@@ -946,7 +946,7 @@
       <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
         <h3 itemprop="name">Vet ParkSpot om en avgiftsfri plats har egna tidsbegränsningar?</h3>
         <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">Ja. Har platsen ett eget städ-/tidsschema visar ParkSpot exakt när det gäller och färgar gatan grön övrig tid. Saknas schemat helt visas platsen istället i ljusblått med "kontrollera tidsgräns", eftersom en begränsning (t.ex. P-skiva) då kan finnas utan att synas i vår data.</p>
+          <p itemprop="text">Ja, när staden har publicerat den. Finns tidsgränsen i registret visar ParkSpot den rakt ut (t.ex. "max 2 tim") och färgar gatan ljusblå – inte grön, eftersom grönt ska betyda att du kan stå utan att hålla koll på klockan. Har platsen ett eget städ-/tidsschema visar appen exakt när det gäller. Saknas uppgiften helt visas platsen ändå i ljusblått, då med "kontrollera tidsgräns", eftersom en begränsning (t.ex. P-skiva) kan finnas utan att synas i vår data.</p>
         </div>
       </div>
     </div>
@@ -6110,7 +6110,7 @@ function renderModeIntro() {
   const disclaimer = DISCLAIMER_HTML;
   const intro = {
     now: STAD.skiljerKorttid
-      ? `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Blått betyder att du får parkera men bör kontrollera tidsgränsen på skylten. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`
+      ? `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Blått betyder att du får stå, men att en tidsgräns gäller: står den i stadens data visar appen den (t.ex. «max 30 min»), annars säger den till att läsa skylten. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`
       : `<b>"Nu"</b> visar var du får parkera lagligt just nu. ${STAD.namn} publicerar inte vilka platser som är korttid, så blått betyder "du får stå här – men läs skylten för hur länge". Orange med ljus kant betyder gott om tid innan städning. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`,
     uc2: `<b>"Natt"</b> visar var ${vehicleWord()} står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.`,
   };
