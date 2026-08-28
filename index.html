@@ -2819,7 +2819,14 @@ async function rhPlatserOverlay(lat, lng) {
     });
     streetGroupLayers.push(grp.addTo(map));
     const b = document.getElementById('count-badge');
-    if (b) { b.textContent = `${visningsbara.length} reserverade platser här`; b.style.display = 'block'; }
+    // "registrerade", inte bara "reserverade": det här är den enda ytan i RH-läget som
+    // gör ett FULLSTÄNDIGHETSPÅSTÅENDE, och vi kan inte stå för det. Lars fotograferade
+    // 2026-08-27 en skylt på Vattugatan (57.695142, 11.940897) som saknas i samtliga
+    // fem källor vi har – kommunens tre WFS-lager, det nyckelskyddade ParkingService
+    // och OpenStreetMap. Ett ord flyttar påståendet från "så många finns" till "så
+    // många står i registret". Medvetet INGEN extra varningstext: appen säger redan
+    // "kontrollera alltid skylten", och fler förbehåll späder ut de som betyder något.
+    if (b) { b.textContent = `${visningsbara.length} registrerade platser här`; b.style.display = 'block'; }
   } catch (e) { console.warn('[Städgator] Rörelsehindrad-lager:', e.message); }
 }
 
