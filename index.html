@@ -4007,6 +4007,24 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   // dubbelritas sträckan: en ovärderad grön UTAN tidsgräns ovanpå/under vår blå/amber.
   // allowedPts/allowedSegs ovan är redan beräknade och opåverkade – andra förbudslinjers
   // sväljning i närheten rörs alltså inte.
+  // …men RÄDDA tidsgränsen ur kopian innan den kastas. Förbudsgrenen nedan säger i sin
+  // kommentar att MAX_HOURS/MAX_MINUTES är "konsekvent null" för den här typen, och det är
+  // sant – på FÖRBUDSSIDAN. Tiden finns, i P_TILLATEN-tvillingen vi just tar bort. Uppmätt
+  // 2026-08-28 i fem ytterstadsrutor (Kista, Hökarängen, Hässelby, Bromma, Skarpnäck):
+  //   "Avgiftsfri parkering" i P_TILLATEN: 180 poster, 111 med tidsgräns
+  //   samma typ i P_FORBUD:                105 poster,   0 med tidsgräns
+  //   paras via CITATION:                   59 par – i 59 av 59 bar bara tillåten-kopian tiden
+  // Följden var att appen sa "kontrollera tidsgräns" på gator där registret säger 2 tim, och
+  // målade dem gröna när städfönstret var bevisat inaktivt. Vi hade siffran och kastade den.
+  // Paras på CITATION (ärendenumret), samma nyckel som redan binder ihop de två lagren för
+  // dedikerade platser (se kommentaren vid VF_METER/orphan-parningen). Lägsta värdet vinner
+  // vid krock – samma försiktiga princip som vid taxa-zongräns.
+  const maxTidFranTillaten = new Map();
+  allowed.forEach(s => {
+    if (s.platsTyp !== 'Avgiftsfri parkering' || s.maxMinutes == null || !s.citation) return;
+    const fore = maxTidFranTillaten.get(s.citation);
+    if (fore == null || s.maxMinutes < fore) maxTidFranTillaten.set(s.citation, s.maxMinutes);
+  });
   allowed = allowed.filter(s => s.platsTyp !== 'Avgiftsfri parkering');
 
   // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten – plus (fas 2a steg A)
@@ -4118,6 +4136,13 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     if (!seg.linesSweref.length) return;
     seg.fromForbud = true;
     seg.avgiftsfriTidsbegransad = true;
+    // Tidsgränsen bor i P_TILLATEN-tvillingen, inte här (se maxTidFranTillaten ovan).
+    // Skriv bara när vi själva saknar den – förbudspostens egen siffra, om den mot
+    // förmodan finns, är närmare källan och ska vinna.
+    if (seg.maxMinutes == null) {
+      const fran = maxTidFranTillaten.get(seg.citation);
+      if (fran != null) seg.maxMinutes = fran;
+    }
     // Tre lägen, inte två: true (städas nu) / false (VI VET säkert att fönstret inte är
     // aktivt, av postens EGNA veckodags-/tidsfält – inte bara "inget upptäckt") / null (osäkert,
     // ovanligt mönster). Bara null ska ge den försiktiga "kontrollera tidsgräns"-texten – false
