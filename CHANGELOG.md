@@ -14,6 +14,28 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.14.0 – 2026-08-28
+**Göteborg finns nu även i sökmotorerna – och en marknadsföringstext som produkten förnekade är borta.**
+
+**Sajten sa att appen bara täcker Stockholm.** En delad länk till Göteborgsvyn förhandsvisades
+som "ParkSpot Stockholm" i sociala medier och sökresultat, och `llms.txt` sa uttryckligen att
+tjänsten är Stockholm-bara – så en AI-assistent som fick frågan "finns det en app för parkering
+i Göteborg" läste vår egen fil och svarade nej. Titel, beskrivning och og-taggar sätts nu per
+stad av servern, som är enda stället som hinner före sökmotorernas läsning.
+
+**Fjorton nya sidor om Göteborg:** en översikt, en om städdagar med jämna och udda veckor, en
+om boendeparkering och vad n-suffixet betyder, en om parkeringsanläggningar – plus tio
+områdessidor, en per boendeparkeringsområde. Alla bär de två saker som skiljer Göteborg:
+staden publicerar inga parkeringsförbud, och städningen går varannan vecka.
+
+🔴 **Knappen lovade något appen inte gör.** På 213 sidor stod "Öppna kartan – se lediga platser
+live". ParkSpot har inga sensorer för beläggning – det står i appens egen ansvarstext. Nu står
+det "se var du får parkera". Knappen leder dessutom till rätt stad.
+
+**Apple Kartor visas för alla.** Den doldes utanför iPhone och Mac med motiveringen att länken
+inte öppnar någon app på Windows och Android. Apple har sedan dess lanserat Kartor på webben,
+så länken fungerar överallt – verifierat.
+
 ## v1.13.0 – 2026-08-28
 **Göteborg går att välja – och slutar vara pilot.**
 
