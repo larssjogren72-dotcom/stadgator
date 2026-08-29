@@ -14,6 +14,37 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.16.0 – 2026-08-29
+**Nittiofyra sträckor visade grönt där parkering är förbjuden dygnet runt. Nu visar de rött.**
+
+🔴 **Ett tidsreglerat förbud har två lager, appen kände bara till ett.** Skylten på de här
+gatorna växlar mellan två märken: ett kryss under rusningstid, då du inte ens får stanna, och
+ett streck resten av dygnet, då du får stanna men inte parkera. Gatan blir alltså aldrig
+parkerbar. Appen läste bara tidsfönstret, och när det tog slut släppte den fram grönt.
+
+**Så här står det i besluten:** "Förbudet gäller vardagar … klockan 07.00 – 10.00 och
+15.00 – 19.00. **Övrig tid får fordon inte parkeras.**" Den sista meningen finns inte i
+kartdatan – den står bara i föreskriftstexten hos Transportstyrelsen.
+
+**Hela Stockholm är genomläst.** 579 beslut i den här kategorin, texten hämtad i original.
+413 säger ingenting om övrig tid och 109 säger uttryckligen att parkering är tillåten – för
+dem var grönt rätt hela tiden. **46 säger att den är förbjuden**, och de fördelar sig över
+sjutton stadsdelar: Södermalm och Vasastaden tyngst, men också Ålsten, Norra Ängby,
+Mälarhöjden och Enskede. Elva beslut gick inte att läsa maskinellt och lämnas orörda.
+
+**Kontrollerat på plats.** Fyra av gatorna är fotograferade och stämmer med beslutet, noll
+motsäger det. Och varje berörd sträcka har testats mot appens egen kod: ingen av de 94 är
+längre enbart grön.
+
+**Tabellen kan inte bli tyst fel.** Varje rad bär datumet regeln började gälla. Ändrar staden
+föreskriften stämmer inte datumet längre, och appen slutar då lita på raden i stället för att
+gissa. Ersätts beslutet får det ett nytt ärendenummer och faller igenom på samma sätt. En
+gammal tabell blir alltså bara omodern, aldrig farlig.
+
+**Kvar, medvetet:** på tolv av sträckorna ritas rött nu, men ett grönt streck ligger kvar
+ovanpå eftersom staden registrerat både en tillåtelse och ett förbud på samma trottoarkant.
+Vilket som syns avgörs av ritordningen – en egen fråga som rörts tidigare och backats.
+
 ## v1.15.0 – 2026-08-29
 **Blått betyder nu "klockan tickar" – i båda lägena, i båda städerna. Och tidsgränsen visas bara när den faktiskt gäller.**
 
