@@ -14,6 +14,47 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.15.0 – 2026-08-29
+**Blått betyder nu "klockan tickar" – i båda lägena, i båda städerna. Och tidsgränsen visas bara när den faktiskt gäller.**
+
+**Grönt lovade för mycket.** Grönt ska betyda att du kan ställa bilen utan att hålla koll på
+klockan. Ändå låg gator med 30-minutersgräns gröna i Nu-läget. Regeln som färgar dem blå fanns
+redan, men den krävde ett fält bara Stockholm har – så en Göteborgsgata där staden uttryckligen
+skrivit "30 min" låg grön, medan en Stockholmsficka där tiden bara är gissad ur längden låg blå.
+Vi visade minst där vi visste mest. Nu gäller samma tröskel överallt: finns en tidsgräns kortare
+än ett dygn blir gatan blå, med siffran utskriven.
+
+🔴 **Stockholm kastade en tidsgräns den redan hade.** Avgiftsfria platser finns registrerade i
+två lager samtidigt. Appen tog bort den ena kopian för att slippa rita gatan dubbelt – men det
+var i den kopian tiden bodde. Följden: "kontrollera tidsgräns" på gator där registret säger
+2 tim, och grön färg där. I fem ytterstadsområden bar den kastade kopian tiden i 59 fall av 59.
+Nu räddas den. **Bekräftat i fält:** skyltarna på Österögatan och Skalholtsgatan i Kista säger
+"P 2 tim".
+
+🔴 **Men gränsen gäller inte alltid.** Samma skylt säger också "7–20", och föreskriften avslutar
+"övrig tid får fordon parkeras". En lördag finns alltså ingen gräns – ändå stod det "max 2 tim".
+Appen kollar nu både vilken dag och vilken timme gränsen gäller, och säger ingenting alls om
+den inte gäller just nu. Vet vi inte, står blått kvar: hellre en onödig blick på skylten än en
+kontrollavgift.
+
+**"Vardag" betyder inte måndag–fredag.** Det betyder en dag som varken är söndag eller helgdag.
+Utan den skillnaden svarade appen "gränsen gäller" på Kristi himmelsfärd och på dagen före –
+ungefär 15 av årets 261 vardagar, i båda riktningarna. Svenska helgdagar räknas nu ut, påsken
+inräknad.
+
+**Boendezoner slutade motsäga sig själva.** En boendezon utan publicerad tidsgräns visades grön
+med texten "kontrollera tidsgräns" – grönt som ber dig hålla koll på klockan. De är blå nu,
+med samma förklaring som i Natt-läget. Efter det finns ingen grön sträcka kvar som ber dig
+kontrollera tiden.
+
+**Texterna hann ikapp.** Frågan "Vet ParkSpot om en avgiftsfri plats har egna tidsbegränsningar?"
+svarade att appen färgar gatan grön. Det gör den inte längre. Rättat både i det synliga svaret
+och i den strukturerade datan sökmotorerna läser.
+
+**Kvar, medvetet:** där staden inte publicerar tidsgränsens klockslag står blått kvar hela dygnet
+– det gäller bland annat Kista. Och städvarningarnas egen tolkning av "vardag" är orörd; den
+rör hela stadens viktigaste färg och förtjänar en egen mätning.
+
 ## v1.14.0 – 2026-08-28
 **Göteborg finns nu även i sökmotorerna – och en marknadsföringstext som produkten förnekade är borta.**
 

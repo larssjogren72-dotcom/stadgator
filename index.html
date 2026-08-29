@@ -184,7 +184,7 @@
         "name": "Vet ParkSpot om en avgiftsfri plats har egna tidsbegränsningar?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Ja. Har platsen ett eget städ-/tidsschema visar ParkSpot exakt när det gäller och färgar gatan grön övrig tid. Saknas schemat helt visas platsen istället i ljusblått med \"kontrollera tidsgräns\", eftersom en begränsning (t.ex. P-skiva) då kan finnas utan att synas i vår data."
+          "text": "Ja, när staden har publicerat den. Finns tidsgränsen i registret visar ParkSpot den rakt ut (t.ex. \"max 2 tim\") och färgar gatan ljusblå – inte grön, eftersom grönt ska betyda att du kan stå utan att hålla koll på klockan. Har platsen ett eget städ-/tidsschema visar appen exakt när det gäller. Saknas uppgiften helt visas platsen ändå i ljusblått, då med \"kontrollera tidsgräns\", eftersom en begränsning (t.ex. P-skiva) kan finnas utan att synas i vår data."
         }
       }
     ]
@@ -946,7 +946,7 @@
       <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
         <h3 itemprop="name">Vet ParkSpot om en avgiftsfri plats har egna tidsbegränsningar?</h3>
         <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">Ja. Har platsen ett eget städ-/tidsschema visar ParkSpot exakt när det gäller och färgar gatan grön övrig tid. Saknas schemat helt visas platsen istället i ljusblått med "kontrollera tidsgräns", eftersom en begränsning (t.ex. P-skiva) då kan finnas utan att synas i vår data.</p>
+          <p itemprop="text">Ja, när staden har publicerat den. Finns tidsgränsen i registret visar ParkSpot den rakt ut (t.ex. "max 2 tim") och färgar gatan ljusblå – inte grön, eftersom grönt ska betyda att du kan stå utan att hålla koll på klockan. Har platsen ett eget städ-/tidsschema visar appen exakt när det gäller. Saknas uppgiften helt visas platsen ändå i ljusblått, då med "kontrollera tidsgräns", eftersom en begränsning (t.ex. P-skiva) kan finnas utan att synas i vår data.</p>
         </div>
       </div>
     </div>
@@ -3590,6 +3590,136 @@ function andamalTxt(s) {
 function hasNoOwnCondition(p) {
   return !p.DAY_TYPE && !p.START_WEEKDAY && p.START_TIME == null && p.END_TIME == null;
 }
+// ── Svenska helgdagar ────────────────────────────────────────────────────────
+// "Vardag" i en föreskrift betyder inte måndag–fredag. Det betyder en dag som varken är
+// söndag eller helgdag. Utan kalender svarade appen "vardag, gränsen gäller" på Kristi
+// himmelsfärd (en torsdag) och på onsdagen före den. Uppmätt: ~15 av 261 vardagar per år,
+// 6 %, är fel i BÅDA riktningarna – helgdagen själv och dagen före.
+//
+// Påskberoende dagar räknas ur påskdagen (Gauss/Meeus anonyma algoritm, gregoriansk).
+// Midsommardagen och Alla helgons dag är rörliga lördagar och tas med för fullständighet,
+// men de infaller alltid på lördag och ändrar därför inget vardagssvar.
+// Julafton, midsommarafton och nyårsafton är INTE helgdagar i lag – de utelämnas med flit.
+// Kalendern cachas per år; den anropas en gång per segment och rendering.
+const HELGDAG_CACHE = new Map();
+function paskdagen(ar) {
+  const a = ar % 19, b = Math.floor(ar / 100), c = ar % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const man = Math.floor((h + l - 7 * m + 114) / 31), dag = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(ar, man - 1, dag);
+}
+function helgdagarFor(ar) {
+  if (HELGDAG_CACHE.has(ar)) return HELGDAG_CACHE.get(ar);
+  const nyckel = d => d.getMonth() * 100 + d.getDate();
+  const p = paskdagen(ar), fran = n => { const x = new Date(p); x.setDate(p.getDate() + n); return x; };
+  // Rörlig lördag i ett datumintervall (midsommardagen 20–26 juni, alla helgons dag 31 okt–6 nov).
+  const lordagMellan = (m1, d1, m2, d2) => {
+    const x = new Date(ar, m1 - 1, d1);
+    while (x.getDay() !== 6) x.setDate(x.getDate() + 1);
+    return (x.getMonth() + 1 < m2 || (x.getMonth() + 1 === m2 && x.getDate() <= d2)) ? x : null;
+  };
+  const dagar = [
+    new Date(ar, 0, 1),      // nyårsdagen
+    new Date(ar, 0, 6),      // trettondedag jul
+    fran(-2),                // långfredagen
+    p,                       // påskdagen
+    fran(1),                 // annandag påsk
+    new Date(ar, 4, 1),      // första maj
+    fran(39),                // Kristi himmelsfärdsdag
+    fran(49),                // pingstdagen
+    new Date(ar, 5, 6),      // nationaldagen
+    lordagMellan(6, 20, 6, 26),   // midsommardagen
+    lordagMellan(10, 31, 11, 6),  // alla helgons dag
+    new Date(ar, 11, 25),    // juldagen
+    new Date(ar, 11, 26)     // annandag jul
+  ].filter(Boolean);
+  const set = new Set(dagar.map(nyckel));
+  HELGDAG_CACHE.set(ar, set);
+  return set;
+}
+function arHelgdag(d) {
+  return helgdagarFor(d.getFullYear()).has(d.getMonth() * 100 + d.getDate());
+}
+// Vardag i föreskriftens mening: varken söndag eller helgdag. Lördag ÄR en vardag –
+// den faller bort först genom "utom vardag före sön- och helgdag", eftersom lördagen
+// alltid föregår en söndag. Det är därför den gamla approximationen mån–fre gav rätt
+// svar på lördagar men fel runt röda dagar.
+function arVardag(d) { return d.getDay() !== 0 && !arHelgdag(d); }
+function arDagFore(d) {
+  const i = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  return i.getDay() === 0 || arHelgdag(i);
+}
+
+// ── Gäller maxtiden den här dagen? ───────────────────────────────────────────
+// true = ja · false = nej, dagen är undantagen · null = vet inte (inget DAY_TYPE)
+//
+// Bakgrund (Lars fältkoll Kista 2026-08-29): skyltarna på Österögatan och Skalholtsgatan
+// säger "P / 2 tim / 7-20 / Torsd 0-8". Föreskriften 0180 2010-01783 säger:
+//   "Tillåtelsen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 20.00 och
+//    under högst 2 tim i följd. … ÖVRIG TID FÅR FORDON PARKERAS."
+// Den sista meningen är hela poängen: utanför fönstret finns INGEN gräns. Appen visade
+// ändå "max 2 tim" en lördag, då ingen gräns gäller.
+//
+// ⚠️ Klockslagen (07–20) finns INTE i datan – hela fältdumpen på posten är läst, alla 36
+// fält. START_TIME/END_TIME kodar städfönstrets komplement på torsdagen, inte tidsgränsen.
+// Därför filtreras bara DAGEN här, aldrig timmen. En kväll efter 20 är vi fortfarande för
+// försiktiga, och det är den billiga sortens fel (Lars: "inte grönt om vi inte vet säkert").
+//
+// DAY_TYPE finns på 96 av 137 korttidsposter i fyra ytterstadsrutor. Saknas den blir svaret
+// null och färgen står kvar som förut – ingen post byter färg på en gissning.
+//
+// ⚠️ Tolkningen var identisk med forbudActiveAt nedan – nu är den STRÄNGARE: den känner
+// till svenska helgdagar (se arVardag/arDagFore ovan), det gör inte forbudActiveAt.
+// Det är MEDVETET och inte en slarvig avvikelse. forbudActiveAt styr STÄDVARNINGARNA över
+// hela staden, och samma helgdagsgap finns där: städas gatan på Kristi himmelsfärd? Troligen
+// inte, men det är en egen fråga med egen mätning och mycket större spridning. Att ändra
+// båda i samma svep vore att röra appens viktigaste färg utan att kunna säga vilken ändring
+// som gjorde vad. Kalendern ligger som fristående funktioner just för att kunna kopplas in
+// där sedan, när den ändringen mäts för sig.
+function maxtidGallerDag(dagTyp, d) {
+  const dt = (dagTyp || '').toLowerCase();
+  if (!dt) return null;
+  if (dt.includes('utom vardag före') || dt.includes('utom dag före')) return arVardag(d) && !arDagFore(d);
+  if (dt.includes('vardag före') || dt.includes('dag före'))           return arVardag(d) &&  arDagFore(d);
+  if (dt.includes('vardag'))                                          return arVardag(d);
+  // Nu när kalendern finns kan även den här besvaras (sedd på 4 sträckor). Tidigare
+  // returnerade den null just för att "helgdag" inte gick att avgöra.
+  if (dt.includes('sön- och helgdag'))                                return !arVardag(d);
+  return null;   // okänt mönster – gissa inte
+}
+
+// ── Gäller maxtiden den här TIMMEN? ──────────────────────────────────────────
+// true = ja · false = nej, klockan står utanför fönstret · null = vet inte
+//
+// Ett och samma fältpar (START_TIME/END_TIME) betyder TVÅ olika saker i Stockholms data,
+// och vilket avgörs av om posten bär en veckodag:
+//   MED START_WEEKDAY → tiderna beskriver STÄDFÖNSTRET, inte tidsgränsen. Österögatan:
+//     torsdag 800-0, dvs den del av torsdagen som INTE städas. Tidsgränsens egna
+//     klockslag (07–20 enligt skylt och föreskrift) finns då ingenstans i posten.
+//   UTAN START_WEEKDAY → tiderna ÄR tidsgränsens fönster. PDF-verifierat på Lingvägen
+//     0180 2011-04019: datan säger 900-1800, föreskriften "under högst 1 tim i följd
+//     vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00".
+//
+// Datan bekräftar uppdelningen av sig själv (137 korttidsposter, fyra ytterstadsrutor):
+//   utan veckodag: 48 av 48 med tider är vanliga dagfönster (900-1800, 700-2000 …)
+//   med veckodag:  77 av 77 VÄNDER över midnatt (800-0, 1600-800, 1200-800 …)
+// Därför krävs BÅDA villkoren nedan, inte bara avsaknad av veckodag: dyker en post upp
+// utan veckodag men med ett vändande fönster passar den ingen av tolkningarna, och då
+// ska svaret bli "vet ej" i stället för en gissning.
+//
+// Används ENBART i Nu-läget. Natt-läget frågar om i morgon och ska enligt Lars beslut
+// 2026-08-28 fälla även när gränsen vilar på natten – den återupptas ju på morgonen.
+function maxtidGallerKlockan(start, slut, d) {
+  if (start == null || slut == null) return null;
+  const min = h => Math.floor(h / 100) * 60 + (h % 100);
+  const a = min(start), b = min(slut);
+  if (a >= b) return null;                       // vändande fönster → inte en tidsgräns
+  const nu = d.getHours() * 60 + d.getMinutes();
+  return nu >= a && nu < b;
+}
 function forbudActiveAt(p, d) {
   if (p.ODD_EVEN != null) return null;             // ovanligt fält, aldrig sett i data – gissa inte
   if (p.START_MONTH != null) {
@@ -3917,6 +4047,15 @@ function toAllowedSegment(f) {
     // här och nu (tidsklausul) – vilken FÄRG en maxtid ska ge är en egen fråga som inte
     // är avgjord, så inget segment byter färg av att fältet börjar läsas.
     maxMinutes: maxTidMinuter(p),
+    // VILKA DAGAR maxtiden gäller. Egen nyckel, inte andamalDayType: den beskriver
+    // ändamålsplatsens fönster och kan komma från en annan post. Kan skrivas om av
+    // citation-räddningen i loadParkingV2 (Stockholms avgiftsfria tvillingpar).
+    maxTidDagTyp: p.DAY_TYPE || null,
+    // VILKA TIMMAR maxtiden gäller – men BARA när posten saknar veckodag. Bär den en
+    // veckodag hör klockslagen till städfönstret och säger ingenting om tidsgränsen
+    // (se maxtidGallerKlockan för mätningen som skiljer de två fallen åt).
+    maxTidStart: p.START_WEEKDAY ? null : (p.START_TIME != null ? +p.START_TIME : null),
+    maxTidSlut:  p.START_WEEKDAY ? null : (p.END_TIME   != null ? +p.END_TIME   : null),
     // Platsens ENDA registrerade tillåtelse är en boendezon. Då VET vi att en
     // tidsgräns finns – boendetillståndet är per definition ett undantag från en
     // sådan – men inte vilken. Det är starkare än "okänt": det är "känt att den
@@ -4007,6 +4146,32 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   // dubbelritas sträckan: en ovärderad grön UTAN tidsgräns ovanpå/under vår blå/amber.
   // allowedPts/allowedSegs ovan är redan beräknade och opåverkade – andra förbudslinjers
   // sväljning i närheten rörs alltså inte.
+  // …men RÄDDA tidsgränsen ur kopian innan den kastas. Förbudsgrenen nedan säger i sin
+  // kommentar att MAX_HOURS/MAX_MINUTES är "konsekvent null" för den här typen, och det är
+  // sant – på FÖRBUDSSIDAN. Tiden finns, i P_TILLATEN-tvillingen vi just tar bort. Uppmätt
+  // 2026-08-28 i fem ytterstadsrutor (Kista, Hökarängen, Hässelby, Bromma, Skarpnäck):
+  //   "Avgiftsfri parkering" i P_TILLATEN: 180 poster, 111 med tidsgräns
+  //   samma typ i P_FORBUD:                105 poster,   0 med tidsgräns
+  //   paras via CITATION:                   59 par – i 59 av 59 bar bara tillåten-kopian tiden
+  // Följden var att appen sa "kontrollera tidsgräns" på gator där registret säger 2 tim, och
+  // målade dem gröna när städfönstret var bevisat inaktivt. Vi hade siffran och kastade den.
+  // Paras på CITATION (ärendenumret), samma nyckel som redan binder ihop de två lagren för
+  // dedikerade platser (se kommentaren vid VF_METER/orphan-parningen). Lägsta värdet vinner
+  // vid krock – samma försiktiga princip som vid taxa-zongräns.
+  const maxTidFranTillaten = new Map();
+  allowed.forEach(s => {
+    if (s.platsTyp !== 'Avgiftsfri parkering' || s.maxMinutes == null || !s.citation) return;
+    // Dagtypen följer MED tiden, inte separat: den beskriver samma villkor i samma
+    // post ("Tillåtelsen gäller vardag … och under högst 2 tim i följd"). Skulle de
+    // hämtas från olika tvillingar kunde en gräns paras med fel dagar.
+    const fore = maxTidFranTillaten.get(s.citation);
+    if (fore == null || s.maxMinutes < fore.min) {
+      maxTidFranTillaten.set(s.citation, {
+        min: s.maxMinutes, dagTyp: s.maxTidDagTyp,
+        start: s.maxTidStart, slut: s.maxTidSlut
+      });
+    }
+  });
   allowed = allowed.filter(s => s.platsTyp !== 'Avgiftsfri parkering');
 
   // C35-detektering: behåll P_FORBUD-delsträckor UTAN tillåten i närheten – plus (fas 2a steg A)
@@ -4118,6 +4283,23 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     if (!seg.linesSweref.length) return;
     seg.fromForbud = true;
     seg.avgiftsfriTidsbegransad = true;
+    // Tidsgränsen bor i P_TILLATEN-tvillingen, inte här (se maxTidFranTillaten ovan).
+    // Skriv bara när vi själva saknar den – förbudspostens egen siffra, om den mot
+    // förmodan finns, är närmare källan och ska vinna.
+    if (seg.maxMinutes == null) {
+      const fran = maxTidFranTillaten.get(seg.citation);
+      if (fran != null) {
+        seg.maxMinutes = fran.min;
+        // Utan dagtypen skulle just de här segmenten – de enda som får sin tid räddad –
+        // sakna dagfiltret helt, och lördagsfelet skulle stå kvar precis där Lars
+        // fotograferade skylten. Förbudspostens egen DAY_TYPE är null (uppmätt), så
+        // det finns inget att skriva över.
+        seg.maxTidDagTyp = seg.maxTidDagTyp || fran.dagTyp;
+        // Tiderna räddas från SAMMA tvilling som dagen och siffran – aldrig från
+        // förbudsposten här, vars klockslag beskriver städfönstret.
+        if (seg.maxTidStart == null) { seg.maxTidStart = fran.start; seg.maxTidSlut = fran.slut; }
+      }
+    }
     // Tre lägen, inte två: true (städas nu) / false (VI VET säkert att fönstret inte är
     // aktivt, av postens EGNA veckodags-/tidsfält – inte bara "inget upptäckt") / null (osäkert,
     // ovanligt mönster). Bara null ska ge den försiktiga "kontrollera tidsgräns"-texten – false
@@ -4400,7 +4582,16 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // Ligger FÖRE blocket nedan med flit: en känd siffra ska vinna över det
       // generella "vi vet inte". Görs efter färgkedjan av samma skäl som där –
       // nya gröna grenar fångas automatiskt i stället för att glömmas.
-      if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER) {
+      // Dagfiltret frågar om I MORGON här, inte om idag – lägets löfte är "tryggt till i
+      // morgon", så det är morgondagens gräns som avgör om bilen kan stå kvar. En lördag
+      // kväll är i morgon söndag: gäller gränsen bara vardagar biter den inte, och grönt
+      // är sant. En söndag kväll är i morgon måndag och gränsen återupptas.
+      // Detta ändrar INTE Lars beslut 2026-08-28 om klockslag: en gräns som vilar 22–06
+      // men återupptas 08 fäller fortfarande till blått, eftersom den biter på morgonen.
+      // Här handlar det om DAGAR, där gränsen inte återupptas alls.
+      const imorgon = new Date(Date.now() + 864e5);
+      if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER
+          && maxtidGallerDag(s.maxTidDagTyp, imorgon) !== false) {
         color = '#38bdf8';
         txt   = `Får parkera · ${tidsklausul(s.maxMinutes)}`;
         // Chipet bär redan siffran → detaljraden ger FÖLJDEN, upprepar den inte.
@@ -4890,13 +5081,63 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // och siffran finns i datan. Bara på gröna: en varning ("Städas nu – flytta
       // bilen") ska inte få ett lugnande maxtidstillägg efter sig, och de blå
       // grenarna ovan bär redan klausulen.
-      // Nu-läget byter ALDRIG färg av en maxtid – det är Natt-lägets regel.
-      // Uttrycks som samma klausul som överallt annars (se tidsklausul).
-      if (color === '#16a34a' && s.maxMinutes != null) txt += ` · ${tidsklausul(s.maxMinutes)}`;
-      // Boendezon utan publicerad gräns: färgen står kvar – "får du stå just nu" är
-      // sant – men chipet ska inte tiga om att en gräns finns. Samma klausul som
-      // överallt annars, i sin okända form.
-      else if (color === '#16a34a' && s.endastBoende) txt += ` · ${tidsklausul(null)}`;
+      // ── Kort tidsgräns fäller grönt till blått – SAMMA tröskel som Natt ──────
+      // Tidigare bytte Nu-läget aldrig färg av en maxtid, med motiveringen att
+      // "får du stå just nu" är sant även med en gräns. Det stämmer, men det var
+      // inte hela bilden: appen visade REDAN blått i Nu-läget för Stockholms
+      // korttidsfickor (grenen s.visitorShort ovan). Regeln fanns alltså, men
+      // villkoret var Stockholms – visitorShort kräver VF_METER, ett fält
+      // Göteborg inte har (cities/goteborg.js sätter det till null). Följden var
+      // att en gata med MAX_MINUTES: 30 i datan låg grön medan en Stockholmsficka
+      // där tiden är GISSAD ur längden låg blå. Vi visade minst där vi visste mest.
+      //
+      // Tröskeln är densamma som Natt-lägets (NATT_MIN_MINUTER, ett dygn) med
+      // flit – en regel, två lägen, två städer. Att den råkar vara generös spelar
+      // ingen roll: Göteborgs maxtider klumpar ihop sig i botten. Hela lagret
+      // parkering:tidsbegransad, 2 338 poster (2026-08-28): 30 min 1 238,
+      // 2 tim 502, 1 tim 225, 4 tim 189, 24 tim 172, 12 tim 9, 3 tim 2, 6 tim 1.
+      // Mellan 4 tim och 24 tim ligger alltså 10 poster – 0,4 %. Varje tröskel
+      // mellan 5 och 24 timmar träffar i praktiken samma sträckor, så en egen
+      // Nu-tröskel vore en knapp utan verkan, och ett andra tal att hålla i synk.
+      // (En tidigare version av den här kommentaren sa "INGENTING mellan 4 och 24
+      // tim". Det gällde ett stickprov på sju stadsdelar, inte hela staden.)
+      //
+      // okNu rörs inte: blått i Nu betyder fortfarande "du får stå" (de blå
+      // grenarna ovan räknar också upp okNu), bara att klockan tickar.
+      // Dag- OCH timfiltret: fäll INTE om posten själv säger att gränsen inte gäller nu.
+      // "false" är ett besked ur datan, inte frånvaro av besked – null (fältet saknas
+      // eller är otolkbart) fäller som förut. Se maxtidGallerDag/maxtidGallerKlockan.
+      // Timmen frågas bara här i Nu-läget; Natt-läget har sin egen logik längre upp.
+      if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER
+          && maxtidGallerDag(s.maxTidDagTyp, now) !== false
+          && maxtidGallerKlockan(s.maxTidStart, s.maxTidSlut, now) !== false) {
+        color = '#38bdf8';
+        txt   = `Får stå nu · ${tidsklausul(s.maxMinutes)}`;
+      }
+      // Lång gräns (24 tim, 7 dygn): färgen står kvar, men siffran ska ändå synas.
+      // "Får stå nu" är sant om en 24-timmarsplats, men det är inte HELA sanningen,
+      // och siffran finns i datan. Bara på gröna: en varning ("Städas nu – flytta
+      // bilen") ska inte få ett lugnande maxtidstillägg efter sig, och de blå
+      // grenarna bär redan klausulen.
+      // Samma filter här: en gräns som inte gäller just nu ska inte NÄMNAS heller.
+      // Att skriva "max 2 tim" i grön text en lördag vore samma påstående som den
+      // blå färgen, bara tystare – och lika osant.
+      else if (color === '#16a34a' && s.maxMinutes != null
+               && maxtidGallerDag(s.maxTidDagTyp, now) !== false
+               && maxtidGallerKlockan(s.maxTidStart, s.maxTidSlut, now) !== false) txt += ` · ${tidsklausul(s.maxMinutes)}`;
+      // Boendezon utan publicerad gräns: en boendezon FÖRUTSÄTTER att det finns en
+      // tidsgräns (tillståndet gäller "med avvikelse från gällande tidsbegränsning på
+      // platsen", föreskrift 1480 2007-02789) – vi vet bara inte vilken.
+      // Låg tidigare kvar som GRÖN med klausulen tillagd, vilket gav chipet
+      // "Får stå nu · kontrollera tidsgräns" på en grön gata (uppmätt 36 sträckor i
+      // Vegagatan-rutan). Grönt som ber dig kontrollera tidsgränsen motsäger sig
+      // självt, och nu när blått uttryckligen betyder "en gräns gäller" hör de hemma
+      // där. Natt-läget fällde dem redan (se motsvarande gren i uc2-flödet) – detta
+      // gör lägena överens.
+      else if (color === '#16a34a' && s.endastBoende) {
+        color = '#38bdf8';
+        txt   = `Får stå nu · ${tidsklausul(null)}`;
+      }
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
       // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
       // "Kort besök går bra" är ett FAKTUM (du hinner därifrån innan fönstret börjar), inte en
@@ -4918,6 +5159,14 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
                     : '';
+      // Boendezonens förklaring, ordagrant densamma som i Natt-flödet. Chipet säger att en
+      // gräns finns; detaljraden säger VARFÖR vi inte kan sätta en siffra på den. Sätts här
+      // och inte i färgkedjan ovan eftersom infoRow deklareras först nu.
+      if (color === '#38bdf8' && s.endastBoende && s.maxMinutes == null) {
+        infoRow = s.boendeZon
+          ? `Boendezon ${s.boendeZon} – hur länge du får stå utan tillstånd står inte i stadens data`
+          : 'Boendezon – hur länge du får stå utan tillstånd står inte i stadens data';
+      }
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
       // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
       // "Nästa städning" är dessutom irrelevant på platser man inte får använda.
@@ -6058,7 +6307,7 @@ function renderModeIntro() {
   const disclaimer = DISCLAIMER_HTML;
   const intro = {
     now: STAD.skiljerKorttid
-      ? `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Blått betyder att du får parkera men bör kontrollera tidsgränsen på skylten. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`
+      ? `<b>"Nu"</b> visar var du får parkera lagligt just nu. Grönt är säkrast. Orange med ljus kant betyder gott om tid innan städning – ofta ett bra val för ett kortare ärende, eftersom färre ställer sig där. Blått betyder att du får stå, men att en tidsgräns gäller: står den i stadens data visar appen den (t.ex. «max 30 min»), annars säger den till att läsa skylten. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`
       : `<b>"Nu"</b> visar var du får parkera lagligt just nu. ${STAD.namn} publicerar inte vilka platser som är korttid, så blått betyder "du får stå här – men läs skylten för hur länge". Orange med ljus kant betyder gott om tid innan städning. Tryck på ${tapTargetPhraseAny()} för detaljer och vägbeskrivning.`,
     uc2: `<b>"Natt"</b> visar var ${vehicleWord()} står lagligt till imorgon bitti. Service tidigt på morgonen varnas; service senare på dagen hinner du undan. Tryck på ${tapTargetPhraseAny()} för service-tider och vägbeskrivning.`,
   };
