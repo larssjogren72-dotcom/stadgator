@@ -3720,6 +3720,39 @@ function maxtidGallerKlockan(start, slut, d) {
   const nu = d.getHours() * 60 + d.getMinutes();
   return nu >= a && nu < b;
 }
+// ── Underliggande parkeringsförbud ("övrig tid får fordon inte parkeras") ────
+// Ett tidsreglerat förbud har i verkligheten TVÅ lager, inte ett. Lars fotograferade
+// mekanismen 2026-08-29: skylten växlar mellan två märken.
+//   Kryss (C39)  = förbud att STANNA och parkera – gäller i tidsfönstret
+//   Streck (C35) = förbud att PARKERA           – gäller övrig tid
+// Högbergsgatans tilläggstavla säger det rakt ut: "🔵 övrig tid".
+//
+// forbudActiveAt svarar bara på det FÖRSTA lagret. Blir svaret false släpper appen fram
+// grönt – men på de här gatorna är parkering förbjuden dygnet runt, och grönt är då direkt
+// farligt. Föreskrifterna avslutas med "Övrig tid får fordon inte parkeras" (två ordföljder
+// i bruk; äldre skriver "får inte fordon parkeras").
+//
+// ⚠️ Meningen finns INTE i karttjänsten. Nio WFS-fält jämförda systematiskt mellan gator som
+// har den och gator som inte har den – inget värde skiljer dem åt. Stockholms eget textlager
+// (LTFR_FORESKRIFT) bär föreskriftstext, men bara för ändamålsplats/gågata m.fl.: 0 av 193
+// parkeringsförbud finns där. Enda källan är RDT.
+//
+// STEG 1 (detta): modellen. Mängden nedan innehåller ENDAST de ärendenummer Lars kontrollerat
+// på plats med foto – inte hela den maskinlästa genomsökningen. Ett okänt ärendenummer ger
+// null och därmed exakt dagens beteende; ingen sträcka byter färg på en gissning.
+// STEG 2 (ej byggt): byt mängden mot en genererad tabell. Regeln "okänt → dagens beteende"
+// gäller då också, så en inaktuell tabell aldrig kan skapa ett falskt rött.
+const FORBUD_OVRIG_TID = new Set([
+  '0180 2008-08583',   // Frejgatan, Birger Jarlsg–Roslagsg – Lars: kryss växlar till streck
+  '0180 2012-03126',   // Odengatan, Verdandig–Valhallav   – Lars: "förbud aldrig parkera"
+  '0180 2023-02987',   // Renstiernas Gata ö, Åsög–Kocksg  – Lars: C35 utan tidtavla
+  '0180 2025-05048'    // Högbergsgatan n, Götg–Repslagarg – Lars: tilläggstavla "övrig tid"
+]);
+// true = parkering förbjuden även utanför tidsfönstret · null = vet inte (dagens beteende)
+function parkeringForbjudenOvrigTid(citation) {
+  if (!citation) return null;
+  return FORBUD_OVRIG_TID.has(citation) ? true : null;
+}
 function forbudActiveAt(p, d) {
   if (p.ODD_EVEN != null) return null;             // ovanligt fält, aldrig sett i data – gissa inte
   if (p.START_MONTH != null) {
@@ -4203,7 +4236,10 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     // (Urbergsvägen 0180 2020-00138, Mamrevägen 0180 2021-03652) att den taggen då är felaktig
     // och posten i verkligheten är ett fullständigt förbud utan undantag (Lars 2026-08-20).
     if ((fp.VF_PLATS_TYP || '') === 'Avgiftsfri parkering' && !hasNoOwnCondition(fp)) return;
-    if (forbudActiveAt(fp, tD) === false) return;        // fas 2d – tidsfönster inte aktivt just nu
+    // Fas 2d SKA INTE gälla när posten har ett underliggande parkeringsförbud: då är
+    // tidsfönstret bara stannandeförbudet, och parkering är förbjuden ändå (se
+    // parkeringForbjudenOvrigTid). Rött ska stå kvar dygnet runt.
+    if (forbudActiveAt(fp, tD) === false && parkeringForbjudenOvrigTid(fp.CITATION) !== true) return;
     for (let i = 0; i < line.length - 1; i++) {
       const a = line[i], b = line[i+1];
       const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
@@ -4255,6 +4291,9 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     if (isParkingForbud(fp)) return;                        // redan hanterad ovan
     if ((fp.VF_PLATS_TYP || '') === 'Avgiftsfri parkering') return;  // egen gren nedan
     if (forbudActiveAt(fp, tD) !== false) return;            // aktiv nu eller osäkert → rör inte
+    // …och gör den ALDRIG grön om parkering är förbjuden övrig tid. Utan den här raden
+    // skulle rött-spärren ovan bli verkningslös: posten skulle ritas grön i stället.
+    if (parkeringForbjudenOvrigTid(fp.CITATION) === true) return;
     const seg = toAllowedSegment(f);
     if (!seg.linesSweref.length) return;                     // ingen ritbar geometri (t.ex. annan ytetyp)
     seg.fromForbud = true;
