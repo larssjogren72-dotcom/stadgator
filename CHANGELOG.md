@@ -14,6 +14,38 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.18.0 – 2026-08-29
+**En gata som just blivit tillåten lyser upp.**
+
+**Bakgrunden är verklig.** Lars körde till en restaurang, gatan var full, men klockan 19:08
+hade lastplatsens stoppförbud precis slutat gälla och det fanns plats. Kartan visade grönt –
+men sa ingenting om att sträckan öppnat för tjugo minuter sedan, vilket är den mest
+användbara upplysningen som finns i det ögonblicket.
+
+**Nu lyser den.** En sträcka vars förbud tog slut inom de senaste tre timmarna får en ljus
+kant, och kortet säger varför: "Förbudet tog slut 17 – bra chans att det finns plats".
+
+**Det är samma signal som förut, inte en ny.** Den ljusa kanten har redan två betydelser i
+appen – nyss städad, och gott om tid innan städning – och båda säger samma sak: det här är en
+bra chans just nu. Ett förbud som nyss tog slut säger detsamma, starkare till och med,
+eftersom ingen har kunnat parkera där under tiden. En egen färg hade påstått att det är något
+annat, och tre lysande signaler med samma innebörd blir brus i stället för information.
+
+**Därför byter legenden ord.** Den sa "Nyss städad – bra chans", vilket beskrev en av
+orsakerna i stället för signalen. Nu står det "Förbudet tog nyss slut – bra chans" och täcker
+båda – ett städfönster är också ett parkeringsförbud. Städningen finns kvar som förklaring på
+platskortet, där den hör hemma.
+
+🔴 **Vi lovade något vi inte kan veta.** Kortet för motorcykel- och handikapplatser sa "bra
+chans att den är ledig". ParkSpot har inga sensorer för lediga platser och skriver det
+uttryckligen i sin egen ansvarstext. Nu står det "bra chans att det finns plats" – vi vet att
+förbudet tog slut, inte att bilen som stod där har åkt.
+
+**Signalen är sällsynt med flit.** I fem innerstadsområden en lördagseftermiddag lyste två
+sträckor av 3 277. Den gäller bara när något gick från förbjudet till tillåtet – inte när en
+tidsgräns slutade gälla, för då har ingen varit förhindrad att parkera och platsen är inte
+mer ledig än vanligt.
+
 ## v1.17.0 – 2026-08-29
 **Göteborg slutar visa en tidsgräns när den inte gäller.**
 
