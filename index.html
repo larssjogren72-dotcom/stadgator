@@ -3534,12 +3534,272 @@ const andamalKod = (t) => { const s = String(t == null ? '' : t).trim();
 // (då rör vi inte segmentet – en otolkbar regel får aldrig färga om något).
 // Tre mönster täcker 180/180 poster i fem områden, mätt 2026-07-28.
 const SV_WEEKDAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
+
+// ── Göteborgs lastplatstider ──────────────────────────────────────────────
+// Göteborg skriver INTE lastplatsens fönster som klockslagsfält. Det står som en mening i
+// fritext, ordagrant ur föreskriften – «Lastplats vardag utom vardag före sön- och helgdag
+// klockan 09.00 - 18.00…». Meningarna är översatta EN GÅNG, utanför appen, och slås upp på
+// exakt sträng. Skriver staden om en mening hittas den inte, och då säger appen «vet inte»
+// i stället för att tolka den fel. Se verktyg/las-gbg-lastplats.js.
+  // ▼▼ GENERERAD TABELL – ändra inte för hand, kör verktyg/bygg-gbg-lastplats.js ▼▼
+  // 98 lastplatsmeningar, 196 kartsträckor.
+  // Läst ur Göteborgs WFS 2026-08-29 och granskad för hand. Uppslag på EXAKT sträng:
+  // en mening som inte står här ger "vet inte", och då rör appen inte segmentet.
+  // De 140 lastplatser som saknar mening finns INTE här – de gäller dygnet
+  // runt och flaggas som ANDAMAL_ALLTID redan i cities/goteborg.js.
+  // Utelämnade med flit (saknar klockslag, 3 sträckor): Lastplats vardag utom vardag före sön- och helgdag. / Lastplats under tiden 1:a oktober - 1:a maj.
+  // dag: vardag-ej-dagfore | dagfore | sonhelg | vardag | alla | måndag…söndag.
+  // Fjärde värdet, när det finns, är veckoparitet: 'udda' eller 'jamn'.
+  const GBG_LASTPLATS_TIDER = {
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500]] },   // 27 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00.":
+      { r: [['vardag-ej-dagfore',700,1700]] },   // 9 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500]] },   // 8 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 17.00.":
+      { r: [['vardag-ej-dagfore',800,1700]] },   // 8 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',800,1800],['dagfore',800,1500]] },   // 7 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',900,1200]] },   // 7 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',800,1600]] },   // 6 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',900,1800]] },   // 5 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardagar före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500]] },   // 5 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',700,1600]] },   // 5 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 18.00 och vardag före sön- och helgdag klockan 06.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',600,1800],['dagfore',600,1500]] },   // 4 sträckor
+    "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500]] },   // 3 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',700,1800]] },   // 3 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och torsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',700,1800],['torsdag',200,700]] },   // 3 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 08.00 - 17.00.":
+      { r: [['vardag-ej-dagfore',800,1700]] },   // 2 sträckor
+    "Lastplats vardagar klockan 07.00 - 18.00.":
+      { r: [['vardag',700,1800]] },   // 2 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1500]] },   // 2 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 14.00.":
+      { r: [['vardag-ej-dagfore',700,1400]] },   // 2 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 13.00.":
+      { r: [['vardag-ej-dagfore',700,1300]] },   // 2 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',800,1200]] },   // 2 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 11.00.":
+      { r: [['vardag-ej-dagfore',700,1100]] },   // 2 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 10.00.":
+      { r: [['vardag-ej-dagfore',700,1000]] },   // 2 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och fredag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['fredag',200,700]] },   // 2 sträckor
+    "Lastplats vardag klockan 07.00 - 17.00.":
+      { r: [['vardag',700,1700]] },   // 2 sträckor
+    "Lastplats vardag klockan 07.00 - 12.00.":
+      { r: [['vardag',700,1200]] },   // 2 sträckor
+    "Lastplats vardag klockan 02.00 - 18.00.":
+      { r: [['vardag',200,1800]] },   // 2 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 16.00 och onsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',700,1600],['onsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 10.00 - 17.00.":
+      { r: [['vardag-ej-dagfore',1000,1700]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 08.00 - 10.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['onsdag',800,1000]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',700,1500]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 06.00 - 18.00 och vardag före sön- och helgdag klockan 06.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',600,1800],['dagfore',600,1500]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 08.00 - 10.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['onsdag',800,1000]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 14.00.":
+      { r: [['vardag-ej-dagfore',900,1400]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',800,1800],['dagfore',800,1500]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 11.00.":
+      { r: [['vardag-ej-dagfore',700,1100]] },   // 1 sträckor
+    "Lastplats vardag före sön- och helgdag klockan 09.00 - 15.00 och vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.":
+      { r: [['dagfore',900,1500],['vardag-ej-dagfore',900,1800]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',900,1200]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',700,1800]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 20.00, vardag före sön- och helgdag klockan 07.00 - 18.00 och sön- och helgdag klockan 10.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',700,2000],['dagfore',700,1800],['sonhelg',1000,1500]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.":
+      { r: [['vardag-ej-dagfore',0,2400]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['onsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 17.00.":
+      { r: [['vardag-ej-dagfore',700,1700]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 16.00 och sön- och helgdagar klockan 09.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',700,1800],['dagfore',900,1600],['sonhelg',900,1600]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',700,1800],['dagfore',700,1600]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och tisdag klockan 02.00 - 07.00 udda veckor.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['tisdag',200,700,'udda']] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 02.00 - 07.00 jämna veckor.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['onsdag',200,700,'jamn']] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00 och torsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',800,1800],['torsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 17.00 och torsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',800,1700],['torsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardagar utom vardag före sön- och helgdag och klockan 09.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',900,1200]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och vardag före sön- och helgdag klockan 07.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',700,1700],['dagfore',700,1500]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 13.00 och fredag klockan 02.00 - 07.00 jämna veckor.":
+      { r: [['vardag-ej-dagfore',800,1300],['fredag',200,700,'jamn']] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och torsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['torsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 09.00.":
+      { r: [['vardag-ej-dagfore',700,900]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',200,1200]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 10.00 och tisdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',700,1000],['tisdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag klockan 07.00 - 17.00 och torsdag klockan 02.00 - 07.00.":
+      { r: [['vardag',700,1700],['torsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 10.00.":
+      { r: [['vardag-ej-dagfore',800,1000]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 13.00.":
+      { r: [['vardag-ej-dagfore',900,1300]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 10.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',1000,1800]] },   // 1 sträckor
+    "Lastplats tisdag klockan 07.00 - 10.00.":
+      { r: [['tisdag',700,1000]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',800,1800]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och torsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['torsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',700,1200]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',200,1600]] },   // 1 sträckor
+    "Lastplats vardag klockan 07.00 - 14.00.":
+      { r: [['vardag',700,1400]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 14.00.":
+      { r: [['vardag-ej-dagfore',600,1400]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 14.00 och vardag före sön- och helgdag klockan 06.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',600,1400],['dagfore',600,1200]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',200,1500]] },   // 1 sträckor
+    "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1500]] },   // 1 sträckor
+    "Lastplats vardag klockan 06.00 - 18.00 och sön- och helgdag klockan 06.00 - 18.00.":
+      { r: [['vardag',600,1800],['sonhelg',600,1800]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardagar före sön- och helgdag klockan 07.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',700,1800],['dagfore',700,1500]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500],['onsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 12.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',1200,1600]] },   // 1 sträckor
+    "Lastplats vardag klockan 09.00 - 18.00.":
+      { r: [['vardag',900,1800]] },   // 1 sträckor
+    "Lastplats vardagar utom vardag före sön- och helgdag klockan 07.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',700,1500]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',700,1500]] },   // 1 sträckor
+    "Lastplats vardagar utom vardag före sön- och helgdag klockan 08.00 - 16.00 och onsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',800,1600],['onsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 16.00 och onsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',800,1600],['onsdag',200,700]] },   // 1 sträckor
+    "Lastplats tisdag klockan 08.00 - 11.00.":
+      { r: [['tisdag',800,1100]] },   // 1 sträckor
+    "Lastplats vardag klockan 07.00 - 13.00.":
+      { r: [['vardag',700,1300]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',800,1500]] },   // 1 sträckor
+    "Lastplats vardag klockan 09.00 - 12.00.":
+      { r: [['vardag',900,1200]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 13.00.":
+      { r: [['vardag-ej-dagfore',800,1300]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 14.00.":
+      { r: [['vardag-ej-dagfore',700,1800],['dagfore',700,1400]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 11.00.":
+      { r: [['vardag-ej-dagfore',900,1100]] },   // 1 sträckor
+    "Lastplats vardag klockan 09.00 - 13.00 och sön- och helgdag klockan 09.00 - 13.00.":
+      { r: [['vardag',900,1300],['sonhelg',900,1300]] },   // 1 sträckor
+    "Lastplats vardagar klockan 09.00 - 12.00.":
+      { r: [['vardag',900,1200]] },   // 1 sträckor
+    "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardagar före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 10.00 och 15.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',800,1000],['vardag-ej-dagfore',1500,1800]] },   // 1 sträckor
+    "Lastplats vardag klockan 07.00 - 18.00 och sön- och helgdag klockan 07.00 - 18.00.":
+      { r: [['vardag',700,1800],['sonhelg',700,1800]] },   // 1 sträckor
+    "Lastplats vardag klockan 06.00 - 10.00.":
+      { r: [['vardag',600,1000]] },   // 1 sträckor
+    "Lastplats klockan 08.00 - 16.00.":
+      { r: [['alla',800,1600]] },   // 1 sträckor
+    "Lastplats tisdag klockan 09.00 - 12.00.":
+      { r: [['tisdag',900,1200]] },   // 1 sträckor
+    "Lastplats vardag klockan 06.00 - 12.00 och sön- och helgdag klockan 06.00 - 12.00.":
+      { r: [['vardag',600,1200],['sonhelg',600,1200]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och torsdag klockan 02.00 - 07.00.":
+      { r: [['vardag-ej-dagfore',700,1700],['torsdag',200,700]] },   // 1 sträckor
+    "Lastplats vardag klockan 08.00 - 18.00 och vardagar utom vardag före sön- och helgdag klockan 08.00 - 15.00.":
+      { r: [['vardag',800,1800],['vardag-ej-dagfore',800,1500]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och vardag före sön- och helgdag klockan 07.00 - 12.00.":
+      { r: [['vardag-ej-dagfore',700,1700],['dagfore',700,1200]] },   // 1 sträckor
+    "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',700,1800],['dagfore',700,1500]] },   // 1 sträckor
+  };
+  // ▲▲ SLUT GENERERAD TABELL (Göteborgs lastplatstider) ▲▲
+
+// Vilka fönster gäller det här datumet? null = meningen finns inte i tabellen (vet inte),
+// [] = känd mening men ingen regel träffar dagen (lastplatsen vilar då).
+function gbgLastplatsFonster(mening, d) {
+  if (!mening) return null;
+  const post = GBG_LASTPLATS_TIDER[String(mening).replace(/\s+/g, ' ').trim()];
+  if (!post) return null;
+  const udda = isoWeek(d) % 2 === 1;
+  const ut = [];
+  for (const [dag, fran, till, vecka] of post.r) {
+    if (vecka === 'udda' && !udda) continue;
+    if (vecka === 'jamn' &&  udda) continue;
+    let ok;
+    if (dag === 'alla')                   ok = true;
+    else if (dag === 'vardag-ej-dagfore') ok = arVardag(d) && !arDagFore(d);
+    // MÅSTE vara vardag OCKSÅ. Midsommardagen är en lördag som ligger dagen före en
+    // söndag – utan vardagskravet blev själva helgdagen «dag före sön- och helgdag» och
+    // lastplatsen tändes på en dag meningen inte nämner. Samma villkor som maxtidGallerDag.
+    else if (dag === 'dagfore')           ok = arVardag(d) && arDagFore(d);
+    else if (dag === 'sonhelg')           ok = !arVardag(d);
+    else if (dag === 'vardag')            ok = arVardag(d);
+    else                                  ok = SV_WEEKDAYS[d.getDay()] === dag
+                                            || (dag === 'mandag' && d.getDay() === 1)
+                                            || (dag === 'lordag' && d.getDay() === 6)
+                                            || (dag === 'sondag' && d.getDay() === 0);
+    if (ok) ut.push({ start: fran, end: till });
+  }
+  return ut;
+}
+// Gäller lastplatsen vid tidpunkten d? null = vet inte (okänd mening).
+function gbgLastplatsAktiv(mening, d) {
+  const f = gbgLastplatsFonster(mening, d);
+  if (f === null) return null;
+  const min = h => Math.floor(h / 100) * 60 + (h % 100);
+  const nu = d.getHours() * 60 + d.getMinutes();
+  return f.some(w => { const a = min(w.start), b = min(w.end);
+                       return a <= b ? (nu >= a && nu < b) : (nu >= a || nu < b); });
+}
+
 function andamalActiveAt(s, d) {
   if (!s.andamal) return null;
   // Dygnet runt: inget fönster att jämföra mot, men platsen är ändå alltid en lastplats.
   // Måste ligga FÖRE null-vakten nedan – annars faller just de posterna igenom som
   // «okänt» och målas gröna, vilket var hela felet.
   if (s.andamalAlltid) return true;
+  // Göteborg bär fönstret som mening. Ligger den i tabellen avgör den; annars faller
+  // segmentet vidare till null-vakten och lämnas ifred som förut.
+  if (s.andamalVillkor) {
+    const r = gbgLastplatsAktiv(s.andamalVillkor, d);
+    if (r !== null) return r;
+  }
   if (s.andamalStart == null || s.andamalEnd == null) return null;
   const min = h => Math.floor(h / 100) * 60 + (h % 100);
   const nu = d.getHours() * 60 + d.getMinutes(), a = min(s.andamalStart), b = min(s.andamalEnd);
@@ -3572,6 +3832,19 @@ function andamalTxt(s) {
   // Utan klockslag finns ingen tid att skriva ut – säg varför i stället för att
   // sätta ihop «Lastplats null–null».
   if (s.andamalAlltid) return namn + ' · gäller dygnet runt';
+  // Göteborg: klockslagen finns bara i meningen. Visa det fönster som gäller NU – flera
+  // kan träffa samma dag, och då är det det pågående som svarar på «varför röd?».
+  if (s.andamalVillkor) {
+    const nu = new Date();
+    const f = gbgLastplatsFonster(s.andamalVillkor, nu);
+    if (f && f.length) {
+      const min = h => Math.floor(h / 100) * 60 + (h % 100);
+      const m = nu.getHours() * 60 + nu.getMinutes();
+      const w = f.find(x => { const a = min(x.start), b = min(x.end);
+                              return a <= b ? (m >= a && m < b) : (m >= a || m < b); }) || f[0];
+      return namn + ' ' + fmtClock(w.start) + '–' + fmtClock(w.end);
+    }
+  }
   const dt = (s.andamalDayType || '').toLowerCase();
   const nar = dt.includes('utom vardag före') ? 'vardag'
             : dt.includes('vardag före')      ? 'dag före helgdag'
@@ -4347,6 +4620,10 @@ function toAllowedSegment(f) {
     // LÄST föreskriften och sett att den saknar klockslag (se cities/goteborg.js).
     // Saknad flagga + saknat fönster = okänt, och då rör vi fortfarande inte segmentet.
     andamalAlltid: p.ANDAMAL_ALLTID === true,
+    // Samma källfält som maxTidVillkor, men en HELT annan innebröd: på en lastplats
+    // beskriver meningen när ÄNDAMÅLET gäller, inte hur länge man får stå. Egen nyckel
+    // så att de två betydelserna aldrig förväxlas i läsningen.
+    andamalVillkor: andamalKod(p.VF_PLATS_TYP) ? (p.GBG_MAXTID_VILLKOR || null) : null,
     street: p.STREET_NAME || '',
     district: p.CITY_DISTRICT || '',
     citation: p.CITATION || ''
@@ -4804,10 +5081,10 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // TVÅ slags morgonhinder, inte ett: städningen kommer från GATAN, ändamålsplatsen
       // (lastplats/taxi/på-avstigning) från SEGMENTET självt. Det som öppnar FÖRST binder –
       // bilen måste vara borta innan det första fönstret börjar. Tidigare frågades bara om
-      // städning, så en lastplats 07–19 blev "Trygg över natten". Se andamalStartImorgon.
-      const aStart = andamalStartImorgon(s);
+      // städning, så en lastplats 07–19 blev "Trygg över natten". Se andamalFonsterImorgon.
+      const aFonster = andamalFonsterImorgon(s);
       const hinder = [ cl ? { start: cl.start, end: cl.end, lastplats: false } : null,
-                       aStart != null ? { start: aStart, end: s.andamalEnd, lastplats: true } : null ]
+                       aFonster ? { start: aFonster.start, end: aFonster.end, lastplats: true } : null ]
                      .filter(Boolean).sort((a, b) => a.start - b.start)[0] || null;
       const tier = hinder ? overnightCleaningTier(hinder.start) : null;                // null|'natt'|'morgon'|'sen'
       // Se Nu-flödet: "får jag stå här alls" före "när städas det". En MC-ruta i MC-läget är
@@ -5004,11 +5281,19 @@ function overnightCleaningTier(start) {
 // 07–19 målades "Trygg över natten" utan ett ord om att den måste flyttas.
 // Uppmätt 2026-08-25 i åtta Stockholmsområden: av 1 552 ändamålsplatser är 0 aktiva kl 22–04,
 // 77 kl 06:00 och 1 442 kl 07:00 – felet biter alltså på morgonen, inte mitt i natten.
-function andamalStartImorgon(s) {
-  if (!s.andamal || s.andamalStart == null || s.andamalEnd == null) return null;
+function andamalFonsterImorgon(s) {
+  if (!s.andamal) return null;
+  // Göteborg: fönstret kommer ur meningen, och kan vara flera samma dag («09–18 och
+  // onsdag 02–07»). Det som binder är det som BÖRJAR FÖRST – bilen måste vara borta då.
+  if (s.andamalVillkor) {
+    const f = gbgLastplatsFonster(s.andamalVillkor, tomorrow());
+    if (f === null) return null;
+    return f.length ? f.slice().sort((a, b) => a.start - b.start)[0] : null;
+  }
+  if (s.andamalStart == null || s.andamalEnd == null) return null;
   const d = tomorrow();
   d.setHours(Math.floor(s.andamalStart / 100), s.andamalStart % 100, 0, 0);
-  return andamalActiveAt(s, d) === true ? s.andamalStart : null;
+  return andamalActiveAt(s, d) === true ? { start: s.andamalStart, end: s.andamalEnd } : null;
 }
 // "Lastplats" / "Taxiplats" / … – samma etiketter som Nu-flödet använder (andamalTxt).
 const andamalNamnFor = s => ANDAMAL_LABELS[s.andamal] || 'Ändamålsplats';
