@@ -18,6 +18,13 @@ const rader = data.poster.map(p => {
   return `    '${p.citation}': '${p.gallerFran}',`.padEnd(46) + ` // ${kommentar}`;
 });
 
+const filPath0 = path.join(ROT, 'index.html');
+// index.html har CRLF-radslut på Windows. Skriver vi LF blir blocket alltid "ändrat",
+// filen flippar fram och tillbaka vid varje körning och git visar en smutsig arbetskopia
+// trots att innehållet är identiskt (autocrlf normaliserar vid commit, så git diff är tom).
+// Använd samma radslut som filen redan har.
+const NL = fs.readFileSync(filPath0, 'utf8').includes('\r\n') ? '\r\n' : '\n';
+
 const block = [
   START,
   `  // ${data.poster.length} föreskrifter, ${data.poster.reduce((a, b) => a + b.stracker, 0)} kartsträckor.`,
@@ -28,9 +35,9 @@ const block = [
   ...rader,
   '  };',
   SLUT
-].join('\n');
+].join(NL);
 
-const filPath = path.join(ROT, 'index.html');
+const filPath = filPath0;
 const html = fs.readFileSync(filPath, 'utf8');
 const i = html.indexOf(START);
 const j = html.indexOf(SLUT);
