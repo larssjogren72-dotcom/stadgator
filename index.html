@@ -5363,11 +5363,8 @@ function nastaForbudTxt(s, n, now) {
   const nar = n.dagar === 0 ? 'i dag' : n.dagar === 1 ? 'i morgon'
             : (n.dagar >= 7 ? 'på ' + SV_DAYS[n.when.getDay()].toLowerCase() + ' nästa vecka'
                             : 'på ' + SV_DAYS[n.when.getDay()].toLowerCase());
-  // Nedräkningen bara när den betyder något – alltså inom ett dygn. Längre bort säger
-  // veckodagen redan allt, och "om N dygn" blev då direkt förvirrande: en lördagskväll
-  // ligger måndag 00:00 30 timmar bort ("om 1 dygn") och måndag 07:00 37 timmar bort
-  // ("om 2 dygn") – två rader om SAMMA dag som säger olika saker. Uppmätt på
-  // Holländargatan 2026-08-29 18:03, med städraden ovanför på samma kort.
+  // Exakt samma trappa som nastaStadTxt – se den långa kommentaren där. Raderna står
+  // bredvid varandra i kortet och måste räkna likadant för att kunna läsas ihop.
   const om = h < 1  ? ` · om ${Math.max(1, Math.round(h * 60))} min`
            : h < 24 ? ` · om ${Math.round(h)} tim`
            : '';
@@ -5612,16 +5609,23 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
 function nastaStadTxt(n, now) {
   if (!n) return 'Ingen städning de närmaste 8 dygnen';
   const h = (n.when - now) / 3600000;
-  // Hela dygn räcker – "om 1,6 dygn" är falsk precision när klockslaget ändå står bredvid.
-  const om = h < 1  ? `om ${Math.max(1, Math.round(h * 60))} min`
-           : h < 24 ? `om ${Math.round(h)} tim`
-           : `om ${Math.round(h / 24)} dygn`;
+  // ⚠ NEDRÄKNING BARA INOM ETT DYGN. Båda måtten på "om N dygn" ljuger åt var sitt håll,
+  // och felet syns först när två sådana rader står bredvid varandra i samma kort
+  // (Holländargatan/Saltmätargatan 2026-08-29, lördag kväll):
+  //   timmar/24  → måndag 00:00 blev "om 1 dygn" och måndag 07:00 "om 2 dygn", SAMMA dag
+  //   kalenderdygn → tisdag 00:00 blev "om 3 dygn" fast det är 54 timmar bort
+  // Veckodagen och klockslaget står redan i raden och är exakta. En ungefärlig siffra som
+  // motsäger dem tillför inget – den tas bort. Inom ett dygn finns ingen veckodag att luta
+  // sig mot ("i dag"/"i morgon"), och där är timmarna både exakta nog och det man vill veta.
+  const om = h < 1  ? ` · om ${Math.max(1, Math.round(h * 60))} min`
+           : h < 24 ? ` · om ${Math.round(h)} tim`
+           : '';
   const nar = n.dagar === 0 ? 'i dag' : n.dagar === 1 ? 'i morgon'
             : 'på ' + SV_DAYS[n.when.getDay()].toLowerCase();
   // Alltid HH:MM här. fmtClock ger "00" för midnatt, vilket läser fel i en lös tidsangivelse
   // ("på fredag 00") även om det fungerar i ett intervall ("00–06").
   const kl = `${String(Math.floor(n.start/100)).padStart(2,'0')}:${String(n.start%100).padStart(2,'0')}`;
-  return `Nästa städning ${nar} ${kl} · ${om}`;
+  return `Nästa städning ${nar} ${kl}${om}`;
 }
 
 // Hur länge sen får en avslutad städning nämnas (kortraden) och lysa upp som prioritet
