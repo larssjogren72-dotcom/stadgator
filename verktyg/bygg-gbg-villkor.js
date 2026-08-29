@@ -9,7 +9,8 @@ const ROT = path.join(__dirname, '..');
 const data = JSON.parse(fs.readFileSync(path.join(__dirname, 'gbg-maxtid-villkor.json'), 'utf8'));
 
 const START = '  // ▼▼ GENERERAD TABELL – ändra inte för hand, kör verktyg/bygg-gbg-villkor.js ▼▼';
-const SLUT  = '  // ▲▲ SLUT GENERERAD TABELL ▲▲';
+// Slutmarkören MÅSTE vara unik i filen – se samma kommentar i bygg-forbud-ovrig-tid.js.
+const SLUT  = '  // ▲▲ SLUT GENERERAD TABELL (Göteborgs villkor) ▲▲';
 
 const filPath = path.join(ROT, 'index.html');
 const html = fs.readFileSync(filPath, 'utf8');
@@ -38,6 +39,11 @@ const block = [
 
 const i = html.indexOf(START);
 const j = html.indexOf(SLUT);
+if (i >= 0 && j >= 0 && j < i) {
+  console.error('Slutmarkören ligger FÖRE startmarkören – markörerna är inte unika i filen.');
+  console.error('Avbryter hellre än att skriva sönder index.html.');
+  process.exit(1);
+}
 if (i < 0 || j < 0) {
   console.error('Hittade inte markörerna i index.html.');
   process.exit(1);

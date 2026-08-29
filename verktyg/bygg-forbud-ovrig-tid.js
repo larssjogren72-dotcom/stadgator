@@ -11,7 +11,10 @@ const ROT = path.join(__dirname, '..');
 const data = JSON.parse(fs.readFileSync(path.join(__dirname, 'forbud-ovrig-tid.json'), 'utf8'));
 
 const START = '  // ▼▼ GENERERAD TABELL – ändra inte för hand, kör verktyg/bygg-forbud-ovrig-tid.js ▼▼';
-const SLUT  = '  // ▲▲ SLUT GENERERAD TABELL ▲▲';
+// Slutmarkören MÅSTE vara unik i filen. Det finns flera genererade tabeller i index.html,
+// och när de delade markör hittade den här generatorn den ANDRA tabellens slut – då hamnade
+// slutet före starten och 125 rader dubblerades tyst. Spärren nedan fångar det nu.
+const SLUT  = '  // ▲▲ SLUT GENERERAD TABELL (förbud övrig tid) ▲▲';
 
 const rader = data.poster.map(p => {
   const kommentar = [p.gata, p.stadsdel].filter(Boolean).join(', ');
@@ -41,6 +44,11 @@ const filPath = filPath0;
 const html = fs.readFileSync(filPath, 'utf8');
 const i = html.indexOf(START);
 const j = html.indexOf(SLUT);
+if (i >= 0 && j >= 0 && j < i) {
+  console.error('Slutmarkören ligger FÖRE startmarkören – markörerna är inte unika i filen.');
+  console.error('Avbryter hellre än att skriva sönder index.html.');
+  process.exit(1);
+}
 if (i < 0 || j < 0) {
   console.error('Hittade inte markörerna i index.html. Lägg in dem först:');
   console.error(START);

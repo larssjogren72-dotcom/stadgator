@@ -3845,7 +3845,7 @@ function maxtidGallerDag(dagTyp, d) {
     "Parkering är dock tillåten under högst 4 tim i följd vardagar klockan 08.00 - 20.00.":
       { r: [['vardag',800,2000]] },   // 1 sträckor
   };
-  // ▲▲ SLUT GENERERAD TABELL ▲▲
+  // ▲▲ SLUT GENERERAD TABELL (Göteborgs villkor) ▲▲
 // baraDag = true: strunta i klockslaget och fråga bara om DAGEN. Används av Natt-läget,
 // som enligt Lars beslut 2026-08-28 ska fälla även när gränsen vilar på natten – den
 // återupptas ju på morgonen. Där är det bara hela dagar utan gräns som ska ge grönt.
@@ -3970,7 +3970,7 @@ function maxtidGallerKlockan(start, slut, d) {
     '0180 2012-03126': '2012-09-18',           // Odengatan, Östermalm
     '0180 2018-05163': '2018-10-19',           // Skeppargatan, Östermalm
   };
-  // ▲▲ SLUT GENERERAD TABELL ▲▲
+  // ▲▲ SLUT GENERERAD TABELL (förbud övrig tid) ▲▲
 // true = parkering förbjuden även utanför tidsfönstret · null = vet inte (dagens beteende)
 function parkeringForbjudenOvrigTid(citation, validFrom) {
   if (!citation) return null;
