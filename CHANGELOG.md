@@ -14,6 +14,32 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.17.0 – 2026-08-29
+**Göteborg slutar visa en tidsgräns när den inte gäller.**
+
+**Många av Göteborgs tidsgränser gäller bara vissa timmar.** "30 min" på skylten kan betyda
+30 minuter vardagar 09–18 och ingen gräns alls däremellan. Staden skriver det i klartext, med
+beslutets egen mening – men appen läste meningen utan att använda den, och sa "max 30 min"
+dygnet runt.
+
+**Nu läses meningen.** 55 formuleringar är översatta en gång och granskade för hand. Uppslaget
+i appen är en ren jämförelse mot den exakta meningen: känner den inte igen formuleringen säger
+den "vet inte" och beter sig som förut. Ingen gissning sker medan du använder kartan.
+
+**Kontrollerat på plats.** Fyra skyltar i Göteborg lästes i verkligheten – Oljekvarnsgatan,
+Framnäsgatan, Vegagatan och Ekedalsgatan. Alla fyra stämde med registret, städdagarna med,
+inklusive jämna och udda veckor. Det var det beskedet som gjorde det försvarbart att bygga.
+
+**Vad du märker:** i tio stadsdelar bär 90 sträckor ett sådant villkor. 76 av dem har en gräns
+som gäller just nu och står kvar som blå. 13 slutar visa en gräns som vilar. Kärrdalsvägen är
+ett exempel: 30-minutersgränsen gäller lördagar bara 09–15, så en lördagseftermiddag är gatan
+grön i stället för blå.
+
+**En formulering lämnas utanför med flit.** "Tillåtelsen gäller vardag klockan 08.00 – 22.00"
+säger att tillståndet att parkera gäller då – inte att tidsgränsen gör det. Utanför fönstret
+vet vi inte om parkering är tillåten alls, och att då säga "ingen gräns" vore fel åt det
+farliga hållet.
+
 ## v1.16.0 – 2026-08-29
 **Nittiofyra sträckor visade grönt där parkering är förbjuden dygnet runt. Nu visar de rött.**
 
