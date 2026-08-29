@@ -14,6 +14,45 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.19.0 – 2026-08-29
+**Göteborgs lastplatser vet när de gäller. Och glöden slutar lova saker den inte vet.**
+
+**339 lastplatser i Göteborg ritades gröna, även mitt i sitt eget lastningsfönster.** Staden
+skriver inte tiden som klockslag utan som en mening i löpande text, ordagrant ur föreskriften:
+"Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00…". Appen läste
+aldrig den meningen.
+
+**140 av dem har ingen mening alls.** Tomt fält betyder inte "okänt" – det betyder dygnet
+runt. Fyra av dem lästes i Transportstyrelsens register, spridda över 2008, 2014, 2022 och
+2026, och alla fyra säger samma sak utan ett enda klockslag. De är röda nu, dygnet runt,
+i båda lägena.
+
+**De 199 med tider fick en tabell.** 98 av 100 meningar översattes en gång, utanför appen,
+och slås upp ordagrant. Skriver Göteborg om en mening hittas den inte, och då säger appen
+"vet inte" i stället för att tolka fel. En dygnskurva på riktiga sträckor visar mönstret:
+75 aktiva klockan tre på natten, 206 klockan nio, 76 klockan sju på kvällen.
+
+**Glöden från v1.18.0 lovade "bra chans" på gator där inget förbud funnits.** Fältet som bär
+tiden finns på nästan varje parkeringspost i Stockholms data och betyder där något annat –
+när avgiften gäller, eller när gatan städas. Liljeholmsvägen, vanlig avgiftsparkering, sa
+"Förbudet tog slut 17 – bra chans att det finns plats" när det i själva verket var taxan som
+slutat ticka klockan fem på en lördag. Glöden kräver nu en riktig ändamålsplats.
+
+**Kortet visar också nästa förbud, inte bara nästa städning.** En grön gata som lyser för att
+förbudet nyss tog slut sa ingenting om att lastplatsen kommer tillbaka. Ny rad: "Lastplats
+igen på måndag 07–19". Den svarar på två frågor på en gång – att sträckan är tidsstyrd, och
+när den gäller igen.
+
+**Nedräkningen "om N dygn" är borta där veckodagen redan står utskriven.** Den var fel åt
+båda hållen: räknad i timmar blev måndag 00:00 "om 1 dygn" medan måndag 07:00 blev "om 2
+dygn" – samma dag, olika svar. Räknad i kalenderdygn blev tisdag 00:00 "om 3 dygn" fast den
+låg 54 timmar bort. Veckodagen och klockslaget är exakta; en ungefärlig siffra som motsäger
+dem tillför inget. Inom ett dygn står "om 3 tim" kvar, för då finns ingen veckodag att luta
+sig mot.
+
+**Stockholm är orört.** 66 024 jämförelser – 393 ändamålsplatser, varje timme i en hel vecka,
+ny kod mot gammal – gav noll avvikelser.
+
 ## v1.18.0 – 2026-08-29
 **En gata som just blivit tillåten lyser upp.**
 
