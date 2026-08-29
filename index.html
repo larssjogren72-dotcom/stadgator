@@ -3712,6 +3712,173 @@ function maxtidGallerDag(dagTyp, d) {
 //
 // Används ENBART i Nu-läget. Natt-läget frågar om i morgon och ska enligt Lars beslut
 // 2026-08-28 fälla även när gränsen vilar på natten – den återupptas ju på morgonen.
+// ── Göteborgs villkorsmening: gäller tidsgränsen just nu? ────────────────────
+// true = ja · false = nej · null = vet inte (dagens beteende)
+//
+// Göteborg publicerar villkoret som FRITEXT i ett fält (MaxParkingTimeLimitation), inte som
+// veckodag och klockslag som Stockholm. Meningen är föreskriftens egen, ordagrant –
+// verifierat mot originalet 4 av 4 (2026-08-28), och Lars kontrollerade fyra skyltar i fält
+// 2026-08-29: alla stämde, inklusive jämna/udda veckor.
+//
+// 🔑 Ingen tolkning sker HÄR. De 49 meningarna är översatta EN gång, offline och granskade
+// för hand, till verktyg/gbg-maxtid-villkor.json. Uppslaget är en exakt strängmatchning –
+// dyker en femtionde mening upp får den "vet inte", inte en gissning. Det är samma princip
+// som förbudstabellen: en tabell som inte känner igen något ska falla tillbaka, aldrig hitta på.
+//
+// En mening utelämnas med flit: "Tillåtelsen gäller vardag klockan 08.00 - 22.00" säger att
+// TILLÅTELSEN gäller då, inte att tidsgränsen gör det. Utanför fönstret vet vi då inte om
+// parkering är tillåten alls, och "ingen gräns" vore fel åt det farliga hållet.
+  // ▼▼ GENERERAD TABELL – ändra inte för hand, kör verktyg/bygg-gbg-villkor.js ▼▼
+  // 55 villkorsmeningar, 416 kartsträckor.
+  // Översatta en gång och granskade för hand 2026-08-29. Uppslag på EXAKT sträng.
+  // Utelämnad med flit: Tillåtelsen gäller vardag klockan 08.00 - 22.00.
+  // dag: vardag-ej-dagfore | dagfore | sonhelg | vardag | alla. s = säsong som MMDD.
+  const GBG_MAXTID_VILLKOR_TABELL = {
+    "Parkering är dock tillåten under högst 4 tim i följd.":
+      { r: [['alla',null,null]] },   // 47 sträckor
+    "Tidsbegränsningen gäller vardag klockan 08.00 - 22.00 och sön- och helgdag klockan 08.00 - 22.00.":
+      { r: [['vardag',800,2200],['sonhelg',800,2200]] },   // 33 sträckor
+    "Tidsbegränsningen gäller vardagar klockan 08.00 - 22.00 och sön- och helgdag klockan 08.00 - 22.00.":
+      { r: [['vardag',800,2200],['sonhelg',800,2200]] },   // 28 sträckor
+    "Parkering är dock tillåten under högst 2 tim i följd.":
+      { r: [['alla',null,null]] },   // 28 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500]] },   // 27 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,1800],['dagfore',900,1500]] },   // 26 sträckor
+    "Tidsbegränsningen gäller vardag klockan 08.00 - 18.00.":
+      { r: [['vardag',800,1800]] },   // 22 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 06.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',600,1800]] },   // 21 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 22.00.":
+      { r: [['vardag-ej-dagfore',800,2200]] },   // 19 sträckor
+    "Tidsbegränsningen gäller vardag klockan 08.00 - 16.00.":
+      { r: [['vardag',800,1600]] },   // 18 sträckor
+    "Parkering är dock tillåten under högst 4 tim i följd vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.":
+      { r: [['vardag-ej-dagfore',2200,600]] },   // 18 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',900,1800]] },   // 15 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',900,1800]] },   // 13 sträckor
+    "Tidsbegränsningen gäller vardag klockan 10.00 - 19.00 och sön- och helgdag klockan 10.00 - 19.00 under tiden 1:a april - 30:e september.":
+      { r: [['vardag',1000,1900],['sonhelg',1000,1900]],s:[401,930] },   // 10 sträckor
+    "Tidsbegränsningen gäller vardag klockan 00.00 - 07.00 och 21.00 - 24.00 och sön- och helgdag klockan 00.00 - 07.00 och 21.00 - 24.00.":
+      { r: [['vardag',0,700],['vardag',2100,2400],['sonhelg',0,700],['sonhelg',2100,2400]] },   // 9 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',800,1800]] },   // 9 sträckor
+    "Tidsbegränsningen gäller vardagar klockan 08.00 - 22.00.":
+      { r: [['vardag',800,2200]] },   // 7 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',900,1600]] },   // 5 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',800,1800],['dagfore',800,1500]] },   // 4 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',700,1800]] },   // 4 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',600,1800]] },   // 4 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00.":
+      { r: [['vardag-ej-dagfore',700,1700]] },   // 3 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 22.00 och vardag före sön- och helgdag klockan 08.00 - 22.00.":
+      { r: [['vardag-ej-dagfore',800,2200],['dagfore',800,2200]] },   // 3 sträckor
+    "Tidsbegränsningen gäller vardagar klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 18.00.":
+      { r: [['vardag',900,1800],['dagfore',900,1800]] },   // 2 sträckor
+    "Tidsbegränsningen gäller vardag klockan 07.00 - 22.00 och sön- och helgdag klockan 07.00 - 22.00.":
+      { r: [['vardag',700,2200],['sonhelg',700,2200]] },   // 2 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 19.00.":
+      { r: [['vardag-ej-dagfore',600,1900]] },   // 2 sträckor
+    "Tidsbegränsningen gäller klockan 10.00 - 19.00 under tiden 1:a april - 30:e september.":
+      { r: [['alla',1000,1900]],s:[401,930] },   // 2 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 06.00 - 19.00, vardag före sön- och helgdag klockan 12.00 - 19.00 och sön- och helgdagar klockan 12.00 - 19.00.":
+      { r: [['vardag-ej-dagfore',600,1900],['dagfore',1200,1900],['sonhelg',1200,1900]] },   // 2 sträckor
+    "Tidsbegränsningen gäller klockan 09.00 - 18.00.":
+      { r: [['alla',900,1800]] },   // 2 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',800,1800],['dagfore',800,1500]] },   // 2 sträckor
+    "Parkering är dock tillåten under högst 4 tim i följd under tiden vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.":
+      { r: [['vardag-ej-dagfore',2200,600]] },   // 2 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',800,1500]] },   // 2 sträckor
+    "Parkering är dock tillåten under högst 6 tim i följd.":
+      { r: [['alla',null,null]] },   // 2 sträckor
+    "Parkering är dock tillåten under högst 2 tim i följd vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',900,1800]] },   // 2 sträckor
+    "Tidsbegränsningen gäller vardag klockan 07.00 - 23.00 och sön- och helgdag klockan 07.00 - 23.00.":
+      { r: [['vardag',700,2300],['sonhelg',700,2300]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag klockan 09.00 - 21.00 och sön- och helgdag klockan 09.00 - 21.00.":
+      { r: [['vardag',900,2100],['sonhelg',900,2100]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 16.00.":
+      { r: [['vardag-ej-dagfore',700,1600]] },   // 1 sträckor
+    "Parkering är dock tillåten under högst 30 min i följd.":
+      { r: [['alla',null,null]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',700,1800]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag klockan 10.00 - 20.00 och sön- och helgdag klockan 10.00 - 20.00.":
+      { r: [['vardag',1000,2000],['sonhelg',1000,2000]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.":
+      { r: [['vardag-ej-dagfore',2200,600]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',600,1500]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 20.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.":
+      { r: [['vardag-ej-dagfore',900,2000],['dagfore',900,1500]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag klockan 10.00 - 19.00 och sön- och helgdagar klockan 10.00 - 19.00 under tiden 1:a april - 30:e september.":
+      { r: [['vardag',1000,1900],['sonhelg',1000,1900]],s:[401,930] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 17.00.":
+      { r: [['vardag-ej-dagfore',700,1700]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',800,1800]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 20.00.":
+      { r: [['vardag-ej-dagfore',900,2000]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 19.00.":
+      { r: [['vardag-ej-dagfore',700,1900]] },   // 1 sträckor
+    "Parkering är dock tillåten under högst 1 tim i följd.":
+      { r: [['alla',null,null]] },   // 1 sträckor
+    "Tidsbegränsningen gäller klockan 06.00 - 18.00.":
+      { r: [['alla',600,1800]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 20.00.":
+      { r: [['vardag-ej-dagfore',800,2000]] },   // 1 sträckor
+    "Tidsbegränsningen gäller vardag klockan 00.00 - 24.00.":
+      { r: [['vardag',0,2400]] },   // 1 sträckor
+    "Parkering är dock tillåten under högst 2 tim i följd vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.":
+      { r: [['vardag-ej-dagfore',800,1800]] },   // 1 sträckor
+    "Tillåtelsen gäller under högst 4 tim iföljd.":
+      { r: [['alla',null,null]] },   // 1 sträckor
+    "Parkering är dock tillåten under högst 4 tim i följd vardagar klockan 08.00 - 20.00.":
+      { r: [['vardag',800,2000]] },   // 1 sträckor
+  };
+  // ▲▲ SLUT GENERERAD TABELL ▲▲
+// baraDag = true: strunta i klockslaget och fråga bara om DAGEN. Används av Natt-läget,
+// som enligt Lars beslut 2026-08-28 ska fälla även när gränsen vilar på natten – den
+// återupptas ju på morgonen. Där är det bara hela dagar utan gräns som ska ge grönt.
+function maxtidGallerVillkor(mening, d, baraDag) {
+  if (!mening) return null;
+  const rader = GBG_MAXTID_VILLKOR_TABELL[String(mening).replace(/\s+/g, ' ').trim()];
+  if (!rader) return null;                       // okänd mening → dagens beteende
+  // Säsong först: utanför den gäller gränsen inte alls.
+  if (rader.s) {
+    const md = (d.getMonth() + 1) * 100 + d.getDate();
+    const a = rader.s[0], b = rader.s[1];
+    const inom = a <= b ? (md >= a && md <= b) : (md >= a || md <= b);
+    if (!inom) return false;
+  }
+  const nu = d.getHours() * 100 + d.getMinutes();
+  // Gränsen gäller om NÅGON regel träffar – dagtypen stämmer OCH klockan ligger i fönstret.
+  for (const r of rader.r) {
+    let dagOk;
+    if (r[0] === 'alla') dagOk = true;
+    else if (r[0] === 'vardag-ej-dagfore') dagOk = arVardag(d) && !arDagFore(d);
+    else if (r[0] === 'dagfore') dagOk = arVardag(d) && arDagFore(d);
+    else if (r[0] === 'sonhelg') dagOk = !arVardag(d);
+    else if (r[0] === 'vardag') dagOk = arVardag(d);
+    else return null;                            // okänd dagtyp → gissa inte
+    if (!dagOk) continue;
+    if (baraDag) return true;                    // dagen räcker – Natt-läget frågar inte om timmen
+    if (r[1] == null) return true;               // hela dygnet den dagen
+    // Vändande fönster (t.ex. 22.00–06.00) sträcker sig över midnatt.
+    const inom = r[1] <= r[2] ? (nu >= r[1] && nu < r[2]) : (nu >= r[1] || nu < r[2]);
+    if (inom) return true;
+  }
+  return false;                                  // ingen regel träffar → gränsen vilar nu
+}
 function maxtidGallerKlockan(start, slut, d) {
   if (start == null || slut == null) return null;
   const min = h => Math.floor(h / 100) * 60 + (h % 100);
@@ -4144,6 +4311,10 @@ function toAllowedSegment(f) {
     // ändamålsplatsens fönster och kan komma från en annan post. Kan skrivas om av
     // citation-räddningen i loadParkingV2 (Stockholms avgiftsfria tvillingpar).
     maxTidDagTyp: p.DAY_TYPE || null,
+    // Göteborgs motsvarighet: villkoret som FRITEXT. Egen nyckel eftersom den bär både
+    // dagar och klockslag i EN mening, ibland flera regler – något dagtyp/start/slut
+    // ovan inte kan uttrycka. Slås upp i GBG_MAXTID_VILLKOR_TABELL, aldrig tolkad här.
+    maxTidVillkor: p.GBG_MAXTID_VILLKOR || null,
     // VILKA TIMMAR maxtiden gäller – men BARA när posten saknar veckodag. Bär den en
     // veckodag hör klockslagen till städfönstret och säger ingenting om tidsgränsen
     // (se maxtidGallerKlockan för mätningen som skiljer de två fallen åt).
@@ -4690,7 +4861,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // Här handlar det om DAGAR, där gränsen inte återupptas alls.
       const imorgon = new Date(Date.now() + 864e5);
       if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER
-          && maxtidGallerDag(s.maxTidDagTyp, imorgon) !== false) {
+          && maxtidGallerDag(s.maxTidDagTyp, imorgon) !== false
+          && maxtidGallerVillkor(s.maxTidVillkor, imorgon, true) !== false) {
         color = '#38bdf8';
         txt   = `Får parkera · ${tidsklausul(s.maxMinutes)}`;
         // Chipet bär redan siffran → detaljraden ger FÖLJDEN, upprepar den inte.
@@ -5209,7 +5381,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // Timmen frågas bara här i Nu-läget; Natt-läget har sin egen logik längre upp.
       if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER
           && maxtidGallerDag(s.maxTidDagTyp, now) !== false
-          && maxtidGallerKlockan(s.maxTidStart, s.maxTidSlut, now) !== false) {
+          && maxtidGallerKlockan(s.maxTidStart, s.maxTidSlut, now) !== false
+          && maxtidGallerVillkor(s.maxTidVillkor, now) !== false) {
         color = '#38bdf8';
         txt   = `Får stå nu · ${tidsklausul(s.maxMinutes)}`;
       }
@@ -5223,7 +5396,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // blå färgen, bara tystare – och lika osant.
       else if (color === '#16a34a' && s.maxMinutes != null
                && maxtidGallerDag(s.maxTidDagTyp, now) !== false
-               && maxtidGallerKlockan(s.maxTidStart, s.maxTidSlut, now) !== false) txt += ` · ${tidsklausul(s.maxMinutes)}`;
+               && maxtidGallerKlockan(s.maxTidStart, s.maxTidSlut, now) !== false
+               && maxtidGallerVillkor(s.maxTidVillkor, now) !== false) txt += ` · ${tidsklausul(s.maxMinutes)}`;
       // Boendezon utan publicerad gräns: en boendezon FÖRUTSÄTTER att det finns en
       // tidsgräns (tillståndet gäller "med avvikelse från gällande tidsbegränsning på
       // platsen", föreskrift 1480 2007-02789) – vi vet bara inte vilken.
