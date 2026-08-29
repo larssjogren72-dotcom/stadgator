@@ -481,7 +481,7 @@
     #hero-why { font-size: 12px; line-height: 1.5; color: rgba(15,23,42,0.62); margin-top: 6px; }
 
     /* Metarader – lugna rader, ingen tung box */
-    #clean-row, #taxa-row, #next-clean-row {
+    #clean-row, #taxa-row, #next-clean-row, #next-forbud-row {
       display: flex; align-items: flex-start; gap: 8px;
       background: none; border: 0; padding: 0;
       font-size: 12.5px; line-height: 1.5; margin-bottom: 7px;
@@ -491,7 +491,11 @@
     /* Nästa städning – en sakuppgift, inte en varning. Mörkare än taxaraden men utan
        städradens orange, som betyder "akta dig". */
     #next-clean-row { color: var(--text); font-weight: 500; }
-    #clean-row svg, #taxa-row svg, #next-clean-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
+    /* Nästa förbud – samma lugna sakton som nästa städning. Varningsikonen säger att det
+       är en restriktion; färgen säger att den inte gäller än. Skulle raden också vara orange
+       hade den tävlat med städraden om samma blick, och den akuta är städraden. */
+    #next-forbud-row { color: var(--text); font-weight: 500; }
+    #clean-row svg, #taxa-row svg, #next-clean-row svg, #next-forbud-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
     #taxa-row b  { color: var(--text); font-weight: 600; }
     #clean-row b { color: #b45309; font-weight: 600; }
     #clean-row .season { color: rgba(15,23,42,0.58); font-size: 11.5px; }
@@ -1044,6 +1048,7 @@
         <div id="hero-why"></div>
       </div>
       <div id="next-clean-row" style="display:none"></div>
+      <div id="next-forbud-row" style="display:none"></div>
       <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
       <div class="nav-split">
@@ -2535,8 +2540,15 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
           ? senasteStadTxt(senast, now) + ' · ' : '';
         nasta = avslutad + kommande;
       }
+      // "Nästa förbud" bara när man FÅR stå nu: är sträckan röd står fönstret redan i chipet,
+      // och då vore raden en upprepning. Uppslaget är lat, precis som städningens.
+      let forbudIgen = null;
+      if (color !== '#ef4444' && s.andamal && !s.andamalAlltid) {
+        const now2 = new Date();
+        forbudIgen = nastaForbudTxt(s, nastaAndamalFonster(s, now2), now2) || null;
+      }
       showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow,
-                      color === '#ef4444' && !!s.andamal, false, nasta); });
+                      color === '#ef4444' && !!s.andamal, false, nasta, forbudIgen); });
   });
 }
 
@@ -2996,7 +3008,7 @@ async function busHallplatserOverlay(lat, lng) {
 // ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
 // skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
 // visaRattigheter: sant för en reserverad plats i rörelsehindrad-läget → visa rättighetsrutan.
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad) {
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -3073,6 +3085,14 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
     if (nastaStad) { ncr.innerHTML = svgIcon('clock') + '<span>' + escHtml(nastaStad) + '</span>';
                      ncr.style.display = 'flex'; }
     else ncr.style.display = 'none';
+  }
+  // Nästa förbud – samma sorts sakuppgift, men om segmentets EGEN restriktion. Varnings-
+  // ikonen (inte klockan) skiljer den från städraden ovan på en blick.
+  const nfr = document.getElementById('next-forbud-row');
+  if (nfr) {
+    if (nastaForbud) { nfr.innerHTML = svgIcon('warn') + '<span>' + escHtml(nastaForbud) + '</span>';
+                       nfr.style.display = 'flex'; }
+    else nfr.style.display = 'none';
   }
 
   document.getElementById('hint').style.display = 'none';
@@ -5298,6 +5318,64 @@ function andamalFonsterImorgon(s) {
 // "Lastplats" / "Taxiplats" / … – samma etiketter som Nu-flödet använder (andamalTxt).
 const andamalNamnFor = s => ANDAMAL_LABELS[s.andamal] || 'Ändamålsplats';
 
+// ── När börjar förbudet nästa gång? ───────────────────────────────────
+// Lars 2026-08-29: en grön gata visade "Nästa städning på tisdag" men sa ingenting om att
+// själva sträckan är en lastplats som kommer tillbaka – särskilt skevt på en sträcka som
+// LYSER för att förbudet nyss tog slut. Kortet kände till halva klockan.
+//
+// Speglar nastaStadUppslag: samma åtta dygn framåt, samma form på svaret. Skillnaden är
+// var tiden kommer ifrån – städningen från GATAN, ändamålsplatsen från SEGMENTET.
+// null = ingen känd återkomst (okänd mening, saknat fönster, eller gäller dygnet runt –
+// den senare är röd ändå och har inget "nästa").
+function nastaAndamalFonster(s, now) {
+  if (!s.andamal || s.andamalAlltid) return null;
+  for (let i = 0; i <= 8; i++) {
+    const dag = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    let fonster;
+    if (s.andamalVillkor) {
+      fonster = gbgLastplatsFonster(s.andamalVillkor, dag);
+      if (fonster === null) return null;        // okänd mening → vi vet inte
+    } else if (s.andamalStart != null && s.andamalEnd != null) {
+      // Prova med klockan satt till fönstrets start: då svarar andamalActiveAt på
+      // ren dagfråga, med exakt de regler resten av appen använder.
+      const prov = new Date(dag);
+      prov.setHours(Math.floor(s.andamalStart / 100), s.andamalStart % 100, 0, 0);
+      fonster = andamalActiveAt(s, prov) === true
+              ? [{ start: s.andamalStart, end: s.andamalEnd }] : [];
+    } else return null;
+    const traff = fonster
+      .map(w => { const t = new Date(dag);
+                  t.setHours(Math.floor(w.start / 100), w.start % 100, 0, 0);
+                  return { when: t, start: w.start, end: w.end, dagar: i }; })
+      .filter(x => x.when > now)
+      .sort((a, b) => a.when - b.when)[0];
+    if (traff) return traff;
+  }
+  return null;
+}
+// Samma sätt att säga det som nastaStadTxt, så de två raderna läses som syskon.
+function nastaForbudTxt(s, n, now) {
+  if (!n) return '';
+  const h = (n.when - now) / 3600000;
+  // ≥ 7 dygn bort landar på SAMMA veckodag som i dag, och då läser "på lördag" som
+  // "i dag" – sett på Saltmätargatan en lördag kväll, där nästa lastplatsfönster ligger
+  // en vecka bort.
+  const nar = n.dagar === 0 ? 'i dag' : n.dagar === 1 ? 'i morgon'
+            : (n.dagar >= 7 ? 'på ' + SV_DAYS[n.when.getDay()].toLowerCase() + ' nästa vecka'
+                            : 'på ' + SV_DAYS[n.when.getDay()].toLowerCase());
+  // Nedräkningen bara när den betyder något – alltså inom ett dygn. Längre bort säger
+  // veckodagen redan allt, och "om N dygn" blev då direkt förvirrande: en lördagskväll
+  // ligger måndag 00:00 30 timmar bort ("om 1 dygn") och måndag 07:00 37 timmar bort
+  // ("om 2 dygn") – två rader om SAMMA dag som säger olika saker. Uppmätt på
+  // Holländargatan 2026-08-29 18:03, med städraden ovanför på samma kort.
+  const om = h < 1  ? ` · om ${Math.max(1, Math.round(h * 60))} min`
+           : h < 24 ? ` · om ${Math.round(h)} tim`
+           : '';
+  // fmtClock i BÅDA ändarna: ett intervall skrivs "07–19" i hela appen, och att blanda
+  // "07:00–19" i samma streck läser som ett skrivfel.
+  return `${andamalNamnFor(s)} igen ${nar} ${fmtClock(n.start)}–${fmtClock(n.end)}${om}`;
+}
+
 // Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
 // (latlng, gatunamn) → bool. Namn + geometri (lat/lng) hindrar granngata-läcka.
 // Var i städ-fönstret är vi NU? Tider = HHMM-int (800=08:00, 0=00:00, 600=06:00).
@@ -5580,16 +5658,12 @@ const HIDDEN_GEM_MIN_H = 2, HIDDEN_GEM_MAX_H = 7;
 // överallt annars.
 function forbudTogNyssSlut(s, now) {
   // ⚠ MÅSTE vara en ändamålsplats. Fälten START_TIME/END_TIME finns på NÄSTAN VARJE
-  // p-post och betyder där något helt annat – när AVGIFTEN gäller, eller när gatan städas.
-  // Utan den här raden lyste vanlig avgiftsparkering upp klockan 17 en lördag och kortet
-  // sa "Förbudet tog slut 17", fast ingen hade varit förhindrad att stå där – taxan hade
-  // bara slutat ticka (Taxa 4: "10 kr/tim vardagar 7-19, lör/helgafton 11-17").
-  // Sett på Liljeholmsvägen 2026-08-29 18:07. Kommentaren nedan sa redan att det INTE får
-  // hända; koden kontrollerade det inte.
-  // Även "Tidsreglerat parkerings-/stoppförbud" är utesluten med flit trots namnet: dess
-  // fönster är också taxans (Frejgatan 07–19 = "20 kr/tim vardagar 7-19") eller städnattens
-  // (Barnhusbron onsdag 00–06). Numerisk VF_PLATS_TYP är den ENDA signal där fönstret
-  // bevisligen betyder "restriktionen gäller" – samma antagande som andamalActiveAt gör.
+  // p-post och betyder där något helt annat – när AVGIFTEN gäller. Utan den här raden
+  // lyste vanlig avgiftsparkering upp klockan 17 en lördag och kortet sa "Förbudet tog
+  // slut 17", fast ingen hade varit förhindrad att stå där – taxan hade bara slutat
+  // ticka (Taxa 4: "10 kr/tim vardagar 7-19, lör/helgafton 11-17").
+  // Uppmätt vid Liljeholmsvägen 2026-08-29 18:07: 47 av 48 lysande sträckor i vyn var
+  // sådana. Kommentaren nedan sa redan att det INTE får hända; koden kontrollerade det inte.
   if (!s.andamal) return null;
   const start = s.andamalStart, slut = s.andamalEnd;
   if (start == null || slut == null || start >= slut) return null;
