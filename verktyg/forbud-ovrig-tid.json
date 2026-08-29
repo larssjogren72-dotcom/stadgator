@@ -1,0 +1,381 @@
+{
+ "beskrivning": "Föreskrifter där parkering är förbjuden ÄVEN utanför det tidsfönster som står i kartdatan. Läst ur föreskriftstexten i RDT (Transportstyrelsen); meningen står i klartext per post. gallerFran = postens VALID_FROM när den lästes – stämmer den inte med kartdatan har regeln ändrats och raden ska ignoreras.",
+ "kalla": "rdt.transportstyrelsen.se – föreskriftstexten i original",
+ "stad": "stockholm",
+ "last": "2026-08-29",
+ "genomsokt": {
+  "arendenummer": 579,
+  "kartstrackor": 838,
+  "ejLasbara": 11
+ },
+ "poster": [
+  {
+   "citation": "0180 2017-02175",
+   "gallerFran": "2017-03-08",
+   "gata": "Alviksvägen",
+   "stadsdel": "Alvik",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2020-00428",
+   "gallerFran": "2020-01-31",
+   "gata": "Lindevägen",
+   "stadsdel": "Enskede Gård",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2020-00430",
+   "gallerFran": "2020-01-31",
+   "gata": "Skjulvägen",
+   "stadsdel": "Enskede Gård",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2021-04520",
+   "gallerFran": "2021-10-22",
+   "gata": "Stockholmsvägen",
+   "stadsdel": "Gamla Enskede",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2020-00595",
+   "gallerFran": "2020-03-03",
+   "gata": "Klubbacken",
+   "stadsdel": "Hägersten",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2019-05173",
+   "gallerFran": "2019-10-17",
+   "gata": "Riddersviksvägen",
+   "stadsdel": "Hässelby Villastad",
+   "stracker": 5,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2019-05174",
+   "gallerFran": "2019-10-17",
+   "gata": "Riddersviksvägen",
+   "stadsdel": "Hässelby Villastad",
+   "stracker": 5,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2023-03055",
+   "gallerFran": "2023-11-30",
+   "gata": "Hantverkargatan",
+   "stadsdel": "Kungsholmen",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2024-03959",
+   "gallerFran": "2024-10-03",
+   "gata": "Scheelegatan",
+   "stadsdel": "Kungsholmen",
+   "stracker": 2,
+   "mening": "Övrig tid får inte fordon parkeras."
+  },
+  {
+   "citation": "0180 2024-03960",
+   "gallerFran": "2024-10-03",
+   "gata": "Scheelegatan",
+   "stadsdel": "Kungsholmen",
+   "stracker": 2,
+   "mening": "Övrig tid får inte fordon parkeras."
+  },
+  {
+   "citation": "0180 2010-00968",
+   "gallerFran": "2010-02-21",
+   "gata": "Liljeholmsbron",
+   "stadsdel": "Liljeholmen",
+   "stracker": 16,
+   "mening": "Övrig tid får inte fordon parkeras."
+  },
+  {
+   "citation": "0180 2022-04163",
+   "gallerFran": "2022-10-13",
+   "gata": "Mälarhöjdsvägen",
+   "stadsdel": "Mälarhöjden",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2020-02269",
+   "gallerFran": "2020-04-15",
+   "gata": "Roslagstullsbacken",
+   "stadsdel": "Norra Djurgården",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2018-03324",
+   "gallerFran": "2018-06-28",
+   "gata": "Stobaeusvägen",
+   "stadsdel": "Norra Ängby",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2018-03322",
+   "gallerFran": "2018-06-28",
+   "gata": "Stobaeusvägen",
+   "stadsdel": "Norra Ängby",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2024-04197",
+   "gallerFran": "2024-10-09",
+   "gata": "Klara Norra Kyrkogata",
+   "stadsdel": "Norrmalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2025-05555",
+   "gallerFran": "2025-10-24",
+   "gata": "Klarabergsviadukten",
+   "stadsdel": "Norrmalm",
+   "stracker": 1,
+   "mening": "Övrig tid får endast utryckningsfordon parkeras."
+  },
+  {
+   "citation": "0180 2018-05225",
+   "gallerFran": "2018-10-21",
+   "gata": "Kungsgatan",
+   "stadsdel": "Norrmalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2019-02752",
+   "gallerFran": "2019-04-30",
+   "gata": "Tegnérgatan",
+   "stadsdel": "Norrmalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2017-11326",
+   "gallerFran": "2018-02-12",
+   "gata": "Djupdalsvägen",
+   "stadsdel": "Olovslund",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2018-04039",
+   "gallerFran": "2018-08-14",
+   "gata": "Kälvestavägen",
+   "stadsdel": "Solhem",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2025-05048",
+   "gallerFran": "2025-09-23",
+   "gata": "Högbergsgatan",
+   "stadsdel": "Södermalm",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2025-07002",
+   "gallerFran": "2025-12-09",
+   "gata": "Långholmsgatan",
+   "stadsdel": "Södermalm",
+   "stracker": 4,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2017-06817",
+   "gallerFran": "2017-09-05",
+   "gata": "Malmgårdsvägen",
+   "stadsdel": "Södermalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2016-03808",
+   "gallerFran": "2016-11-10",
+   "gata": "Renstiernas Gata",
+   "stadsdel": "Södermalm",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2023-02987",
+   "gallerFran": "2025-08-15",
+   "gata": "Renstiernas Gata",
+   "stadsdel": "Södermalm",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras"
+  },
+  {
+   "citation": "0180 2020-06395",
+   "gallerFran": "2020-11-24",
+   "gata": "Renstiernas Gata",
+   "stadsdel": "Södermalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2016-04412",
+   "gallerFran": "2016-11-10",
+   "gata": "Renstiernas Gata",
+   "stadsdel": "Södermalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2017-06836",
+   "gallerFran": "2017-07-24",
+   "gata": "Rosenlundsgatan",
+   "stadsdel": "Södermalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2017-08014",
+   "gallerFran": "2017-08-24",
+   "gata": "Sankt Paulsgatan",
+   "stadsdel": "Södermalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2009-08900",
+   "gallerFran": "2010-01-18",
+   "gata": "Söder Mälarstrand",
+   "stadsdel": "Södermalm",
+   "stracker": 4,
+   "mening": "Övrig tid får inte fordon parkeras."
+  },
+  {
+   "citation": "0180 2024-04116",
+   "gallerFran": "2024-10-08",
+   "gata": "Birger Jarlsgatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2017-11320",
+   "gallerFran": "2017-12-13",
+   "gata": "Dalagatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2008-08583",
+   "gallerFran": "2008-09-24",
+   "gata": "Frejgatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 1,
+   "mening": "Övrig tid får inte fordon parkeras."
+  },
+  {
+   "citation": "0180 2017-09782",
+   "gallerFran": "2017-10-04",
+   "gata": "Karlbergsvägen",
+   "stadsdel": "Vasastaden",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2021-04166",
+   "gallerFran": "2021-11-06",
+   "gata": "Odengatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2020-03669",
+   "gallerFran": "2020-06-03",
+   "gata": "Saltmätargatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras"
+  },
+  {
+   "citation": "0180 2017-05373",
+   "gallerFran": "2017-05-31",
+   "gata": "Torsgatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 4,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2017-06939",
+   "gallerFran": "2017-11-19",
+   "gata": "Torsgatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2025-02476",
+   "gallerFran": "2025-06-28",
+   "gata": "Torsgatan",
+   "stadsdel": "Vasastaden",
+   "stracker": 2,
+   "mening": "Övrig tid får fordon inte parkeras"
+  },
+  {
+   "citation": "0180 2017-11328",
+   "gallerFran": "2018-02-07",
+   "gata": "Nyodlingsvägen",
+   "stadsdel": "Ålsten",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2017-11329",
+   "gallerFran": "2018-02-07",
+   "gata": "Nyodlingsvägen",
+   "stadsdel": "Ålsten",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2018-01119",
+   "gallerFran": "2018-03-08",
+   "gata": "Nyodlingsvägen",
+   "stadsdel": "Ålsten",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2018-03486",
+   "gallerFran": "2018-06-27",
+   "gata": "Nyängsvägen",
+   "stadsdel": "Ålsten",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  },
+  {
+   "citation": "0180 2012-03126",
+   "gallerFran": "2012-09-18",
+   "gata": "Odengatan",
+   "stadsdel": "Östermalm",
+   "stracker": 2,
+   "mening": "Övrig tid får inte fordon parkeras."
+  },
+  {
+   "citation": "0180 2018-05163",
+   "gallerFran": "2018-10-19",
+   "gata": "Skeppargatan",
+   "stadsdel": "Östermalm",
+   "stracker": 1,
+   "mening": "Övrig tid får fordon inte parkeras."
+  }
+ ]
+}
