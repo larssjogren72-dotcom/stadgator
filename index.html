@@ -3737,21 +3737,81 @@ function maxtidGallerKlockan(start, slut, d) {
 // (LTFR_FORESKRIFT) bär föreskriftstext, men bara för ändamålsplats/gågata m.fl.: 0 av 193
 // parkeringsförbud finns där. Enda källan är RDT.
 //
-// STEG 1 (detta): modellen. Mängden nedan innehåller ENDAST de ärendenummer Lars kontrollerat
-// på plats med foto – inte hela den maskinlästa genomsökningen. Ett okänt ärendenummer ger
-// null och därmed exakt dagens beteende; ingen sträcka byter färg på en gissning.
-// STEG 2 (ej byggt): byt mängden mot en genererad tabell. Regeln "okänt → dagens beteende"
-// gäller då också, så en inaktuell tabell aldrig kan skapa ett falskt rött.
-const FORBUD_OVRIG_TID = new Set([
-  '0180 2008-08583',   // Frejgatan, Birger Jarlsg–Roslagsg – Lars: kryss växlar till streck
-  '0180 2012-03126',   // Odengatan, Verdandig–Valhallav   – Lars: "förbud aldrig parkera"
-  '0180 2023-02987',   // Renstiernas Gata ö, Åsög–Kocksg  – Lars: C35 utan tidtavla
-  '0180 2025-05048'    // Högbergsgatan n, Götg–Repslagarg – Lars: tilläggstavla "övrig tid"
-]);
+// Tabellen genereras ur verktyg/forbud-ovrig-tid.json, som i sin tur bygger på
+// föreskriftstexten i original. JSON-filen bär meningen i klartext per post, så varje rad
+// går att granska utan att läsa om något.
+//
+// ── Varför en tabell inte kan bli tyst fel ───────────────────────────────────
+// Värdet är postens VALID_FROM så som den såg ut när texten lästes. Vakten jämför mot
+// kartdatan vid varje uppslag. Tre sätt tabellen kan bli inaktuell, alla ofarliga:
+//   · Staden ERSÄTTER föreskriften → nytt ärendenummer → finns inte här → dagens beteende
+//   · Staden ÄNDRAR den            → VALID_FROM skiljer sig → vakten slår → dagens beteende
+//   · Staden UPPHÄVER den          → posten försvinner ur kartdatan → raden slås aldrig upp
+// En gammal tabell förfaller alltså mot dagens beteende, aldrig mot ett NYTT fel. Kvar som
+// verklig risk: att texten ändras med både nummer och datum oförändrade – det går inte att
+// upptäcka härifrån. Uppmätt takt: ~7 % av klassen ändrar VALID_FROM per år, ca 3 per månad.
+  // ▼▼ GENERERAD TABELL – ändra inte för hand, kör verktyg/bygg-forbud-ovrig-tid.js ▼▼
+  // 46 föreskrifter, 94 kartsträckor.
+  // Läst ur föreskriftstexten i RDT 2026-08-29. Genomsökt: 579 ärendenummer
+  // i hela stockholm, varav 11 inte gick att läsa (de saknas här → dagens beteende).
+  // Värdet är postens VALID_FROM när texten lästes – vakten nedan jämför mot kartdatan.
+  const FORBUD_OVRIG_TID = {
+    '0180 2017-02175': '2017-03-08',           // Alviksvägen, Alvik
+    '0180 2020-00428': '2020-01-31',           // Lindevägen, Enskede Gård
+    '0180 2020-00430': '2020-01-31',           // Skjulvägen, Enskede Gård
+    '0180 2021-04520': '2021-10-22',           // Stockholmsvägen, Gamla Enskede
+    '0180 2020-00595': '2020-03-03',           // Klubbacken, Hägersten
+    '0180 2019-05173': '2019-10-17',           // Riddersviksvägen, Hässelby Villastad
+    '0180 2019-05174': '2019-10-17',           // Riddersviksvägen, Hässelby Villastad
+    '0180 2023-03055': '2023-11-30',           // Hantverkargatan, Kungsholmen
+    '0180 2024-03959': '2024-10-03',           // Scheelegatan, Kungsholmen
+    '0180 2024-03960': '2024-10-03',           // Scheelegatan, Kungsholmen
+    '0180 2010-00968': '2010-02-21',           // Liljeholmsbron, Liljeholmen
+    '0180 2022-04163': '2022-10-13',           // Mälarhöjdsvägen, Mälarhöjden
+    '0180 2020-02269': '2020-04-15',           // Roslagstullsbacken, Norra Djurgården
+    '0180 2018-03324': '2018-06-28',           // Stobaeusvägen, Norra Ängby
+    '0180 2018-03322': '2018-06-28',           // Stobaeusvägen, Norra Ängby
+    '0180 2024-04197': '2024-10-09',           // Klara Norra Kyrkogata, Norrmalm
+    '0180 2025-05555': '2025-10-24',           // Klarabergsviadukten, Norrmalm
+    '0180 2018-05225': '2018-10-21',           // Kungsgatan, Norrmalm
+    '0180 2019-02752': '2019-04-30',           // Tegnérgatan, Norrmalm
+    '0180 2017-11326': '2018-02-12',           // Djupdalsvägen, Olovslund
+    '0180 2018-04039': '2018-08-14',           // Kälvestavägen, Solhem
+    '0180 2025-05048': '2025-09-23',           // Högbergsgatan, Södermalm
+    '0180 2025-07002': '2025-12-09',           // Långholmsgatan, Södermalm
+    '0180 2017-06817': '2017-09-05',           // Malmgårdsvägen, Södermalm
+    '0180 2016-03808': '2016-11-10',           // Renstiernas Gata, Södermalm
+    '0180 2023-02987': '2025-08-15',           // Renstiernas Gata, Södermalm
+    '0180 2020-06395': '2020-11-24',           // Renstiernas Gata, Södermalm
+    '0180 2016-04412': '2016-11-10',           // Renstiernas Gata, Södermalm
+    '0180 2017-06836': '2017-07-24',           // Rosenlundsgatan, Södermalm
+    '0180 2017-08014': '2017-08-24',           // Sankt Paulsgatan, Södermalm
+    '0180 2009-08900': '2010-01-18',           // Söder Mälarstrand, Södermalm
+    '0180 2024-04116': '2024-10-08',           // Birger Jarlsgatan, Vasastaden
+    '0180 2017-11320': '2017-12-13',           // Dalagatan, Vasastaden
+    '0180 2008-08583': '2008-09-24',           // Frejgatan, Vasastaden
+    '0180 2017-09782': '2017-10-04',           // Karlbergsvägen, Vasastaden
+    '0180 2021-04166': '2021-11-06',           // Odengatan, Vasastaden
+    '0180 2020-03669': '2020-06-03',           // Saltmätargatan, Vasastaden
+    '0180 2017-05373': '2017-05-31',           // Torsgatan, Vasastaden
+    '0180 2017-06939': '2017-11-19',           // Torsgatan, Vasastaden
+    '0180 2025-02476': '2025-06-28',           // Torsgatan, Vasastaden
+    '0180 2017-11328': '2018-02-07',           // Nyodlingsvägen, Ålsten
+    '0180 2017-11329': '2018-02-07',           // Nyodlingsvägen, Ålsten
+    '0180 2018-01119': '2018-03-08',           // Nyodlingsvägen, Ålsten
+    '0180 2018-03486': '2018-06-27',           // Nyängsvägen, Ålsten
+    '0180 2012-03126': '2012-09-18',           // Odengatan, Östermalm
+    '0180 2018-05163': '2018-10-19',           // Skeppargatan, Östermalm
+  };
+  // ▲▲ SLUT GENERERAD TABELL ▲▲
 // true = parkering förbjuden även utanför tidsfönstret · null = vet inte (dagens beteende)
-function parkeringForbjudenOvrigTid(citation) {
+function parkeringForbjudenOvrigTid(citation, validFrom) {
   if (!citation) return null;
-  return FORBUD_OVRIG_TID.has(citation) ? true : null;
+  const sparad = FORBUD_OVRIG_TID[citation];
+  if (!sparad) return null;                                  // okänd föreskrift → dagens beteende
+  // Vakten: har regeln ändrats sedan vi läste den, litar vi inte på vår egen rad.
+  if (String(validFrom || '').slice(0, 10) !== sparad) return null;
+  return true;
 }
 function forbudActiveAt(p, d) {
   if (p.ODD_EVEN != null) return null;             // ovanligt fält, aldrig sett i data – gissa inte
@@ -4239,7 +4299,7 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     // Fas 2d SKA INTE gälla när posten har ett underliggande parkeringsförbud: då är
     // tidsfönstret bara stannandeförbudet, och parkering är förbjuden ändå (se
     // parkeringForbjudenOvrigTid). Rött ska stå kvar dygnet runt.
-    if (forbudActiveAt(fp, tD) === false && parkeringForbjudenOvrigTid(fp.CITATION) !== true) return;
+    if (forbudActiveAt(fp, tD) === false && parkeringForbjudenOvrigTid(fp.CITATION, fp.VALID_FROM) !== true) return;
     for (let i = 0; i < line.length - 1; i++) {
       const a = line[i], b = line[i+1];
       const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
@@ -4293,7 +4353,7 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     if (forbudActiveAt(fp, tD) !== false) return;            // aktiv nu eller osäkert → rör inte
     // …och gör den ALDRIG grön om parkering är förbjuden övrig tid. Utan den här raden
     // skulle rött-spärren ovan bli verkningslös: posten skulle ritas grön i stället.
-    if (parkeringForbjudenOvrigTid(fp.CITATION) === true) return;
+    if (parkeringForbjudenOvrigTid(fp.CITATION, fp.VALID_FROM) === true) return;
     const seg = toAllowedSegment(f);
     if (!seg.linesSweref.length) return;                     // ingen ritbar geometri (t.ex. annan ytetyp)
     seg.fromForbud = true;
