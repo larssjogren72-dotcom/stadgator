@@ -5579,6 +5579,18 @@ const HIDDEN_GEM_MIN_H = 2, HIDDEN_GEM_MAX_H = 7;
 // ett dygnsskifte. Sådana ger null, alltså ingen glöd – samma försiktighetsprincip som
 // överallt annars.
 function forbudTogNyssSlut(s, now) {
+  // ⚠ MÅSTE vara en ändamålsplats. Fälten START_TIME/END_TIME finns på NÄSTAN VARJE
+  // p-post och betyder där något helt annat – när AVGIFTEN gäller, eller när gatan städas.
+  // Utan den här raden lyste vanlig avgiftsparkering upp klockan 17 en lördag och kortet
+  // sa "Förbudet tog slut 17", fast ingen hade varit förhindrad att stå där – taxan hade
+  // bara slutat ticka (Taxa 4: "10 kr/tim vardagar 7-19, lör/helgafton 11-17").
+  // Sett på Liljeholmsvägen 2026-08-29 18:07. Kommentaren nedan sa redan att det INTE får
+  // hända; koden kontrollerade det inte.
+  // Även "Tidsreglerat parkerings-/stoppförbud" är utesluten med flit trots namnet: dess
+  // fönster är också taxans (Frejgatan 07–19 = "20 kr/tim vardagar 7-19") eller städnattens
+  // (Barnhusbron onsdag 00–06). Numerisk VF_PLATS_TYP är den ENDA signal där fönstret
+  // bevisligen betyder "restriktionen gäller" – samma antagande som andamalActiveAt gör.
+  if (!s.andamal) return null;
   const start = s.andamalStart, slut = s.andamalEnd;
   if (start == null || slut == null || start >= slut) return null;
   // Gällde restriktionen alls idag? Samma dagtolkning som andamalActiveAt använder.
