@@ -304,7 +304,18 @@ module.exports = function skapaGoteborg(delade) {
         GBG_LAGER: lager,
         GBG_BOENDE: harBoende ? boendePerGeom.get(geomNyckel) : null,
         GBG_MAXTID_VILLKOR: falt(p, 'MaxParkingTimeLimitation') || null,
-        GBG_STADTEXT: falt(p, 'CleaningZone') || null
+        GBG_STADTEXT: falt(p, 'CleaningZone') || null,
+        // En lastplats UTAN villkorsmening gäller dygnet runt. Slutsatsen är inte
+        // gissad ur tomrummet – den är läst i föreskriften. Uppmätt 2026-08-29 på
+        // HELA staden: 339 lastplatser, varav 140 saknar mening. Fyra av dem lästes i
+        // RDT, spridda över 2008/2014/2022/2026, och alla fyra säger samma sak utan ett
+        // enda klockslag: «…ska vara ändamålsplats för lastning eller lossning av tungt
+        // eller skrymmande gods.» Punkt. Tomt fält betyder alltså «alltid», inte
+        // «okänt» – och utan flaggan ritade appen dem gröna dygnet runt, året om.
+        // ⚠ Fältet är stadsneutralt men sätts BARA här. Stockholms 1 552 ändamålsplatser
+        // bär alla både tid och dag (0 poster utan), och Sundbybergs tomrum är oprövat.
+        // Den som sätter flaggan i en ny stad måste läsa föreskriften där först.
+        ANDAMAL_ALLTID: lager === 'lastplats' && !falt(p, 'MaxParkingTimeLimitation')
       });
       for (const l of ls) ut.push({ type: 'Feature', properties: props,
                                     geometry: { type: 'LineString', coordinates: l } });

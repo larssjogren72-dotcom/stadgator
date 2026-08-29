@@ -3535,7 +3535,12 @@ const andamalKod = (t) => { const s = String(t == null ? '' : t).trim();
 // Tre mönster täcker 180/180 poster i fem områden, mätt 2026-07-28.
 const SV_WEEKDAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'];
 function andamalActiveAt(s, d) {
-  if (!s.andamal || s.andamalStart == null || s.andamalEnd == null) return null;
+  if (!s.andamal) return null;
+  // Dygnet runt: inget fönster att jämföra mot, men platsen är ändå alltid en lastplats.
+  // Måste ligga FÖRE null-vakten nedan – annars faller just de posterna igenom som
+  // «okänt» och målas gröna, vilket var hela felet.
+  if (s.andamalAlltid) return true;
+  if (s.andamalStart == null || s.andamalEnd == null) return null;
   const min = h => Math.floor(h / 100) * 60 + (h % 100);
   const nu = d.getHours() * 60 + d.getMinutes(), a = min(s.andamalStart), b = min(s.andamalEnd);
   if (!(a <= b ? (nu >= a && nu < b) : (nu >= a || nu < b))) return false;   // utanför klockslaget
@@ -3564,6 +3569,9 @@ function andamalActiveAt(s, d) {
 // Chip: bär tiden (detaljraden ger då handlingen – se dedup-regeln i Nu-flödet).
 function andamalTxt(s) {
   const namn = ANDAMAL_LABELS[s.andamal] || 'Ändamålsplats';
+  // Utan klockslag finns ingen tid att skriva ut – säg varför i stället för att
+  // sätta ihop «Lastplats null–null».
+  if (s.andamalAlltid) return namn + ' · gäller dygnet runt';
   const dt = (s.andamalDayType || '').toLowerCase();
   const nar = dt.includes('utom vardag före') ? 'vardag'
             : dt.includes('vardag före')      ? 'dag före helgdag'
@@ -4334,6 +4342,11 @@ function toAllowedSegment(f) {
     andamalEnd:   p.END_TIME   != null ? +p.END_TIME   : null,
     andamalDayType: p.DAY_TYPE || '',
     andamalWeekday: p.START_WEEKDAY || '',
+    // Ändamålsplats UTAN tidsfönster som ändå gäller – en lastplats dygnet runt.
+    // Skilj den från «vi vet inte när»: flaggan sätts bara av en stadsadapter som
+    // LÄST föreskriften och sett att den saknar klockslag (se cities/goteborg.js).
+    // Saknad flagga + saknat fönster = okänt, och då rör vi fortfarande inte segmentet.
+    andamalAlltid: p.ANDAMAL_ALLTID === true,
     street: p.STREET_NAME || '',
     district: p.CITY_DISTRICT || '',
     citation: p.CITATION || ''
@@ -4802,6 +4815,11 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const ejForDig = !vehicleAllowed(s.vehicle);
       let color, txt;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
+      // En ändamålsplats som gäller dygnet runt är aldrig trygg över natten – den har inget
+      // fönster som tar slut. Hinder-logiken nedan kan inte fatta det beslutet: den frågar
+      // NÄR något börjar i morgon, och för den här posten finns ingen sådan tidpunkt.
+      // Samma ordning som i Nu-flödet: "får jag stå här alls" före "när städas det".
+      else if (s.andamalAlltid)        { color = '#ef4444'; txt = andamalTxt(s); }
       // Före städbedömningen, av samma skäl som i Nu-flödet: annars blir en reserverad plats
       // "Trygg över natten" och räknas som en trygg plats i badgen.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
@@ -4823,6 +4841,8 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // `let`, inte `const`: maxtid-fällningen längre ner skriver om raden för städer
       // som saknar maxtid i datan.
       let infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
+                    // Samma förklaring som i Nu-flödet – lägena ska säga samma sak om samma plats.
+                    : s.andamalAlltid ? 'Här får du aldrig parkera – bara lasta och lossa'
                     : (isRhPlats(s) || ejForDig) ? ''
                     // "ikväll" var fel i VARJE fall den visades: grenen utlöses bara när fönstret
                     // börjar före 07:00 (ON_NIGHT_HM), så klockslaget ligger alltid mellan 00:00
@@ -5457,6 +5477,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // `let`, inte `const`: korttids-fällningen längre ner skriver om raden för städer
       // som inte pekar ut sina korttidsplatser (samma mönster som i Natt-flödet).
       let infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
+                    // «Tillåten övrig tid» förutsätter att det FINNS en övrig tid. För en lastplats
+                    // som gäller dygnet runt finns ingen, och då säger raden motsägelsen «gäller
+                    // dygnet runt» + «tillåten övrig tid» i samma kort. Säg konsekvensen i stället.
+                    : (anda && s.andamalAlltid) ? `Här får du aldrig parkera – bara lasta och lossa`
                     : anda ? `Parkering tillåten övrig tid`
                     : (isRhPlats(s) || ejForDig) ? ''
                     : (cs && cs.state === 'active')   ? `Flytta ${vehicleWord()} – inte tillåtet just nu`
