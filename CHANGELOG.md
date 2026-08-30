@@ -14,6 +14,54 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.21.0 – 2026-08-30
+**Appen svarade på rätt fråga, men om fel klockslag.**
+
+**Det började med en lastplats på Vegagatan.** Gatan städas torsdag 09–14 och är lastplats
+07–19. Klockan fem på morgonen lyste den med den starkaste positiva signal appen har och
+sa "Gott om tid – får stå till 09". Bilen måste vara borta 07. Nu-läget satte deadline
+enbart efter städningen och frågade aldrig när platsens *egen* lastplats öppnar. Natt-läget
+hade redan rätt regel – det som öppnar först binder – så den flyttades över. Var femte
+lastplats i Vasastan har minst en veckodag med det mönstret.
+
+**Natt-läget hade motsatt blindfläck: det frågade bara om i morgon.** En lastplats mitt i
+sitt eget fönster fick "FÅR STÅ · flytta innan 07". Värre: gällde den inte i morgon
+försvann varningen helt, och gatan blev **grön "Trygg över natten"** medan förbudet pågick
+– och räknades bland de trygga platserna. Grönt på en sträcka man inte får stå på är precis
+den falska trygghet appen är byggd för att undvika.
+
+**Under den utredningen föll en taxiplats ut.** Folkungagatan har en taxiplats som gäller
+18–07. Koden antog att hinder börjar på morgonen, så ett fönster som startar 18:00
+klassades som "du har åkt innan det börjar" – grönt, på en sträcka som är förbjuden exakt
+de timmar bilen skulle stått där. Ett fönster som vänder över midnatt kan aldrig vara sent
+nog. Det påverkar inga städgator: noll av 5 192 städfönster vänder.
+
+**En text som gissade rättades också.** Nu-läget tittar tio timmar framåt efter
+morgondagens städning och kallade allt som rymdes där "i natt". Klockan 23 blev en
+09–14-städning "servas i natt · flytta annars i kväll". Ordet väljs nu av klockslaget.
+Nattstädningen 00–06 – 3 741 av posterna, det stora flertalet – är oförändrad; det var de
+1 448 förmiddagsposterna som beskrevs fel.
+
+**Och så färgen.** Orange betydde två motsatta saker i Nu-läget: "Städas nu" (får inte stå)
+och "Får stå tills 09" (får stå). Klockan fem en onsdag var 50 av 56 oranga sträckor sådana
+man inte fick stå på – färgen betydde alltså oftast motsatsen till vad legenden sa, och
+legenden gick inte att skriva rätt. **Städning som pågår är nu röd.**
+
+Streckad röd prövades och föll på en mätning: vid appens landningszoom är mediansträckan
+5 pixlar och 78 % ligger under 12, medan ett streckmönster behöver omkring 20. En tredje
+orange nyans var också utesluten – städ-amber och uteserveringens orange ligger redan
+närmare varandra än något annat färgpar på kartan.
+
+**Det tyngsta skälet var inte färgen utan en knapp som inte fungerade.** Reglaget "Tona ner
+där bilen inte får stå" tonade aldrig ner en gata som städades – och kunde inte lagas, för
+lägger man till orange i den mängden försvinner även gatorna som städas om fem timmar, och
+dem får man stå på. Nu faller allt man inte kan använda tillbaka, och kvar i full styrka
+står alternativen.
+
+Blå, gågata och uteservering är orörda. Grön, blå, orange, röd och lila svarar på "får jag
+stå här"; gågata och uteservering säger vad platsen *är*, och den skillnaden får synas.
+Natt-läget behåller sin egen färgregel – det svarar på om bilen kan lämnas till i morgon,
+inte på vad som gäller just nu.
 ## v1.20.1 – 2026-08-30
 **Det gick inte att se hur många som använder Göteborg.**
 
