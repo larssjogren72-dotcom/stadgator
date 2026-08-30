@@ -160,7 +160,12 @@ jobs:
               : torrkor
               ? 'Torrkörning: ändringarna nedan gjordes i jobbet men committades inte.'
               : 'Stadens data hade ändrats. Roboten läste om, testade och pushade.';
+            // @-nämningen ligger först i listan, inte hopfogad med en egen
+            // radbrytning. Den förra varianten hade ett radbrytningstecken i
+            // källkoden som bröt BÅDE JavaScripten och YAML:en – GitHub kunde då
+            // inte tolka filen och registrerade jobbet UTAN workflow_dispatch.
             const kropp = [
+              '@' + context.repo.owner, '',
               inled, '',
               '## Vad som ändrades', '```', las('diff.txt').slice(0, 20000), '```', '',
               '## Testgrinden', '```', las('prov.txt').slice(0, 10000), '```', '',
@@ -181,9 +186,7 @@ jobs:
             const issue = await github.rest.issues.create({
               owner: context.repo.owner, repo: context.repo.repo,
               title: nyckelord + rubrik + ' (' + new Date().toISOString().slice(0, 10) + ')',
-              body: '@' + context.repo.owner + '
-
-' + kropp,
+              body: kropp,
               labels: ['data'],
               assignees: [context.repo.owner]
             });
