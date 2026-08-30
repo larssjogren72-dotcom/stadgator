@@ -4030,11 +4030,13 @@ function maxtidGallerDag(dagTyp, d) {
 // TILLÅTELSEN gäller då, inte att tidsgränsen gör det. Utanför fönstret vet vi då inte om
 // parkering är tillåten alls, och "ingen gräns" vore fel åt det farliga hållet.
   // ▼▼ GENERERAD TABELL – ändra inte för hand, kör verktyg/bygg-gbg-villkor.js ▼▼
-  // 55 villkorsmeningar, 416 kartsträckor.
-  // Översatta en gång och granskade för hand 2026-08-29. Uppslag på EXAKT sträng.
-  // Utelämnad med flit: Tillåtelsen gäller vardag klockan 08.00 - 22.00.
+  // 56 villkorsmeningar, 1970 kartsträckor.
+  // Översatta en gång och granskade för hand 2026-08-30. Uppslag på EXAKT sträng.
+  // Utelämnad med flit: Tillåtelsen gäller vardag klockan 08.00 - 22.00. / Tillåtelsen gäller vardag klockan 06.00 - 19.00 och sön- och helgdag klockan 06.00 - 19.00.
   // dag: vardag-ej-dagfore | dagfore | sonhelg | vardag | alla. s = säsong som MMDD.
   const GBG_MAXTID_VILLKOR_TABELL = {
+    "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.":
+      { r: [['vardag-ej-dagfore',0,2400]] },   // 1554 sträckor
     "Parkering är dock tillåten under högst 4 tim i följd.":
       { r: [['alla',null,null]] },   // 47 sträckor
     "Tidsbegränsningen gäller vardag klockan 08.00 - 22.00 och sön- och helgdag klockan 08.00 - 22.00.":

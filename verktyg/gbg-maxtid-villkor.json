@@ -1,6 +1,6 @@
 {
  "beskrivning": "Göteborgs villkorsmeningar (MaxParkingTimeLimitation) översatta till NÄR tidsgränsen gäller. Meningen är föreskriftens egen text, ordagrant. Uppslag sker på exakt sträng – en mening som inte finns här ger \"vet inte\" och därmed dagens beteende.",
- "kalla": "Göteborgs öppna WFS, lagret parkering:tidsbegransad. Meningen är verifierad som ordagrann avskrift av föreskriften i RDT (4 av 4 lästa 2026-08-28).",
+ "kalla": "Göteborgs öppna WFS. Populationen är alla parkeringslager UTOM lastplats där posten bär en MaxParkingTime – appen slår bara upp villkoret när det finns en gräns att stänga av. Meningen är verifierad som ordagrann avskrift av föreskriften i RDT (4 av 4 lästa 2026-08-28). ⚠ `strackor` är ENBART dokumentation och mätt på olika sätt över tid: de ursprungliga raderna räknades på appens sammanslagna endpoint (släpper ytor, slår ihop boende-tvillingar), senare tillagda på råa WFS-poster. Jämför dem aldrig med varandra – se kommentaren i verktyg/kolla-gbg-tabeller.js.",
  "dagtyper": {
   "vardag-ej-dagfore": "vardag som inte är dag före sön- eller helgdag",
   "dagfore": "dag före sön- eller helgdag",
@@ -9,10 +9,23 @@
   "alla": "alla dagar"
  },
  "utelamnade": [
-  "Tillåtelsen gäller vardag klockan 08.00 - 22.00."
+  "Tillåtelsen gäller vardag klockan 08.00 - 22.00.",
+  "Tillåtelsen gäller vardag klockan 06.00 - 19.00 och sön- och helgdag klockan 06.00 - 19.00."
  ],
- "last": "2026-08-29",
+ "last": "2026-08-30",
  "poster": [
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+   "strackor": 1554,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 0,
+     "till": 2400
+    }
+   ],
+   "sasong": null
+  },
   {
    "mening": "Parkering är dock tillåten under högst 4 tim i följd.",
    "strackor": 47,
