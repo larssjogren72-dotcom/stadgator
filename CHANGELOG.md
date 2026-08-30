@@ -14,6 +14,35 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.20.1 – 2026-08-30
+**Det gick inte att se hur många som använder Göteborg.**
+
+Frågan kom kvällen före kampanjstart, och svaret var nej – av tre skäl som alla gick att
+mäta. **Ingen av de sjutton SEO-sidorna har Google Analytics**, så kampanjens naturliga
+landningssidor var helt mörka. **GA laddas först efter kaksamtycke**, och hur många som
+avböjer går inte att läsa ut ur GA – de saknas per definition. Och **den som kommer
+tillbaka är osynlig**: staden sparas i webbläsaren, så nästa besök sker på en ren adress
+utan `?stad=`, och GA ser bara "/". Man kunde alltså se vem som *kom*, aldrig vem som
+*stannade* – tvärtemot vad en kampanj behöver veta.
+
+**Nu räknar servern själv, utan kaka.** SEO-sidorna räknas där de serveras, så de behöver
+ingen JavaScript. Appen säger till vilken stad den visar, eftersom servern omöjligt kan
+veta det för en återvändande besökare. Ingenting sparas om personen – bara ett antal per
+stad och dygn – och därför krävs inget samtycke. `/statistik` läser av.
+
+**Talen är byggda för att inte kunna misstolkas.** De räknar sidvisningar, inte personer,
+och det står i svaret. Sökrobotar räknas för sig i stället för att tyst sorteras bort – ett
+tal som filtrerat bort trafik i hemlighet går inte att kontrollera i efterhand. Ett okänt
+stadsnamn hamnar under "okänd" i stället för att försvinna, så en felstavad kampanjlänk
+syns. Och eftersom siffrorna bor i minnet och nollställs vid varje driftsättning bär svaret
+alltid ett `sedan`-fält: en nolla ska gå att skilja från "ingen kom".
+
+**Google Analytics vet nu vilken stad besöket gällde**, både som användaregenskap och på
+varje sidvisning. Det kräver en engångsregistrering i GA4 som inte är retroaktiv.
+
+Integritetstexten har fått ett stycke om räkningen. Ny insamling som inte står beskriven
+vore fel oavsett hur ofarlig den är.
+
 ## v1.20.0 – 2026-08-30
 **Tabellerna sköter sig själva, och säger till när de inte gör det.**
 
