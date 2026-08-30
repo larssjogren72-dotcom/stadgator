@@ -1,0 +1,87 @@
+# Månadskoll av förbudstabellen (verktyg/forbud-ovrig-tid.json).
+#
+# VAD DEN GÖR: kör verktyg/kolla-forbud-ovrig-tid.js. Stämmer allt händer ingenting.
+# Har något ändrats öppnas ETT issue med rapporten i.
+#
+# VAD DEN INTE GÖR: den ändrar aldrig tabellen själv. Att läsa om en föreskrift och
+# skriva om raden är ett beslut om vad appen påstår om verkligheten – det ska en
+# människa se innan det går live. Kör `node verktyg/kolla-forbud-ovrig-tid.js
+# --uppdatera` lokalt, granska diffen, och committa den som vanligt.
+#
+# ⚠ KRÄVER EN HEMLIGHET. Lägg Stockholms API-nyckel som `STHLM_API_KEY` under
+# Settings → Secrets and variables → Actions. Utan den avbryter jobbet med exit 2
+# och skriver "Ingen API-nyckel" – den läcker aldrig nyckeln till loggen.
+# Nyckeln maskas dessutom i alla felutskrifter från skriptet.
+name: Kolla förbudstabellen
+
+on:
+  schedule:
+    # Den 1:e varje månad 05:00 UTC. Föreskrifter ändras långsamt – uppmätt drift
+    # är ungefär tre i månaden av 579, alltså 7 % om året. Tätare koll skulle bara
+    # belasta Stockholms API utan att hitta något nytt.
+    - cron: '0 5 1 * *'
+  workflow_dispatch:        # går alltid att köra för hand
+
+permissions:
+  contents: read
+  issues: write             # behövs bara för att öppna issuet nedan
+
+jobs:
+  kolla:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Kör kontrollen
+        id: kolla
+        env:
+          STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
+        run: |
+          set +e
+          node verktyg/kolla-forbud-ovrig-tid.js > rapport.txt 2>&1
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          cat rapport.txt
+
+      # Exit 1 = något har ändrats. Exit 2 = kontrollen kunde inte köras (nyckel,
+      # nätfel, tomt svar) – det är också värt ett issue, annars tystnar vakten
+      # utan att någon märker det.
+      - name: Öppna issue om något ändrats
+        if: steps.kolla.outputs.kod != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const rapport = fs.readFileSync('rapport.txt', 'utf8');
+            const kod = '${{ steps.kolla.outputs.kod }}';
+            const rubrik = kod === '2'
+              ? 'Förbudstabellen kunde inte kontrolleras'
+              : 'Förbudstabellen behöver ses över';
+            const kropp = [
+              kod === '2'
+                ? 'Kontrollen gick inte att köra. Det betyder INTE att allt är bra – ingen vet.'
+                : 'Något i tabellen stämmer inte längre med Stockholms kartdata.',
+              '',
+              '```',
+              rapport.trim().slice(0, 60000),
+              '```',
+              '',
+              '### Att göra',
+              '1. `node verktyg/kolla-forbud-ovrig-tid.js --uppdatera`',
+              '2. `node verktyg/bygg-forbud-ovrig-tid.js`',
+              '3. Granska diffen – en rad som försvinner betyder att en gata slutar få rött.',
+              '4. Committa och pusha när det ser rätt ut.',
+              '',
+              'Appen är säker under tiden: vakten i `parkeringForbjudenOvrigTid` ser att',
+              'datumet inte stämmer och faller tillbaka på tidigare beteende.'
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: rubrik + ' (' + new Date().toISOString().slice(0, 10) + ')',
+              body: kropp,
+              labels: ['data']
+            });
