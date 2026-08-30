@@ -5730,6 +5730,26 @@ function nastaStadTxt(n, now) {
   return `Nästa städning ${nar} ${kl}${om}`;
 }
 
+// ── "i natt" måste förtjänas av klockan ──────────────────────────────────────
+// Nu-flödets nx-gren (morgondagens städning inom NU_HORIZON_H) skrev "servas i natt" om
+// VARJE fönster som rymdes i horisonten – även ett som börjar 09:00. Vasastan har gott om
+// 09–14-städning, och kl 23 blev texten "Får stå nu · servas i natt" + "Servas 09–14 i natt
+// · flytta annars i kväll". Städningen är förmiddag, och rådet att flytta i kväll är fel.
+//
+// Exakt samma fel var redan rättat i Natt-lägets detaljrad ("ikväll var fel i VARJE fall
+// den visades", se tier === 'natt'-raden i uc2-flödet) – med samma medicin: låt klockslaget
+// välja ordet i stället för att anta. Gatuvägen i Nu var den sista som gissade.
+//
+// Horisonten är 10 timmar, så fönstret hinner aldrig längre än till förmiddagen:
+//   start < 06:00 → "i natt"  ·  06:00–09:59 → "i morgon bitti"  ·  ≥ 10:00 → "i morgon"
+const stadNarOrd = start => start == null ? 'i morgon'
+                          : start < 600  ? 'i natt'
+                          : start < 1000 ? 'i morgon bitti'
+                          : 'i morgon';
+// "flytta innan 00" läser som ett skrivfel; midnatt har ett eget ord. Samma undantag som
+// Natt-lägets detaljrad redan gör, ordagrant, så de två raderna läses som syskon.
+const flyttaInnanOrd = start => start === 0 ? 'innan midnatt' : `innan ${fmtClock(start)}`;
+
 // Hur länge sen får en avslutad städning nämnas (kortraden) och lysa upp som prioritet
 // (glowen)? Sattes först till 6h, men mätt i Vasastan var det 17 % av gatorna en eftermiddag
 // strax efter ett vanligt städfönster (09–14) – för vanligt för att kännas som en prioritet.
@@ -5889,7 +5909,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         txt = bindande.lastplats
               ? (hiddenGem ? `Gott om tid – får stå till ${fmtClock(bindande.start)}`
                            : `Får stå tills ${fmtClock(bindande.start)}`)
-              : (hiddenGem ? `Gott om tid – servas i natt` : `Får stå nu · servas i natt`);
+              : (hiddenGem ? `Gott om tid – servas ${stadNarOrd(nx.start)}`
+                           : `Får stå nu · servas ${stadNarOrd(nx.start)}`);
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; }
@@ -5987,9 +6008,12 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     : (cs && cs.state === 'upcoming') ? (hiddenGem
                         ? `Städas ${fmtClock(cs.start)}–${fmtClock(cs.end)} · en bra möjlighet för ett kortare ärende nu`
                         : `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`)
+                    // hiddenGem-grenen kan bara nås av fönster som börjar före 07:00 (h måste
+                    // vara < 7 och h = timmar-till-midnatt + startH, alltså alltid > startH),
+                    // så "kvällsparkering" stämmer där. Ordet för NÄR väljs ändå av klockan.
                     : nx ? (hiddenGem
-                        ? `Städas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · en bra möjlighet för en kortare kvällsparkering`
-                        : `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} i natt · kort besök går bra, flytta annars i kväll`)
+                        ? `Städas ${fmtClock(nx.start)}–${fmtClock(nx.end)} ${stadNarOrd(nx.start)} · en bra möjlighet för en kortare kvällsparkering`
+                        : `Servas ${fmtClock(nx.start)}–${fmtClock(nx.end)} ${stadNarOrd(nx.start)} · kort besök går bra, flytta annars ${flyttaInnanOrd(nx.start)}`)
                     : (s.avgiftsfriTidsbegransad && s.cleaningNow) ? (s.cleaningTxt || 'Inte tillåtet just nu enligt skylt')
                     : (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) ? (s.cleaningTxt ? `${s.cleaningTxt} – inte nu` : '')
                     : s.avgiftsfriTidsbegransad ? 'Tidsgräns kan gälla (t.ex. P-skiva) – kontrollera skylt'
