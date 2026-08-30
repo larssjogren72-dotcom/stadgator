@@ -231,6 +231,54 @@ kartan aldrig visar.
 
 ---
 
+## 8.3 En kulör, ett svar – städning som pågår blir röd (2026-08-30)
+
+**Problemet.** Orange bär två motsatta betydelser i Nu-läget: "Städas nu, klart 14" (får
+INTE stå, räknas inte i badgen) och "Får stå tills 09 / servas i natt" (får stå, räknas i
+badgen). Uppmätt i Vasastan-rutan: kl 05 en onsdag var **50 av 56** oranga sträckor sådana
+man inte fick stå på. Färgen betydde alltså oftast motsatsen till vad legenden sa – och
+legenden gick inte att skriva rätt, eftersom Nu-lägets enda amber-rad ("Servas idag –
+tryck för exakt tid") bara beskrev det ena fallet.
+
+**Varför röd, och inte streckad eller en ny nyans.** Tre mätningar avgjorde:
+
+1. **Streck bär inte.** Vid appens landningszoom (15) är mediansträckan **5 px** och
+   **78 % ligger under 12 px**. Ett streckmönster behöver ~20 px för att läsas som
+   streckat; kortare än så blir det en prick. Rörelse är utesluten av kartfrys-vakthunden
+   (se `?kartlogg=1`). Kvar som bärande kanaler på en 5-px markering: **kulör, opacitet,
+   halo** – inte textur.
+2. **Det orangea är fullt.** ΔE mellan städ-amber (`#f59e0b`) och uteserveringens orange
+   (`#f97316`) är **26** – kartans tätaste färgpar – och båda ligger på kartan samtidigt
+   (96 respektive 15 sträckor i en mätt vy). En tredje orange nyans går inte att skilja.
+3. **Röd låser upp "Tona ner där bilen inte får stå".** `#ef4444` ligger redan i
+   `DIM_BIL`; städ-amber gjorde det inte, och kunde inte läggas dit – då hade även
+   KOMMANDE städning tonats ner, och den får man stå på. Reglaget missade **50 sträckor
+   kl 05** och 20 kl 05 på en torsdag. Felet blockerade alltså en färdig funktion, inte
+   bara en färgavläsning. Det är det tyngsta skälet av de tre.
+
+**Tillfälligheten hör inte hemma i kulören.** Läget heter Nu. En gata som blir fri kl 14
+är inget alternativ kl 11; vill man veta hur det ser ut senare byter man läge. Tiden står
+i chipet ("Städas nu, klart 14") och i kortet – där man läser, inte där man skannar.
+
+**Vad som INTE ändras: blå, gågata och uteservering.** De svarar på en annan sorts fråga.
+**Grön, blå, orange, röd och lila är SVAR** ("får jag stå här just nu?"), medan **gågata
+och uteservering är IDENTITETER** ("vad är det här för plats?"). Identiteter får ha egna
+kulörer och går att läsa på en blick: gågata är dessutom första grenen i färgkedjan och
+ritas överst, så den kan aldrig skrivas över av städning. Uteservering är inte ens en
+färggren utan en egen linje ovanpå segmentet – rätt mönster för en identitet. Dess enda
+problem är att kulören *ser ut som* ett svar (ΔE 26 från städ-amber); den frågan är
+medvetet uppskjuten.
+
+**Natt-läget rörs inte.** Där svarar färgen på "kan jag lämna bilen till i morgon", inte
+på "får jag stå här nu", och orange betyder konsekvent "det finns en tid att hålla reda
+på". Att de två lägena har olika färgregler är avsiktligt – de ställer olika frågor.
+
+**Omfattning.** Fyra kodrader: två färgvärden och två legendrader. Uppmätt över 260 736
+segment-timmar i fem områden: 6 075 (2,33 %) byter från amber till röd, med som mest 83
+samtidiga sträckor (Östermalm, fredag 00:00, nattstädning). I Vasastan-rutan går andelen
+röda sträckor från 18 % till 20 % mitt på dagen, och från 0 % till 22 % under
+nattstädningen – toppen ligger alltså när minst antal människor söker plats.
+
 ## 9. Vad detta INTE ska bli (medvetna nej)
 
 - ❌ Inga flikar / lägesväljare som delar appen i "appar".

@@ -5885,7 +5885,29 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // i natt" + räknades i badgen – uppmätt 17 platser i Vasastan, 45 på Östermalm.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
       else if (ejForDig)               { color = '#9333ea'; txt = otherVehicleLabel(s.vehicle); }
-      else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Städas nu, klart ${fmtClock(cs.end)}`; }
+      // ── Städning PÅGÅR = du får inte stå här. Röd, inte orange. ───────────────
+      // Orange bar tva motsatta betydelser i Nu-läget: "Städas nu" (får INTE stå, räknas
+      // inte i badgen) och "Får stå tills 09 / servas i natt" (får stå, räknas i badgen).
+      // Uppmätt i Vasastan-rutan: kl 05 en onsdag var 50 av 56 oranga sträckor sådana man
+      // inte fick stå på – alltså betydde färgen oftast motsatsen till vad legenden sa.
+      // Legenden kunde heller inte förklaras: Nu-lägets enda amber-rad ("Servas idag")
+      // beskriver bara det ena fallet.
+      //
+      // Tre skäl till att det blir RÖD och inget annat:
+      // 1. Kulör är den enda kanal som bär. Vid appens landningszoom är medianen 5 px och
+      //    78 % av sträckorna under 12 px – ett streckmönster (~20 px) blir bara en prick.
+      //    Rörelse är utesluten av kartfrys-vakthunden (se ?kartlogg=1).
+      // 2. Det orangea området är fullt. ΔE mellan städ-amber och uteserveringens orange
+      //    är 26 – kartans tätaste färgpar – så en tredje orange nyans går inte att skilja.
+      // 3. Röd låser upp "Tona ner där bilen inte får stå": #ef4444 ligger redan i DIM_BIL,
+      //    medan amber aldrig kunde läggas dit (då hade även KOMMANDE städning tonats ner,
+      //    och den får man stå på). Reglaget missade 50 sträckor kl 05, 20 kl 05 torsdag.
+      //
+      // Att städningen är TILLFÄLLIG behöver inte synas i kulören: läget heter Nu, och en
+      // gata som blir fri 14 är inget alternativ 11. Tiden står i chipet och i kortet.
+      // Natt-läget rörs INTE – där svarar färgen på "kan jag lämna bilen till i morgon",
+      // och orange betyder där konsekvent "det finns en tid att hålla reda på".
+      else if (cs && cs.state === 'active')   { color = '#ef4444'; txt = `Städas nu, klart ${fmtClock(cs.end)}`; }
       else if (cs && cs.state === 'upcoming') {
         color = '#f59e0b'; okNu++;
         // Städningens start som absolut tidpunkt – bindandeHinder jämför mot lastplatsens.
@@ -5913,7 +5935,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                            : `Får stå nu · servas ${stadNarOrd(nx.start)}`);
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
-      else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; }
+      // Samma sak som grenen ovan, fast för en post som bär sitt EGET schema
+      // (avgiftsfri/tidsbegränsad). Städningen pågår → du får inte stå → röd.
+      // Bara Nu-flödet: motsvarande rad i uc2 behåller sin orange, se resonemanget ovan.
+      else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#ef4444'; txt = 'Städas nu – flytta bilen'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningKnownSafe) { color = '#16a34a'; txt = 'Får stå nu'; okNu++; }
       else if (s.avgiftsfriTidsbegransad)  { color = '#38bdf8'; txt = `Får stå nu · ${tidsklausul(s.maxMinutes)}`; okNu++; }
       else if (s.visitorShort)         { color = '#38bdf8'; txt = `Får stå nu · besöksplats, ${tidsklausul(s.maxMinutes)}`; okNu++; }
@@ -6427,14 +6452,14 @@ function updateLegend(mode) {
   const nowLegend =
       `<hr class="lgnd-sep">
        ${nowStaRad}
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas idag – tryck för exakt tid</div>
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Får stå – men inte länge till</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>Gott om tid – bra möjlighet just nu</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>
        ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#ec4899;border:1px solid #9d174d"></div>Gågata – endast markerad plats</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#f97316;border:1px solid #9a3412"></div>Uteservering – kontrollera skylt</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Får inte stå – förbud, lastplats eller städning pågår</div>`;
   // Cykel + moped klass 2 målar inga gator (registret har ingen förbudszon för dem, se
   // project-minnet 2026-08-18) – bara nålen för Stockholms dedikerade platser. Samma
   // taxa-steg som alla andra lägen (zonfärgen på kartan ritas oavsett fordon), men egna
