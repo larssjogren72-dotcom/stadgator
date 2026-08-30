@@ -2618,7 +2618,7 @@ function stadTierFor(dest, name, ctx, now) {
   if (currentMode === 'uc2') {
     const nx = ctx.nastaStadUppslag(dest, name, now);
     if (nx && nx.dagar === 1) {
-      const nt = overnightCleaningTier(nx.start);
+      const nt = overnightCleaningTier(nx.start, nx.end);
       if (nt === 'natt' || nt === 'morgon') return { tier: 'risk', info: nx, natTier: nt };
     }
     return { tier: 'trygg' };
@@ -3872,6 +3872,24 @@ function andamalTxt(s) {
             : s.andamalWeekday                ? String(s.andamalWeekday) : '';
   return `${namn} ${nar} ${fmtClock(s.andamalStart)}–${fmtClock(s.andamalEnd)}`.replace(/\s+/g, ' ').trim();
 }
+// När slutar det fönster som gäller JUST NU? (HHMM, eller null om vi inte vet.)
+// Natt-läget behöver svaret för att kunna säga "bilen kan inte stå här förrän 19".
+// Anropas bara när andamalActiveAt redan sagt true, så ett fönster finns – frågan är
+// bara om det står som fält (Stockholm) eller inne i en mening (Göteborg).
+// Dygnet-runt-posterna har inget slut och hanteras av sin egen röda gren långt innan.
+function andamalSlutNu(s, d) {
+  if (!s.andamal || s.andamalAlltid) return null;
+  if (s.andamalVillkor) {
+    const f = gbgLastplatsFonster(s.andamalVillkor, d);
+    if (!f || !f.length) return null;
+    const min = h => Math.floor(h / 100) * 60 + (h % 100);
+    const m = d.getHours() * 60 + d.getMinutes();
+    const w = f.find(x => { const a = min(x.start), b = min(x.end);
+                            return a <= b ? (m >= a && m < b) : (m >= a || m < b); });
+    return w ? w.end : null;
+  }
+  return s.andamalEnd != null ? s.andamalEnd : null;
+}
 
 // Är en OSKYDDAD förbudspost (inte taxa/besök, se isParkingForbud) aktiv just nu? Kombinerar
 // samma säsongslogik som cleaningActiveOn med samma veckodags-/klockslagslogik som
@@ -4407,7 +4425,7 @@ function applyCoincidentCleaning(s, carRecord, now) {
   }
   if (currentMode === 'uc2') {
     if (nextStart && nextStart.dagar === 1) {
-      const nt = overnightCleaningTier(nextStart.start);
+      const nt = overnightCleaningTier(nextStart.start, nextStart.end);
       if (nt === 'natt' || nt === 'morgon') { s.nattRisk = true; s.nattInfo = nextStart; s.nattTier = nt; return; }
     }
     s.tryggNatt = true;
@@ -5110,7 +5128,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       const hinder = [ cl ? { start: cl.start, end: cl.end, lastplats: false } : null,
                        aFonster ? { start: aFonster.start, end: aFonster.end, lastplats: true } : null ]
                      .filter(Boolean).sort((a, b) => a.start - b.start)[0] || null;
-      const tier = hinder ? overnightCleaningTier(hinder.start) : null;                // null|'natt'|'morgon'|'sen'
+      const tier = hinder ? overnightCleaningTier(hinder.start, hinder.end) : null;                // null|'natt'|'morgon'|'sen'
       // Se Nu-flödet: "får jag stå här alls" före "när städas det". En MC-ruta i MC-läget är
       // tillåten och behåller därför sin städvarning (grenen nedan ligger kvar efter tier).
       const ejForDig = !vehicleAllowed(s.vehicle);
@@ -5121,6 +5139,34 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // NÄR något börjar i morgon, och för den här posten finns ingen sådan tidpunkt.
       // Samma ordning som i Nu-flödet: "får jag stå här alls" före "när städas det".
       else if (s.andamalAlltid)        { color = '#ef4444'; txt = andamalTxt(s); }
+      // ── Ändamålsplatsen gäller JUST NU ────────────────────────────────────────
+      // Natt-läget frågade bara "vad händer i morgon" och aldrig "vad gäller nu", så en
+      // lastplats mitt i sitt eget fönster kunde få två fel svar (Vegagatan, verifierat
+      // mot appens egna funktioner 2026-08-30):
+      //   torsdag 10:00 → orange «FÅR STÅ · flytta innan 07» medan det är förbjudet
+      //   fredag  10:00 → GRÖN «Trygg över natten» + räknad i badgen «trygga platser»,
+      //                   eftersom i morgon är lördag och lastplatsen då inte gäller.
+      // Det andra fallet är det farliga: grönt på en sträcka man inte får stå på är
+      // precis den falska trygghet designprinciperna förbjuder.
+      //
+      // Färgen blir orange, inte röd. Lägena svarar på OLIKA frågor och ska få göra det:
+      // Nu frågar «får jag stå här», Natt frågar «kan jag lämna bilen till i morgon».
+      // Tonight ÄR svaret ofta ja – fönstret tar slut på kvällen – och rött hade sagt
+      // «åk inte hit» om en gata som är helt fin klockan 19. Orange säger «det finns en
+      // tid att hålla reda på», vilket är sant, och chipet bär båda fakta.
+      // Risken är avsiktligt asymmetrisk: den som skippar gatan förlorar en plats hen
+      // kunde haft i kväll (och texten säger det), den som luras av grönt får böter.
+      //
+      // Räknas som `städas`, inte `safe` – badgen ska inte påstå att en aktiv lastplats
+      // är en trygg plats. Samma skäl som RH-grenen strax nedan bär i sin kommentar.
+      else if (andamalActiveAt(s, new Date()) === true) {
+        color = '#f59e0b'; städas++;
+        // andamalTxt bär fönstret korrekt i BÅDA städerna (Göteborgs tider finns bara i
+        // en mening – se gbgLastplatsFonster – och andamalTxt slår upp den åt oss).
+        txt = tier
+          ? `${andamalTxt(s)} · flytta innan ${fmtClock(hinder.start)} i morgon`
+          : `${andamalTxt(s)} · trygg över natten sen`;
+      }
       // Före städbedömningen, av samma skäl som i Nu-flödet: annars blir en reserverad plats
       // "Trygg över natten" och räknas som en trygg plats i badgen.
       else if (isRhPlats(s))           { color = '#9333ea'; txt = 'Reserverad plats · tillstånd krävs'; }
@@ -5144,6 +5190,17 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       let infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     // Samma förklaring som i Nu-flödet – lägena ska säga samma sak om samma plats.
                     : s.andamalAlltid ? 'Här får du aldrig parkera – bara lasta och lossa'
+                    // Ändamålsplatsen gäller just nu (se motsvarande färggren ovan). Chipet bär
+                    // fönstret; raden säger konsekvensen – att bilen inte kan ställas hit ÄN.
+                    // Utan den läser chipet som ett godkännande med en fotnot, och det är just
+                    // den läsningen som var felet.
+                    // Göteborg bär fönstret som mening, inte som fält – där är andamalEnd null
+                    // och fmtClock(null) ger tom sträng ("…förrän " utan klockslag). Saknas
+                    // sluttiden säger raden konsekvensen utan att hitta på en tid.
+                    : andamalActiveAt(s, new Date()) === true
+                        ? (andamalSlutNu(s, new Date()) != null
+                            ? `Gäller just nu – bilen kan inte stå här förrän ${fmtClock(andamalSlutNu(s, new Date()))}`
+                            : 'Gäller just nu – bilen kan inte ställas här ännu')
                     : (isRhPlats(s) || ejForDig) ? ''
                     // "ikväll" var fel i VARJE fall den visades: grenen utlöses bara när fönstret
                     // börjar före 07:00 (ON_NIGHT_HM), så klockslaget ligger alltid mellan 00:00
@@ -5288,12 +5345,23 @@ function cleaningActiveOn(p, date) {
 //   natt  (<07:00) → du sover, kan ej flytta → undvik
 //   morgon (07–10) → du kan flytta först på morgonen → "flytta innan {start}"
 //   sen   (≥10:00) → du har åkt innan städningen → trygg över natten ändå.
+// ⚠ "sen" bygger på ett antagande som bara gäller STÄDNING: att ett fönster som börjar
+// framåt förmiddagen hinner öppna efter att du kört därifrån. Ändamålsplatser lyder inte
+// under det. Folkungagatan har en TAXIPLATS 18–07 (vardag) – start 1800 gav tier "sen"
+// och därmed grönt "Trygg över natten" på en sträcka som är förbjuden hela natten.
+// Ett fönster som VÄNDER över midnatt (start > slut) täcker per definition natten och kan
+// aldrig vara "sent nog". Sluttiden är därför ett andra argument; utelämnas den beter sig
+// funktionen exakt som förut (call sites utan känd sluttid ändrar alltså ingenting).
+// Uppmätt 2026-08-30 i åtta områden: 187 ändamålsplatser med fältsatt fönster, 6 fick
+// tier "sen" – 4 riktiga dagtidslastplatser (10–15, 10–18, 11–18, där grönt ÄR rätt) och
+// 2 vändande taxiplatsposter, som var felet.
 const ON_NIGHT_HM = 700, ON_SAFE_HM = 1000;
 // Kortaste maxtid som ändå duger för att lämna bilen över natten. Ett dygn:
 // 18:00 → 08:00 är 14 timmar, så "12 tim" räcker inte heller. Se uc2-renderingen.
 const NATT_MIN_MINUTER = 1440;
-function overnightCleaningTier(start) {
+function overnightCleaningTier(start, end) {
   if (start == null) return 'morgon';                  // okänt fönster → behandla som varning
+  if (end != null && start > end) return 'natt';       // vänder över midnatt → täcker natten
   if (start < ON_NIGHT_HM) return 'natt';
   if (start < ON_SAFE_HM)  return 'morgon';
   return 'sen';
