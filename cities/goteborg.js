@@ -33,6 +33,21 @@
 // ("invalid join sub-filter ... more than one feature type"). Uppmätt 1,2 s för
 // ett stort område; appens verkliga sökradie är 250 m och blir långt snabbare.
 
+// Lagerlistan ligger på MODULNIVÅ och exporteras (se nederst) för att verktyg ska
+// kunna fråga EXAKT samma lager som appen. Ligger den bara inne i factoryn måste
+// varje verktyg skriva av den, och en avskrift glider isär utan att någon märker det –
+// samma sorts tysta drift som verktyg/kolla-gbg-tabeller.js finns till för att fånga.
+const P_LAGER_LISTA = [
+  'parkering:taxa_1','parkering:taxa_2','parkering:taxa_3','parkering:taxa_4',
+  'parkering:taxa_5','parkering:taxa_6','parkering:taxa_7','parkering:taxa_8',
+  'parkering:taxa_a','parkering:taxa_22','parkering:taxa_24',
+  'parkering:Taxa_9','parkering:Taxa_12','parkering:Taxa_62',
+  'parkering:tidsbegransad','parkering:boende',
+  'parkering:mc','parkering:handikapp','parkering:lastplats',
+  // Annan arbetsyta (cykel:), men WFS 1.1.0 tar den i SAMMA anrop - verifierat.
+  'cykel:cykelparkeringar'
+];
+
 module.exports = function skapaGoteborg(delade) {
   const { https, keepAliveAgent, segDistM, SCHED_API_DAYS, send } = delade;
 
@@ -192,16 +207,7 @@ module.exports = function skapaGoteborg(delade) {
   // ═══ PARKERING ═════════════════════════════════════════════════════════════
   // Alla 19 lager i ETT anrop. Vilket lager en post kom från avgörs av id:ets
   // prefix ("taxa_1.fid-…") – det är stabilt även om själva fid:et inte är det.
-  const P_LAGER = [
-    'parkering:taxa_1','parkering:taxa_2','parkering:taxa_3','parkering:taxa_4',
-    'parkering:taxa_5','parkering:taxa_6','parkering:taxa_7','parkering:taxa_8',
-    'parkering:taxa_a','parkering:taxa_22','parkering:taxa_24',
-    'parkering:Taxa_9','parkering:Taxa_12','parkering:Taxa_62',
-    'parkering:tidsbegransad','parkering:boende',
-    'parkering:mc','parkering:handikapp','parkering:lastplats',
-    // Annan arbetsyta (cykel:), men WFS 1.1.0 tar den i SAMMA anrop - verifierat.
-    'cykel:cykelparkeringar'
-  ].join(',');
+  const P_LAGER = P_LAGER_LISTA.join(',');
 
   const lagerAv = f => String(f && f.id || '').split('.')[0];
   const arTaxa  = l => /^taxa_/i.test(l);
@@ -571,3 +577,6 @@ module.exports = function skapaGoteborg(delade) {
 
   return { id: 'goteborg', prefix: '/gbg/', hantera };
 };
+
+// Additiv export – rör inte factoryns kontrakt. Används av verktyg/kolla-gbg-tabeller.js.
+module.exports.P_LAGER_LISTA = P_LAGER_LISTA;

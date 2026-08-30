@@ -8,11 +8,11 @@
 # människa se innan det går live. Kör `node verktyg/kolla-forbud-ovrig-tid.js
 # --uppdatera` lokalt, granska diffen, och committa den som vanligt.
 #
-# ⚠ KRÄVER EN HEMLIGHET. Lägg Stockholms API-nyckel som `STHLM_API_KEY` under
-# Settings → Secrets and variables → Actions. Utan den avbryter jobbet med exit 2
-# och skriver "Ingen API-nyckel" – den läcker aldrig nyckeln till loggen.
-# Nyckeln maskas dessutom i alla felutskrifter från skriptet.
-name: Kolla förbudstabellen
+# TVÅ KONTROLLER, EN PER STAD. Göteborgs data är öppen och kör utan nyckel.
+# Stockholms kräver `STHLM_API_KEY` under Settings → Secrets and variables → Actions.
+# Saknas den avbryter BARA Stockholmssteget (exit 2) – Göteborgs rapport skrivs ändå
+# och följer med i issuet. Nyckeln maskas i alla felutskrifter och når aldrig loggen.
+name: Kolla datatabellerna
 
 on:
   schedule:
@@ -36,7 +36,18 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Kör kontrollen
+      # GÖTEBORG FÖRST, med flit: den behöver ingen nyckel. Saknas hemligheten
+      # avbryter Stockholmssteget med kod 2, men Göteborgs rapport är redan skriven
+      # och följer med i issuet – halva vakten är bättre än ingen.
+      - name: Kör kontrollen (Göteborg – ingen nyckel behövs)
+        id: gbg
+        run: |
+          set +e
+          node verktyg/kolla-gbg-tabeller.js > rapport-gbg.txt 2>&1
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          cat rapport-gbg.txt
+
+      - name: Kör kontrollen (Stockholm)
         id: kolla
         env:
           STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
@@ -50,33 +61,41 @@ jobs:
       # nätfel, tomt svar) – det är också värt ett issue, annars tystnar vakten
       # utan att någon märker det.
       - name: Öppna issue om något ändrats
-        if: steps.kolla.outputs.kod != '0'
+        if: steps.kolla.outputs.kod != '0' || steps.gbg.outputs.kod != '0'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const rapport = fs.readFileSync('rapport.txt', 'utf8');
-            const kod = '${{ steps.kolla.outputs.kod }}';
-            const rubrik = kod === '2'
-              ? 'Förbudstabellen kunde inte kontrolleras'
-              : 'Förbudstabellen behöver ses över';
+            const las = f => { try { return fs.readFileSync(f, 'utf8').trim(); } catch { return '(ingen rapport)'; } };
+            const kodSthlm = '${{ steps.kolla.outputs.kod }}';
+            const kodGbg   = '${{ steps.gbg.outputs.kod }}';
+            const stad = [kodSthlm !== '0' ? 'Stockholm' : null, kodGbg !== '0' ? 'Göteborg' : null].filter(Boolean);
+            const trasig = kodSthlm === '2' || kodGbg === '2';
+            const rubrik = (trasig ? 'Datatabellerna kunde inte kontrolleras' : 'Datatabellerna behöver ses över')
+                         + ' – ' + stad.join(' och ');
             const kropp = [
-              kod === '2'
-                ? 'Kontrollen gick inte att köra. Det betyder INTE att allt är bra – ingen vet.'
-                : 'Något i tabellen stämmer inte längre med Stockholms kartdata.',
+              trasig
+                ? 'Minst en kontroll gick inte att köra. Det betyder INTE att allt är bra – ingen vet.'
+                : 'Något stämmer inte längre med stadens data.',
               '',
-              '```',
-              rapport.trim().slice(0, 60000),
-              '```',
+              '## Stockholm (kod ' + kodSthlm + ')',
+              '```', las('rapport.txt').slice(0, 30000), '```',
               '',
-              '### Att göra',
+              '## Göteborg (kod ' + kodGbg + ')',
+              '```', las('rapport-gbg.txt').slice(0, 30000), '```',
+              '',
+              '### Att göra – Stockholm',
               '1. `node verktyg/kolla-forbud-ovrig-tid.js --uppdatera`',
               '2. `node verktyg/bygg-forbud-ovrig-tid.js`',
               '3. Granska diffen – en rad som försvinner betyder att en gata slutar få rött.',
-              '4. Committa och pusha när det ser rätt ut.',
               '',
-              'Appen är säker under tiden: vakten i `parkeringForbjudenOvrigTid` ser att',
-              'datumet inte stämmer och faller tillbaka på tidigare beteende.'
+              '### Att göra – Göteborg',
+              'Rapporten listar meningar utan rad. Bygg om tabellen det gäller',
+              '(`las-gbg-lastplats.js` för lastplatser) och kör motsvarande `bygg-`-verktyg.',
+              '',
+              'Appen är säker under tiden. Stockholm: vakten ser att datumet inte stämmer och',
+              'faller tillbaka. Göteborg: en okänd mening hittas inte, och då säger appen',
+              '"vet inte" i stället för att tillämpa fel tider.'
             ].join('\n');
             await github.rest.issues.create({
               owner: context.repo.owner,
