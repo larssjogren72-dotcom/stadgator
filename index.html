@@ -958,6 +958,7 @@
     <p><strong>Ansvar:</strong> informationen kan vara inaktuell eller felaktig. Kontrollera alltid lokala skyltar. ParkSpot ansvarar inte för parkeringsböter eller bogsering.</p>
     <p><strong>Din data:</strong> vi lagrar ingen personlig information på server. Hemadress och inställningar sparas bara lokalt i din webbläsare. Din GPS-position används enbart i din enhet för att visa var du är – den skickas aldrig till oss.</p>
     <p><strong>Statistik:</strong> om du accepterar används Google Analytics med anonymiserad IP för att förstå hur appen används. Du kan avböja – appen fungerar lika bra ändå.</p>
+    <p><strong>Besöksräkning:</strong> oavsett ditt val räknar vår egen server hur många sidvisningar varje stad och sida får. Ingen kaka sätts, ingenting sparas om dig och inget skickas vidare – bara ett antal per dygn.</p>
     <p id="privacy-version" style="font-size:11px;opacity:.6;margin-top:4px">Version <span id="app-version-txt">–</span></p>
     <button class="privacy-close" onclick="closePrivacy()">Stäng</button>
   </div>
@@ -1495,7 +1496,7 @@ function getNavApp() {
 function setNavApp(id) {
   if (!navAppAvailable(id)) id = 'google';
   try { localStorage.setItem('nav_app', id); } catch (e) {}
-  try { if (window.gtag) gtag('event', 'nav_app_val', { event_category: 'navigering', event_label: id }); } catch (e) {}
+  try { if (window.gtag) gtag('event', 'nav_app_val', { event_category: 'navigering', event_label: id, stad: STAD.id }); } catch (e) {}
   navRefreshAll();
 }
 function navUrl(lat, lng) { return NAV_APPS[getNavApp()].url(lat, lng); }
@@ -1599,12 +1600,36 @@ function loadGA() {
   window.dataLayer = window.dataLayer || [];
   window.gtag = function(){ dataLayer.push(arguments); };
   gtag('js', new Date());
-  gtag('config', 'G-KMG3XTNPPN', { anonymize_ip: true });
+  // Staden som ANVÄNDAREGENSKAP och som parameter på sidvisningen. Utan den kan GA inte
+  // skilja Göteborg från Stockholm efter första besöket: staden sparas i localStorage
+  // (se STAD_LAGRAD) och adressen är då ren, utan `?stad=`.
+  // ⚠ Kräver en engångsregistrering i GA4: Admin → Anpassade definitioner → ny
+  // dimension med parameternamn `stad`. Registreringen är INTE retroaktiv – trafik som
+  // samlats in innan dess går aldrig att dela upp på stad.
+  gtag('set', 'user_properties', { stad: STAD.id });
+  gtag('config', 'G-KMG3XTNPPN', { anonymize_ip: true, stad: STAD.id });
 }
 function cookieConsent(accept) {
   localStorage.setItem('cookie_consent', accept ? 'accepted' : 'declined');
   document.getElementById('cookie-banner').style.display = 'none';
   if (accept) loadGA();
+}
+// ── Kakfri besöksräknare ───────────────────────────────────────────
+// En ping till vår egen server med enbart stadens id. Servern kan inte veta staden
+// själv för en återvändande besökare (valet ligger i localStorage, adressen är ren),
+// och GA ser bara dem som accepterat kakor. Se räknaren i server.js.
+//
+// Körs OBEROENDE av kaksamtycke, och det är med flit: ingen kaka sätts, inget lagras
+// om personen, ingenting skickas till tredje part. Servern ökar ett heltal per stad
+// och dygn – samma sorts uppgift som en vanlig webbserverlogg redan innehåller.
+//
+// Fel ignoreras helt – en räknare får ALDRIG påverka om kartan ritas.
+function pingaRaknare() {
+  try {
+    var u = '/r?s=' + encodeURIComponent(STAD.id);
+    if (navigator.sendBeacon) navigator.sendBeacon(u);
+    else fetch(u, { method: 'POST', keepalive: true }).catch(function () {});
+  } catch (e) {}
 }
 function initCookieConsent() {
   const c = localStorage.getItem('cookie_consent');
@@ -1636,7 +1661,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   var KEY = 'ps_rev', shownThisSession = false;
   function get() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
   function set(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
-  function track(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review' }); } catch (e) {} }  // GA-händelse (bara om cookies accepterats)
+  function track(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review', stad: STAD.id }); } catch (e) {} }  // GA-händelse (bara om cookies accepterats)
   function sendForm(msg) {   // logga reaktion/kommentar till Google-formuläret → räknebart i arket
     if (!FEEDBACK.action || !FEEDBACK.entryMsg || !msg) return;
     // Kontext = läge + APPVERSION. Utan version går en rapport inte att knyta till den kod
@@ -1781,7 +1806,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
 
 // ── Start ────────────────────────────────────────────────────────────────────
 // Hoppa direkt in i appen – ingen setup-skärm (servern sköter nyckeln).
-window.addEventListener('DOMContentLoaded', () => { launchApp(); initCookieConsent(); });
+window.addEventListener('DOMContentLoaded', () => { launchApp(); initCookieConsent(); pingaRaknare(); });
 
 function launchApp() {
   document.getElementById('app').style.display = 'flex';

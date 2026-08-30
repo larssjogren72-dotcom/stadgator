@@ -427,6 +427,64 @@ if (!STADER_PA) {
   console.log(`[Städer] avstängda${I_DRIFT ? ' (drift)' : ''} – bara Stockholm serveras`);
 }
 
+// ── Kakfri besöksräknare ─────────────────────────────────────────────────────
+// Google Analytics laddas först efter kaksamtycke och kan därför bara se en delmängd
+// av besökarna – hur stor delmängd går inte att läsa ut ur GA, eftersom de som avböjer
+// per definition saknas där. Dessutom har SEO-sidorna inget GA alls, och en ÅTERvändande
+// besökare har ingen `?stad=` i adressen (staden ligger i localStorage), så GA kan inte
+// skilja Göteborg från Stockholm efter första besöket.
+//
+// Den här räknaren svarar på en enda fråga – HUR MÅNGA sidvisningar, per stad och per
+// sida – och gör det för alla, utan kaka och utan samtycke: inget om personen sparas,
+// varken IP, användaragent eller något annat som pekar ut någon. Bara heltal per dygn.
+//
+// ⚠️ SIDVISNINGAR, INTE PERSONER. En person som laddar om räknas två gånger. Talet är
+// ett trafikmått, aldrig ett användarmått, och /statistik säger det rakt ut.
+//
+// ⚠️ NOLLSTÄLLS VID OMSTART. Servern skriver aldrig till disk (och Railways filsystem
+// överlever ändå inte en deploy), så siffrorna bor i minnet. Därför bär /statistik
+// alltid fältet `sedan` – en nollställd räknare ska synas som nollställd, inte läsas
+// som "ingen kom". Som skydd loggas en sammanfattning varje hel timme; de raderna
+// ligger kvar i Railways loggar även när processen startats om.
+const RAKNARE = { start: new Date().toISOString(), dagar: {} };
+const RAKNARE_MAX_DAGAR = 90;
+// Stockholm ingår alltid (den är inte en adapter utan appens grundläge, se STADSNAMN).
+const RAKNARE_STADER = new Set(['stockholm'].concat(STADSNAMN));
+// Vanliga crawlers. Räknas SEPARAT i stället för att kastas: ett tal som tyst filtrerat
+// bort trafik går inte att kontrollera i efterhand.
+const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|headless|lighthouse|gtmetrix|pingdom|uptime|curl|wget|python-requests|axios|node-fetch/i;
+
+function raknarDag() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function raknarBucket() {
+  const dag = raknarDag();
+  if (!RAKNARE.dagar[dag]) {
+    RAKNARE.dagar[dag] = { app: {}, sidor: {}, bot: 0 };
+    // Håll minnet ändligt – 90 dygn räcker för vilken kampanj som helst.
+    const dagar = Object.keys(RAKNARE.dagar).sort();
+    while (dagar.length > RAKNARE_MAX_DAGAR) delete RAKNARE.dagar[dagar.shift()];
+  }
+  return RAKNARE.dagar[dag];
+}
+// typ: 'app' (nyckel = stad-id) | 'sidor' (nyckel = sökväg)
+function rakna(typ, nyckel, req) {
+  const ua = String((req && req.headers && req.headers['user-agent']) || '');
+  const b = raknarBucket();
+  if (BOT_RE.test(ua)) { b.bot++; return; }
+  const k = String(nyckel || 'okänd').slice(0, 60);
+  b[typ][k] = (b[typ][k] || 0) + 1;
+}
+// Restart-skydd: en kompakt rad per timme som hamnar i Railways logg.
+setInterval(() => {
+  const b = RAKNARE.dagar[raknarDag()];
+  if (!b) return;
+  const app = Object.entries(b.app).map(([k, v]) => k + '=' + v).join(' ') || '-';
+  const sid = Object.values(b.sidor).reduce((a, v) => a + v, 0);
+  console.log(`[räkna] ${raknarDag()} app: ${app} · seo-sidvisningar: ${sid} · bot: ${b.bot}`);
+}, 3600000).unref();
+
 const STADER = [];
 for (const namn of (STADER_PA ? STADSNAMN : [])) {
   try {
@@ -666,8 +724,56 @@ http.createServer((req, res) => {
     fs.readFile(seoFile, (err, data) => {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       if (err) { finish(req, res, 404, Buffer.from('<h1>404</h1><p><a href="/">Till ParkSpot</a></p>')); return; }
+      // SEO-sidorna har inget GA. Räknas här i stället – annars är landningssidorna
+      // helt mörka, vilket de var när Göteborg skulle börja marknadsföras.
+      rakna('sidor', rel || '/', req);
       finish(req, res, 200, data);
     });
+
+  } else if (reqUrl.pathname === '/r') {
+    // Appen pingar hit en gång per laddning med sin stad. Servern kan INTE själv veta
+    // staden för en återvändande besökare: valet ligger i localStorage och adressen är
+    // ren (se STAD_UR_URL i index.html). Därför måste klienten säga det.
+    // Inget lagras om personen – bara ett heltal per stad och dygn ökas.
+    // VITLISTA. Utan den kan vem som helst skapa obegränsat många nycklar med
+    // /r?s=<slumpsträng> och låta minnet växa. Okänt id räknas som 'okänd' – aldrig
+    // tyst bortkastat, så en felstavning i en kampanjlänk syns i statistiken.
+    const stadId = (reqUrl.searchParams.get('s') || '').toLowerCase().replace(/[^a-z]/g, '');
+    rakna('app', RAKNARE_STADER.has(stadId) ? stadId : 'okänd', req);
+    res.setHeader('Cache-Control', 'no-store');
+    res.writeHead(204);
+    res.end();
+
+  } else if (reqUrl.pathname === '/statistik') {
+    // Traffiksiffror är affärsdata. Sätts STATISTIK_TOKEN i miljön krävs ?t=<token>;
+    // sätts den inte är endpointen öppen, precis som /cache-stats och /datastatus.
+    // Lokalt behöver man därför inte göra något; i drift räcker en miljövariabel.
+    const token = (process.env.STATISTIK_TOKEN || '').trim();
+    if (token && reqUrl.searchParams.get('t') !== token) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      finish(req, res, 404, Buffer.from('{"fel":"okänd sökväg"}'));
+      return;
+    }
+    const dagar = Object.keys(RAKNARE.dagar).sort();
+    const summa = o => Object.values(o).reduce((a, v) => a + v, 0);
+    const totalt = { app: {}, sidor: {}, bot: 0 };
+    dagar.forEach(d => {
+      const b = RAKNARE.dagar[d];
+      Object.entries(b.app).forEach(([k, v]) => totalt.app[k] = (totalt.app[k] || 0) + v);
+      Object.entries(b.sidor).forEach(([k, v]) => totalt.sidor[k] = (totalt.sidor[k] || 0) + v);
+      totalt.bot += b.bot;
+    });
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    finish(req, res, 200, Buffer.from(JSON.stringify({
+      obs: 'Sidvisningar, inte personer. En omladdning räknas två gånger.',
+      nollställs: 'Talen bor i minnet och nollställs vid omstart/deploy – jämför alltid med fältet "sedan".',
+      sedan: RAKNARE.start,
+      appvisningar: summa(totalt.app),
+      seovisningar: summa(totalt.sidor),
+      totalt,
+      per_dag: RAKNARE.dagar,
+    }, null, 1)));
 
   } else if (reqUrl.pathname === '/datastatus') {
     // ÄR TABELLERNA FÄRSKA? Tredje larmvägen, och den enda som inte går via GitHub.
