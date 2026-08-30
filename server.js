@@ -77,6 +77,54 @@ const APP_BUILT   = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' 
 const APP_SEMVER = require('./package.json').version;
 console.log(`[ParkSpot] Version ${APP_VERSION} v${APP_SEMVER} (${APP_SRC}) · server startad ${APP_BUILT}`);
 
+// ── Hur gamla är uppslagstabellerna? ──────────────────────────────────────
+// Roboten (.github/workflows/datatabeller.yml) skriver `last` i varje tabell när den
+// kontrollerat den. Åldern här är alltså åldern på KONTROLLEN, inte på deployen.
+//
+// VARFÖR I SERVERN OCH INTE BARA I GITHUB: en vakt som slutat gå ser likadan ut som
+// en vakt som inget hittat. Stängs Actions av – GitHub gör det självt i repon som
+// legat stilla – tystnar både issues och heartbeat på en gång. Servern kör dygnet
+// runt och kan alltid tillfrågas: `curl https://parkspot.se/datastatus`.
+const TABELLER = [
+  ['forbud-ovrig-tid.json',    'Stockholms dygnet-runt-förbud'],
+  ['gbg-maxtid-villkor.json',  'Göteborgs villkor'],
+  ['gbg-lastplats-tider.json', 'Göteborgs lastplatstider']
+];
+// 45 dygn: roboten går den 1:a varje månad, så en missad körning märks men en sen
+// körning larmar inte. Tar man 31 skulle en körning som drar över ett dygn ropa varg.
+const TABELL_MAX_DYGN = 45;
+function datastatus() {
+  const idag = Date.now();
+  const rader = TABELLER.map(([fil, namn]) => {
+    try {
+      const j = JSON.parse(fs.readFileSync(path.join(__dirname, 'verktyg', fil), 'utf8'));
+      const last = String(j.last || '');
+      const alder = /^\d{4}-\d{2}-\d{2}$/.test(last)
+        ? Math.floor((idag - Date.parse(last + 'T00:00:00Z')) / 86400000) : null;
+      return { tabell: namn, fil, rader: (j.poster || []).length, kontrollerad: last || null,
+               alderDygn: alder, inaktuell: alder == null || alder > TABELL_MAX_DYGN };
+    } catch (e) {
+      return { tabell: namn, fil, fel: e.message, inaktuell: true };
+    }
+  });
+  const trasiga = rader.filter(r => r.inaktuell);
+  return {
+    lage: trasiga.length ? 'INAKTUELL' : 'ok',
+    forklaring: trasiga.length
+      ? 'Minst en tabell är äldre än ' + TABELL_MAX_DYGN + ' dygn. Roboten kan ha slutat gå.'
+      : 'Alla tabeller kontrollerade inom ' + TABELL_MAX_DYGN + ' dygn.',
+    maxDygn: TABELL_MAX_DYGN,
+    version: APP_SEMVER,
+    tabeller: rader
+  };
+}
+// Skriv ut vid start – syns i Railways logg även om ingen frågar efter /datastatus.
+(function () {
+  const st = datastatus();
+  if (st.lage === 'ok') console.log('[ParkSpot] Tabeller: ' + st.tabeller.map(t => t.tabell + ' ' + t.alderDygn + 'd').join(' · '));
+  else console.warn('[ParkSpot] ⚠ TABELLER INAKTUELLA – ' + st.forklaring);
+})();
+
 // ── Keep-alive mot Stockholms servrar ─────────────────────────────────────────
 // Utan detta öppnar https.request en NY TCP+TLS-anslutning per anrop. En sökning
 // gör 4 samtidiga anrop till samma host (openstreetgs.stockholm.se) → 4 fulla
@@ -620,6 +668,17 @@ http.createServer((req, res) => {
       if (err) { finish(req, res, 404, Buffer.from('<h1>404</h1><p><a href="/">Till ParkSpot</a></p>')); return; }
       finish(req, res, 200, data);
     });
+
+  } else if (reqUrl.pathname === '/datastatus') {
+    // ÄR TABELLERNA FÄRSKA? Tredje larmvägen, och den enda som inte går via GitHub.
+    // Servern kör dygnet runt på Railway och kan alltid tillfrågas – även om
+    // Actions skulle vara avstängt och både issues och heartbeat tystnat.
+    // `last` skrivs av verktygen varje gång en tabell läses om, så åldern här är
+    // åldern på själva kontrollen, inte på deployen.
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store');
+    finish(req, res, 200, Buffer.from(JSON.stringify(datastatus(), null, 1)));
 
   } else if (reqUrl.pathname === '/version') {
     // Vilken kod kör just nu? Läsbart för både människa och skript (deploy-kontroll).
