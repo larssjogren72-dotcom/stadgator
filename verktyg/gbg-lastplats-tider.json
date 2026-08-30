@@ -25,110 +25,14 @@
    "skal": "inga klockslag i meningen"
   }
  ],
- "last": "2026-08-29",
+ "last": "2026-08-30",
  "poster": [
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 27,
+   "mening": "Lastplats klockan 08.00 - 16.00.",
+   "strackor": 1,
    "regler": [
     {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00.",
-   "strackor": 9,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 8,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 17.00.",
-   "strackor": 8,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.",
-   "strackor": 7,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 800,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 12.00.",
-   "strackor": 7,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 16.00.",
-   "strackor": 6,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
+     "dag": "alla",
      "fran": 800,
      "till": 1600,
      "vecka": null
@@ -137,205 +41,25 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.",
-   "strackor": 5,
+   "mening": "Lastplats tisdag klockan 07.00 - 10.00.",
+   "strackor": 1,
    "regler": [
     {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardagar före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 5,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 16.00.",
-   "strackor": 5,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
+     "dag": "tisdag",
      "fran": 700,
-     "till": 1600,
+     "till": 1000,
      "vecka": null
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 18.00 och vardag före sön- och helgdag klockan 06.00 - 15.00.",
-   "strackor": 4,
+   "mening": "Lastplats tisdag klockan 08.00 - 11.00.",
+   "strackor": 1,
    "regler": [
     {
-     "dag": "vardag-ej-dagfore",
-     "fran": 600,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 600,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 3,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00.",
-   "strackor": 3,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och torsdag klockan 02.00 - 07.00.",
-   "strackor": 3,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "torsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 08.00 - 17.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
+     "dag": "tisdag",
      "fran": 800,
-     "till": 1700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardagar klockan 07.00 - 18.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 14.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1400,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 13.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1300,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 12.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 11.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
      "till": 1100,
      "vecka": null
     }
@@ -343,236 +67,13 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 10.00.",
-   "strackor": 2,
+   "mening": "Lastplats tisdag klockan 09.00 - 12.00.",
+   "strackor": 1,
    "regler": [
     {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1000,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och fredag klockan 02.00 - 07.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
+     "dag": "tisdag",
      "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    },
-    {
-     "dag": "fredag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 07.00 - 17.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 1700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 07.00 - 12.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
      "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 02.00 - 18.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 200,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 16.00 och onsdag klockan 02.00 - 07.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1600,
-     "vecka": null
-    },
-    {
-     "dag": "onsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 10.00 - 17.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 1000,
-     "till": 1700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 08.00 - 10.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    },
-    {
-     "dag": "onsdag",
-     "fran": 800,
-     "till": 1000,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 06.00 - 18.00 och vardag före sön- och helgdag klockan 06.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 600,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 600,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 08.00 - 10.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    },
-    {
-     "dag": "onsdag",
-     "fran": 800,
-     "till": 1000,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 14.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1400,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 800,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 11.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1100,
      "vecka": null
     }
    ],
@@ -598,13 +99,308 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 12.00.",
+   "mening": "Lastplats vardag klockan 02.00 - 18.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 200,
+     "till": 1800,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 06.00 - 10.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 600,
+     "till": 1000,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 06.00 - 12.00 och sön- och helgdag klockan 06.00 - 12.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 600,
+     "till": 1200,
+     "vecka": null
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 600,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 06.00 - 18.00 och sön- och helgdag klockan 06.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 600,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 600,
+     "till": 1800,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 07.00 - 12.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 07.00 - 13.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 1300,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 07.00 - 14.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 1400,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 07.00 - 17.00 och torsdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 1700,
+     "vecka": null
+    },
+    {
+     "dag": "torsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 07.00 - 17.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 1700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 07.00 - 18.00 och sön- och helgdag klockan 07.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 700,
+     "till": 1800,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 08.00 - 18.00 och vardagar utom vardag före sön- och helgdag klockan 08.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 800,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 09.00 - 12.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 900,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 09.00 - 13.00 och sön- och helgdag klockan 09.00 - 13.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 900,
+     "till": 1300,
+     "vecka": null
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 900,
+     "till": 1300,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag klockan 09.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
    "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1200,
+     "fran": 0,
+     "till": 2400,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 06.00 - 18.00 och vardag före sön- och helgdag klockan 06.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 600,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 600,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 11.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1100,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 16.00 och onsdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1600,
+     "vecka": null
+    },
+    {
+     "dag": "onsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 17.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1700,
      "vecka": null
     }
    ],
@@ -649,13 +445,77 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 08.00 - 17.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.",
    "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 0,
-     "till": 2400,
+     "fran": 800,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 800,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 12.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 14.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1400,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 8,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
      "vecka": null
     }
    ],
@@ -687,13 +547,416 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 07.00 - 17.00.",
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 08.00 - 10.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    },
+    {
+     "dag": "onsdag",
+     "fran": 800,
+     "till": 1000,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom dag före sön- och helgdag klockan 10.00 - 17.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 1000,
+     "till": 1700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 12.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 200,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 200,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 16.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 200,
+     "till": 1600,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 14.00 och vardag före sön- och helgdag klockan 06.00 - 12.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 600,
+     "till": 1400,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 600,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 14.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 600,
+     "till": 1400,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 18.00 och vardag före sön- och helgdag klockan 06.00 - 15.00.",
+   "strackor": 4,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 600,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 600,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 09.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 900,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 10.00 och tisdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1000,
+     "vecka": null
+    },
+    {
+     "dag": "tisdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 10.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1000,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 11.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1100,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 12.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 13.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1300,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 14.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1400,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 16.00.",
+   "strackor": 5,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1600,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och torsdag klockan 02.00 - 07.00.",
    "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
      "fran": 700,
      "till": 1700,
+     "vecka": null
+    },
+    {
+     "dag": "torsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och vardag före sön- och helgdag klockan 07.00 - 12.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1700,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 700,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och vardag före sön- och helgdag klockan 07.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1700,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 700,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00.",
+   "strackor": 9,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och torsdag klockan 02.00 - 07.00.",
+   "strackor": 3,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "torsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 14.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 700,
+     "till": 1400,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 700,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 16.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 700,
+     "till": 1600,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardagar före sön- och helgdag klockan 07.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 700,
+     "till": 1500,
      "vecka": null
     }
    ],
@@ -725,19 +988,427 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 16.00.",
-   "strackor": 1,
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00.",
+   "strackor": 3,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
      "fran": 700,
      "till": 1800,
      "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 10.00 och 15.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1000,
+     "vecka": null
+    },
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 1500,
+     "till": 1800,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 10.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1000,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 12.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 13.00 och fredag klockan 02.00 - 07.00 jämna veckor.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1300,
+     "vecka": null
+    },
+    {
+     "dag": "fredag",
+     "fran": 200,
+     "till": 700,
+     "vecka": "jamn"
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 13.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1300,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 16.00 och onsdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1600,
+     "vecka": null
+    },
+    {
+     "dag": "onsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 16.00.",
+   "strackor": 6,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1600,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 17.00 och torsdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1700,
+     "vecka": null
+    },
+    {
+     "dag": "torsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 17.00.",
+   "strackor": 8,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00 och torsdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "torsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00 och vardag före sön- och helgdag klockan 08.00 - 15.00.",
+   "strackor": 7,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1800,
+     "vecka": null
     },
     {
      "dag": "dagfore",
-     "fran": 700,
-     "till": 1600,
+     "fran": 800,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1800,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 11.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1100,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 12.00.",
+   "strackor": 7,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1200,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 13.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1300,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och torsdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "torsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 27,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardagar före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 5,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och fredag klockan 02.00 - 07.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    },
+    {
+     "dag": "fredag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 02.00 - 07.00 jämna veckor.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    },
+    {
+     "dag": "onsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": "jamn"
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 02.00 - 07.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    },
+    {
+     "dag": "onsdag",
+     "fran": 200,
+     "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 08.00 - 10.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800,
+     "vecka": null
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500,
+     "vecka": null
+    },
+    {
+     "dag": "onsdag",
+     "fran": 800,
+     "till": 1000,
      "vecka": null
     }
    ],
@@ -769,268 +1440,6 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 02.00 - 07.00 jämna veckor.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    },
-    {
-     "dag": "onsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": "jamn"
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00 och torsdag klockan 02.00 - 07.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "torsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 17.00 och torsdag klockan 02.00 - 07.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1700,
-     "vecka": null
-    },
-    {
-     "dag": "torsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardagar utom vardag före sön- och helgdag och klockan 09.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och vardag före sön- och helgdag klockan 07.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1700,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 700,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 13.00 och fredag klockan 02.00 - 07.00 jämna veckor.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1300,
-     "vecka": null
-    },
-    {
-     "dag": "fredag",
-     "fran": 200,
-     "till": 700,
-     "vecka": "jamn"
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och torsdag klockan 02.00 - 07.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "torsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 09.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 900,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 200,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 10.00 och tisdag klockan 02.00 - 07.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1000,
-     "vecka": null
-    },
-    {
-     "dag": "tisdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 07.00 - 17.00 och torsdag klockan 02.00 - 07.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 1700,
-     "vecka": null
-    },
-    {
-     "dag": "torsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 10.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1000,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 13.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1300,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 10.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 1000,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats tisdag klockan 07.00 - 10.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "tisdag",
-     "fran": 700,
-     "till": 1000,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
    "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och torsdag klockan 02.00 - 07.00.",
    "strackor": 1,
    "regler": [
@@ -1056,160 +1465,26 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 16.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 200,
-     "till": 1600,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 07.00 - 14.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 1400,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 14.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 600,
-     "till": 1400,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 06.00 - 14.00 och vardag före sön- och helgdag klockan 06.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 600,
-     "till": 1400,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 600,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 02.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 200,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 06.00 - 18.00 och sön- och helgdag klockan 06.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 600,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 600,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardagar före sön- och helgdag klockan 07.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 700,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00, vardag före sön- och helgdag klockan 09.00 - 15.00 och onsdag klockan 02.00 - 07.00.",
-   "strackor": 1,
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.",
+   "strackor": 5,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
      "fran": 900,
      "till": 1800,
      "vecka": null
-    },
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 10.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
     {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500,
-     "vecka": null
-    },
-    {
-     "dag": "onsdag",
-     "fran": 200,
-     "till": 700,
+     "dag": "vardag-ej-dagfore",
+     "fran": 1000,
+     "till": 1800,
      "vecka": null
     }
    ],
@@ -1229,12 +1504,12 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag klockan 09.00 - 18.00.",
-   "strackor": 1,
+   "mening": "Lastplats vardagar klockan 07.00 - 18.00.",
+   "strackor": 2,
    "regler": [
     {
      "dag": "vardag",
-     "fran": 900,
+     "fran": 700,
      "till": 1800,
      "vecka": null
     }
@@ -1242,20 +1517,20 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardagar utom vardag före sön- och helgdag klockan 07.00 - 15.00.",
+   "mening": "Lastplats vardagar klockan 09.00 - 12.00.",
    "strackor": 1,
    "regler": [
     {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1500,
+     "dag": "vardag",
+     "fran": 900,
+     "till": 1200,
      "vecka": null
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 15.00.",
+   "mening": "Lastplats vardagar utom vardag före sön- och helgdag klockan 07.00 - 15.00.",
    "strackor": 1,
    "regler": [
     {
@@ -1287,57 +1562,12 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 16.00 och onsdag klockan 02.00 - 07.00.",
+   "mening": "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 15.00.",
    "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1600,
-     "vecka": null
-    },
-    {
-     "dag": "onsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats tisdag klockan 08.00 - 11.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "tisdag",
-     "fran": 800,
-     "till": 1100,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 07.00 - 13.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 1300,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
+     "fran": 900,
      "till": 1500,
      "vecka": null
     }
@@ -1345,90 +1575,19 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag klockan 09.00 - 12.00.",
-   "strackor": 1,
+   "mening": "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 3,
    "regler": [
     {
-     "dag": "vardag",
+     "dag": "vardag-ej-dagfore",
      "fran": 900,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 13.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1300,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 14.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
      "till": 1800,
      "vecka": null
     },
     {
      "dag": "dagfore",
-     "fran": 700,
-     "till": 1400,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 11.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
      "fran": 900,
-     "till": 1100,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 09.00 - 13.00 och sön- och helgdag klockan 09.00 - 13.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 900,
-     "till": 1300,
-     "vecka": null
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 900,
-     "till": 1300,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardagar klockan 09.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 900,
-     "till": 1200,
+     "till": 1500,
      "vecka": null
     }
    ],
@@ -1454,172 +1613,13 @@
    "sasong": null
   },
   {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 10.00 och 15.00 - 18.00.",
+   "mening": "Lastplats vardagar utom vardag före sön- och helgdag och klockan 09.00 - 12.00.",
    "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1000,
-     "vecka": null
-    },
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 1500,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 07.00 - 18.00 och sön- och helgdag klockan 07.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 700,
-     "till": 1800,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 06.00 - 10.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 600,
-     "till": 1000,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats klockan 08.00 - 16.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": 800,
-     "till": 1600,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats tisdag klockan 09.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "tisdag",
      "fran": 900,
      "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 06.00 - 12.00 och sön- och helgdag klockan 06.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 600,
-     "till": 1200,
-     "vecka": null
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 600,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och torsdag klockan 02.00 - 07.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1700,
-     "vecka": null
-    },
-    {
-     "dag": "torsdag",
-     "fran": 200,
-     "till": 700,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag klockan 08.00 - 18.00 och vardagar utom vardag före sön- och helgdag klockan 08.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 800,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1500,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00 och vardag före sön- och helgdag klockan 07.00 - 12.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1700,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 700,
-     "till": 1200,
-     "vecka": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00 och vardag före sön- och helgdag klockan 07.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1800,
-     "vecka": null
-    },
-    {
-     "dag": "dagfore",
-     "fran": 700,
-     "till": 1500,
      "vecka": null
     }
    ],
