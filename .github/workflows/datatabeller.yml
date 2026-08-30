@@ -212,11 +212,19 @@ jobs:
             echo "Utan den märks det aldrig om roboten slutar köra. Se .github/workflows/datatabeller.yml."
             exit 0
           fi
-          if [ "${{ steps.prov.outputs.kod }}" = "0" ]; then
+          # ⚠ HELA JOBBET, inte bara testgrinden. Första versionen frågade enbart efter
+          # prov-steget – då hade ett misslyckat COMMIT- eller PUSH-steg gett klockan ett
+          # glatt "allt bra", trots att ändringen aldrig nådde master. Just push-steget är
+          # dessutom det enda som aldrig körts skarpt (torrkörningarna hoppar över det),
+          # alltså det som mest sannolikt går sönder första riktiga gången.
+          # `job.status` speglar alla steg hittills; kombinerat med testgrindens kod
+          # täcker det både "testet föll" och "allt annat föll".
+          if [ "${{ job.status }}" = "success" ] && [ "${{ steps.prov.outputs.kod }}" = "0" ]; then
             curl -fsS -m 10 --retry 3 "$HEARTBEAT_URL" > /dev/null && echo "Livstecken skickat."
           else
             # /fail säger till klockan att körningen gick, men gick dåligt. Healthchecks
             # och liknande tjänster larmar då direkt i stället för att vänta ut tystnaden.
+            echo "Jobbstatus: ${{ job.status }} · testgrind: ${{ steps.prov.outputs.kod }}"
             curl -fsS -m 10 --retry 3 "$HEARTBEAT_URL/fail" > /dev/null && echo "Larm skickat till klockan."
           fi
 
