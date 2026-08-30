@@ -43,6 +43,34 @@ if (!API_KEY) {
   console.error('Ingen API-nyckel. Sätt STHLM_API_KEY eller lägg en .apikey i projektroten.');
   process.exit(2);
 }
+// ⚠ NYCKELN LÄGGS I SÖKVÄGEN, inte som parameter. Innehåller den ett tecken som inte
+// får stå där kastar Node "Request path contains unescaped characters" – ett meddelande
+// som inte säger ett ord om att det är nyckeln som är fel. Det hände första gången
+// jobbet körde med en repo-hemlighet: lokalt, från .apikey, fungerade samma kod – felet
+// låg alltså i det inklistrade värdet, inte i koden.
+//
+// Kontrollen nedan säger VAD som är fel utan att skriva ut nyckeln; den skulle hamna i
+// CI-loggen. Längd och teckenklasser räcker för att se vad som hänt.
+if (!/^[A-Za-z0-9._~-]+$/.test(API_KEY)) {
+  const namn = c => {
+    const k = c.charCodeAt(0);
+    if (k === 10) return 'RADBRYTNING';
+    if (k === 13) return 'VAGNRETUR';
+    if (k === 32) return 'BLANKSTEG';
+    if (k === 9)  return 'TABB';
+    if (/[0-9]/.test(c)) return 'siffra';
+    if (/[a-z]/.test(c)) return 'gemen';
+    if (/[A-Z]/.test(c)) return 'versal';
+    if (/[-_.~]/.test(c)) return 'bindestreck';
+    return 'ANNAT (teckenkod ' + k + ')';
+  };
+  console.error('API-nyckeln innehåller tecken som inte kan stå i en webbadress.');
+  console.error('  längd        : ' + API_KEY.length + ' tecken (förväntat 36)');
+  console.error('  teckenklasser: ' + [...new Set(API_KEY.split('').map(namn))].join(', '));
+  console.error('Nyckeln skrivs INTE ut. Lägg in den på nytt, utan blanksteg eller radbrytning:');
+  console.error('  Settings → Secrets and variables → Actions → STHLM_API_KEY');
+  process.exit(2);
+}
 
 function hamta(host, sokvag) {
   return new Promise((res, rej) => {
