@@ -1,0 +1,3487 @@
+{
+ "beskrivning": "De ärendenummer vars föreskriftstext ALREDAN är läst i RDT. Population: LTFR_P_FORBUD_GEOM där VF_PLATS_TYP = \"Tidsreglerat parkerings-/stoppförbud\" OCH DAY_TYPE är satt. Ett ärendenummer i populationen som INTE står här har aldrig lästs – då vet vi inte vad det säger om övrig tid.",
+ "populationsfilter": {
+  "VF_PLATS_TYP": "Tidsreglerat parkerings-/stoppförbud",
+  "DAY_TYPE": "måste vara satt"
+ },
+ "last": "2026-08-29",
+ "antal": 579,
+ "kartstrackor": 838,
+ "ejLasbara": 11,
+ "arenden": [
+  {
+   "cit": "0180 2007-00520",
+   "gata": "Montebellogatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2007-07976",
+   "gata": "Möjbrovägen",
+   "omr": "Norra Ängby",
+   "n": 2
+  },
+  {
+   "cit": "0180 2008-00881",
+   "gata": "Lindetorpsvägen",
+   "omr": "Enskede Gård",
+   "n": 2
+  },
+  {
+   "cit": "0180 2008-08583",
+   "gata": "Frejgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2009-03558",
+   "gata": "Kälvestavägen",
+   "omr": "Solhem",
+   "n": 2
+  },
+  {
+   "cit": "0180 2009-03719",
+   "gata": "Spånstigen",
+   "omr": "Solhem",
+   "n": 2
+  },
+  {
+   "cit": "0180 2009-03720",
+   "gata": "Spånstigen",
+   "omr": "Solhem",
+   "n": 2
+  },
+  {
+   "cit": "0180 2009-03922",
+   "gata": "Viadukten",
+   "omr": "Hässelby Villastad",
+   "n": 1
+  },
+  {
+   "cit": "0180 2009-06668",
+   "gata": "Bränningevägen",
+   "omr": "Årsta",
+   "n": 2
+  },
+  {
+   "cit": "0180 2009-07573",
+   "gata": "Valhallavägen",
+   "omr": "Östermalm",
+   "n": 10
+  },
+  {
+   "cit": "0180 2009-08089",
+   "gata": "Tranebergsvägen",
+   "omr": "Traneberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2009-08900",
+   "gata": "Söder Mälarstrand",
+   "omr": "Södermalm",
+   "n": 4
+  },
+  {
+   "cit": "0180 2010-00968",
+   "gata": "Liljeholmsbron",
+   "omr": "Liljeholmen",
+   "n": 16
+  },
+  {
+   "cit": "0180 2012-01234",
+   "gata": "Kvarnhagsgatan",
+   "omr": "Hässelby Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2012-03126",
+   "gata": "Odengatan",
+   "omr": "Östermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2013-03499",
+   "gata": "Carl Barks Väg",
+   "omr": "Bromsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-00609",
+   "gata": "Kvarnhagsgatan",
+   "omr": "Hässelby Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-00234",
+   "gata": "Perstorpsvägen",
+   "omr": "Sköndal",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-00297",
+   "gata": "Kvarnhagsgatan",
+   "omr": "Hässelby Gård",
+   "n": 2
+  },
+  {
+   "cit": "0180 2016-00564",
+   "gata": "Vintrosagatan",
+   "omr": "Hagsätra",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-02228",
+   "gata": "Handelsvägen",
+   "omr": "Gamla Enskede",
+   "n": 3
+  },
+  {
+   "cit": "0180 2016-02234",
+   "gata": "Fågelsångsvägen",
+   "omr": "Gröndal",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-03808",
+   "gata": "Renstiernas Gata",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2016-04412",
+   "gata": "Renstiernas Gata",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-04939",
+   "gata": "Margretelundsvägen",
+   "omr": "Traneberg",
+   "n": 12
+  },
+  {
+   "cit": "0180 2016-05217",
+   "gata": "De Gamlas Väg",
+   "omr": "Enskededalen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-05240",
+   "gata": "Sankt Eriksgatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2016-05551",
+   "gata": "Lövholmsgränd",
+   "omr": "Liljeholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-05552",
+   "gata": "Liljeholmsvägen",
+   "omr": "Liljeholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-05763",
+   "gata": "Pilgrimsvägen",
+   "omr": "Aspudden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2016-05868",
+   "gata": "Tallvägen",
+   "omr": "Enskede Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00465",
+   "gata": "Tranebergsvägen",
+   "omr": "Alvik",
+   "n": 10
+  },
+  {
+   "cit": "0180 2017-00498",
+   "gata": "Ängskärsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00499",
+   "gata": "Ängskärsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00503",
+   "gata": "Birger Jarlsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00509",
+   "gata": "Drottning Kristinas Väg",
+   "omr": "Norra Djurgården",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00513",
+   "gata": "Bältgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00521",
+   "gata": "Birger Jarlsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00523",
+   "gata": "Birger Jarlsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00527",
+   "gata": "Erik Dahlbergsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00533",
+   "gata": "Erik Dahlbergsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00537",
+   "gata": "Erik Dahlbergsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00540",
+   "gata": "Erik Dahlbergsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-00555",
+   "gata": "Eriksbergsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00590",
+   "gata": "Furusundsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00604",
+   "gata": "Kallskärsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00605",
+   "gata": "Kallskärsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00616",
+   "gata": "Karlavägen",
+   "omr": "Östermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-00621",
+   "gata": "Körsbärsvägen",
+   "omr": "Norra Djurgården",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00622",
+   "gata": "Körsbärsvägen",
+   "omr": "Norra Djurgården",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00825",
+   "gata": "Öregrundsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00827",
+   "gata": "Östhammarsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00833",
+   "gata": "Östhammarsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00834",
+   "gata": "Östhammarsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00835",
+   "gata": "Östhammarsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00837",
+   "gata": "Rådmansgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00843",
+   "gata": "Rindögatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00847",
+   "gata": "Rindögatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00856",
+   "gata": "Sandelsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00868",
+   "gata": "Storgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00871",
+   "gata": "Storskärsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00872",
+   "gata": "Storskärsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00880",
+   "gata": "Valhallavägen",
+   "omr": "Ladugårdsgärdet",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-00881",
+   "gata": "Valhallavägen",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00922",
+   "gata": "Åmänningevägen",
+   "omr": "Årsta",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-00957",
+   "gata": "Lindevägen",
+   "omr": "Enskede Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-01195",
+   "gata": "Guldsmedsvägen",
+   "omr": "Gamla Enskede",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-01425",
+   "gata": "Stockholmsvägen",
+   "omr": "Gamla Enskede",
+   "n": 4
+  },
+  {
+   "cit": "0180 2017-02018",
+   "gata": "Handelsvägen",
+   "omr": "Gamla Enskede",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02175",
+   "gata": "Alviksvägen",
+   "omr": "Alvik",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02686",
+   "gata": "Kruthusplan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02688",
+   "gata": "Kruthusplan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02735",
+   "gata": "Lodgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02753",
+   "gata": "Tegeluddsvägen",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02785",
+   "gata": "Assessorsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02789",
+   "gata": "Bergsunds Strand",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02791",
+   "gata": "Bjurholmsplan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02792",
+   "gata": "Blecktornsgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02794",
+   "gata": "Blecktornsgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02795",
+   "gata": "Blecktornsstigen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02800",
+   "gata": "Blekingegatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02801",
+   "gata": "Blekingegatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02808",
+   "gata": "Borgmästargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02810",
+   "gata": "Borgmästargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02811",
+   "gata": "Brännkyrkagatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02813",
+   "gata": "Brännkyrkagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02816",
+   "gata": "Brännkyrkagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02818",
+   "gata": "Fatbursgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02819",
+   "gata": "Fatbursgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02820",
+   "gata": "Fiskargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02821",
+   "gata": "Fiskargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02822",
+   "gata": "Flintbacken",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02823",
+   "gata": "Flintbacken",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02827",
+   "gata": "Gaveliusgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02828",
+   "gata": "Gaveliusgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02831",
+   "gata": "Gotlandsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02833",
+   "gata": "Gotlandsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02840",
+   "gata": "Heleneborgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02841",
+   "gata": "Högalidsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02843",
+   "gata": "Högalidsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02844",
+   "gata": "Högbergsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02849",
+   "gata": "Hornstulls Strand",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02854",
+   "gata": "Jägargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02855",
+   "gata": "Jägargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02871",
+   "gata": "Kocksgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02872",
+   "gata": "Kolmårdsgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02877",
+   "gata": "Krukmakargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02878",
+   "gata": "Kvarngatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02880",
+   "gata": "Liljeholmsbron",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02881",
+   "gata": "Lilla Erstagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02883",
+   "gata": "Ludvigsbergsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02884",
+   "gata": "Ludvigsbergsgatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02919",
+   "gata": "Ludvigsbergsgatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-02927",
+   "gata": "Maria Prästgårdsgata",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02931",
+   "gata": "Maria Trappgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02932",
+   "gata": "Nytorgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02933",
+   "gata": "Nytorgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02935",
+   "gata": "Östgötagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02941",
+   "gata": "Östgötagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02944",
+   "gata": "Ringvägen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02945",
+   "gata": "Ringvägen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02949",
+   "gata": "Ringvägen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02957",
+   "gata": "Åmänningevägen",
+   "omr": "Årsta",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02960",
+   "gata": "Sandbacksgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02963",
+   "gata": "Sankt Paulsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02964",
+   "gata": "Siargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-02967",
+   "gata": "Skånegatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03010",
+   "gata": "Sockerbruksgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03012",
+   "gata": "Sockerbruksgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03014",
+   "gata": "Södermannagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03016",
+   "gata": "Södermannagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03017",
+   "gata": "Stigbergsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03018",
+   "gata": "Stigbergsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03019",
+   "gata": "Svartensgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03027",
+   "gata": "Tantogatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-03030",
+   "gata": "Tavastgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03032",
+   "gata": "Tavastgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03038",
+   "gata": "Skånegatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03041",
+   "gata": "Tideliusgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03045",
+   "gata": "Timmermansgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03049",
+   "gata": "Timmermansgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03051",
+   "gata": "Timmermansgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03052",
+   "gata": "Timmermansgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03053",
+   "gata": "Tobaksspinnargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03057",
+   "gata": "Torkel Knutssonsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03060",
+   "gata": "Varvsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03061",
+   "gata": "Varvsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03062",
+   "gata": "Varvsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03064",
+   "gata": "Varvsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03065",
+   "gata": "Västgötagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03066",
+   "gata": "Verkstadsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03070",
+   "gata": "Verkstadsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03072",
+   "gata": "Vickergatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-03982",
+   "gata": "Stigtomtavägen",
+   "omr": "Örby",
+   "n": 3
+  },
+  {
+   "cit": "0180 2017-04003",
+   "gata": "Birkagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04004",
+   "gata": "Birkagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04019",
+   "gata": "Dalagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04024",
+   "gata": "Dalagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04030",
+   "gata": "Dalagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04032",
+   "gata": "Dalagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04065",
+   "gata": "Falugatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04068",
+   "gata": "Frejgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04077",
+   "gata": "Gävlegatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04114",
+   "gata": "Hälsingegatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04115",
+   "gata": "Hälsingegatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04116",
+   "gata": "Ingemarsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04119",
+   "gata": "Ingemarsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04124",
+   "gata": "Kungstensgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04125",
+   "gata": "Luntmakargatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04128",
+   "gata": "Luntmakargatan",
+   "omr": "Vasastaden",
+   "n": 6
+  },
+  {
+   "cit": "0180 2017-04133",
+   "gata": "Norra Stationsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04149",
+   "gata": "Norrbackagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04157",
+   "gata": "Sulvägen",
+   "omr": "Solberga",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04158",
+   "gata": "Rådmansgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04159",
+   "gata": "Rådmansgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04160",
+   "gata": "Rehnsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04174",
+   "gata": "Mittelvägen",
+   "omr": "Gamla Enskede",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04180",
+   "gata": "Sankt Eriksgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04182",
+   "gata": "Sätertäppan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04220",
+   "gata": "Upplandsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04224",
+   "gata": "Upplandsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04228",
+   "gata": "Upplandsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04234",
+   "gata": "Vanadisplan",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-04237",
+   "gata": "Vanadisvägen",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04239",
+   "gata": "Vanadisvägen",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04243",
+   "gata": "Västeråsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04250",
+   "gata": "Västeråsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-04538",
+   "gata": "Värtavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-05137",
+   "gata": "Krukmakargatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-05373",
+   "gata": "Torsgatan",
+   "omr": "Vasastaden",
+   "n": 4
+  },
+  {
+   "cit": "0180 2017-05630",
+   "gata": "Ålbergavägen",
+   "omr": "Högdalen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-06789",
+   "gata": "Nytorgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-06817",
+   "gata": "Malmgårdsvägen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-06822",
+   "gata": "Svartensgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-06824",
+   "gata": "Svartensgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-06833",
+   "gata": "Wollmar Yxkullsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-06836",
+   "gata": "Rosenlundsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-06939",
+   "gata": "Torsgatan",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-06941",
+   "gata": "Dalagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07007",
+   "gata": "Adlerbethsgatan",
+   "omr": "Fredhäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07008",
+   "gata": "Adlerbethsgatan",
+   "omr": "Fredhäll",
+   "n": 3
+  },
+  {
+   "cit": "0180 2017-07018",
+   "gata": "Alströmergatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07020",
+   "gata": "Alströmergatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07038",
+   "gata": "Dagnyvägen",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07039",
+   "gata": "Drottningholmsvägen",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07041",
+   "gata": "Essinge Brogata",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07043",
+   "gata": "Essinge Brogata",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07049",
+   "gata": "Fridhemsgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07050",
+   "gata": "Fridhemsgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07057",
+   "gata": "Hantverkargatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-07058",
+   "gata": "Hantverkargatan",
+   "omr": "Kungsholmen",
+   "n": 3
+  },
+  {
+   "cit": "0180 2017-07068",
+   "gata": "Jaktvarvsplan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07071",
+   "gata": "Josefinavägen",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07077",
+   "gata": "Kristinebergs Slottsväg",
+   "omr": "Kristineberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07078",
+   "gata": "Kristinebergs Slottsväg",
+   "omr": "Kristineberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07088",
+   "gata": "Kungsholms Strand",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07091",
+   "gata": "Kungsholmsgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07109",
+   "gata": "",
+   "omr": "Stadshagen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-07110",
+   "gata": "",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07112",
+   "gata": "Love Almqvists Väg",
+   "omr": "Kristineberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07126",
+   "gata": "Nordenflychtsvägen",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07128",
+   "gata": "Nordenflychtsvägen",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07133",
+   "gata": "Norra Agnegatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07138",
+   "gata": "Pilgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07142",
+   "gata": "Pontonjärgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07144",
+   "gata": "Dagnyvägen",
+   "omr": "Lilla Essingen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-07145",
+   "gata": "Sankt Eriksgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07147",
+   "gata": "Sankt Eriksgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07152",
+   "gata": "Sankt Göransgatan",
+   "omr": "Stadshagen",
+   "n": 4
+  },
+  {
+   "cit": "0180 2017-07153",
+   "gata": "Sankt Göransgatan",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07157",
+   "gata": "Scheffersgatan",
+   "omr": "Marieberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07158",
+   "gata": "Södra Agnegatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07159",
+   "gata": "Stagneliusvägen",
+   "omr": "Fredhäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07160",
+   "gata": "Strålgatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07161",
+   "gata": "Strålgatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07162",
+   "gata": "Strålgatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07164",
+   "gata": "Strålgatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07166",
+   "gata": "Strålgatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07169",
+   "gata": "Strandbergsgatan",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07170",
+   "gata": "Strandbergsgatan",
+   "omr": "Stadshagen",
+   "n": 6
+  },
+  {
+   "cit": "0180 2017-07173",
+   "gata": "Svedbergsstigen",
+   "omr": "Marieberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07175",
+   "gata": "Sysslomansgatan",
+   "omr": "Marieberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07178",
+   "gata": "Wennerbergsgatan",
+   "omr": "Marieberg",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-07179",
+   "gata": "Wennerbergsgatan",
+   "omr": "Marieberg",
+   "n": 4
+  },
+  {
+   "cit": "0180 2017-07373",
+   "gata": "Sundstabacken",
+   "omr": "Årsta",
+   "n": 4
+  },
+  {
+   "cit": "0180 2017-07518",
+   "gata": "Götlundagatan",
+   "omr": "Hagsätra",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07521",
+   "gata": "Götlundagatan",
+   "omr": "Hagsätra",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07653",
+   "gata": "Rålambsvägen",
+   "omr": "Marieberg",
+   "n": 6
+  },
+  {
+   "cit": "0180 2017-07655",
+   "gata": "Rålambsvägen",
+   "omr": "Fredhäll",
+   "n": 3
+  },
+  {
+   "cit": "0180 2017-07656",
+   "gata": "Rålambsvägen",
+   "omr": "Fredhäll",
+   "n": 3
+  },
+  {
+   "cit": "0180 2017-07659",
+   "gata": "Stagneliusvägen",
+   "omr": "Fredhäll",
+   "n": 6
+  },
+  {
+   "cit": "0180 2017-07660",
+   "gata": "Stagneliusvägen",
+   "omr": "Fredhäll",
+   "n": 3
+  },
+  {
+   "cit": "0180 2017-07754",
+   "gata": "Älvsborgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07763",
+   "gata": "Gruvbacken",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07929",
+   "gata": "Östermalmsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-07991",
+   "gata": "Sturegatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-08014",
+   "gata": "Sankt Paulsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-08759",
+   "gata": "Karlsviksgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-08993",
+   "gata": "",
+   "omr": "Stadshagen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-09106",
+   "gata": "Gjörwellsgatan",
+   "omr": "Marieberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-09173",
+   "gata": "Tulegatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-09782",
+   "gata": "Karlbergsvägen",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-09876",
+   "gata": "Sankt Mickelsgatan",
+   "omr": "Mälarhöjden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10263",
+   "gata": "Ringvägen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10289",
+   "gata": "Blasieholmsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10293",
+   "gata": "Malmskillnadsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10296",
+   "gata": "Kristinehovsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10301",
+   "gata": "Regeringsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10303",
+   "gata": "Regeringsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10365",
+   "gata": "Katarina Östra Kyrkogårdsgränd",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-10455",
+   "gata": "Skebokvarnsvägen",
+   "omr": "Högdalen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10626",
+   "gata": "Skebokvarnsvägen",
+   "omr": "Högdalen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10638",
+   "gata": "Hägerstensvägen",
+   "omr": "Hägersten",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-10640",
+   "gata": "Kinmanssonvägen",
+   "omr": "Hägersten",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-10641",
+   "gata": "Västertorpsvägen",
+   "omr": "Västertorp",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10642",
+   "gata": "Krämarvägen",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10643",
+   "gata": "Krämarvägen",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10644",
+   "gata": "Västertorpsvägen",
+   "omr": "Västertorp",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10645",
+   "gata": "Krämarvägen",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10649",
+   "gata": "Selmedalsvägen",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-10681",
+   "gata": "Bultvägen",
+   "omr": "Västberga",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-10973",
+   "gata": "Torsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11022",
+   "gata": "Kungsholms Strand",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11054",
+   "gata": "Alviksvägen",
+   "omr": "Äppelviken",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11056",
+   "gata": "Äppelviksvägen",
+   "omr": "Äppelviken",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11057",
+   "gata": "Bergslagsvägen",
+   "omr": "Riksby",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-11058",
+   "gata": "Grävlingsvägen",
+   "omr": "Stora Mossen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11059",
+   "gata": "Hermelinstigen",
+   "omr": "Stora Mossen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11060",
+   "gata": "Gustavslundsvägen",
+   "omr": "Alvik",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11061",
+   "gata": "Klövervägen",
+   "omr": "Äppelviken",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-11062",
+   "gata": "Marklandsbacken",
+   "omr": "Åkeslund",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11063",
+   "gata": "Runda Vägen",
+   "omr": "Alvik",
+   "n": 8
+  },
+  {
+   "cit": "0180 2017-11065",
+   "gata": "Smedslättsvägen",
+   "omr": "Smedslätten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11066",
+   "gata": "Sollerövägen",
+   "omr": "Höglandet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11068",
+   "gata": "Stopvägen",
+   "omr": "Åkeslund",
+   "n": 3
+  },
+  {
+   "cit": "0180 2017-11084",
+   "gata": "Stora Mossens Backe",
+   "omr": "Stora Mossen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-11086",
+   "gata": "Stora Mossens Backe",
+   "omr": "Stora Mossen",
+   "n": 10
+  },
+  {
+   "cit": "0180 2017-11087",
+   "gata": "Timmervägen",
+   "omr": "Alvik",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11088",
+   "gata": "Tunnlandsvägen",
+   "omr": "Åkeslund",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11090",
+   "gata": "Tunnlandsvägen",
+   "omr": "Åkeslund",
+   "n": 2
+  },
+  {
+   "cit": "0180 2017-11275",
+   "gata": "Ringvägen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11320",
+   "gata": "Dalagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11326",
+   "gata": "Djupdalsvägen",
+   "omr": "Olovslund",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11328",
+   "gata": "Nyodlingsvägen",
+   "omr": "Ålsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11329",
+   "gata": "Nyodlingsvägen",
+   "omr": "Ålsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11331",
+   "gata": "Åkerslundsgatan",
+   "omr": "Olovslund",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11518",
+   "gata": "Fyrverkarbacken",
+   "omr": "Marieberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11568",
+   "gata": "Erik Dahlbergsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2017-11569",
+   "gata": "Erik Dahlbergsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00002",
+   "gata": "Döbelnsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00048",
+   "gata": "Högbergsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00160",
+   "gata": "Gårdsfogdevägen",
+   "omr": "Mariehäll",
+   "n": 10
+  },
+  {
+   "cit": "0180 2018-00161",
+   "gata": "Gårdsfogdevägen",
+   "omr": "Mariehäll",
+   "n": 10
+  },
+  {
+   "cit": "0180 2018-00162",
+   "gata": "Archimedesvägen",
+   "omr": "Mariehäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00640",
+   "gata": "Hökarvägen",
+   "omr": "Hägersten",
+   "n": 2
+  },
+  {
+   "cit": "0180 2018-00643",
+   "gata": "Hökarvägen",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00699",
+   "gata": "Zinkens Väg",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00762",
+   "gata": "Friherregatan",
+   "omr": "Hässelby Gård",
+   "n": 3
+  },
+  {
+   "cit": "0180 2018-00787",
+   "gata": "Hökarvägen",
+   "omr": "Hägersten",
+   "n": 2
+  },
+  {
+   "cit": "0180 2018-00804",
+   "gata": "Hökarvägen",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00819",
+   "gata": "Tobaksspinnargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00875",
+   "gata": "Franzéngatan",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00887",
+   "gata": "Ljusnevägen",
+   "omr": "Bagarmossen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00889",
+   "gata": "Tomtebodavägen",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00892",
+   "gata": "Upplandsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-00988",
+   "gata": "Drottning Kristinas Väg",
+   "omr": "Norra Djurgården",
+   "n": 3
+  },
+  {
+   "cit": "0180 2018-01060",
+   "gata": "Ulvsundavägen",
+   "omr": "Ulvsunda Industriområde",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-01062",
+   "gata": "Åkeshovs Gårdsväg",
+   "omr": "Åkeshov",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-01108",
+   "gata": "Vultejusvägen",
+   "omr": "Norra Ängby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-01119",
+   "gata": "Nyodlingsvägen",
+   "omr": "Ålsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-01548",
+   "gata": "Voltavägen",
+   "omr": "Ulvsunda Industriområde",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-01757",
+   "gata": "Voltavägen",
+   "omr": "Ulvsunda Industriområde",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-03268",
+   "gata": "Tranebergsvägen",
+   "omr": "Alvik",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-03322",
+   "gata": "Stobaeusvägen",
+   "omr": "Norra Ängby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-03324",
+   "gata": "Stobaeusvägen",
+   "omr": "Norra Ängby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-03486",
+   "gata": "Nyängsvägen",
+   "omr": "Ålsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-04039",
+   "gata": "Kälvestavägen",
+   "omr": "Solhem",
+   "n": 2
+  },
+  {
+   "cit": "0180 2018-04667",
+   "gata": "Strandbergsgatan",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-05005",
+   "gata": "Kocksgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-05016",
+   "gata": "Kedjevägen",
+   "omr": "Solberga",
+   "n": 2
+  },
+  {
+   "cit": "0180 2018-05163",
+   "gata": "Skeppargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-05225",
+   "gata": "Kungsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-05363",
+   "gata": "Drottningholmsvägen",
+   "omr": "Riksby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-05496",
+   "gata": "Norrtullsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2018-05785",
+   "gata": "Vikingagatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-02342",
+   "gata": "Vulcanusgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-02346",
+   "gata": "Völundsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-02444",
+   "gata": "Spikvägen",
+   "omr": "Västberga",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-02447",
+   "gata": "Spikvägen",
+   "omr": "Västberga",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-02752",
+   "gata": "Tegnérgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-02890",
+   "gata": "Silversmedsplan",
+   "omr": "Grimsta",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-02910",
+   "gata": "Södermannagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-03158",
+   "gata": "Söder Mälarstrand",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-03215",
+   "gata": "Själagårdsgatan",
+   "omr": "Gamla Stan",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-03808",
+   "gata": "Luxgatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-03924",
+   "gata": "Valhallavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-04332",
+   "gata": "Kedjevägen",
+   "omr": "Solberga",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-04684",
+   "gata": "Läsmygen",
+   "omr": "Mälarhöjden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-04796",
+   "gata": "Kvarnhagsgatan",
+   "omr": "Hässelby Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-05173",
+   "gata": "Riddersviksvägen",
+   "omr": "Hässelby Villastad",
+   "n": 5
+  },
+  {
+   "cit": "0180 2019-05174",
+   "gata": "Riddersviksvägen",
+   "omr": "Hässelby Villastad",
+   "n": 5
+  },
+  {
+   "cit": "0180 2019-05262",
+   "gata": "Dvärglinsgränd",
+   "omr": "Hässelby Villastad",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-05443",
+   "gata": "Sköndalsvägen",
+   "omr": "Sköndal",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-05550",
+   "gata": "Lindetorpsvägen",
+   "omr": "Enskede Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-05853",
+   "gata": "Sjösavägen",
+   "omr": "Bandhagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2019-06232",
+   "gata": "Måndagsvägen",
+   "omr": "Hökarängen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-00158",
+   "gata": "Swedenborgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-00161",
+   "gata": "Swedenborgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-00162",
+   "gata": "Swedenborgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-00163",
+   "gata": "Swedenborgsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-00202",
+   "gata": "Rörstrandsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-00258",
+   "gata": "Frejgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-00428",
+   "gata": "Lindevägen",
+   "omr": "Enskede Gård",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-00430",
+   "gata": "Skjulvägen",
+   "omr": "Enskede Gård",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-00595",
+   "gata": "Klubbacken",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-00686",
+   "gata": "Sjöskumsvägen",
+   "omr": "Hökarängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-01743",
+   "gata": "Götgatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-02269",
+   "gata": "Roslagstullsbacken",
+   "omr": "Norra Djurgården",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-02579",
+   "gata": "Starrängsringen",
+   "omr": "Ladugårdsgärdet",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-03038",
+   "gata": "Hjalmar Söderbergs Väg",
+   "omr": "Kristineberg",
+   "n": 3
+  },
+  {
+   "cit": "0180 2020-03061",
+   "gata": "Fredhällsgatan",
+   "omr": "Fredhäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-03085",
+   "gata": "Kammakargatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-03315",
+   "gata": "Birger Sjöbergs Väg",
+   "omr": "Fredhäll",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-03331",
+   "gata": "Atlasgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-03553",
+   "gata": "Norrbackagatan",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-03581",
+   "gata": "Luntmakargatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-03589",
+   "gata": "Torbjörn Klockares Gata",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-03653",
+   "gata": "Saltmätargatan",
+   "omr": "Vasastaden",
+   "n": 6
+  },
+  {
+   "cit": "0180 2020-03669",
+   "gata": "Saltmätargatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-03830",
+   "gata": "Rådmansgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-04031",
+   "gata": "Nytorgsgatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2020-04036",
+   "gata": "Roddargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-04299",
+   "gata": "Tobaksspinnargatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-04448",
+   "gata": "Blecktornsstigen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-05164",
+   "gata": "Urvädersgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-05197",
+   "gata": "Skorpvägen",
+   "omr": "Bällsta",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-06102",
+   "gata": "Erik Dahlbergsgatan",
+   "omr": "Ladugårdsgärdet",
+   "n": 4
+  },
+  {
+   "cit": "0180 2020-06263",
+   "gata": "Linbodavägen",
+   "omr": "Långbro",
+   "n": 1
+  },
+  {
+   "cit": "0180 2020-06395",
+   "gata": "Renstiernas Gata",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-02223",
+   "gata": "Alströmergatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-02638",
+   "gata": "Blekingegatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-02671",
+   "gata": "Garvargatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-02675",
+   "gata": "Gaveliusgatan",
+   "omr": "Södermalm",
+   "n": 4
+  },
+  {
+   "cit": "0180 2021-03540",
+   "gata": "Eriksbergsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03543",
+   "gata": "Gambrinusgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03550",
+   "gata": "Duvnäsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03580",
+   "gata": "Hallandsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03603",
+   "gata": "Lindetorpsvägen",
+   "omr": "Enskede Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03604",
+   "gata": "Lindetorpsvägen",
+   "omr": "Enskede Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03624",
+   "gata": "Jungfrugatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03636",
+   "gata": "Kronobergsgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03650",
+   "gata": "Kronobergsgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03724",
+   "gata": "Tröskverksvägen",
+   "omr": "Långbro",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03788",
+   "gata": "Karlavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03790",
+   "gata": "Rålambsvägen",
+   "omr": "Fredhäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-03849",
+   "gata": "Kapellgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2021-04166",
+   "gata": "Odengatan",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2021-04520",
+   "gata": "Stockholmsvägen",
+   "omr": "Gamla Enskede",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00012",
+   "gata": "Tegelbergsvägen",
+   "omr": "Mariehäll",
+   "n": 3
+  },
+  {
+   "cit": "0180 2022-00014",
+   "gata": "Tegelbergsvägen",
+   "omr": "Mariehäll",
+   "n": 2
+  },
+  {
+   "cit": "0180 2022-00015",
+   "gata": "Tegelbergsvägen",
+   "omr": "Mariehäll",
+   "n": 3
+  },
+  {
+   "cit": "0180 2022-00016",
+   "gata": "Tegelbergsvägen",
+   "omr": "Mariehäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00017",
+   "gata": "Tegelbergsvägen",
+   "omr": "Mariehäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00211",
+   "gata": "Essinge Brogata",
+   "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00245",
+   "gata": "Metargatan",
+   "omr": "Södermalm",
+   "n": 3
+  },
+  {
+   "cit": "0180 2022-00246",
+   "gata": "Metargatan",
+   "omr": "Södermalm",
+   "n": 3
+  },
+  {
+   "cit": "0180 2022-00410",
+   "gata": "Blekingegatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00454",
+   "gata": "Sidensvansvägen",
+   "omr": "Herrängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00593",
+   "gata": "Blecktornsstigen",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2022-00652",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 3
+  },
+  {
+   "cit": "0180 2022-00655",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2022-00656",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2022-00657",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00658",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2022-00827",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00828",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-00830",
+   "gata": "Lingvägen",
+   "omr": "Hökarängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-01404",
+   "gata": "Erstagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-03090",
+   "gata": "Ramviksvägen",
+   "omr": "Stureby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-03829",
+   "gata": "Katarina Bangata",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-04163",
+   "gata": "Mälarhöjdsvägen",
+   "omr": "Mälarhöjden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2022-04289",
+   "gata": "Kungsholms Strand",
+   "omr": "Kungsholmen",
+   "n": 3
+  },
+  {
+   "cit": "0180 2022-04892",
+   "gata": "Tyska Bottens Väg",
+   "omr": "Nockebyhov",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-04919",
+   "gata": "Viveka Trolles Gränd",
+   "omr": "Hässelby Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2022-04999",
+   "gata": "Snöripsvägen",
+   "omr": "Långsjö",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-00166",
+   "gata": "Ramvägen",
+   "omr": "Gubbängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-00280",
+   "gata": "Konstgjutarvägen",
+   "omr": "Johanneshov",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-00281",
+   "gata": "Konstgjutarvägen",
+   "omr": "Johanneshov",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-00306",
+   "gata": "Tröskverksvägen",
+   "omr": "Långbro",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-00509",
+   "gata": "Morkullsvägen",
+   "omr": "Tallkrogen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2023-00737",
+   "gata": "Malmgårdsvägen",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-01073",
+   "gata": "Stafettvägen",
+   "omr": "Gubbängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-01453",
+   "gata": "Enebyvägen",
+   "omr": "Eneby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-02561",
+   "gata": "Strandbergsgatan",
+   "omr": "Stadshagen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-02800",
+   "gata": "Lagerlöfsgatan",
+   "omr": "Marieberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-02823",
+   "gata": "Gotlandsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-02987",
+   "gata": "Renstiernas Gata",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2023-03055",
+   "gata": "Hantverkargatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-03107",
+   "gata": "Birger Jarlsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-03371",
+   "gata": "Spiralbacken",
+   "omr": "Hässelby Strand",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-04420",
+   "gata": "Götlundagatan",
+   "omr": "Hagsätra",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-04618",
+   "gata": "Skogshällsbacken",
+   "omr": "Bromsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2023-04649",
+   "gata": "Surbrunnsgatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-00705",
+   "gata": "Björns Trädgårdsgränd",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-00885",
+   "gata": "Wollmar Yxkullsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-02377",
+   "gata": "Marmorgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-02901",
+   "gata": "Tröskverksvägen",
+   "omr": "Långbro",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-02902",
+   "gata": "Tröskverksvägen",
+   "omr": "Långbro",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-03959",
+   "gata": "Scheelegatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-03960",
+   "gata": "Scheelegatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-04116",
+   "gata": "Birger Jarlsgatan",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-04197",
+   "gata": "Klara Norra Kyrkogata",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04294",
+   "gata": "Apelbergsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04300",
+   "gata": "Spannvägen",
+   "omr": "Åkeslund",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04301",
+   "gata": "Spannvägen",
+   "omr": "Åkeslund",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04486",
+   "gata": "Blekholmsterrassen",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04591",
+   "gata": "Oxtorgsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04682",
+   "gata": "Banérgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04685",
+   "gata": "Bergsgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04686",
+   "gata": "Bergsgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04687",
+   "gata": "Bolinders Plan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04688",
+   "gata": "Bolinders Plan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04698",
+   "gata": "Eriksbergsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04704",
+   "gata": "Eriksbergsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04706",
+   "gata": "Grevgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04707",
+   "gata": "Hantverkargatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04708",
+   "gata": "Hantverkargatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-04709",
+   "gata": "Jungfrugatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04710",
+   "gata": "Kaplansbacken",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04711",
+   "gata": "Kaplansbacken",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04791",
+   "gata": "Karlavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04792",
+   "gata": "Karlavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04793",
+   "gata": "Karlbergsvägen",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04794",
+   "gata": "Kungsbroplan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04795",
+   "gata": "Kungsholms Hamnplan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04823",
+   "gata": "Kungsholmstorg",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04824",
+   "gata": "Kungsholmstorg",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04826",
+   "gata": "Kungsholmstorg",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04827",
+   "gata": "Kungsklippan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04829",
+   "gata": "Kungsklippan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04830",
+   "gata": "Kungsklippan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04833",
+   "gata": "Narvavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04835",
+   "gata": "Narvavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04836",
+   "gata": "Narvavägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04837",
+   "gata": "Norr Mälarstrand",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-04838",
+   "gata": "Nybergsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04839",
+   "gata": "Bigarråvägen",
+   "omr": "Norra Djurgården",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04840",
+   "gata": "Wollmar Yxkullsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04851",
+   "gata": "Nybrogatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04852",
+   "gata": "Parmmätargatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-04853",
+   "gata": "Parmmätargatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04854",
+   "gata": "Pipersgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04855",
+   "gata": "Pipersgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04859",
+   "gata": "Riddargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04861",
+   "gata": "Runebergsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04862",
+   "gata": "Scheelegatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-04864",
+   "gata": "Scheelegatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2024-04966",
+   "gata": "Skeppargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04967",
+   "gata": "Storgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04968",
+   "gata": "Storgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04969",
+   "gata": "Strandvägen",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04973",
+   "gata": "Pipersgatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04974",
+   "gata": "Riddargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04977",
+   "gata": "Riddargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04989",
+   "gata": "Riddargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04991",
+   "gata": "Rimbogatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04992",
+   "gata": "Scheelegatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-04999",
+   "gata": "Kammakargatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-05083",
+   "gata": "Skeppargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-05085",
+   "gata": "Väpnargatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2024-06069",
+   "gata": "Oxtorget",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-00413",
+   "gata": "Björnlundavägen",
+   "omr": "Örby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-01030",
+   "gata": "Engelbrektsgatan",
+   "omr": "Östermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-01842",
+   "gata": "Regeringsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-02207",
+   "gata": "Kungsgatan",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-02276",
+   "gata": "Sigurdsvägen",
+   "omr": "Nockeby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-02432",
+   "gata": "Karlaplan",
+   "omr": "Östermalm",
+   "n": 4
+  },
+  {
+   "cit": "0180 2025-02476",
+   "gata": "Torsgatan",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
+   "cit": "0180 2025-03646",
+   "gata": "Tulegatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04021",
+   "gata": "Klubbacken",
+   "omr": "Hägersten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04121",
+   "gata": "Postiljonsvägen",
+   "omr": "Svedmyra",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04214",
+   "gata": "Konsumentvägen",
+   "omr": "Älvsjö",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04267",
+   "gata": "Skåpaforsvägen",
+   "omr": "Stureby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04273",
+   "gata": "Sågverksgatan",
+   "omr": "Stureby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04504",
+   "gata": "Björnsonsgatan",
+   "omr": "Blackeberg",
+   "n": 2
+  },
+  {
+   "cit": "0180 2025-04581",
+   "gata": "Hammerstavägen",
+   "omr": "Tallkrogen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2025-04582",
+   "gata": "Hammerstavägen",
+   "omr": "Tallkrogen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04583",
+   "gata": "Hammerstavägen",
+   "omr": "Tallkrogen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2025-04584",
+   "gata": "Sandemarsvägen",
+   "omr": "Tallkrogen",
+   "n": 4
+  },
+  {
+   "cit": "0180 2025-04585",
+   "gata": "Rörsoppsvägen",
+   "omr": "Tallkrogen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04586",
+   "gata": "Ellen Keys Gata",
+   "omr": "Fruängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04599",
+   "gata": "Lagerbielkes Väg",
+   "omr": "Älvsjö",
+   "n": 2
+  },
+  {
+   "cit": "0180 2025-04646",
+   "gata": "Sjättenovembervägen",
+   "omr": "Älvsjö",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04647",
+   "gata": "Holbergsgatan",
+   "omr": "Blackeberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04681",
+   "gata": "Jämtlandsgatan",
+   "omr": "Vällingby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04685",
+   "gata": "Björnsonsgatan",
+   "omr": "Blackeberg",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04860",
+   "gata": "Lyckselevägen",
+   "omr": "Vällingby",
+   "n": 2
+  },
+  {
+   "cit": "0180 2025-04862",
+   "gata": "Lyckselevägen",
+   "omr": "Vällingby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04865",
+   "gata": "Lyckselevägen",
+   "omr": "Vällingby",
+   "n": 4
+  },
+  {
+   "cit": "0180 2025-04870",
+   "gata": "Lyckselevägen",
+   "omr": "Vällingby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04873",
+   "gata": "Lyckselevägen",
+   "omr": "Vällingby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-04875",
+   "gata": "Lyckselevägen",
+   "omr": "Vällingby",
+   "n": 4
+  },
+  {
+   "cit": "0180 2025-05048",
+   "gata": "Högbergsgatan",
+   "omr": "Södermalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2025-05514",
+   "gata": "Värtavägen",
+   "omr": "Ladugårdsgärdet",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-05555",
+   "gata": "Klarabergsviadukten",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-05800",
+   "gata": "Kungsbro Strand",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-06148",
+   "gata": "Fagersjövägen",
+   "omr": "Hökarängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-06161",
+   "gata": "Svarvargatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-06866",
+   "gata": "Grubbens Gata",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-07002",
+   "gata": "Långholmsgatan",
+   "omr": "Södermalm",
+   "n": 4
+  },
+  {
+   "cit": "0180 2025-07109",
+   "gata": "Vanadisvägen",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2025-07116",
+   "gata": "Gävlegatan",
+   "omr": "Vasastaden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-00096",
+   "gata": "Erstagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-00403",
+   "gata": "Alströmergatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-00897",
+   "gata": "Gjutargatan",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-00950",
+   "gata": "Orvar Odds Väg",
+   "omr": "Fredhäll",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-01530",
+   "gata": "Norr Mälarstrand",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-01532",
+   "gata": "Norr Mälarstrand",
+   "omr": "Kungsholmen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-02578",
+   "gata": "Luxgatan",
+   "omr": "Lilla Essingen",
+   "n": 1
+  }
+ ]
+}

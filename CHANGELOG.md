@@ -14,6 +14,36 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.20.0 – 2026-08-30
+**Tabellerna sköter sig själva, och säger till när de inte gör det.**
+
+**Tre uppslagstabeller styr vad appen påstår om verkligheten**, och alla tre åldrades tyst.
+Ändrar Stockholm en föreskrift slutar raden gälla – appen faller tillbaka på grönt, vilket
+är säkert men obemärkt. Skriver Göteborg om en mening hittas den inte längre, och appen
+säger "vet inte". Ingen fick veta något av det.
+
+**Nu finns en robot.** Den 1:e varje månad: se om något ändrats → hämta om → skriv om
+tabellerna → kör testgrinden → committa och pusha bara om den går igenom → kvitto.
+Ingen handpåläggning.
+
+**Det som skyddar är inte förtroende utan tre spärrar.** Roboten rör bara de tre
+JSON-tabellerna och de genererade blocken – aldrig logik, texter eller färger. En
+testgrind måste godkänna: den fäller dagtyper appen inte känner, trasiga klockslag,
+generatorer som glidit isär från sin källa, index.html som slutat vara giltig JavaScript,
+och massborttagningar. Och verktygen vägrar gissa – en oläslig föreskrift eller en
+otolkbar mening lämnas utanför tabellen, vilket betyder "vet inte", precis som förut.
+
+**Tre larmvägar, för tre olika fel.** Säger roboten något öppnas ett issue som tilldelas
+ägaren – GitHub mejlar då. Tiger roboten larmar en klocka utanför GitHub, som pingas
+vid varje körning. Och `/datastatus` i appen svävarar alltid på hur gamla tabellerna är,
+oberoende av GitHub – för en vakt som slutat gå ser likadan ut som en vakt som inget hittat.
+
+**Vakten hittade något första gången den körde.** Göteborgs villkorstabell saknade
+meningen "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan
+00.00 - 24.00." – 1 554 sträckor. Gränsen gäller alltså vardagar, men inte helger. Appen
+skrev "max 24 tim" även på en söndag. Ingen färg ändras (gränsen är exakt ett dygn),
+men klausulen försvinner nu när den inte gäller.
+
 ## v1.19.0 – 2026-08-29
 **Göteborgs lastplatser vet när de gäller. Och glöden slutar lova saker den inte vet.**
 

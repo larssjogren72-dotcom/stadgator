@@ -1,0 +1,222 @@
+# Robot som håller uppslagstabellerna aktuella – helt utan handpåläggning.
+#
+# KEDJAN: se om något ändrats → hämta om → skriv om tabellerna → KÖR TESTGRINDEN
+# → committa och pusha först om den går igenom → öppna ett issue som kvitto.
+#
+# ⚠ ROBOTEN PUSHAR TILL MASTER OCH RAILWAY DEPLOYAR MASTER. Det som skyddar är
+# tre saker, inte förtroende:
+#   1. Den rör BARA de tre JSON-tabellerna och de genererade blocken i index.html.
+#      Ingen logik, inga texter, ingen färgsättning.
+#   2. verktyg/prova-tabeller.js måste godkänna. Den fäller okända dagtyper,
+#      trasiga klockslag, generatorer som glidit isär, index.html som slutat
+#      vara giltig JavaScript, och massborttagningar (mer än en femtedel).
+#   3. Verktygen vägrar gissa. En oläsbar föreskrift eller en mening som inte går
+#      att tolka lämnas UTANFÖR tabellen, och då säger appen "vet inte" – vilket
+#      är exakt dagens beteende. Tystnad blir aldrig ett påstående.
+#
+# Faller testgrinden committas ingenting. Då öppnas ett issue i stället, och
+# tabellerna står kvar som de var.
+#
+# TVÅ KONTROLLER, EN PER STAD. Göteborgs data är öppen och kör utan nyckel.
+# Stockholms kräver `STHLM_API_KEY` under Settings → Secrets and variables →
+# Actions. Saknas den hoppas Stockholmsdelen över; Göteborg körs ändå.
+name: Håll datatabellerna aktuella
+
+on:
+  schedule:
+    # Den 1:e varje månad 05:00 UTC. Föreskrifter ändras långsamt – uppmätt drift
+    # är ungefär tre i månaden av 579, alltså 7 % om året.
+    - cron: '0 5 1 * *'
+  workflow_dispatch:
+    inputs:
+      torrkor:
+        description: 'Torrkör – rapportera men committa inget'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write           # roboten committar och pushar
+  issues: write             # kvittot
+
+jobs:
+  uppdatera:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ── 1. Vad har ändrats? ───────────────────────────────────────────────
+      - name: Kontroll – Göteborg
+        id: kolla_gbg
+        run: |
+          set +e
+          node verktyg/kolla-gbg-tabeller.js > rapport-gbg.txt 2>&1
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          cat rapport-gbg.txt
+
+      - name: Kontroll – Stockholm
+        id: kolla_sthlm
+        env:
+          STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
+        run: |
+          set +e
+          node verktyg/kolla-forbud-ovrig-tid.js > rapport-sthlm.txt 2>&1
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          cat rapport-sthlm.txt
+
+      # ── 2. Utför ändringen ────────────────────────────────────────────────
+      # Varje uppdaterare skriver sin egen JSON. De rör inte varandras filer, så
+      # ett fel i den ena lämnar den andra orörd.
+      - name: Uppdatera Göteborgs tabeller
+        if: steps.kolla_gbg.outputs.kod == '1'
+        run: |
+          set +e
+          node verktyg/las-gbg-villkor.js --skriv   > uppd-gbg-villkor.txt 2>&1
+          node verktyg/las-gbg-lastplats.js         > uppd-gbg-lastplats.txt 2>&1
+          cat uppd-gbg-villkor.txt uppd-gbg-lastplats.txt
+
+      - name: Uppdatera Stockholms tabell
+        if: steps.kolla_sthlm.outputs.kod == '1'
+        env:
+          STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
+        run: |
+          set +e
+          node verktyg/kolla-forbud-ovrig-tid.js --uppdatera > uppd-sthlm.txt 2>&1
+          cat uppd-sthlm.txt
+
+      # ── 3. Skriv in i index.html ──────────────────────────────────────────
+      - name: Bygg om blocken
+        run: |
+          node verktyg/bygg-gbg-villkor.js
+          node verktyg/bygg-gbg-lastplats.js
+          node verktyg/bygg-forbud-ovrig-tid.js
+
+      # ── 4. Testgrinden. Faller den händer ingenting. ──────────────────────
+      - name: Testa
+        id: prov
+        run: |
+          set +e
+          node verktyg/prova-tabeller.js > prov.txt 2>&1
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          cat prov.txt
+
+      - name: Se om något faktiskt ändrats
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain index.html verktyg/)" ]; then
+            echo "andrat=ja" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat index.html verktyg/ > diff.txt
+            git --no-pager diff -- verktyg/ >> diff.txt
+            cat diff.txt
+          else
+            echo "andrat=nej" >> "$GITHUB_OUTPUT"
+            echo "Inga filandringar." > diff.txt
+          fi
+
+      # ── 5. Committa och pusha – bara om testet gick igenom ────────────────
+      - name: Committa och pusha
+        if: steps.prov.outputs.kod == '0' && steps.diff.outputs.andrat == 'ja' && github.event.inputs.torrkor != 'true'
+        run: |
+          git config user.name  "ParkSpot-roboten"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html verktyg/
+          printf '%s\n' \
+            'Tabellerna uppdaterade automatiskt' \
+            '' \
+            'Stadens data har andrats. Roboten har last om det som andrats,' \
+            'skrivit om tabellerna och kort testgrinden (verktyg/prova-tabeller.js)' \
+            'innan den committade. Rapporterna ligger i jobbets logg och i issuet.' \
+            '' \
+            'Bara JSON-tabellerna och de genererade blocken ar rorda - ingen logik.' > .commitmsg
+          git commit -F .commitmsg
+          rm -f .commitmsg
+          git push
+
+      # ── 6. Kvitto ─────────────────────────────────────────────────────────
+      # Öppnas när något hänt ELLER när något inte gick att köra. Roboten ska
+      # aldrig vara tyst om att den agerat, och aldrig tyst om att den inte kunde.
+      - name: Kvitto som issue
+        if: always() && (steps.diff.outputs.andrat == 'ja' || steps.prov.outputs.kod != '0' || steps.kolla_gbg.outputs.kod == '2' || steps.kolla_sthlm.outputs.kod == '2')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const las = f => { try { return fs.readFileSync(f, 'utf8').trim(); } catch { return '(ingen)'; } };
+            const provOk  = '${{ steps.prov.outputs.kod }}' === '0';
+            const andrat  = '${{ steps.diff.outputs.andrat }}' === 'ja';
+            const torrkor = '${{ github.event.inputs.torrkor }}' === 'true';
+            const trasig  = '${{ steps.kolla_gbg.outputs.kod }}' === '2' || '${{ steps.kolla_sthlm.outputs.kod }}' === '2';
+            const rubrik = !provOk ? 'Roboten STOPPADE sig själv – testgrinden föll'
+                         : trasig  ? 'Roboten kunde inte kontrollera allt'
+                         : torrkor ? 'Torrkörning – så här hade tabellerna ändrats'
+                         : andrat  ? 'Tabellerna uppdaterade och pushade'
+                         :           'Roboten körde';
+            const inled = !provOk
+              ? 'Testgrinden underkände ändringen. **Ingenting har committats** – tabellerna står kvar som de var. Se felen nedan.'
+              : trasig
+              ? 'Minst en kontroll gick inte att köra. Det betyder INTE att allt är bra – ingen vet.'
+              : torrkor
+              ? 'Torrkörning: ändringarna nedan gjordes i jobbet men committades inte.'
+              : 'Stadens data hade ändrats. Roboten läste om, testade och pushade.';
+            const kropp = [
+              inled, '',
+              '## Vad som ändrades', '```', las('diff.txt').slice(0, 20000), '```', '',
+              '## Testgrinden', '```', las('prov.txt').slice(0, 10000), '```', '',
+              '## Kontroll – Göteborg', '```', las('rapport-gbg.txt').slice(0, 15000), '```', '',
+              '## Kontroll – Stockholm', '```', las('rapport-sthlm.txt').slice(0, 15000), '```', '',
+              '## Omläsning', '```',
+              ([las('uppd-gbg-villkor.txt'), las('uppd-gbg-lastplats.txt'), las('uppd-sthlm.txt')]
+                .filter(t => t && t !== '(ingen)').join('\n\n') || '(ingen omläsning behövdes)').slice(0, 15000),
+              '```', '',
+              'Roboten rör bara de tre JSON-tabellerna och de genererade blocken i',
+              '`index.html`. Vill du backa: `git revert` på commiten ovan.'
+            ].join('\n');
+            // MEJLET GÅR VIA GITHUB, inte via en egen SMTP-uppkoppling. Lars får redan
+            // GitHub-post i sin mejltjänst, och ett issue som TILLDELAS någon skickar
+            // ett notismejl till den personens adress. Det sparar ett lagrat lösenord
+            // – en hemlighet mindre som kan läcka eller gå ut.
+            const nyckelord = !provOk || trasig ? '⚠ ' : '';
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: nyckelord + rubrik + ' (' + new Date().toISOString().slice(0, 10) + ')',
+              body: '@' + context.repo.owner + '
+
+' + kropp,
+              labels: ['data'],
+              assignees: [context.repo.owner]
+            });
+            core.notice('Issue #' + issue.data.number + ' öppnat och tilldelat ' + context.repo.owner);
+
+      # ── LIVSTECKNET ─────────────────────────────────────────────────
+      # Larmklockan ringer inte när roboten SÄGER något – det gör issuet ovan. Den
+      # ringer när roboten TIGER. En vakt som slutat gå ser likadan ut som en vakt som
+      # inget hittat, och GitHub stänger självt av schemalagda jobb i repon som legat
+      # stilla. Då tystnar både körningen och issuet på en gång.
+      #
+      # Därför måste klockan hänga UTANFÖR GitHub. Steget nedan skickar bara ett
+      # "jag lever" till en adress du äger; hör den tjänsten inget på utsatt tid mejlar
+      # DEN dig. Utan hemligheten HEARTBEAT_URL händer ingenting – och då sägs det rakt
+      # ut i loggen, så luckan syns i stället för att vara tyst.
+      - name: Livstecken till larmklockan
+        if: always()
+        env:
+          HEARTBEAT_URL: ${{ secrets.HEARTBEAT_URL }}
+        run: |
+          if [ -z "$HEARTBEAT_URL" ]; then
+            echo "::warning::Ingen HEARTBEAT_URL är satt – larmklockan som ringer vid TYSTNAD finns inte."
+            echo "Utan den märks det aldrig om roboten slutar köra. Se .github/workflows/datatabeller.yml."
+            exit 0
+          fi
+          if [ "${{ steps.prov.outputs.kod }}" = "0" ]; then
+            curl -fsS -m 10 --retry 3 "$HEARTBEAT_URL" > /dev/null && echo "Livstecken skickat."
+          else
+            # /fail säger till klockan att körningen gick, men gick dåligt. Healthchecks
+            # och liknande tjänster larmar då direkt i stället för att vänta ut tystnaden.
+            curl -fsS -m 10 --retry 3 "$HEARTBEAT_URL/fail" > /dev/null && echo "Larm skickat till klockan."
+          fi
+
+      - name: Låt jobbet falla om testgrinden föll
+        if: steps.prov.outputs.kod != '0'
+        run: exit 1

@@ -1,6 +1,6 @@
 {
  "beskrivning": "Göteborgs villkorsmeningar (MaxParkingTimeLimitation) översatta till NÄR tidsgränsen gäller. Meningen är föreskriftens egen text, ordagrant. Uppslag sker på exakt sträng – en mening som inte finns här ger \"vet inte\" och därmed dagens beteende.",
- "kalla": "Göteborgs öppna WFS, lagret parkering:tidsbegransad. Meningen är verifierad som ordagrann avskrift av föreskriften i RDT (4 av 4 lästa 2026-08-28).",
+ "kalla": "Göteborgs öppna WFS. Populationen är alla parkeringslager UTOM lastplats där posten bär en MaxParkingTime – appen slår bara upp villkoret när det finns en gräns att stänga av. Meningen är verifierad som ordagrann avskrift av föreskriften i RDT (4 av 4 lästa 2026-08-28). ⚠ `strackor` är ENBART dokumentation och mätt på olika sätt över tid: de ursprungliga raderna räknades på appens sammanslagna endpoint (släpper ytor, slår ihop boende-tvillingar), senare tillagda på råa WFS-poster. Jämför dem aldrig med varandra – se kommentaren i verktyg/kolla-gbg-tabeller.js.",
  "dagtyper": {
   "vardag-ej-dagfore": "vardag som inte är dag före sön- eller helgdag",
   "dagfore": "dag före sön- eller helgdag",
@@ -9,10 +9,131 @@
   "alla": "alla dagar"
  },
  "utelamnade": [
-  "Tillåtelsen gäller vardag klockan 08.00 - 22.00."
+  "Tillåtelsen gäller vardag klockan 08.00 - 22.00.",
+  "Tillåtelsen gäller vardag klockan 06.00 - 19.00 och sön- och helgdag klockan 06.00 - 19.00."
  ],
- "last": "2026-08-29",
+ "last": "2026-08-30",
  "poster": [
+  {
+   "mening": "Parkering är dock tillåten under högst 1 tim i följd.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "alla",
+     "fran": null,
+     "till": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 2 tim i följd vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1800
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 2 tim i följd vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 2 tim i följd.",
+   "strackor": 29,
+   "regler": [
+    {
+     "dag": "alla",
+     "fran": null,
+     "till": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 24 tim i följd vardag utom vardag före sön- och helgdag.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": null,
+     "till": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 30 min i följd.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "alla",
+     "fran": null,
+     "till": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 4 tim i följd mot avgift under vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 2200,
+     "till": 600
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 4 tim i följd under tiden vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.",
+   "strackor": 4,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 2200,
+     "till": 600
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 4 tim i följd vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.",
+   "strackor": 29,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 2200,
+     "till": 600
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 4 tim i följd vardagar klockan 08.00 - 20.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 800,
+     "till": 2000
+    }
+   ],
+   "sasong": null
+  },
   {
    "mening": "Parkering är dock tillåten under högst 4 tim i följd.",
    "strackor": 47,
@@ -21,6 +142,154 @@
      "dag": "alla",
      "fran": null,
      "till": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Parkering är dock tillåten under högst 6 tim i följd.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "alla",
+     "fran": null,
+     "till": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller klockan 06.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "alla",
+     "fran": 600,
+     "till": 1800
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller klockan 09.00 - 18.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "alla",
+     "fran": 900,
+     "till": 1800
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller klockan 10.00 - 19.00 under tiden 1:a april - 30:e september.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "alla",
+     "fran": 1000,
+     "till": 1900
+    }
+   ],
+   "sasong": {
+    "fran": 401,
+    "till": 930
+   }
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag klockan 00.00 - 07.00 och 21.00 - 24.00 och sön- och helgdag klockan 00.00 - 07.00 och 21.00 - 24.00.",
+   "strackor": 10,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 0,
+     "till": 700
+    },
+    {
+     "dag": "vardag",
+     "fran": 2100,
+     "till": 2400
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 0,
+     "till": 700
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 2100,
+     "till": 2400
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag klockan 00.00 - 24.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 0,
+     "till": 2400
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag klockan 07.00 - 22.00 och sön- och helgdag klockan 07.00 - 22.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 2200
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 700,
+     "till": 2200
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag klockan 07.00 - 23.00 och sön- och helgdag klockan 07.00 - 23.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 700,
+     "till": 2300
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 700,
+     "till": 2300
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag klockan 08.00 - 16.00.",
+   "strackor": 18,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 800,
+     "till": 1600
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag klockan 08.00 - 18.00.",
+   "strackor": 26,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 800,
+     "till": 1800
     }
    ],
    "sasong": null
@@ -43,148 +312,18 @@
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardagar klockan 08.00 - 22.00 och sön- och helgdag klockan 08.00 - 22.00.",
-   "strackor": 28,
+   "mening": "Tidsbegränsningen gäller vardag klockan 09.00 - 21.00 och sön- och helgdag klockan 09.00 - 21.00.",
+   "strackor": 1,
    "regler": [
     {
      "dag": "vardag",
-     "fran": 800,
-     "till": 2200
+     "fran": 900,
+     "till": 2100
     },
     {
      "dag": "sonhelg",
-     "fran": 800,
-     "till": 2200
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Parkering är dock tillåten under högst 2 tim i följd.",
-   "strackor": 28,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": null,
-     "till": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 27,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
      "fran": 900,
-     "till": 1800
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 26,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1500
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag klockan 08.00 - 18.00.",
-   "strackor": 22,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 800,
-     "till": 1800
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 06.00 - 18.00.",
-   "strackor": 21,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 600,
-     "till": 1800
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 22.00.",
-   "strackor": 19,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 2200
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag klockan 08.00 - 16.00.",
-   "strackor": 18,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 800,
-     "till": 1600
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Parkering är dock tillåten under högst 4 tim i följd vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.",
-   "strackor": 18,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 2200,
-     "till": 600
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 18.00.",
-   "strackor": 15,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.",
-   "strackor": 13,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
-     "till": 1800
+     "till": 2100
     }
    ],
    "sasong": null
@@ -210,64 +349,146 @@
    }
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag klockan 00.00 - 07.00 och 21.00 - 24.00 och sön- och helgdag klockan 00.00 - 07.00 och 21.00 - 24.00.",
-   "strackor": 9,
+   "mening": "Tidsbegränsningen gäller vardag klockan 10.00 - 19.00 och sön- och helgdagar klockan 10.00 - 19.00 under tiden 1:a april - 30:e september.",
+   "strackor": 1,
    "regler": [
     {
      "dag": "vardag",
-     "fran": 0,
-     "till": 700
+     "fran": 1000,
+     "till": 1900
     },
+    {
+     "dag": "sonhelg",
+     "fran": 1000,
+     "till": 1900
+    }
+   ],
+   "sasong": {
+    "fran": 401,
+    "till": 930
+   }
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag klockan 10.00 - 20.00 och sön- och helgdag klockan 10.00 - 20.00.",
+   "strackor": 1,
+   "regler": [
     {
      "dag": "vardag",
-     "fran": 2100,
-     "till": 2400
+     "fran": 1000,
+     "till": 2000
     },
     {
      "dag": "sonhelg",
+     "fran": 1000,
+     "till": 2000
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+   "strackor": 1554,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
      "fran": 0,
-     "till": 700
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 2100,
      "till": 2400
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.",
-   "strackor": 9,
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 15.00.",
+   "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 800,
+     "fran": 600,
+     "till": 1500
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 18.00.",
+   "strackor": 4,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 600,
      "till": 1800
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardagar klockan 08.00 - 22.00.",
-   "strackor": 7,
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 19.00.",
+   "strackor": 2,
    "regler": [
     {
-     "dag": "vardag",
-     "fran": 800,
-     "till": 2200
+     "dag": "vardag-ej-dagfore",
+     "fran": 600,
+     "till": 1900
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 16.00.",
-   "strackor": 5,
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 16.00.",
+   "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 900,
+     "fran": 700,
      "till": 1600
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 17.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1700
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 18.00.",
+   "strackor": 4,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1800
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 19.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1900
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 15.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 1500
     }
    ],
    "sasong": null
@@ -290,20 +511,66 @@
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 18.00.",
-   "strackor": 4,
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 18.00.",
+   "strackor": 1,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 700,
+     "fran": 800,
      "till": 1800
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 18.00.",
-   "strackor": 4,
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 27,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 18.00.",
+   "strackor": 16,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 1800
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 20.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
+     "till": 2000
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1500
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 06.00 - 18.00.",
+   "strackor": 21,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
@@ -312,96 +579,6 @@
     }
    ],
    "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00.",
-   "strackor": 3,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1700
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 22.00 och vardag före sön- och helgdag klockan 08.00 - 22.00.",
-   "strackor": 3,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 2200
-    },
-    {
-     "dag": "dagfore",
-     "fran": 800,
-     "till": 2200
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardagar klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 18.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 900,
-     "till": 1800
-    },
-    {
-     "dag": "dagfore",
-     "fran": 900,
-     "till": 1800
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag klockan 07.00 - 22.00 och sön- och helgdag klockan 07.00 - 22.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 2200
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 700,
-     "till": 2200
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 19.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 600,
-     "till": 1900
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller klockan 10.00 - 19.00 under tiden 1:a april - 30:e september.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": 1000,
-     "till": 1900
-    }
-   ],
-   "sasong": {
-    "fran": 401,
-    "till": 930
-   }
   },
   {
    "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 06.00 - 19.00, vardag före sön- och helgdag klockan 12.00 - 19.00 och sön- och helgdagar klockan 12.00 - 19.00.",
@@ -426,12 +603,24 @@
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller klockan 09.00 - 18.00.",
-   "strackor": 2,
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 07.00 - 17.00.",
+   "strackor": 3,
    "regler": [
     {
-     "dag": "alla",
-     "fran": 900,
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
+     "till": 1700
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 700,
      "till": 1800
     }
    ],
@@ -455,172 +644,78 @@
    "sasong": null
   },
   {
-   "mening": "Parkering är dock tillåten under högst 4 tim i följd under tiden vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 2200,
-     "till": 600
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 15.00.",
-   "strackor": 2,
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.",
+   "strackor": 11,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
      "fran": 800,
-     "till": 1500
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Parkering är dock tillåten under högst 6 tim i följd.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": null,
-     "till": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Parkering är dock tillåten under högst 2 tim i följd vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.",
-   "strackor": 2,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 900,
      "till": 1800
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag klockan 07.00 - 23.00 och sön- och helgdag klockan 07.00 - 23.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 700,
-     "till": 2300
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 700,
-     "till": 2300
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag klockan 09.00 - 21.00 och sön- och helgdag klockan 09.00 - 21.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 900,
-     "till": 2100
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 900,
-     "till": 2100
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 16.00.",
-   "strackor": 1,
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 20.00.",
+   "strackor": 2,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 700,
+     "fran": 800,
+     "till": 2000
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 22.00 och vardag före sön- och helgdag klockan 08.00 - 22.00.",
+   "strackor": 4,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 2200
+    },
+    {
+     "dag": "dagfore",
+     "fran": 800,
+     "till": 2200
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 22.00.",
+   "strackor": 19,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 2200
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 16.00.",
+   "strackor": 5,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 900,
      "till": 1600
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Parkering är dock tillåten under högst 30 min i följd.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": null,
-     "till": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 07.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1800
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag klockan 10.00 - 20.00 och sön- och helgdag klockan 10.00 - 20.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 1000,
-     "till": 2000
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 1000,
-     "till": 2000
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 2200,
-     "till": 600
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 06.00 - 15.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 600,
-     "till": 1500
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 09.00 - 20.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
-   "strackor": 1,
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+   "strackor": 26,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
      "fran": 900,
-     "till": 2000
+     "till": 1800
     },
     {
      "dag": "dagfore",
@@ -631,44 +726,12 @@
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag klockan 10.00 - 19.00 och sön- och helgdagar klockan 10.00 - 19.00 under tiden 1:a april - 30:e september.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 1000,
-     "till": 1900
-    },
-    {
-     "dag": "sonhelg",
-     "fran": 1000,
-     "till": 1900
-    }
-   ],
-   "sasong": {
-    "fran": 401,
-    "till": 930
-   }
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 17.00.",
-   "strackor": 1,
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.",
+   "strackor": 13,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1700
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
+     "fran": 900,
      "till": 1800
     }
    ],
@@ -687,97 +750,59 @@
    "sasong": null
   },
   {
-   "mening": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 19.00.",
-   "strackor": 1,
+   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 22.00 - 06.00.",
+   "strackor": 4,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
-     "fran": 700,
-     "till": 1900
+     "fran": 2200,
+     "till": 600
     }
    ],
    "sasong": null
   },
   {
-   "mening": "Parkering är dock tillåten under högst 1 tim i följd.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": null,
-     "till": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller klockan 06.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": 600,
-     "till": 1800
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag utom vardag före sön- och helgdag klockan 08.00 - 20.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 2000
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tidsbegränsningen gäller vardag klockan 00.00 - 24.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag",
-     "fran": 0,
-     "till": 2400
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Parkering är dock tillåten under högst 2 tim i följd vardag utom vardag före sön- och helgdag klockan 08.00 - 18.00.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "vardag-ej-dagfore",
-     "fran": 800,
-     "till": 1800
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Tillåtelsen gäller under högst 4 tim iföljd.",
-   "strackor": 1,
-   "regler": [
-    {
-     "dag": "alla",
-     "fran": null,
-     "till": null
-    }
-   ],
-   "sasong": null
-  },
-  {
-   "mening": "Parkering är dock tillåten under högst 4 tim i följd vardagar klockan 08.00 - 20.00.",
-   "strackor": 1,
+   "mening": "Tidsbegränsningen gäller vardagar klockan 08.00 - 22.00 och sön- och helgdag klockan 08.00 - 22.00.",
+   "strackor": 28,
    "regler": [
     {
      "dag": "vardag",
      "fran": 800,
-     "till": 2000
+     "till": 2200
+    },
+    {
+     "dag": "sonhelg",
+     "fran": 800,
+     "till": 2200
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardagar klockan 08.00 - 22.00.",
+   "strackor": 7,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 800,
+     "till": 2200
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Tidsbegränsningen gäller vardagar klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 18.00.",
+   "strackor": 2,
+   "regler": [
+    {
+     "dag": "vardag",
+     "fran": 900,
+     "till": 1800
+    },
+    {
+     "dag": "dagfore",
+     "fran": 900,
+     "till": 1800
     }
    ],
    "sasong": null

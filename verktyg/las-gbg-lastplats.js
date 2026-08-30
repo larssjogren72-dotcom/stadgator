@@ -139,7 +139,10 @@ function tolka(mening) {
     }
     poster.push({ mening, strackor: antal, regler: medTid, sasong: r.sasong });
   }
-  poster.sort((a, b) => b.strackor - a.strackor);
+  // SORTERAS PÅ MENINGEN, inte på antal sträckor. Sorterar man på antal skrivs
+  // hela filen om så fort en siffra rör sig, och en robotcommit på två nya rader
+  // blir 382 ändrade rader som ingen orkar granska. Uppmätt 2026-08-30.
+  poster.sort((a, b) => a.mening < b.mening ? -1 : a.mening > b.mening ? 1 : 0);
 
   const ut = {
     beskrivning: 'Göteborgs lastplatsmeningar (MaxParkingTimeLimitation på lagret '
