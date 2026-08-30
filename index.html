@@ -5377,6 +5377,36 @@ function nastaForbudTxt(s, n, now) {
   return `${andamalNamnFor(s)} igen ${nar} ${fmtClock(n.start)}–${fmtClock(n.end)}${om}`;
 }
 
+// ── Vad binder egentligen – städningen eller platsens egen lastplats? ──────────
+// Nu-flödet lovade "får stå till {städningens start}" utan att fråga när segmentets EGEN
+// ändamålsplats öppnar. På en gata som städas 09–14 och som SJÄLV är lastplats 07–19 blev
+// löftet två timmar för generöst, och värst i glöden – kartans starkaste positiva signal
+// sa "Gott om tid – får stå till 09" klockan 05, när bilen måste vara borta 07.
+// (Vegagatan torsdag, verifierat mot appens egna funktioner 2026-08-30. I Vasastan-rutan
+// har 8 av 41 lastplatser minst en veckodag med samma mönster – städstart efter lastplatsstart.)
+//
+// Regeln är Natt-lägets, ordagrant: DET SOM ÖPPNAR FÖRST BINDER (se `hinder` i uc2-flödet).
+// Att de två lägena räknar olika var hela felet; nu räknar de lika.
+//
+// ⚠ MEDVETET BARA EN KORRIGERING AV ETT LÖFTE SOM REDAN GES – ingen ny varning.
+// Anropas bara i städgrenarna, alltså där gatan ändå skulle bli orange med en tid i sig.
+// En lastplats UTAN städning samma dag lämnar gatan grön precis som förr; att låta den
+// färga om gatan är en egen fråga (mätt: +26 av 232 sträckor, alla mellan midnatt och sju)
+// och ett eget beslut.
+//
+// Returnerar hindret som binder: { when, start, end, lastplats } – aldrig null, eftersom
+// städningen alltid är ett giltigt svar. Okänt/otolkbart ändamålsfönster (t.ex. en
+// oöversatt Göteborgs-mening) ger null ur nastaAndamalFonster → städningen står kvar,
+// samma försiktighetsprincip som överallt annars.
+function bindandeHinder(s, stadWhen, stadStart, stadEnd, now) {
+  const stad = { when: stadWhen, start: stadStart, end: stadEnd, lastplats: false };
+  if (!s.andamal || s.andamalAlltid) return stad;
+  const a = nastaAndamalFonster(s, now);
+  return (a && a.when < stadWhen)
+    ? { when: a.when, start: a.start, end: a.end, lastplats: true }
+    : stad;
+}
+
 // Bygger en närhetsmatchare för städgator: ritar dem (gul streckad) och returnerar
 // (latlng, gatunamn) → bool. Namn + geometri (lat/lng) hindrar granngata-läcka.
 // Var i städ-fönstret är vi NU? Tider = HHMM-int (800=08:00, 0=00:00, 600=06:00).
@@ -5757,7 +5787,9 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // MC-rutor). OBS: en MC-ruta i MC-läget är en plats man FÅR använda – där är städvarningen
       // relevant och grenen `mc && isMcExclusive` ligger därför kvar efter städningen.
       const ejForDig = !vehicleAllowed(s.vehicle);
-      let color, txt, hiddenGem = false;
+      // `bindande` sätts bara i städgrenarna (se bindandeHinder): vilket hinder som
+      // faktiskt sätter deadlinen – städningen eller segmentets egen lastplats.
+      let color, txt, hiddenGem = false, bindande = null;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       else if (anda)                   { color = '#ef4444'; txt = andamalTxt(s); }
       // MÅSTE ligga före städgrenarna: "får jag stå här överhuvudtaget" besvaras före "när städas
@@ -5768,15 +5800,28 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       else if (cs && cs.state === 'active')   { color = '#f59e0b'; txt = `Städas nu, klart ${fmtClock(cs.end)}`; }
       else if (cs && cs.state === 'upcoming') {
         color = '#f59e0b'; okNu++;
-        const h = Math.floor(cs.start / 100) + (cs.start % 100) / 60 - nowH;   // timmar kvar, städning idag
+        // Städningens start som absolut tidpunkt – bindandeHinder jämför mot lastplatsens.
+        const stadWhen = new Date(now);
+        stadWhen.setHours(Math.floor(cs.start / 100), cs.start % 100, 0, 0);
+        bindande = bindandeHinder(s, stadWhen, cs.start, cs.end, now);
+        const h = (bindande.when - now) / 3600000;    // timmar kvar till det som binder
         hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
-        txt = hiddenGem ? `Gott om tid – får stå till ${fmtClock(cs.start)}` : `Får stå tills ${fmtClock(cs.start)}`;
+        txt = hiddenGem ? `Gott om tid – får stå till ${fmtClock(bindande.start)}`
+                        : `Får stå tills ${fmtClock(bindande.start)}`;
       }
       else if (nx) {
         color = '#f59e0b'; okNu++;
-        const h = (24 - nowH) + Math.floor(nx.start / 100) + (nx.start % 100) / 60;   // timmar kvar, städning imorgon
+        const stadWhen = tomorrow();
+        stadWhen.setHours(Math.floor(nx.start / 100), nx.start % 100, 0, 0);
+        bindande = bindandeHinder(s, stadWhen, nx.start, nx.end, now);
+        const h = (bindande.when - now) / 3600000;    // timmar kvar till det som binder
         hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
-        txt = hiddenGem ? `Gott om tid – servas i natt` : `Får stå nu · servas i natt`;
+        // Bär lastplatsen deadlinen är "i natt" fel ord – då står tiden i chipet i stället,
+        // precis som i grenen ovan. Städningens egen formulering är oförändrad.
+        txt = bindande.lastplats
+              ? (hiddenGem ? `Gott om tid – får stå till ${fmtClock(bindande.start)}`
+                           : `Får stå tills ${fmtClock(bindande.start)}`)
+              : (hiddenGem ? `Gott om tid – servas i natt` : `Får stå nu · servas i natt`);
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       else if (s.avgiftsfriTidsbegransad && s.cleaningNow) { color = '#f59e0b'; txt = 'Städas nu – flytta bilen'; }
@@ -5863,6 +5908,14 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     : anda ? `Parkering tillåten övrig tid`
                     : (isRhPlats(s) || ejForDig) ? ''
                     : (cs && cs.state === 'active')   ? `Flytta ${vehicleWord()} – inte tillåtet just nu`
+                    // Binder lastplatsen i stället för städningen måste raden säga det: chipet
+                    // bär då lastplatsens klockslag, och en detaljrad om städtiden hade läst
+                    // som en motsägelse ("får stå tills 07" + "servas 09–14"). Städningen
+                    // nämns ändå – den är fortfarande skälet till att gatan alls är orange.
+                    : (bindande && bindande.lastplats)
+                        ? `${andamalNamnFor(s)} ${fmtClock(bindande.start)}–${fmtClock(bindande.end)} börjar före städningen`
+                          + `${cs ? ` ${fmtClock(cs.start)}–${fmtClock(cs.end)}` : nx ? ` ${fmtClock(nx.start)}–${fmtClock(nx.end)}` : ''}`
+                          + ` – bilen måste vara borta ${fmtClock(bindande.start)}`
                     : (cs && cs.state === 'upcoming') ? (hiddenGem
                         ? `Städas ${fmtClock(cs.start)}–${fmtClock(cs.end)} · en bra möjlighet för ett kortare ärende nu`
                         : `Servas idag ${fmtClock(cs.start)}–${fmtClock(cs.end)} · kort besök går bra`)
