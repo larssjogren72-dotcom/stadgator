@@ -14,6 +14,39 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.22.0 – 2026-08-31
+**Grön gata, tio minuter kvar till lastplatsen.**
+
+Lars stod på Vegagatan klockan 06:50. Kartan sa grönt, och lastplatsen började 07:00.
+Kontrollerat i efterhand: klockan **06:59** svarade appen "Får stå nu" samtidigt som den
+internt visste att förbudet började om en minut. Uppgiften fanns hela tiden – färgkedjan
+frågade aldrig efter den. Städning hade sedan länge en varning innan den slår till;
+tidsbestämda förbud hade ingen.
+
+**Nu blir gatan orange redan innan förbudet börjar**, efter exakt samma regel som gäller
+för städning. Och det sista kvarten är det inte klockslaget som står där utan
+nedräkningen: **"Lastplats om 10 min"**. Det är den formuleringen som får en att låta bli
+att kliva ur bilen – "får stå tills 07" gör det inte, klockan 06:50.
+
+**Ingen glöd, till skillnad från städningen, och det är ett val.** Glöden betyder "bra
+chans just nu" – en möjlighet. En städning skapar en: gatan töms och blir ledigare efteråt.
+En lastplats som öppnar skapar bara ett hinder, och det återkommer varje vardag. Glöden
+hade dessutom lyst mellan midnatt och fem, där "gott om tid" är det sämsta man kan säga
+till någon som ska lämna bilen till morgonen.
+
+**Kvällen före varnas inte.** Att också spegla städningens blick tio timmar framåt hade
+gjort Vegagatan orange 21–07, röd 07–19 och grön med glöd 19–22 – gatan hade aldrig blivit
+vanlig grön igen, och en färg som aldrig slocknar är ingen information. Läget "Nu" svarar
+på nu. Frågan om bilen kan stå kvar till i morgon äger "Natt", och där stämmer svaret redan.
+
+Förändringen är avgränsad: mätt över 117 733 prov i fem stadsdelar ändras 3 963 lägen, och
+**alla går från grönt till orange** – ingen gata förlorar sin blå tidsgräns eller sin röda
+varning. Allt ligger mellan midnatt och sju, som mest 17 % av kartan på Östermalm, och
+slocknar när förbudet väl börjar. Dagkartan är oförändrad.
+
+En bieffekt som visade sig direkt: klockan 09:09 fick Östermalm två oranga sträckor –
+lastplatserna som öppnar 10 och 11. De låg gröna förut, en timme innan de stängde.
+
 ## v1.21.0 – 2026-08-30
 **Appen svarade på rätt fråga, men om fel klockslag.**
 
