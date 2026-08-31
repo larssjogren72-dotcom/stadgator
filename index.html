@@ -1212,6 +1212,7 @@ if (!STADER_PA && (STAD_UR_URL || lasSparadStad())) {
 const STADER_CFG = {};
 STADER_CFG.sundbyberg =
     { id:'sundbyberg', namn:'Sundbyberg', geokodSuffix:', Sundbyberg',
+      adressExempel:'Sturegatan 10',
       center:[59.3610, 17.9713], zoom:15,
       // Sundbyberg publicerar inga förbudsdata och har inga p-hus i vår källa.
       // Flaggorna gör att appen TIGER där datan tiger i stället för att gissa.
@@ -1254,6 +1255,7 @@ STADER_CFG.sundbyberg =
 
 STADER_CFG.goteborg =
     { id:'goteborg', namn:'Göteborg', geokodSuffix:', Göteborg',
+      adressExempel:'Kungsportsavenyen 10',
       center:[57.7009, 11.9668], zoom:15,
       // Göteborg publicerar INGEN förbudsdata. Kontrollerat 2026-08-26 mot både
       // Trafikkontorets WFS och stadens öppna datakatalog: ordet "förbud" finns
@@ -1297,6 +1299,7 @@ STADER_CFG.goteborg =
 
 STADER_CFG.stockholm =
     { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
+      adressExempel:'Sveavägen 10',
       center:[59.332, 18.065], zoom:13,
       harForbud:true,
       // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
@@ -1348,6 +1351,15 @@ if (VALD_STAD && !STADER_CFG[VALD_STAD]) {
 // Sundbyberg-gata "baseras på Stockholms öppna data", vilket är direkt falskt.
 // Saknar staden förbudsdata ska det stå rakt ut. Texten bor i STAD (se ovan).
 const DISCLAIMER_HTML = STAD.disclaimer;
+
+// Sökfältets exempeladress följer också staden. Den står som Stockholms-gata i
+// HTML:en (sidan renderas innan skriptet hinner köra) och skrivs över här så
+// snart staden är känd – och igen i setMode(), som nollställer fältet.
+const SOK_PLACEHOLDER = 'Adress, t.ex. ' + (STAD.adressExempel || 'Storgatan 10');
+try {
+  const sokFalt = document.getElementById('search-input');
+  if (sokFalt) sokFalt.placeholder = SOK_PLACEHOLDER;
+} catch (e) {}
 if (DEBUG_MODE) {
   window.addEventListener('DOMContentLoaded', () => {
     const b = document.createElement('div');
@@ -1743,7 +1755,12 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     var sh = b.querySelector('#ps-share');
     if (sh) sh.onclick = function () {
       track('review_shared');
-      try { if (navigator.share) navigator.share({ title: 'ParkSpot Stockholm', text: 'Gratis app som visar var du får parkera i Stockholm', url: 'https://parkspot.se/' }).catch(function () {}); else window.open('https://parkspot.se/', '_blank'); } catch (e) {}
+      // Delningen ska bära DEN STAD man tittar på – både i texten och i länken.
+      // Stockholm är standard och behöver ingen parameter; övriga städer måste ha
+      // ?stad=, annars landar mottagaren i Stockholm (se STAD_LAGRAD-kommentaren).
+      // Namnformen följer varumärkesbeslutet: ParkSpot Stockholm/Göteborg är syskon.
+      var delaUrl = 'https://parkspot.se/' + (STAD.id === 'stockholm' ? '' : '?stad=' + encodeURIComponent(STAD.id));
+      try { if (navigator.share) navigator.share({ title: 'ParkSpot ' + STAD.namn, text: 'Gratis app som visar var du får parkera i ' + STAD.namn, url: delaUrl }).catch(function () {}); else window.open(delaUrl, '_blank'); } catch (e) {}
       close(true);
     };
     var a = b.querySelector('a.prim'); if (a) a.onclick = function () { track('review_clickout'); setTimeout(function () { close(true); }, 400); };
@@ -6984,7 +7001,11 @@ async function flyHome() {
 }
 
 async function promptSetHome() {
-  const q = prompt('Ange din hemadress:\n(t.ex. Sveavägen 10, Stockholm)');
+  // Exemplet ska vara en gata i DEN stad man tittar på. Bara gatunamn + nummer –
+  // stadsnamnet läggs på automatiskt nedan (STAD.geokodSuffix), så ett exempel med
+  // stad i hade dubblerat det. Saknar en stad exempel faller vi tillbaka på ett
+  // gatunamn som finns i de flesta svenska städer i stället för att nämna fel stad.
+  const q = prompt('Ange din hemadress:\n(t.ex. ' + (STAD.adressExempel || 'Storgatan 10') + ')');
   if (!q) return;
   const btn = document.getElementById('home-btn');
   btn.textContent = '⏳';
@@ -7298,7 +7319,7 @@ function setMode(mode) {
   updateWhenChip(mode);
 
   app.classList.toggle('uc2-mode', mode === 'uc2');
-  inp.placeholder = 'Adress, t.ex. Hornsgatan 10';
+  inp.placeholder = SOK_PLACEHOLDER;
 
   updateLegend(mode);
   clearStreetsFromMap();
