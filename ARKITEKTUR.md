@@ -3,6 +3,14 @@
 > Beslutsdokument. Grunden för att bygga vidare med nya use cases utan att bryta det som fungerar.
 > Senast uppdaterad: 2026-06-01
 
+> ⚠️ **Det här dokumentet beskriver Stockholm ensamt och är från juni 2026.** Det var
+> sant då, men sedan dess har Göteborg och Sundbyberg tillkommit och delningen mellan
+> delad grund och stadsspecifik kod har byggts. **Aktuell översikt:**
+> [`docs/arkitektur.html`](docs/arkitektur.html) — dataflödet, integrationerna och de
+> två fickor där stadsspecifik kod får finnas, med diagram.
+> Resonemangen om UC1/UC2 och datalagren nedan gäller fortfarande; det som saknas är
+> flerstadsmodellen.
+
 ---
 
 ## 1. Bakgrund och problem
