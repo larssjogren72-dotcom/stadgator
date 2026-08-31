@@ -5903,6 +5903,12 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // `bindande` sätts bara i städgrenarna (se bindandeHinder): vilket hinder som
       // faktiskt sätter deadlinen – städningen eller segmentets egen lastplats.
       let color, txt, hiddenGem = false, bindande = null;
+      // Öppnar segmentets EGEN ändamålsplats senare I DAG? Slås bara upp för segment som
+      // överhuvudtaget kan beröras – `anda` (aktiv nu) blir röd längre ner, och en post som
+      // gäller dygnet runt har ingen öppning att räkna till.
+      const andaSenareIdag = (s.andamal && !s.andamalAlltid && !anda)
+        ? (function () { const n = nastaAndamalFonster(s, now); return (n && n.dagar === 0) ? n : null; })()
+        : null;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       else if (anda)                   { color = '#ef4444'; txt = andamalTxt(s); }
       // MÅSTE ligga före städgrenarna: "får jag stå här överhuvudtaget" besvaras före "när städas
@@ -5958,6 +5964,38 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                            : `Får stå tills ${fmtClock(bindande.start)}`)
               : (hiddenGem ? `Gott om tid – servas ${stadNarOrd(nx.start)}`
                            : `Får stå nu · servas ${stadNarOrd(nx.start)}`);
+      }
+      // ── Förbudet börjar senare i dag ───────────────────────────────────
+      // Lars på Vegagatan 2026-08-31 kl 06:50: gatan var GRÖN med tio minuter kvar till
+      // lastplatsen. Verifierat i kod – kl 06:59 sa appen "Får stå nu" medan
+      // nastaAndamalFonster() samtidigt svarade "om 1 min". Uppgiften fanns hela tiden;
+      // färgkedjan frågade aldrig efter den.
+      //
+      // Ligger EFTER städgrenarna med flit: finns städning i dag äger de deadlinen, och de
+      // tar redan hänsyn till lastplatsen via bindandeHinder. Grenen tänds alltså bara de
+      // dagar städningen inte har något att säga – exakt när problemet uppstår.
+      //
+      // ⚠ INGEN GLÖD, till skillnad från städgrenarna. Glöden betyder "bra chans just nu",
+      // alltså en MÖJLIGHET: en städning tömmer gatan och gör den ledigare efteråt. Att en
+      // lastplats öppnar skapar ingen möjlighet, bara ett hinder – och det återkommer varje
+      // vardag. Glödfönstret (2–7 tim före) skulle dessutom landa 00:00–05:00 för ett
+      // 07-förbud, där "gott om tid" är det sämsta man kan säga till någon som ska lämna
+      // bilen till morgonen.
+      //
+      // Under en timme skrivs MINUTER i stället för klockslag – samma trappa som
+      // nastaStadTxt använder, och det som gör skillnad i just det här fallet: "om 10 min"
+      // stoppar en, "får stå tills 07" gör det inte.
+      //
+      // Uppmätt 2026-08-31, 117 733 prov i fem områden: 3 963 övergångar, ALLA grön→orange.
+      // Noll blå, noll lila, noll röda berörda. Tillskottet ligger helt mellan midnatt och
+      // sju (topp 17 % av kartan på Östermalm) och slocknar när förbudet börjar –
+      // dagkartan är oförändrad.
+      else if (andaSenareIdag) {
+        color = '#f59e0b'; okNu++;
+        const minKvar = (andaSenareIdag.when - now) / 60000;
+        txt = minKvar < 60
+          ? `${andamalNamnFor(s)} om ${Math.max(1, Math.round(minKvar))} min`
+          : `Får stå tills ${fmtClock(andaSenareIdag.start)}`;
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
       // Samma sak som grenen ovan, fast för en post som bär sitt EGET schema
@@ -6046,6 +6084,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     : (anda && s.andamalAlltid) ? `Här får du aldrig parkera – bara lasta och lossa`
                     : anda ? `Parkering tillåten övrig tid`
                     : (isRhPlats(s) || ejForDig) ? ''
+                    // Förbudet börjar senare i dag. Chipet bär när (klockslag eller minuter);
+                    // raden ger då fönstret och beskedet att gatan är fri igen efteråt – annars
+                    // läser en lastplats som ett permanent förbud man ska undvika.
+                    : andaSenareIdag
+                        ? `${andamalNamnFor(s)} ${fmtClock(andaSenareIdag.start)}–${fmtClock(andaSenareIdag.end)} · parkering tillåten övrig tid`
                     : (cs && cs.state === 'active')   ? `Flytta ${vehicleWord()} – inte tillåtet just nu`
                     // Binder lastplatsen i stället för städningen måste raden säga det: chipet
                     // bär då lastplatsens klockslag, och en detaljrad om städtiden hade läst
