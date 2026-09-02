@@ -1324,7 +1324,7 @@ STADER_CFG.goteborg =
       // Västgränsen 11.23 ser vid för en stadskarta men är rätt: Styrsö, Vrångö och
       // de södra skärgårdsöarna hör till kommunen. Att klippa rutan snävare hade
       // tystat sökförslag för folk som faktiskt bor i Göteborg.
-      sokRuta:[11.2315, 57.4997, 12.2416, 57.8660], sokOrter:['Göteborg'],
+      sokRuta:[11.2315, 57.4997, 12.2416, 57.8660], sokOrter:['Göteborg', 'Gothenburg'],
       center:[57.7009, 11.9668], zoom:15,
       // Göteborg publicerar INGEN förbudsdata. Kontrollerat 2026-08-26 mot både
       // Trafikkontorets WFS och stadens öppna datakatalog: ordet "förbud" finns
@@ -1369,7 +1369,7 @@ STADER_CFG.goteborg =
 STADER_CFG.stockholm =
     { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
       adressExempel:'Sveavägen 10',
-      sokRuta:[17.7607, 59.2273, 18.2001, 59.4403], sokOrter:['Stockholm'],
+      sokRuta:[17.7607, 59.2273, 18.2001, 59.4403], sokOrter:['Stockholm'],   // samma på engelska
       center:[59.332, 18.065], zoom:13,
       harForbud:true,
       // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
@@ -7329,33 +7329,58 @@ async function fetchSuggestions(q) {
     // oavsett vald stad – det var därför Göteborgsläget föreslog Stockholmsgator.
     // Nu styr stadens egen sökruta, som Photon filtrerar hårt på.
     // `lang=sv` får INTE läggas till: tillsammans med bbox svarar Photon HTTP 400.
+    // ⚠ `lang=default` ÄR INTE VALFRI. Utan den svarar Photon på det språk webbläsaren
+    // ber om i Accept-Language, och då heter staden "Gothenburg" för en användare med
+    // engelsk webbläsare. Kommunfiltret nedan jämför mot "Göteborg" → varenda träff
+    // kastades och sökrutan dog helt. Lars körde precis in i det (2026-09-02); jag hade
+    // verifierat filtret med curl, som inte skickar Accept-Language alls, och missade
+    // därför hela dimensionen. En mätsticka som inte liknar verkligheten mäter ingenting.
+    // `lang=sv` ger HTTP 400 tillsammans med bbox – `default` ger de lokala namnen, vilket
+    // är det vi vill ha ändå (svenska gatunamn för alla, oavsett webbläsarspråk).
     const ruta = STAD.sokRuta;
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8`
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=default`
       + (ruta ? `&bbox=${ruta.join(',')}` : `&lat=${STAD.center[0]}&lon=${STAD.center[1]}`);
     const r = await fetch(url);
     if (!r.ok) { visaSgBesked('fel', 'Sökförslagen svarar inte (fel ' + r.status + ')'); return; }
     const data = await r.json();
-    const seen  = new Set();
     // Räknare för ?sokdebug=1. Att veta VAR träffarna försvinner är skillnaden
     // mellan att felsöka och att gissa – det kostade flera rundor att sakna dem.
     const rakn = { svar: (data.features || []).length, utanNamn: 0, felStad: 0, dubblett: 0, orter: [] };
-    const items = (data.features || [])
+    // Bygg raderna FÖRST, filtrera på kommun EFTERÅT. Ordningen är hela poängen med
+    // skyddet nedan: filtret får inte kunna radera bevismaterialet innan vi hunnit
+    // se om det raderade allt.
+    const alla = (data.features || [])
       .map(f => {
         const p      = f.properties;
         const street = p.name || p.street || '';
         if (p.city && rakn.orter.length < 3) rakn.orter.push(p.city);
         if (!street) { rakn.utanNamn++; return null; }
-        // Grannkommunen ligger inne i rutan – kommunnamnet är det som skiljer dem åt.
-        if (!forslagIStaden(p.city)) { rakn.felStad++; return null; }
-        // Bygg visningsnamn: "Sveavägen" eller "Sveavägen 42"
         const name = street + (p.housenumber ? ` ${p.housenumber}` : '');
-        if (seen.has(name.toLowerCase())) { rakn.dubblett++; return null; }
-        seen.add(name.toLowerCase());
         const sub = [p.city, p.district || p.suburb].filter(Boolean).join(', ');
         const [lng, lat] = f.geometry.coordinates;
-        return { name, sub, lat, lng };
+        return { name, sub, lat, lng, ort: p.city };
       })
       .filter(Boolean);
+
+    // Grannkommunen ligger inne i sökrutan – kommunnamnet är det som skiljer dem åt.
+    let kvar = alla.filter(it => forslagIStaden(it.ort));
+    rakn.felStad = alla.length - kvar.length;
+
+    // ⚠ SKYDDET: tog kommunfiltret bort ALLT, men tjänsten svarade med träffar?
+    // Då är det sannolikt filtret som har fel, inte verkligheten. Precis det hände
+    // 2026-09-02: Photon svarade "Gothenburg" till en engelsk webbläsare och varenda
+    // träff kastades – sökrutan dog, tyst, och det tog timmar att hitta.
+    // Hellre ett förslag i grannkommunen (raden visar kommunen, och stadsvakten
+    // fångar den om man väljer den) än en död sökruta. Ett filter ska aldrig få
+    // radera hela svaret i tysthet.
+    if (!kvar.length && alla.length) kvar = alla;
+
+    const seen  = new Set();
+    const items = kvar.filter(it => {
+      const n = it.name.toLowerCase();
+      if (seen.has(n)) { rakn.dubblett++; return false; }
+      seen.add(n); return true;
+    });
     if (SOKDEBUG) {
       // Visas bara med ?sokdebug=1 i adressen. Rå räkning, ingen tolkning – meningen
       // är att kunna se med egna ögon var träffarna tar vägen, i den webbläsare där

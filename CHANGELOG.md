@@ -51,6 +51,25 @@ Sundbyberg, Solna och Nacka ligger HELT inne i Stockholms rektangel och kan allt
 fällas där. Medvetet: en exakt gränskontroll hade krävt ett nätanrop före varje sökning
 och klick. Grannkommunerna fångas i lager 2 i stället, som är vägen de faktiskt kommer in.
 
+**Kommunfiltret talade bara svenska.** Photon svarar på det språk webbläsaren ber om.
+En användare med engelskt språkval fick därför `"Gothenburg"`, medan filtret jämförde mot
+`"Göteborg"` – varenda träff kastades och **sökrutan dog helt** i Göteborgsläget. Lars körde
+rakt in i det. Felet var mitt: jag verifierade filtret med `curl`, som inte skickar
+Accept-Language alls, och missade därmed hela dimensionen. Fixen är `lang=default`, som ger
+de LOKALA namnen oavsett webbläsarspråk – och som bonus svenska gatunamn för alla
+("Chalmers Tekniska Högskola", inte "Chalmers University of Technology"). Notera att
+`lang=sv` inte går att använda: den ger HTTP 400 tillsammans med bbox.
+
+**Och ett filter ska aldrig kunna radera hela svaret i tysthet.** Tar kommunfiltret bort
+ALLT medan tjänsten faktiskt svarade med träffar, är det sannolikt filtret som har fel –
+då visas träffarna ändå. Varje rad bär sin kommun i undertexten, och stadsvakten fångar
+den om man väljer en i fel stad. Hellre ett förslag i grannkommunen än en död sökruta.
+
+**`?sokdebug=1`** visar råa räknare i förslagsrutan (svar / utan namn / fel stad /
+dubbletter / kvar, plus kommunnamnen tecken för tecken). Det var den som avslöjade
+"Gothenburg" – samma motiv som `?kartlogg=1`: fjärrfelsökning utan konsol är annars
+ren gissningslek.
+
 **Sökförslagen är inte längre tysta när de misslyckas.** Gick förslagstjänsten (Photon)
 inte fram visade appen **ingenting alls** – exakt samma sak som när sökningen gick fram men
 inte hittade något. Den enda som kunde skilja dem åt var den som öppnade utvecklarkonsolen.
