@@ -311,9 +311,9 @@
     <h1>Grunden och<br>de tre städerna</h1>
     <p class="lede">Servern översätter, klienten resonerar. Varje stad får sina data omformade till samma form som Stockholms redan hade — sedan kör exakt samma regelmotor på allt.</p>
     <div class="stamp">
-      <span>Live: v1.22.0 · parkspot.se</span>
-      <span>Beskriver koden 31 aug 2026</span>
-      <span>9 552 rader i tre filer</span>
+      <span>Live: v1.23.0 · parkspot.se</span>
+      <span>Beskriver koden 2 sep 2026</span>
+      <span>9 838 rader i tre filer</span>
     </div>
   </header>
 
@@ -428,7 +428,7 @@
   <section>
     <span class="eyebrow">Integrationer</span>
     <h2>Vem levererar vad</h2>
-    <p>Sju källor, varav sex används i drift. Den sjunde är värd att skilja ut: Transportstyrelsens register går aldrig via appen, utan är källan när en föreskrift måste bevisas i efterhand.</p>
+    <p>Tio källor, varav nio i drift. Två av dem är värda att skilja ut. Transportstyrelsens register går aldrig via appen, utan är källan när en föreskrift måste bevisas i efterhand. Och adressöket använder <strong>två olika</strong> geokodare — se nästa avsnitt för varför det spelar roll.</p>
 
     <div class="tablewrap">
       <table>
@@ -443,10 +443,87 @@
           <tr><td>Sundbybergs GIS</td><td>parkering och städtider</td><td class="path">/sbg/…</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>OpenStreetMap</td><td>busshållplatser för markören</td><td class="path">/hallplatser</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>CARTO</td><td>bakgrundskartan under linjerna</td><td class="path">kaklager</td><td><span class="tag tag-live">i drift</span></td></tr>
+          <tr><td>Photon</td><td>sökförslag medan man skriver</td><td class="path">photon.komoot.io</td><td><span class="tag tag-live">i drift</span></td></tr>
+          <tr><td>Nominatim</td><td>slår upp en färdigskriven adress</td><td class="path">nominatim.openstreetmap.org</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>Transportstyrelsens RDT</td><td>själva föreskriftstexten — läses offline, blir färdiga uppslagstabeller</td><td class="path">verktyg/*.json</td><td><span class="tag tag-off">utanför appen</span></td></tr>
         </tbody>
       </table>
     </div>
+  </section>
+
+  <!-- ADRESSOKET -->
+  <section>
+    <span class="eyebrow">Adressöket</span>
+    <h2>Två tjänster som kan falla var för sig</h2>
+    <p>Appen geokodar aldrig själv. Det avgörande — och det som stod ingenstans förrän 2 september 2026 — är att sökrutan och sökknappen använder <strong>olika leverantörer</strong>. Den ena kan ligga nere medan den andra fungerar perfekt.</p>
+
+    <div class="pair">
+      <div class="card">
+        <h3>Förslag <span class="where">fetchSuggestions() · rad 7326</span></h3>
+        <p>Photon, medan man skriver. Faller den, fungerar sökknappen fortfarande.</p>
+        <pre>photon.komoot.io/api/
+  ?q=chalm
+  &amp;lang=default
+  &amp;bbox=STAD.sokRuta</pre>
+      </div>
+
+      <div class="card">
+        <h3>Uppslag <span class="where">searchStreet() · rad 7257</span></h3>
+        <p>Nominatim, när man tryckt på förstoringsglaset. Faller den, fungerar förslagen fortfarande.</p>
+        <pre>nominatim.openstreetmap.org
+  ?q=Chalmersgatan
+     + STAD.geokodSuffix
+  &amp;countrycodes=se</pre>
+      </div>
+    </div>
+
+    <p class="key">Därför säger felraden i förslagsrutan uttryckligen åt användaren att trycka på förstoringsglaset. Det är ingen artighetsfras — det är en riktig utväg till en annan leverantör.</p>
+
+    <h3 style="margin-top:1rem">Två filter, och båda behövs</h3>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Filter</th><th>Vad det stoppar</th><th>Varför det ensamt inte räcker</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="path">STAD.sokRuta</td><td>Stockholmsgator i Göteborgsläget</td><td>Sundbyberg, Solna och Nacka ligger <em>inne i</em> Stockholms rektangel</td></tr>
+          <tr><td class="path">STAD.sokOrter</td><td>grannkommunen inne i rutan</td><td>bygger på ett kommunNAMN, som varierar med webbläsarens språk</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Rutan är kommungränsens omslutande rektangel, hämtad ur OSM:s kommunytor. Att bara ha den räcker inte: sökningen <em>Sveavägen 10</em> gav <strong>Sundbybergs</strong> Sveavägen som första träff i Stockholmsläget.</p>
+
+    <p class="key">Varning: <code>lang=default</code> är inte valfri. Photon svarar på det språk webbläsaren ber om, så en användare med engelskt språkval får <code>"Gothenburg"</code> — filtret jämför mot <code>"Göteborg"</code> och <strong>hela sökrutan dör</strong>. Det hände i drift. <code>lang=sv</code> går inte att använda i stället: den ger HTTP 400 tillsammans med <code>bbox</code>. Och verifiering med <code>curl</code> är blind för hela saken, eftersom curl inte skickar något språkval alls.</p>
+
+    <p><strong>Ett filter får aldrig radera hela svaret i tysthet.</strong> Tar kommunfiltret bort allt medan tjänsten faktiskt svarade med träffar, visas träffarna ändå. Hellre ett förslag i grannkommunen — raden bär sin kommun, och vakten nedan fångar den om man väljer den — än en död sökruta.</p>
+
+    <h3 style="margin-top:1rem">Stadsvakten</h3>
+    <p><code>flyToAndShow()</code> (rad 7194) är den enda väg <em>alla</em> destinationer delar: sökknappen, ett valt förslag, hemknappen, GPS-punkten och ett klick på kartan. Därför ligger kontrollen där och ingen annanstans. Ligger destinationen i en av våra andra städer ställs frågan i stället för att en tom karta ritas — <strong>tomt betyder «vi vet inget» i appen, inte «här finns inget».</strong></p>
+    <p>Destinationen följer med över omladdningen i <code>sessionStorage</code>, <em>inte</em> i URL:en: en sökt adress ska inte nå webbstatistiken eller följa med i en delad länk.</p>
+    <p class="key">Stadsläget visar staden. Kartan flyttar sig aldrig till användarens GPS-position av sig själv — väljer man Göteborg ser man Göteborg, även från ett tåg i Norrland. Den blå punkten ritas, men flyttar inte kartan.</p>
+  </section>
+
+  <!-- DIAGNOS -->
+  <section>
+    <span class="eyebrow">Diagnos</span>
+    <h2>Fyra flaggor i adressraden</h2>
+    <p>Alla helt inaktiva utan sin parameter. De finns för att fjärrfelsökning utan utvecklarkonsol annars är ren gissningslek — varje flagga här föddes ur en felsökning som kostade fler rundor än den borde.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Flagga</th><th>Visar</th><th>Föddes ur</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="path">?debug=1</td><td>stickprov på en punkt: nära, avstånd, täckningsgrad, beräknat utfall</td><td>att göra stickprov jämförbara — samma tal, samma källa</td></tr>
+          <tr><td class="path">?debugtid=</td><td>kör appen på simulerad tid (klockan går vidare, den står inte stilla)</td><td>tidsbestämd färgsättning går inte att testa genom att vänta till 06:59</td></tr>
+          <tr><td class="path">?kartlogg=1</td><td>kartsynk-vakthundens utfall ur localStorage</td><td>kartfrysningen på iOS</td></tr>
+          <tr><td class="path">?sokdebug=1</td><td>rå räkning i förslagsrutan: svar / utan namn / fel stad / dubbletter / kvar — plus kommunnamnen <strong>tecken för tecken</strong></td><td>«Gothenburg»-buggen ovan: fyra gissningsrundor gav inget, flaggan löste det på en</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="key">Poängen med sista raden är att den skriver ut både det appen jämför och det den fick, så att två strängar som <em>ser</em> identiska ut ändå går att skilja åt. <code>?debugtid=</code> och <code>?kartlogg=1</code> ritar dessutom en synlig markering på sidan — annars är det lätt att glömma att man står i ett diagnostikläge och läsa det som vanlig drift.</p>
   </section>
 
   <!-- ══ GRUNDEN ═══════════════════════════════════════════ -->
@@ -486,7 +563,7 @@
 
     <div class="pair">
       <div class="card city">
-        <h3>Konfigurationen <span class="where">index.html · rad 1212–1347</span></h3>
+        <h3>Konfigurationen <span class="where">index.html · rad 1276–1411</span></h3>
         <p>En liten tabell per stad. Principen som visade sig avgörande: <strong>datakällor anges som adresser, inte som ja/nej.</strong></p>
         <pre>STADER_CFG.goteborg = {
   tillatenUrl: '/gbg/wfs-tillaten',
@@ -580,7 +657,7 @@
         <span>Konfigurationen ligger i <code>index.html</code>, adaptern på servern. De måste hållas i takt för hand, och inget larmar om de glider isär.</span>
       </div>
       <div>
-        <b>index.html är 7 613 rader i en fil.</b>
+        <b>index.html är 7 899 rader i en fil.</b>
         <span>Det fungerar, men gränsen mellan grunden och det stadsspecifika hålls uppe av disciplin, inte av filgränser. Inget hindrar att en stadsspecifik <code>if</code> smyger sig in i regelmotorn.</span>
       </div>
       <div>
@@ -591,7 +668,7 @@
   </section>
 
   <footer>
-    Kodpekarna är verifierade mot arbetsmappen 31 augusti 2026 · index.html 7 613 rader ·
+    Kodpekarna är verifierade mot arbetsmappen 2 september 2026 · index.html 7 899 rader ·
     server.js 925 · cities/goteborg.js 582 · cities/sundbyberg.js 432<br>
     Källa: <code>docs/arkitektur.html</code> i repot — ändra där, publicera om till samma adress
   </footer>
