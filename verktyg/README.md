@@ -19,7 +19,8 @@ kontroll → hämta om → skriv om tabellerna → TESTGRIND → committa → pu
 ```
 
 Faller testgrinden (`prova-tabeller.js`) committas **ingenting**. Roboten rör bara
-de tre JSON-filerna och de genererade blocken i `index.html` – aldrig logik.
+de tre JSON-filerna, de genererade blocken i `index.html` och arkitektursidans
+räknade siffror – aldrig logik.
 
 Kör den för hand från fliken Actions. Kryssa i **Torrkör** för att se vad den
 *hade* gjort utan att något committas.
@@ -72,8 +73,38 @@ luckan syns. Men den mejlar dig inte – och det är just det larmklockan finns 
 | `las-gbg-lastplats.js` | Läser om Göteborgs lastplatsmeningar |
 | `prova-tabeller.js` | Testgrinden. Exit 1 = ändringen får inte gå live |
 | `bygg-*.js` | Skriver in JSON-tabellen i `index.html`. Kör aldrig blocket för hand |
+| `kodpekare.js` | Räknar om arkitektursidans siffror. Utan flagga = kontroll, exit 1 vid drift. `--skriv` rättar |
+| `stadskoll.js` | Vilka påståenden appen kan göra i en stad, och vilka den måste tiga om |
 
 Alla utom Stockholms två behöver ingen nyckel.
+
+## Kodpekarna på arkitektursidan
+
+`docs/arkitektur.html` är full av siffror som kommer ur koden: radantal, radhänvisningar,
+och diagrammens proportioner. De **åldras vid varje commit** — uppmätt 2026-09-02 hade sex
+av femton hunnit bli fel, varav en i en SVG-etikett som ingen tittar på.
+
+Varje sådant värde bär därför en markering i HTML:en — `data-kod`, `data-kod-aria` eller
+`data-kod-geom` — och `kodpekare.js` räknar om dem ur arbetsmappen. **Ändra dem inte för hand.**
+
+```
+node verktyg/kodpekare.js           # kontroll: exit 1 om något glidit
+node verktyg/kodpekare.js --skriv   # rätta
+```
+
+Två saker som gör det varaktigt:
+
+- **`.github/workflows/kodpekare.yml`** faller vid push när något glidit. Den committar
+  ingenting — Railway deployar master, och en robot som ändrar filer vid varje push är
+  inte värd risken. Den säger till; rättningen är ett kommando.
+- **Tabellroboten** kör `--skriv` efter att den byggt om blocken, så att den aldrig
+  lämnar felaktiga radhänvisningar efter sig när den flyttat rader i `index.html`.
+
+Skriptet vaktar också ett **påstående**, inte bara siffror: sidan säger att ingen regel i
+klienten frågar vilken stad det är. Blir det osant skrivs meningen om — och känner
+skriptet inte igen träffen som det kända undantaget (dela-länken) ber sidan om mänsklig
+kontroll i stället för att gissa var raden sitter. Ett påstående som tyst blir falskt är
+farligare än en siffra som slutar stämma.
 
 ## Om något ser fel ut i en robotcommit
 

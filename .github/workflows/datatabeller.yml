@@ -93,6 +93,11 @@ jobs:
           node verktyg/bygg-gbg-lastplats.js
           node verktyg/bygg-forbud-ovrig-tid.js
 
+      # Robotens egna andringar flyttar radnummer i index.html, och da blir
+      # arkitektursidans kodpekare fel. Den ska inte kunna lamna drift efter sig.
+      - name: Skriv om kodpekarna
+        run: node verktyg/kodpekare.js --skriv
+
       # ── 4. Testgrinden. Faller den händer ingenting. ──────────────────────
       - name: Testa
         id: prov
@@ -105,9 +110,9 @@ jobs:
       - name: Se om något faktiskt ändrats
         id: diff
         run: |
-          if [ -n "$(git status --porcelain index.html verktyg/)" ]; then
+          if [ -n "$(git status --porcelain index.html verktyg/ docs/)" ]; then
             echo "andrat=ja" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat index.html verktyg/ > diff.txt
+            git --no-pager diff --stat index.html verktyg/ docs/ > diff.txt
             git --no-pager diff -- verktyg/ >> diff.txt
             cat diff.txt
           else
@@ -121,7 +126,7 @@ jobs:
         run: |
           git config user.name  "ParkSpot-roboten"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html verktyg/
+          git add index.html verktyg/ docs/
           printf '%s\n' \
             'Tabellerna uppdaterade automatiskt' \
             '' \
@@ -129,7 +134,7 @@ jobs:
             'skrivit om tabellerna och kort testgrinden (verktyg/prova-tabeller.js)' \
             'innan den committade. Rapporterna ligger i jobbets logg och i issuet.' \
             '' \
-            'Bara JSON-tabellerna och de genererade blocken ar rorda - ingen logik.' > .commitmsg
+            'Bara JSON-tabellerna, de genererade blocken och arkitektursidans' \n            'raknade siffror ar rorda - ingen logik, inga texter.' > .commitmsg
           git commit -F .commitmsg
           rm -f .commitmsg
           git push

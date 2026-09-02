@@ -1,0 +1,58 @@
+# Faller om arkitektursidans siffror slutat stamma med koden.
+#
+# VARFOR EN EGEN KONTROLL: tabellroboten raknar om sidan, men den kor en gang i
+# manaden. Det som flyttar radnummer i index.html ar VARA egna committar, varje
+# dag. Utan det har steget ar sidan fel i upp till en manad utan att nagon vet.
+#
+# Uppmatt 2026-09-02: sex av femton siffror pa sidan hade hunnit bli fel, och en
+# av dem satt i en SVG-etikett som ingen tittar pa. Det ar inte ett problem med
+# disciplin - en pekare blir en tyst lognare vid varje commit, och det enda som
+# hjalper ar att nagot raknar efter.
+#
+# DEN COMMITTAR INGENTING. Railway deployar master, och en robot som andrar filer
+# vid varje push ar inte vart risken for det har. Den sager bara till; rattningen
+# ar ett kommando:
+#
+#     node verktyg/kodpekare.js --skriv
+name: Stammer arkitektursidans siffror
+
+on:
+  push:
+    branches: [master]
+    # Bara nar nagot som PAVERKAR siffrorna andrats. En andring i seo/ eller en
+    # bild ska inte kosta ett jobb.
+    paths:
+      - 'index.html'
+      - 'server.js'
+      - 'cities/**'
+      - 'package.json'
+      - 'docs/arkitektur.html'
+      - 'verktyg/kodpekare.js'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'server.js'
+      - 'cities/**'
+      - 'package.json'
+      - 'docs/arkitektur.html'
+      - 'verktyg/kodpekare.js'
+  workflow_dispatch:
+
+jobs:
+  kontrollera:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Rakna efter
+        run: node verktyg/kodpekare.js
+
+      - name: Vad som gick fel
+        if: failure()
+        run: |
+          echo "Arkitektursidans siffror stammer inte med koden."
+          echo "Ratta med:  node verktyg/kodpekare.js --skriv"
+          echo "och committa docs/arkitektur.html."
