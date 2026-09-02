@@ -10,6 +10,10 @@
 > två fickor där stadsspecifik kod får finnas, med diagram.
 > Resonemangen om UC1/UC2 och datalagren nedan gäller fortfarande; det som saknas är
 > flerstadsmodellen.
+>
+> **Undantag: §7b och §7c är skrivna 2026-09-02 och beskriver nuläget i alla städer.**
+> De handlar om adressöket och om diagnosflaggorna i adressraden – delar som saknades
+> helt i dokumentet fram till dess.
 
 ---
 
@@ -178,6 +182,88 @@ Läs-bara konsoltester på två ytterstadsplatser:
 //   nej  → förbudszon (rita ej som parkerbar)
 //   ja   → parkerbart (använd P_TILLATEN-villkoren: taxa/avgiftsfri/boende/vehicle)
 ```
+
+---
+
+## 7b. Adressöket – två externa tjänster, ingen egen geokodning (tillagt 2026-09-02)
+
+Appen har aldrig geokodat själv. Det var odokumenterat fram till nu, vilket kostade en
+hel felsökningsrunda: ingen kunde se att sökrutan och sökknappen använder **olika**
+tjänster, och att den ena kan ligga nere medan den andra fungerar.
+
+| | Tjänst | Används av | Fallerar den? |
+|---|---|---|---|
+| **Förslag medan man skriver** | Photon (`photon.komoot.io`) | `fetchSuggestions()` | Sökknappen fungerar fortfarande |
+| **Slå upp en skriven adress** | Nominatim (`nominatim.openstreetmap.org`) | `searchStreet()`, `promptSetHome()` | Förslagen fungerar fortfarande |
+
+Båda är gratis och nyckelfria – och båda är utanför vår kontroll. Det är skälet till
+att felraden i förslagsrutan uttryckligen säger åt användaren att trycka på 🔍: det är
+inte en artighetsfras utan en riktig utväg till en annan leverantör.
+
+### Hur förslagen hålls inom staden
+
+Två filter, och båda behövs:
+
+1. **`STAD.sokRuta`** – kommungränsens omslutande rektangel, hämtad ur OSM:s kommunytor.
+   Skickas som `bbox` till Photon, som filtrerar hårt på den. Utan den föreslår
+   Göteborgsläget Stockholmsgator.
+2. **`STAD.sokOrter`** mot Photons `city`-fält – rektangeln ensam räcker inte, eftersom
+   Sundbyberg, Solna och Nacka ligger INNE i Stockholms rektangel (och Mölndal och
+   Partille inne i Göteborgs). Uppmätt: "Sveavägen 10" gav **Sundbybergs** Sveavägen som
+   första träff i Stockholmsläget.
+
+### ⚠ Tre fallgropar som redan har smällt
+
+- **`lang=default` är inte valfri.** Photon svarar på det språk webbläsaren ber om i
+  `Accept-Language`. En användare med engelskt språkval får `"Gothenburg"`, filtret
+  jämför mot `"Göteborg"` – och **hela sökrutan dör**. Det hände 2026-09-02. Verifiering
+  med `curl` är blind för detta: curl skickar ingen `Accept-Language` alls.
+- **`lang=sv` går inte att använda** tillsammans med `bbox` – Photon svarar HTTP 400.
+  `default` ger de lokala namnen ändå, vilket är det vi vill ha.
+- **Ett filter får aldrig radera hela svaret i tysthet.** Tar kommunfiltret bort ALLT
+  medan tjänsten faktiskt svarade med träffar, visas träffarna ändå. Hellre ett förslag
+  i grannkommunen – raden bär sin kommun, och stadsvakten fångar den om man väljer den
+  – än en död sökruta.
+
+### Stadsvakten
+
+`flyToAndShow()` är den enda väg **alla** destinationer delar: sökknappen, ett valt
+förslag, hemknappen, GPS-punkten och ett klick på kartan. Därför ligger kontrollen där
+och ingen annanstans. Ligger destinationen i en av våra ANDRA städer ställs frågan i
+stället för att en tom karta ritas – tomt betyder "vi vet inget" i appen, inte "här
+finns inget". Destinationen följer med över omladdningen i `sessionStorage`, **inte** i
+URL:en: en sökt adress ska inte nå webbstatistiken eller följa med i en delad länk.
+
+Vakten mäter mot rektangeln, inte mot kommungränsen. Sundbyberg, Solna och Nacka ligger
+helt inne i Stockholms rektangel och kan därför inte fällas där – medvetet, eftersom en
+exakt gränskontroll hade krävt ett nätanrop före varje sökning och klick. De fångas av
+kommunnamnsfiltret i stället, som är vägen de i praktiken kommer in.
+
+**Stadsläget visar staden.** Kartan flyttar sig ALDRIG till användarens GPS-position av
+sig själv (borttaget 2026-09-02: Lars satt på tåg i Norrland och fick Norrland i stället
+för Göteborg). Den blå punkten ritas, men flyttar inte kartan. Platsknappen finns kvar
+och är ett medvetet tryck.
+
+---
+
+## 7c. Diagnoslägen i adressraden
+
+Fyra flaggor, alla helt inaktiva utan sin parameter. De finns för att fjärrfelsökning
+utan utvecklarkonsol annars är ren gissningslek – varje flagga här har födts ur en
+felsökning som kostade fler rundor än den borde.
+
+| Flagga | Visar | Föddes ur |
+|---|---|---|
+| `?debug=1` | Stickprov på en punkt: nära, avstånd, täckningsgrad, beräknat utfall | Att göra stickprov jämförbara – samma tal, samma källa, ingen tolkning i mitten |
+| `?debugtid=` | Kör appen på simulerad tid (klockan går vidare, den står inte stilla) | Tidsbestämd färgsättning går inte att testa genom att vänta till 06:59 |
+| `?kartlogg=1` | Kartsynk-vakthundens utfall ur localStorage + synlig badge | Kartfrysningen på iOS (se §9) |
+| `?sokdebug=1` | Rå räkning i förslagsrutan: `svar / utan namn / fel stad / dubbletter / kvar`, plus `sokOrter` och Photons `city` **tecken för tecken** | "Gothenburg"-buggen ovan. Fyra gissningsrundor gav inget; flaggan löste det på en |
+
+Sista kolumnen i `?sokdebug=1` är själva poängen: den skriver ut både det appen jämför
+och det den fick, så att två strängar som SER identiska ut ändå går att skilja åt.
+
+`?debugtid=` och `?kartlogg=1` visar en synlig markering på sidan, av samma skäl: annars
+är det lätt att glömma att man står i ett diagnostikläge och läsa det som vanlig drift.
 
 ---
 
