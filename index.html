@@ -6764,6 +6764,10 @@ function startaKartSynkVakt() {
 // efter en frysning går det att öppna parkspot.se/?kartlogg=1 och se om vakthunden
 // slog till, när, och med vilken avvikelse – i stället för att gissa i efterhand.
 const KARTLOGG_VY = /[?&]kartlogg=1/.test(location.search);
+// ?sokdebug=1 – visar råa räknare i förslagsrutan i stället för förslagen, så att man
+// kan se VAR träffarna försvinner i den webbläsare där felet uppstår. Samma skäl som
+// ?kartlogg=1 finns: fjärrfelsökning utan konsol blir annars ren gissningslek.
+const SOKDEBUG = /[?&]sokdebug=1/.test(location.search);
 
 function visaKartlogg() {
   const panel = document.getElementById('diag-panel');
@@ -7332,22 +7336,38 @@ async function fetchSuggestions(q) {
     if (!r.ok) { visaSgBesked('fel', 'Sökförslagen svarar inte (fel ' + r.status + ')'); return; }
     const data = await r.json();
     const seen  = new Set();
+    // Räknare för ?sokdebug=1. Att veta VAR träffarna försvinner är skillnaden
+    // mellan att felsöka och att gissa – det kostade flera rundor att sakna dem.
+    const rakn = { svar: (data.features || []).length, utanNamn: 0, felStad: 0, dubblett: 0, orter: [] };
     const items = (data.features || [])
       .map(f => {
         const p      = f.properties;
         const street = p.name || p.street || '';
-        if (!street) return null;
+        if (p.city && rakn.orter.length < 3) rakn.orter.push(p.city);
+        if (!street) { rakn.utanNamn++; return null; }
         // Grannkommunen ligger inne i rutan – kommunnamnet är det som skiljer dem åt.
-        if (!forslagIStaden(p.city)) return null;
+        if (!forslagIStaden(p.city)) { rakn.felStad++; return null; }
         // Bygg visningsnamn: "Sveavägen" eller "Sveavägen 42"
         const name = street + (p.housenumber ? ` ${p.housenumber}` : '');
-        if (seen.has(name.toLowerCase())) return null;
+        if (seen.has(name.toLowerCase())) { rakn.dubblett++; return null; }
         seen.add(name.toLowerCase());
         const sub = [p.city, p.district || p.suburb].filter(Boolean).join(', ');
         const [lng, lat] = f.geometry.coordinates;
         return { name, sub, lat, lng };
       })
       .filter(Boolean);
+    if (SOKDEBUG) {
+      // Visas bara med ?sokdebug=1 i adressen. Rå räkning, ingen tolkning – meningen
+      // är att kunna se med egna ögon var träffarna tar vägen, i den webbläsare där
+      // felet faktiskt uppstår. `orter` är exakt vad Photon skickade, tecken för tecken.
+      visaSgBesked(items.length ? 'tomt' : 'fel',
+        `svar ${rakn.svar} · utan namn ${rakn.utanNamn} · fel stad ${rakn.felStad}`
+        + ` · dubbletter ${rakn.dubblett} · kvar ${items.length}`,
+        `stad=${STAD.id} · sokOrter=[${(STAD.sokOrter || []).join('|')}]`
+        + ` · Photons city=[${rakn.orter.join('|')}]`);
+      if (items.length) setTimeout(() => showSuggestions(items), 4000);
+      return;
+    }
     if (!items.length) { visaSgBesked('tomt', 'Inga träffar i ' + STAD.namn); return; }
     showSuggestions(items);
   } catch(e) {
@@ -7363,16 +7383,18 @@ async function fetchSuggestions(q) {
 // En rad i förslagsrutan som INTE går att klicka på: ett besked, inte ett förslag.
 // Därför utan .sg-item – annars hade tangentbordsnavigeringen och klicket
 // behandlat beskedet som en adress.
-function visaSgBesked(sort, text) {
+function visaSgBesked(sort, text, underrad) {
   const box = document.getElementById('search-suggestions');
   if (!box) return;
   sgIndex = -1;
-  const rad = text.replace(/</g, '&lt;');
+  const esc = s => String(s).replace(/</g, '&lt;');
+  const under = underrad !== undefined ? esc(underrad)
+    : (sort === 'fel' ? 'Skriv hela adressen och tryck 🔍 – sökknappen använder en annan tjänst.' : '');
   box.innerHTML = `<div class="sg-besked ${sort === 'fel' ? 'sg-fel' : ''}">
       <span class="sg-icon">${sort === 'fel' ? '⚠️' : '🔍'}</span>
       <div class="sg-text">
-        <div class="sg-name">${rad}</div>
-        ${sort === 'fel' ? '<div class="sg-sub">Skriv hela adressen och tryck 🔍 – sökknappen använder en annan tjänst.</div>' : ''}
+        <div class="sg-name">${esc(text)}</div>
+        ${under ? `<div class="sg-sub">${under}</div>` : ''}
       </div>
     </div>`;
   box.style.display = 'block';
