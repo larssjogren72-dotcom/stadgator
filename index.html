@@ -819,6 +819,26 @@
       --accent-glow: rgba(96,165,250,0.35);
     }
     .uc2-mode #count-badge { color: #082044; }
+    /* Badgen är centrerad i kartan, men Förklaring-pillret sitter uppe till höger och
+       badgen gick in under det. Uppmätt 2026-09-02 på texten "290 gator där du får stå nu"
+       (200 px bred): 32 px överlapp vid 320 px skärm, 12 px vid 360 och 5 px vid 375 –
+       alltså på vanliga telefoner, inte bara i extremfallet. Krocken uppstår under ~390 px.
+       Att flytta badgen i SIDLED löser ingenting: mellan zoomknapparna (slutar 50 px) och
+       pillret (börjar 220 px) finns 170 px fri bredd på en 320-skärm, och texten behöver
+       200. Den får inte plats på den raden – ett sidledsbyte flyttar bara krocken från
+       Förklaring till plus/minus (provat, och det blev precis så).
+
+       Den flyttas därför NEDÅT i stället, under bådas rad. Där är hela bredden fri, texten
+       ryms på en rad och ingenting behöver förkortas. Nästa hinder – platsknappen – börjar
+       först vid ~90 px, så 52 px är fritt. Över 400 px är regeln ovan orörd.
+
+       ⚠ Rör INTE `transform` här. Badgen har `animation: popIn` med fill-mode `both`, och
+       keyframen sätter `translateX(-50%)` – en transform i den här regeln blir tyst
+       överkörd av animationens sluttillstånd (provat: förskjutningen uteblev helt medan
+       resten av regeln slog igenom, vilket såg ut som att media-frågan inte matchade). */
+    @media (max-width: 400px) {
+      #count-badge { top: 52px; }
+    }
 
     /* Säker-badge (UC2-lista) */
     .sl-safe { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25); color: #1e40af; }
