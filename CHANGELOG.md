@@ -14,6 +14,51 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.23.0 – 2026-09-02
+**Sökförslagen visste inte vilken stad man tittade på.**
+
+Med två städer live blev det som fungerat i år plötsligt fel: förslagslistan var
+hårdkodad mot Stockholms centrum (`lat=59.33&lon=18.06`) oavsett vald stad. I
+Göteborgsläget rankades alltså Stockholmsgator högst. Och väljer man en sådan flyger
+kartan dit med Göteborgs data laddad – resultatet blir en **tom karta utan förklaring**,
+och tomt betyder "vi vet inget" i appen, inte "här finns inget".
+
+Tre lager, byggda tillsammans:
+
+**1. Sökrutan följer staden.** Varje stad bär sin egen `sokRuta` – kommungränsens
+omslutande rektangel, hämtad ur OSM:s kommunytor, inte gissad. Rutan skickas som
+`bbox` till Photon, som filtrerar hårt på den. (`lang=sv` får inte läggas till:
+tillsammans med bbox svarar Photon HTTP 400.)
+
+**2. Kommunnamnet fäller grannen.** Rutan ensam räcker inte – Sundbyberg, Solna och
+Nacka ligger inne i Stockholms ruta, Mölndal och Partille inne i Göteborgs. Uppmätt:
+sökningen "Sveavägen 10" gav **SUNDBYBERGS** Sveavägen som första träff i
+Stockholmsläget. Nu behålls bara träffar där Photons `city`-fält matchar staden.
+Kontrollerat att fältet bär kommunen och inte postorten: Askim, Fiskebäck och
+Kvillebäcken svarar alla "Göteborg".
+
+**3. En vakt vid den enda dörren.** Alla vägar in i kartan – sökknappen, ett valt
+förslag, hemknappen, GPS-punkten, ett klick på kartan – går genom `flyToAndShow`.
+Ligger destinationen i en av våra ANDRA städer ställer appen frågan i stället för att
+rita tomt: *"Den platsen ligger i Stockholm. Du tittar på Göteborg."* med knappen
+**Byt till Stockholm**, som tar med destinationen över omladdningen (via sessionStorage,
+inte URL:en – en sökt adress ska inte följa med in i webbstatistiken eller i en delad
+länk). Täcker ingen av våra städer punkten flyger kartan dit ändå, men med rak besked:
+"Utanför Göteborg – ParkSpot har inga uppgifter här."
+
+**Vad vakten inte kan:** den mäter mot stadens rektangel, inte mot kommungränsen.
+Sundbyberg, Solna och Nacka ligger HELT inne i Stockholms rektangel och kan alltså inte
+fällas där. Medvetet: en exakt gränskontroll hade krävt ett nätanrop före varje sökning
+och klick. Grannkommunerna fångas i lager 2 i stället, som är vägen de faktiskt kommer in.
+
+**Två sidofynd, båda rättade:**
+* GPS-koden hade en egen hårdkodad Stockholmsruta (`STOCKHOLM_BOUNDS`) som avgjorde om
+  första positionen skulle flytta kartan – också den oavsett vald stad. Följer nu staden.
+* `map.flyTo` över stadsavstånd (~45 mil) flyttar inte kartan alls; nålen och datan hamnar
+  rätt medan kartan står kvar. Reproducerat med ett rått `map.flyTo` i båda riktningarna,
+  alltså Leaflets beteende. Så långa hopp uppstår bara via vaktens "Visa ändå"; där
+  hoppar vi rakt dit med `setView` i stället.
+
 ## v1.22.0 – 2026-08-31
 **Grön gata, tio minuter kvar till lastplatsen.**
 

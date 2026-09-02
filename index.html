@@ -608,6 +608,32 @@
       background: rgba(15,23,42,0.28);
     }
     #stad-picker.on { display: flex; }
+    /* Stadsvakten – tredje lådan i samma familj, egen nod av samma skäl som ovan.
+       z-index över stadsväljaren: vakten kan öppnas medan väljaren står kvar. */
+    #stad-vakt {
+      position: fixed; inset: 0; z-index: 4300; display: none;
+      align-items: flex-end; justify-content: center;
+      background: rgba(15,23,42,0.38);
+    }
+    #stad-vakt.on { display: flex; }
+    .vakt-text {
+      padding: 14px 18px 16px; font-size: 14.5px; line-height: 1.5; color: var(--text);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    /* Knapparna är RADER, inte små knappar i en rad: samma tryckyta som i
+       stadsväljaren, och lika lätta att träffa med tummen. Att den primära
+       fylls med accentfärg är hela poängen – en diskret kontroll här hade
+       inte hittats, och det felet är gjort två gånger förut (se projektminnet). */
+    .vakt-btn {
+      display: block; width: 100%; padding: 15px 18px; border: none; cursor: pointer;
+      font-family: inherit; font-size: 15px; font-weight: 600; text-align: center;
+      border-bottom: 1px solid var(--glass-border);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .vakt-primar   { background: var(--accent); color: #fff; }
+    .vakt-primar:active { filter: brightness(0.92); }
+    .vakt-sekundar { background: none; color: var(--text); font-weight: 500; }
+    .vakt-sekundar:active { background: rgba(15,23,42,0.05); }
     /* Undertexten säger vad staden FAKTISKT har. Utan den ser städerna
        likvärdiga ut, och skillnaden är den sort som kan kosta en bot. */
     .stadp-under { display:block; font-size:12.5px; color: var(--muted); margin-top:2px; }
@@ -881,6 +907,20 @@
     <div class="navp-head">Välj stad</div>
     <div id="stadp-rows"></div>
     <button class="navp-cancel" type="button" onclick="stadPickerClose()">Avbryt</button>
+  </div>
+</div>
+
+<!-- ── Stadsvakten ── Frågan som ställs när destinationen ligger i en ANNAN av
+     våra städer än den man tittar på. Ingen bakgrundsklick-stängning här, till
+     skillnad från lådorna ovanför: en fråga som går att svepa bort av misstag
+     hade landat i exakt det tomma kartläge den finns för att förhindra. -->
+<div id="stad-vakt">
+  <div class="navp-card">
+    <div class="navp-head">Adressen ligger i en annan stad</div>
+    <div id="vakt-text" class="vakt-text"></div>
+    <button id="vakt-byt" class="vakt-btn vakt-primar" type="button" onclick="vaktByt()"></button>
+    <button class="vakt-btn vakt-sekundar" type="button" onclick="vaktAnda()">Visa ändå</button>
+    <button class="navp-cancel" type="button" onclick="vaktStang()">Avbryt</button>
   </div>
 </div>
 
@@ -1209,10 +1249,29 @@ const VALD_STAD = STADER_PA ? (STAD_UR_URL || lasSparadStad()) : '';
 if (!STADER_PA && (STAD_UR_URL || lasSparadStad())) {
   console.warn('[ParkSpot] Stadsadaptrar är avstängda på den här servern – visar Stockholm.');
 }
+// ── Sökområde per stad ───────────────────────────────────────────────────────
+// TVÅ fält, för att ETT inte räcker – och det är hela poängen med lösningen:
+//
+//   `sokRuta`  [väst, syd, öst, nord] i grader. Kommungränsens omslutande rektangel,
+//              hämtad 2026-09-02 ur OSM:s kommunytor (Nominatim), inte gissad.
+//              Skickas som `bbox` till Photon, som då FILTRERAR bort allt utanför.
+//              OBS: `lang=sv` tillsammans med `bbox` ger HTTP 400 hos Photon –
+//              vi skickar inte lang, och det ska förbli så.
+//   `sokOrter` Kommunnamn som Photon sätter i fältet `city`. Rutan ensam räcker
+//              INTE: Sundbyberg, Solna och Nacka ligger inne i Stockholms ruta,
+//              och Mölndal och Partille inne i Göteborgs. Uppmätt 2026-09-02:
+//              sökningen "Sveavägen 10" gav SUNDBYBERGS Sveavägen som FÖRSTA
+//              träff i Stockholms ruta. Namnet är det som fäller den.
+//              Kontrollerat att fältet bär kommunen och inte postorten: Askim,
+//              Fiskebäck och Kvillebäcken svarar alla "Göteborg".
+//
+// Saknar en stad de här fälten faller söket tillbaka på ofiltrerat läge (som förr)
+// i stället för att sluta ge förslag alls.
 const STADER_CFG = {};
 STADER_CFG.sundbyberg =
     { id:'sundbyberg', namn:'Sundbyberg', geokodSuffix:', Sundbyberg',
       adressExempel:'Sturegatan 10',
+      sokRuta:[17.9277, 59.3552, 17.9850, 59.4015], sokOrter:['Sundbyberg'],
       center:[59.3610, 17.9713], zoom:15,
       // Sundbyberg publicerar inga förbudsdata och har inga p-hus i vår källa.
       // Flaggorna gör att appen TIGER där datan tiger i stället för att gissa.
@@ -1256,6 +1315,10 @@ STADER_CFG.sundbyberg =
 STADER_CFG.goteborg =
     { id:'goteborg', namn:'Göteborg', geokodSuffix:', Göteborg',
       adressExempel:'Kungsportsavenyen 10',
+      // Västgränsen 11.23 ser vid för en stadskarta men är rätt: Styrsö, Vrångö och
+      // de södra skärgårdsöarna hör till kommunen. Att klippa rutan snävare hade
+      // tystat sökförslag för folk som faktiskt bor i Göteborg.
+      sokRuta:[11.2315, 57.4997, 12.2416, 57.8660], sokOrter:['Göteborg'],
       center:[57.7009, 11.9668], zoom:15,
       // Göteborg publicerar INGEN förbudsdata. Kontrollerat 2026-08-26 mot både
       // Trafikkontorets WFS och stadens öppna datakatalog: ordet "förbud" finns
@@ -1300,6 +1363,7 @@ STADER_CFG.goteborg =
 STADER_CFG.stockholm =
     { id:'stockholm',  namn:'Stockholm',  geokodSuffix:', Stockholm',
       adressExempel:'Sveavägen 10',
+      sokRuta:[17.7607, 59.2273, 18.2001, 59.4403], sokOrter:['Stockholm'],
       center:[59.332, 18.065], zoom:13,
       harForbud:true,
       // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
@@ -6830,6 +6894,11 @@ function initMap() {
   startGeolocation();
   initSuggestions();
   initSheet();
+  // Kom vi hit genom stadsvaktens "Byt till …"? Fortsätt då till destinationen man
+  // faktiskt sökte, i stället för att lämna av folk på den nya stadens centrum.
+  // Efter kartans egna lager, så att flygningen har något att rita på.
+  const vaktMal = hamtaVaktMal();
+  if (vaktMal) setTimeout(() => flyToAndShow(vaktMal.lat, vaktMal.lng), 0);
   startaKartSynkVakt();          // håller canvasen i takt med containern, se kartSynkKoll
   if (KARTLOGG_VY) {
     // Synlig badge av samma skäl som ?debugtid= har en: annars är det lätt att glömma
@@ -6849,7 +6918,10 @@ function initMap() {
 let userMarker = null, userAccCircle = null, userFirstFix = true;
 let userLat = null, userLng = null;
 
-const STOCKHOLM_BOUNDS = { minLat:59.1, maxLat:59.6, minLng:17.6, maxLng:18.5 };
+// VAR en hårdkodad Stockholmsruta, även när appen visade Göteborg (rättat 2026-09-02).
+// Används nedan för EN sak: ska första GPS-träffen flytta kartan? Frågan är "är jag
+// utanför staden jag tittar på", och då måste rutan följa staden. Marginalen är
+// generösare än vaktens – det här är en artighet, inte ett skydd.
 
 function startGeolocation() {
   if (!navigator.geolocation) return;
@@ -6881,9 +6953,10 @@ function startGeolocation() {
     // Centrera bara vid första träff och om utanför Stockholm
     if (userFirstFix) {
       userFirstFix = false;
-      const inStockholm = lat > STOCKHOLM_BOUNDS.minLat && lat < STOCKHOLM_BOUNDS.maxLat
-                       && lng > STOCKHOLM_BOUNDS.minLng && lng < STOCKHOLM_BOUNDS.maxLng;
-      if (!inStockholm) map.flyTo([lat, lng], 13, { duration: 1.5 });
+      const r = STAD.sokRuta;
+      const iStaden = !r || (lng > r[0] - 0.25 && lng < r[2] + 0.25
+                          && lat > r[1] - 0.15 && lat < r[3] + 0.15);
+      if (!iStaden) map.flyTo([lat, lng], 13, { duration: 1.5 });
     }
   }, err => {
     if (err.code === 1) geoDenied = true;   // blockerad – platsknappen guidar vidare
@@ -7024,7 +7097,102 @@ async function promptSetHome() {
   }
 }
 
+// ── Stadsvakten ──────────────────────────────────────────────────────────────
+// ALLA vägar in i kartan går genom flyToAndShow: sökknappen, ett valt sökförslag,
+// hemknappen, GPS-punkten och ett klick på kartan. Därför räcker EN kontroll här
+// för att täcka dem alla – utan den flög appen glatt till en Stockholmsadress med
+// Göteborgs data laddad och visade en tom karta, och tomt betyder "vi vet inget"
+// i appen, inte "här finns inget".
+//
+// ⚠ VAD VAKTEN INTE KAN: den mäter mot stadens rektangel, inte mot kommungränsen.
+// Sundbyberg, Solna och Nacka ligger HELT inne i Stockholms rektangel och kan
+// alltså inte fällas här. Det är medvetet: en exakt gränskontroll hade krävt ett
+// nätanrop före varje sökning och klick, och det är appens känsligaste väg.
+// Grannkommunerna fångas i stället i sökförslagen (se forslagIStaden), som är
+// den väg de i praktiken kommer in.
+const VAKT_MARGINAL = 0.02;   // ~2 km – ett klick strax utanför gränsen ska inte gnälla
+
+function punktIStad(lat, lng, cfg) {
+  const r = cfg && cfg.sokRuta;
+  if (!r) return true;                       // stad utan ruta → vakten avstår
+  return lng >= r[0] - VAKT_MARGINAL && lng <= r[2] + VAKT_MARGINAL
+      && lat >= r[1] - VAKT_MARGINAL && lat <= r[3] + VAKT_MARGINAL;
+}
+
+// Vilken ANNAN stad täcker punkten? Bara städer som syns i väljaren föreslås:
+// Sundbyberg står som visaIVal:false eftersom kommunens karttjänst inte svarar,
+// och att erbjuda ett byte dit hade bytt en tom karta mot en annan tom karta.
+function annanStadForPunkt(lat, lng) {
+  return Object.keys(STADER_CFG).find(id =>
+    id !== STAD.id && STADER_CFG[id].visaIVal && STADER_CFG[id].sokRuta
+    && punktIStad(lat, lng, STADER_CFG[id])) || null;
+}
+
+// Punkt som användaren uttryckligen valt att se ändå. Utan minnet skulle frågan
+// komma tillbaka vid varje läges- och fordonsbyte, som kör om samma destination.
+let vaktGodkandPunkt = null;
+function vaktRedanGodkand(lat, lng) {
+  return !!vaktGodkandPunkt
+      && Math.abs(vaktGodkandPunkt.lat - lat) < 1e-6
+      && Math.abs(vaktGodkandPunkt.lng - lng) < 1e-6;
+}
+
+// Destinationen följer med över omladdningen vid stadsbyte – annars landar man
+// på den nya stadens centrum och får söka om. Den ligger i sessionStorage och
+// INTE i adressen: en sökt adress i URL:en hade följt med in i webbstatistiken
+// och i varje länk man delar vidare.
+const VAKT_MAL = 'parkspot_vakt_mal';
+function bytStadTillPunkt(id, lat, lng) {
+  try { sessionStorage.setItem(VAKT_MAL, JSON.stringify({ lat, lng, stad:id })); } catch (e) {}
+  sparaStad(id);
+  location.href = location.pathname + '?stad=' + encodeURIComponent(id);
+}
+// Plockas upp efter omladdningen (se initMap). Engångs: läses och raderas.
+function hamtaVaktMal() {
+  try {
+    const rawa = sessionStorage.getItem(VAKT_MAL);
+    sessionStorage.removeItem(VAKT_MAL);
+    if (!rawa) return null;
+    const m = JSON.parse(rawa);
+    // Bara om vi faktiskt hamnade i staden som bytet gällde – annars kan en gammal
+    // post kasta iväg kartan i en stad den inte var menad för.
+    if (!m || m.stad !== STAD.id || typeof m.lat !== 'number' || typeof m.lng !== 'number') return null;
+    return m;
+  } catch (e) { return null; }
+}
+
+let vaktSvar = null;   // vad knapparna i lådan ska göra – sätts vid varje fråga
+function vaktFraga(lat, lng, annanId) {
+  const box   = document.getElementById('stad-vakt');
+  const annan = STADER_CFG[annanId];
+  document.getElementById('vakt-text').textContent =
+    'Den platsen ligger i ' + annan.namn + '. Du tittar på ' + STAD.namn
+    + ' – här har ParkSpot inga uppgifter om parkering.';
+  document.getElementById('vakt-byt').textContent = 'Byt till ' + annan.namn;
+  vaktSvar = {
+    byt:   () => bytStadTillPunkt(annanId, lat, lng),
+    andaa: () => { vaktStang(); vaktGodkandPunkt = { lat, lng }; flyToAndShow(lat, lng); }
+  };
+  box.classList.add('on');
+}
+function vaktStang() {
+  const box = document.getElementById('stad-vakt');
+  if (box) box.classList.remove('on');
+}
+function vaktByt()  { if (vaktSvar) vaktSvar.byt(); }
+function vaktAnda() { if (vaktSvar) vaktSvar.andaa(); }
+
 function flyToAndShow(lat, lng) {
+  // Stadsvakten först – innan kartan hinner flyga till en plats vi inte kan svara om.
+  if (!punktIStad(lat, lng, STAD) && !vaktRedanGodkand(lat, lng)) {
+    const annan = annanStadForPunkt(lat, lng);
+    if (annan) { vaktFraga(lat, lng, annan); return; }   // fråga – flyg inte förrän svar
+    // Ingen av våra städer täcker punkten. Då finns inget byte att erbjuda, och att
+    // vägra flytta kartan hade känts trasigt vid ett klick strax utanför gränsen.
+    // Vi flyger, men säger rakt ut att tomt här betyder "ingen uppgift".
+    showToast('Utanför ' + STAD.namn + ' – ParkSpot har inga uppgifter här.');
+    vaktGodkandPunkt = { lat, lng };
+  }
   searchCenter = L.latLng(lat, lng);
   if (searchMarker) { searchMarker.remove(); searchMarker = null; }
   document.getElementById('phus-btn').style.display = 'flex';   // sista utväg blir tillgänglig
@@ -7058,9 +7226,20 @@ function flyToAndShow(lat, lng) {
   };
   // Redan på plats (t.ex. fordonsbyte på samma destination) → kör flödet direkt, ingen flyTo.
   // Leaflet animerar zoom-transformen även för en flygning på 0 meter → syns som en "skakning".
-  const alreadyThere = map.getZoom() === 15 && map.getCenter().distanceTo([lat, lng]) < 1;
+  const avstand = map.getCenter().distanceTo([lat, lng]);
+  const alreadyThere = map.getZoom() === 15 && avstand < 1;
   if (alreadyThere) startFlow();
-  else { map.once('moveend', startFlow); map.flyTo([lat, lng], 15, { duration: 1.1 }); }
+  else {
+    map.once('moveend', startFlow);
+    // Uppmätt 2026-09-02: map.flyTo över stadsavstånd (Göteborg→Stockholm, ~45 mil)
+    // flyttar inte kartan alls – den står kvar medan nålen och datan hamnar rätt.
+    // Reproducerat med ett rått map.flyTo i BÅDA riktningarna, alltså Leaflets
+    // beteende och inget appen gör fel. Inom en stad fungerar flygningen.
+    // Så långa hopp uppstår bara via stadsvaktens "Visa ändå"; där hoppar vi rakt
+    // dit i stället. En animering på 45 mil är dessutom bara desorienterande.
+    if (avstand > 50000) map.setView([lat, lng], 15);
+    else map.flyTo([lat, lng], 15, { duration: 1.1 });
+  }
 }
 
 // ── Sök gata ─────────────────────────────────────────────────────────────────
@@ -7123,11 +7302,27 @@ function initSuggestions() {
   inp.addEventListener('blur', () => setTimeout(hideSuggestions, 180));
 }
 
+// Hör kommunnamnet från ett sökförslag hemma i staden vi tittar på?
+// `null`/tomt räknas som JA: en träff som redan klarat stadens ruta men saknar
+// kommunfält (parker, vissa gång- och cykelvägar) ska inte tystas – tvivlet ska
+// falla på att VISA förslaget, inte på att dölja en gata som finns.
+function forslagIStaden(ort) {
+  const orter = STAD.sokOrter;
+  if (!orter || !orter.length) return true;      // stad utan lista → filtrera inte
+  if (!ort) return true;
+  const o = ort.trim().toLowerCase();
+  return orter.some(n => n.toLowerCase() === o);
+}
+
 async function fetchSuggestions(q) {
   try {
-    // Photon – lat/lon-bias mot Stockholm centrum (lang=sv + bbox ger HTTP 400)
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}`
-      + `&limit=8&lat=59.33&lon=18.06`;
+    // Photon. TIDIGARE var lat/lon hårdkodat till Stockholms centrum (59.33/18.06)
+    // oavsett vald stad – det var därför Göteborgsläget föreslog Stockholmsgator.
+    // Nu styr stadens egen sökruta, som Photon filtrerar hårt på.
+    // `lang=sv` får INTE läggas till: tillsammans med bbox svarar Photon HTTP 400.
+    const ruta = STAD.sokRuta;
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8`
+      + (ruta ? `&bbox=${ruta.join(',')}` : `&lat=${STAD.center[0]}&lon=${STAD.center[1]}`);
     const r = await fetch(url);
     if (!r.ok) return;
     const data = await r.json();
@@ -7137,6 +7332,8 @@ async function fetchSuggestions(q) {
         const p      = f.properties;
         const street = p.name || p.street || '';
         if (!street) return null;
+        // Grannkommunen ligger inne i rutan – kommunnamnet är det som skiljer dem åt.
+        if (!forslagIStaden(p.city)) return null;
         // Bygg visningsnamn: "Sveavägen" eller "Sveavägen 42"
         const name = street + (p.housenumber ? ` ${p.housenumber}` : '');
         if (seen.has(name.toLowerCase())) return null;
