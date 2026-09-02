@@ -300,6 +300,12 @@
       transition: background .1s; -webkit-tap-highlight-color: transparent;
     }
     .sg-item:last-child { border-bottom: none; }
+    /* Besked, inte förslag: samma form som en rad men utan pekfinger och utan
+       klickbeteende, så att det inte ser ut som något man kan välja. */
+    .sg-besked { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: default; }
+    .sg-besked .sg-name { font-weight: 500; color: var(--muted); }
+    .sg-besked.sg-fel .sg-name { color: #b45309; }
+    .sg-besked .sg-sub { white-space: normal; }
     .sg-item.sg-focus, .sg-item:active { background: var(--accent-dim); }
     .sg-icon { font-size: 14px; color: var(--muted); flex-shrink: 0; }
     .sg-text { flex: 1; min-width: 0; }
@@ -7323,7 +7329,7 @@ async function fetchSuggestions(q) {
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8`
       + (ruta ? `&bbox=${ruta.join(',')}` : `&lat=${STAD.center[0]}&lon=${STAD.center[1]}`);
     const r = await fetch(url);
-    if (!r.ok) return;
+    if (!r.ok) { visaSgBesked('fel', 'Sökförslagen svarar inte (fel ' + r.status + ')'); return; }
     const data = await r.json();
     const seen  = new Set();
     const items = (data.features || [])
@@ -7342,8 +7348,34 @@ async function fetchSuggestions(q) {
         return { name, sub, lat, lng };
       })
       .filter(Boolean);
+    if (!items.length) { visaSgBesked('tomt', 'Inga träffar i ' + STAD.namn); return; }
     showSuggestions(items);
-  } catch(_) { /* tyst fel – förslag ej kritiska */ }
+  } catch(e) {
+    // VAR ETT TYST FEL, och det var dyrt: gick tjänsten inte fram visade appen
+    // ingenting alls. "Inga träffar" och "tjänsten är blockerad" såg exakt likadana
+    // ut, så den enda som kunde felsöka det var den som öppnade utvecklarkonsolen.
+    // Nu står skälet i rutan, och användaren får veta att sökknappen ändå fungerar
+    // (den använder en HELT annan tjänst än förslagslistan).
+    visaSgBesked('fel', 'Sökförslagen går inte att nå' + (e && e.message ? ' (' + e.message + ')' : ''));
+  }
+}
+
+// En rad i förslagsrutan som INTE går att klicka på: ett besked, inte ett förslag.
+// Därför utan .sg-item – annars hade tangentbordsnavigeringen och klicket
+// behandlat beskedet som en adress.
+function visaSgBesked(sort, text) {
+  const box = document.getElementById('search-suggestions');
+  if (!box) return;
+  sgIndex = -1;
+  const rad = text.replace(/</g, '&lt;');
+  box.innerHTML = `<div class="sg-besked ${sort === 'fel' ? 'sg-fel' : ''}">
+      <span class="sg-icon">${sort === 'fel' ? '⚠️' : '🔍'}</span>
+      <div class="sg-text">
+        <div class="sg-name">${rad}</div>
+        ${sort === 'fel' ? '<div class="sg-sub">Skriv hela adressen och tryck 🔍 – sökknappen använder en annan tjänst.</div>' : ''}
+      </div>
+    </div>`;
+  box.style.display = 'block';
 }
 
 function showSuggestions(items) {

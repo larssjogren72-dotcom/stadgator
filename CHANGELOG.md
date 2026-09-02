@@ -51,6 +51,14 @@ Sundbyberg, Solna och Nacka ligger HELT inne i Stockholms rektangel och kan allt
 fällas där. Medvetet: en exakt gränskontroll hade krävt ett nätanrop före varje sökning
 och klick. Grannkommunerna fångas i lager 2 i stället, som är vägen de faktiskt kommer in.
 
+**Sökförslagen är inte längre tysta när de misslyckas.** Gick förslagstjänsten (Photon)
+inte fram visade appen **ingenting alls** – exakt samma sak som när sökningen gick fram men
+inte hittade något. Den enda som kunde skilja dem åt var den som öppnade utvecklarkonsolen.
+Nu står det i rutan: *"Inga träffar i Göteborg"* när sökningen gick fram, och
+*"Sökförslagen går inte att nå"* med skälet när den inte gjorde det – plus påminnelsen att
+sökknappen använder en HELT annan tjänst och därför fungerar ändå. (Felet var äldre än
+stadsuppdelningen; det blev bara smärtsamt uppenbart när vi försökte felsöka på distans.)
+
 **Stadsläget visar staden – punkt.** Kartan flyttade sig till din GPS-position vid första
 träffen om du befann dig utanför staden. Lars satt på tåg i Norrland och fick Norrland i
 stället för Göteborg. Den automatiska förflyttningen är **borttagen**: väljer man Göteborg
