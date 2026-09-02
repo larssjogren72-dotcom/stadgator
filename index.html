@@ -6915,7 +6915,7 @@ function initMap() {
 }
 
 // ── Min position ──────────────────────────────────────────────────────────────
-let userMarker = null, userAccCircle = null, userFirstFix = true;
+let userMarker = null, userAccCircle = null;
 let userLat = null, userLng = null;
 
 // VAR en hårdkodad Stockholmsruta, även när appen visade Göteborg (rättat 2026-09-02).
@@ -6950,14 +6950,13 @@ function startGeolocation() {
       userAccCircle.setLatLng([lat, lng]).setRadius(accuracy);
     }
 
-    // Centrera bara vid första träff och om utanför Stockholm
-    if (userFirstFix) {
-      userFirstFix = false;
-      const r = STAD.sokRuta;
-      const iStaden = !r || (lng > r[0] - 0.25 && lng < r[2] + 0.25
-                          && lat > r[1] - 0.15 && lat < r[3] + 0.15);
-      if (!iStaden) map.flyTo([lat, lng], 13, { duration: 1.5 });
-    }
+    // BORTTAGET 2026-09-02 (Lars beslut): kartan flyttade sig hit vid första
+    // GPS-träffen om man befann sig utanför staden. Lars satt på tåg i Norrland
+    // och fick Norrland i stället för Göteborg. Regeln är enkel och gäller nu utan
+    // undantag: **stadsläget visar staden.** Väljer man Göteborg ska man se
+    // Göteborg – var man än råkar vara. Vill man till sin egen position finns
+    // platsknappen (locateMe), och den är ett medvetet tryck.
+    // Den blå punkten ritas fortfarande, den flyttar bara inte längre kartan.
   }, err => {
     if (err.code === 1) geoDenied = true;   // blockerad – platsknappen guidar vidare
   }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 });

@@ -51,9 +51,15 @@ Sundbyberg, Solna och Nacka ligger HELT inne i Stockholms rektangel och kan allt
 fällas där. Medvetet: en exakt gränskontroll hade krävt ett nätanrop före varje sökning
 och klick. Grannkommunerna fångas i lager 2 i stället, som är vägen de faktiskt kommer in.
 
-**Två sidofynd, båda rättade:**
-* GPS-koden hade en egen hårdkodad Stockholmsruta (`STOCKHOLM_BOUNDS`) som avgjorde om
-  första positionen skulle flytta kartan – också den oavsett vald stad. Följer nu staden.
+**Stadsläget visar staden – punkt.** Kartan flyttade sig till din GPS-position vid första
+träffen om du befann dig utanför staden. Lars satt på tåg i Norrland och fick Norrland i
+stället för Göteborg. Den automatiska förflyttningen är **borttagen**: väljer man Göteborg
+ser man Göteborg, var man än råkar vara. Den blå punkten ritas fortfarande – den flyttar
+bara inte längre kartan. Vill man till sin egen position finns platsknappen, och den är ett
+medvetet tryck. (Koden bakom hade dessutom en egen hårdkodad Stockholmsruta, `STOCKHOLM_BOUNDS`,
+som avgjorde saken oavsett vald stad.)
+
+**Ett sidofynd, rättat:**
 * `map.flyTo` över stadsavstånd (~45 mil) flyttar inte kartan alls; nålen och datan hamnar
   rätt medan kartan står kvar. Reproducerat med ett rått `map.flyTo` i båda riktningarna,
   alltså Leaflets beteende. Så långa hopp uppstår bara via vaktens "Visa ändå"; där
