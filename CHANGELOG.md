@@ -14,6 +14,44 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.24.0 – 2026-09-03
+**"Jag åker om en halvtimme – hur ser det ut när jag är framme?"**
+
+Kartan svarade bara på nu. Men den som ska in till stan vill tajma en städgata eller ett
+förbud som släpper – och just då säger en röd gata ingenting om att den öppnar om tio
+minuter. **Framme om +30 / +60 min** visar hela kartan som den blir vid framkomsten.
+
+**Valet bygger på en mätning, inte på en gissning.** Första idén var en nedräkning per röd
+gata. Den mätningen avfärdade den: öppningar sker i KLUMP. I Vasastan öppnade **50 sträckor
+i ett och samma kvartssteg** (06:00) och noll i kvarten runt omkring; i Göteborg 19 stycken
+10:00. Vid 05:45 öppnade 100 % av alla röda sträckor inom 30 minuter. En etikett per gata
+hade alltså tänts på nästan allt rött samtidigt – den skiljer inget åt. Informationen är
+inte per gata, den är per **klockslag**, och då är rätt kontroll en tidpunkt.
+
+Det löser dessutom båda riktningarna med samma grepp: gator som hunnit öppna blir gröna,
+och gator som hunnit **stängas** blir röda. En markering på rött hade bara löst hälften.
+
+**Glöden gör jobbet gratis.** Uppmätt Stockholm 05:45 → 06:15: lediga gator 239 → 287, och
+**70 glödande** sträckor tänds – exakt de som nyss blev fria.
+
+**Att kartan visar en annan tid än nu får aldrig kunna missförstås.** Därför ett rött band
+överst med klockslaget (`Kartan visar kl 19:05 – inte läget just nu`) och en väg tillbaka i
+samma band. Rött är valt med flit: appen har redan ett rött band för `?debugtid=`, så rött
+där uppe betyder redan "inte verklig tid". Även lägeschipet, rubrikens datum och
+antalsbadgen följer den visade tiden – en enda skärm får inte bära två påståenden om tid.
+
+**Tre fel som testandet grävde fram, alla rättade:**
+* `+15` togs bort. Skiften sker på hel timme, så steget gav oftast noll synlig skillnad
+  (05:45 → 06:00: 237 mot 239 lediga). Ärligt, men det läses som att appen är trasig.
+* Över midnatt visade appen torsdagens karta under rubriken "Onsdag 2 sep". Datumet följer
+  nu tiden, och bandet skriver ut veckodagen när dygnet byts.
+* Kartan hoppade 61 m varje gång bandet tändes (och 1 118 m i ett fall när lådan bytte
+  höjd efteråt). Vyn låses nu över layoutbytet – en ändrad TID ska inte flytta kameran.
+
+Klockan flyttas som EN klocka för hela appen, inte som ett `nuTid()` på utvalda ställen:
+färgkedjan frågar efter tiden på dussintals ställen, och en karta där bara hälften är
+framskjuten är det farligaste tillstånd den här appen kan hamna i.
+
 ## v1.23.0 – 2026-09-02
 **Sökförslagen visste inte vilken stad man tittade på.**
 
