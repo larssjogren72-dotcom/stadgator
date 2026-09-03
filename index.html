@@ -779,6 +779,68 @@
       -webkit-tap-highlight-color: transparent; transition: border-color .15s;
     }
     #when-chip:active { border-color: var(--accent); }
+
+    /* ── FRAMÅT (TEST) ──────────────────────────────────────────────────────
+       Kontrollen sitter direkt under lägeschipet: samma familj av frågor ("vad
+       vill jag veta"), inte samma familj som fordonsväljaren ("vem är jag").  */
+    #framat-rad {
+      display: none; align-items: center; gap: 10px; margin-top: 8px;
+    }
+    #mode-row.framat-pa #framat-rad { display: flex; }
+    #framat-etikett { font-size: 12.5px; color: var(--muted); flex: none; }
+    #framat-knappar {
+      display: flex; flex: 1; gap: 0; background: #ffffff;
+      border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;
+    }
+    /* 12px lodrätt ger ~42 px tryckhöjd. 9px gav 34 px, vilket är under vad en tumme
+       träffar säkert – och det här är en kontroll man använder stående med telefonen
+       i en hand innan man går ut till bilen. */
+    .framat-opt {
+      flex: 1; padding: 12px 4px; background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 600; color: var(--muted);
+      border-left: 1px solid var(--glass-border);
+      -webkit-tap-highlight-color: transparent; transition: background .12s, color .12s;
+    }
+    .framat-opt:first-child { border-left: none; }
+    .framat-opt:active { background: rgba(15,23,42,0.05); }
+    /* Vald knapp fylls med accentfärgen. Samma tydlighet som lägesväljarens pil –
+       en vald-markering i grått hittas inte, det är mätt två gånger i det här projektet. */
+    .framat-opt.on { background: var(--accent); color: #fff; }
+
+    /* Bandet är RÖTT (Lars beslut 2026-09-02, ändrat från mörk skiffer).
+       Invändningen mot rött var att kulören betyder "får inte stå" på kartan. Den väger
+       lättare än argumentet för: appen har redan ett rött band för `?debugtid=`, alltså
+       betyder rött HÄR UPPE redan "det här är inte verklig tid". Att använda två olika
+       färger för samma budskap hade lärt ut två språk. Bandet ligger dessutom i appens ram,
+       inte på kartan, så det konkurrerar aldrig med en gatas färg i blicken.
+       Samma röda som SIMULERAD TID-badgen (#dc2626) – med flit, inte av en slump. */
+    #framat-band {
+      display: none; align-items: center; gap: 12px;
+      background: #dc2626; color: #fff; padding: 9px 14px;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      flex-shrink: 0; letter-spacing: .01em;
+    }
+    #app.framat-aktiv #framat-band { display: flex; }
+    .framat-band-ikon { flex: none; font-size: 15px; line-height: 1; }
+    /* Två rader, inte en mening som radbryts godtyckligt: klockslaget är det man ska
+       ta med sig, varningen är det man inte får missa. En hoptryckt rad gav båda
+       samma tyngd och blev dessutom avklippt på mobil. */
+    #framat-band-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    #framat-band-kl  { font-size: 13.5px; font-weight: 700; color: #fff; }
+    /* Underraden ljusare än på den mörka bakgrunden: 0,72 vitt mot rött blir grumligt
+       rosa och tappar läsbarhet, och det är just den raden som bär varningen. */
+    #framat-band-sub { font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.88); }
+    /* Vit fylld knapp på det röda, inte en genomskinlig kontur: vägen tillbaka till
+       verkligheten ska vara den tydligaste tryckytan i bandet. En 14 %-transparent knapp
+       på rött var nätt och jämnt synlig – samma miss som gjorts två gånger förut i
+       projektet, se minnet om affordans. */
+    #framat-tillbaka {
+      flex: none; background: #ffffff; color: #b91c1c;
+      border: none; border-radius: 8px;
+      padding: 7px 12px; font-family: inherit; font-size: 12.5px; font-weight: 700;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    #framat-tillbaka:active { background: rgba(255,255,255,0.82); }
     #when-icon svg { width: 19px; height: 19px; color: var(--accent); display: block; }
     .when-main { flex: 1; min-width: 0; }
     #when-pitch { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
@@ -1033,6 +1095,20 @@
 <!-- ── SETUP SCREEN ── -->
 <!-- ── MAIN APP ── -->
 <div id="app">
+  <!-- ── Framåt-bandet ── Den enskilt viktigaste delen av funktionen. Kartan visar då
+       en ANNAN tidpunkt än nu, och två sanningar på samma skärm är precis så här en
+       parkeringsapp blir farlig: någon läser framtidsvyn som nuläget och ställer bilen
+       på en gata som fortfarande städas. Därför mörkt heltäckande band överst, aldrig
+       en diskret markering – och en väg tillbaka i samma band, inte gömd någon annanstans.
+       Ligger i flödet (inte position:fixed) så att ingen höjdmatematik kan gå sönder. -->
+  <div id="framat-band" role="status">
+    <span class="framat-band-ikon" aria-hidden="true">⏱</span>
+    <span id="framat-band-text">
+      <b id="framat-band-kl">Kartan visar en annan tid</b>
+      <span id="framat-band-sub">inte läget just nu</span>
+    </span>
+    <button id="framat-tillbaka" type="button" onclick="settFramat(0)">Tillbaka till nu</button>
+  </div>
   <div id="header">
     <div class="hd-brand">
       <div class="hd-icon">🅿</div>
@@ -1066,6 +1142,24 @@
         <span class="when-opt-main">Natt</span>
         <span class="when-opt-sub">Tryggt till imorgon bitti</span>
       </button>
+    </div>
+
+    <!-- ── FRAMÅT (TEST) ── Planera före avfärd: hur ser kartan ut när jag är framme?
+         Bara i Nu-läget. Natt-läget svarar redan på "kan bilen stå till imorgon", och
+         en tidsförskjutning ovanpå det hade varit två frågor i samma svar.
+         Segmenterad knapprad och inte en diskret länk: mätt två gånger förut att mina
+         tryckytor blir för blygsamma (se projektminnet). Måttstock = "Byt ▾" ovanför. -->
+    <div id="framat-rad">
+      <span id="framat-etikett">Framme om</span>
+      <div id="framat-knappar" role="group" aria-label="Visa kartan längre fram i tiden">
+        <!-- +15 BORTTAGET 2026-09-02 (Lars beslut, efter mätning). Skiften sker på hel
+             timme, så +15 gav i det vanligaste fallet noll synlig skillnad – 05:45 → 06:00
+             visade 237 lediga mot 239. Ärligt, men det läses som att funktionen är trasig,
+             och ett steg som mest lär ut misstro är sämre än inget steg. -->
+        <button class="framat-opt on" data-min="0"  onclick="settFramat(0)">Nu</button>
+        <button class="framat-opt"    data-min="30" onclick="settFramat(30)">+30 min</button>
+        <button class="framat-opt"    data-min="60" onclick="settFramat(60)">+60 min</button>
+      </div>
     </div>
   </div>
 
@@ -1196,14 +1290,56 @@
 // Klockan går vidare i simulerat läge (fast förskjutning), den står inte stilla. En
 // fastfrusen Date.now() får Leaflets animeringar att aldrig bli klara – kartan ser då ut
 // att hänga, och man tror att det är appen som är trasig i stället för testverktyget.
+// ── Klockan, med TVÅ oberoende förskjutningar ────────────────────────────────
+// Delad mekanism, inte två. `?debugtid=` (utvecklingsverktyg) och Framåt-läget
+// (+15/+30/+60, som användaren styr) skjuter båda på tiden, och att ha två system
+// som var för sig byter ut `Date` hade gett ett omöjligt läge när båda är på.
+//
+// ⚠ VARFÖR HELA KLOCKAN OCH INTE ETT `nuTid()` PÅ UTVALDA STÄLLEN: färgkedjan frågar
+// efter tiden på dussintals ställen (städning, förbud, ändamål, glöd, taxa). Skiftades
+// bara några av dem hade kartan visat en blandning av två tidpunkter – den farligaste
+// tänkbara buggen i just den här appen. En klocka för allt kan inte glida isär.
+//
+// Proxyn läser `total` ur closuren vid varje anrop, så en ändrad förskjutning kräver
+// ingen ominstallation. Och `now` levereras av en GET-fälla i stället för en tilldelning:
+// `Date.now = …` genom en proxy skriver på RealDate själv, och en referens till
+// RealDate.now pekade då på den nya funktionen som anropade sig själv i all oändlighet
+// (RangeError, upptäckt vid test 2026-08-26). Med get-fällan lämnas RealDate orörd,
+// vilket också är det som gör att vi kan gå TILLBAKA till riktig tid.
+const KLOCKA = (function () {
+  const RealDate  = Date;
+  const riktigNu  = RealDate.now.bind(RealDate);
+  let bas = 0, framat = 0, installerad = false;
+  function total() { return bas + framat; }
+  function synka() {
+    const t = total();
+    if (t === 0) { window.Date = RealDate; installerad = false; return; }
+    if (installerad) return;                       // proxyn läser total() själv
+    window.Date = new Proxy(RealDate, {
+      construct(m, a) { return a.length === 0 ? new m(riktigNu() + total()) : new m(...a); },
+      get(m, p, r) { return p === 'now' ? () => riktigNu() + total() : Reflect.get(m, p, r); }
+    });
+    installerad = true;
+  }
+  return {
+    riktigNu,
+    sattBas(ms)    { bas = ms; synka(); },
+    sattFramat(ms) { framat = ms; synka(); },
+    framatMin()    { return Math.round(framat / 60000); },
+    // Vad klockan visar just nu, inklusive båda förskjutningarna.
+    nu() { return new RealDate(riktigNu() + total()); },
+    // Samma, MINUS Framåt-steget: appens "nu" som användaren upplever det. Behövs för att
+    // avgöra om framtidsvyn bytt dygn – en jämförelse mot den riktiga systemklockan hade
+    // gett fel svar så fort ?debugtid= är på, vilket är precis när man testar det.
+    nuUtanFramat() { return new RealDate(riktigNu() + bas); }
+  };
+})();
+
 (function initDebugClock() {
   const m = /[?&]debugtid=([^&]+)/.exec(location.search);
   if (!m) return;
-  const RealDate = Date;
-  // ⚠ Måste frås FÖRE window.Date byts: `Date.now = …` sätts genom proxyn på RealDate
-  // själv, så en referens till RealDate.now efteråt pekar på den NYA funktionen – den
-  // anropar sig själv i all oändlighet (RangeError, upptäckt vid test 2026-08-26).
-  const riktigNu = RealDate.now.bind(RealDate);
+  const RealDate = KLOCKA.nu().constructor;
+  const riktigNu = KLOCKA.riktigNu;
   const txt = decodeURIComponent(m[1]).replace('+', ' ').trim();
   let mal;
   const bara = /^(\d{1,2}):(\d{2})$/.exec(txt);
@@ -1213,11 +1349,7 @@
     console.warn('[Debug] Kunde inte tolka ?debugtid=' + txt + ' – riktig tid används.');
     return;
   }
-  const skift = mal.getTime() - riktigNu();
-  window.Date = new Proxy(RealDate, {
-    construct(target, args) { return args.length === 0 ? new target(riktigNu() + skift) : new target(...args); }
-  });
-  Date.now = () => riktigNu() + skift;
+  KLOCKA.sattBas(mal.getTime() - riktigNu());
   const etikett = mal.toLocaleString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   console.warn('[Debug] Tiden simulerad till ' + etikett + ' – ta bort ?debugtid= i adressfältet för riktig tid.');
   // Synlig badge, inte bara konsolloggen – annars är det för lätt att glömma att klockan är
@@ -1226,9 +1358,12 @@
     const b = document.createElement('div');
     b.id = 'debug-tid-badge';
     b.textContent = '⏱ SIMULERAD TID · ' + etikett;
-    b.style.cssText = 'position:fixed;top:8px;left:8px;z-index:99999;background:#dc2626;' +
-      'color:#fff;font:700 12px/1 system-ui;padding:6px 10px;border-radius:6px;' +
-      'box-shadow:0 2px 8px rgba(0,0,0,.3)';
+    // NEDTILL, inte upptill: Framåt-bandet ligger överst i appen och de två användes
+    // tillsammans direkt (testa framtidsvyn vid en simulerad tid) – badgen la sig då
+    // ovanpå bandets text och dolde just den varning bandet finns för.
+    b.style.cssText = 'position:fixed;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:8px;' +
+      'z-index:99999;background:#dc2626;color:#fff;font:700 12px/1 system-ui;' +
+      'padding:6px 10px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none';
     document.body.appendChild(b);
   });
 })();
@@ -1918,6 +2053,8 @@ window.addEventListener('DOMContentLoaded', () => { launchApp(); initCookieConse
 function launchApp() {
   document.getElementById('app').style.display = 'flex';
   updateWhenChip(currentMode);   // klockan har redan valt läge – visa vilket, och varför
+  framatSynlighet(currentMode);  // Framåt-kontrollen finns bara i Nu-läget
+  ritaFramatChrome();
   renderVehicleToggle();         // visa Bil/MC-väljaren (sparat val)
   document.getElementById('header-date').textContent = fmtDate(new Date());   // dagens datum direkt
   // rAF pausas av webbläsaren om fliken inte är synlig (bakgrund, low-power-läge, vissa
@@ -6312,7 +6449,17 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     grp.eachLayer(l => { if (l._coincident && l.bringToFront) l.bringToFront(); });
     grp.eachLayer(l => { if ((l._base === UTESERVERING_COLOR || l._base === GAGATA_COLOR) && l.bringToFront) l.bringToFront(); });
     const badge = document.getElementById('count-badge');
-    if (vehicleMode !== 'cykel') { badge.textContent = `${okNu} gator där du får stå nu`; badge.style.display = 'block'; }
+    // Ordet "nu" är fel så fort kartan visar en annan tidpunkt. Men klockslaget ska INTE
+    // in här: uppmätt 2026-09-02 klipptes "…står kl 06:15" av Förklaring-knappen redan på
+    // en 375 px-telefon, och värre på 320. Bandet ovanför säger redan vilken tid det gäller,
+    // så badgen behöver bara sluta ljuga – inte upprepa. Texten blir då KORTARE än dagens,
+    // alltså kan den inte skapa trängsel som inte redan fanns.
+    if (vehicleMode !== 'cykel') {
+      badge.textContent = KLOCKA.framatMin() > 0
+        ? `${okNu} gator där du får stå`
+        : `${okNu} gator där du får stå nu`;
+      badge.style.display = 'block';
+    }
     // Samma "gäller även moped klass 1"-tillägg som renderModeIntro() – se kommentaren i
     // showSafeStreetsV2Flow för varför detta behövs som ett eget ställe.
     const mcSuffix = vehicleMode === 'mc' ? ' Gäller även moped klass 1.' : '';
@@ -6464,7 +6611,14 @@ function updateWhenChip(mode) {
   const p = MODE_PITCH[mode] || MODE_PITCH.now;
   const cur = document.getElementById('when-current'); if (cur) cur.textContent = WHEN_LABELS[mode] || '';
   const ic  = document.getElementById('when-icon');    if (ic) ic.innerHTML = svgIcon(p.icon);
-  const pt  = document.getElementById('when-pitch');   if (pt) pt.textContent = p.t;
+  // I Framåt-läget är "just nu" en osanning på chippet: bandet säger 19:05 medan chippet
+  // säger "var du får stå just nu". Två påståenden om tid på samma skärm som inte går ihop
+  // (upptäckt när Lars körde middagsscenariot 2026-09-02). Chippet följer därför tiden.
+  const fmin = (typeof KLOCKA !== 'undefined') ? KLOCKA.framatMin() : 0;
+  const pt  = document.getElementById('when-pitch');
+  if (pt) pt.textContent = (mode === 'now' && fmin > 0)
+    ? 'Nu — var du får stå kl ' + KLOCKA.nu().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+    : p.t;
   // Den utförliga förklaringen (fordons-/lägesmedveten) visas inte längre på chippet i vila –
   // bara toppraden (when-pitch) syns där, alltid. Texten flyttar in i "Byt"-menyn i stället,
   // på det AKTIVA lägets rad – fortfarande en tryckning bort, inte borttagen (Lars 2026-08-20).
@@ -7238,7 +7392,12 @@ function vaktStang() {
 function vaktByt()  { if (vaktSvar) vaktSvar.byt(); }
 function vaktAnda() { if (vaktSvar) vaktSvar.andaa(); }
 
-function flyToAndShow(lat, lng) {
+// `utanFlytt` = räkna om för samma destination utan att röra kameran. Används av
+// Framåt-läget: en ändrad TID ska inte flytta kartan. Har man pannat till en gata för
+// att titta på den vore det fel att ryckas tillbaka bara för att man tryckte +30.
+// (Det avslöjade också en skörhet: villkoret nedan kräver mindre än en meters avstånd,
+// och en destination som låg 1 m fel föll igenom till en flygning på nästan noll.)
+function flyToAndShow(lat, lng, utanFlytt = false) {
   // Stadsvakten först – innan kartan hinner flyga till en plats vi inte kan svara om.
   if (!punktIStad(lat, lng, STAD) && !vaktRedanGodkand(lat, lng)) {
     const annan = annanStadForPunkt(lat, lng);
@@ -7283,7 +7442,7 @@ function flyToAndShow(lat, lng) {
   // Redan på plats (t.ex. fordonsbyte på samma destination) → kör flödet direkt, ingen flyTo.
   // Leaflet animerar zoom-transformen även för en flygning på 0 meter → syns som en "skakning".
   const avstand = map.getCenter().distanceTo([lat, lng]);
-  const alreadyThere = map.getZoom() === 15 && avstand < 1;
+  const alreadyThere = utanFlytt || (map.getZoom() === 15 && avstand < 1);
   if (alreadyThere) startFlow();
   else {
     map.once('moveend', startFlow);
@@ -7633,8 +7792,85 @@ function renderModeIntro() {
   hintEl.innerHTML = `<span class="hint-main">${vehicleMode === 'cykel' ? cykelIntro : (intro[currentMode] || intro.uc2) + mcSuffix}</span>` + disclaimer;
 }
 
+// ── FRAMÅT (TEST) ────────────────────────────────────────────────────────────
+// "Jag åker om en halvtimme – hur ser det ut när jag är framme?"
+//
+// Bygger på en MÄTNING, inte på en gissning (2026-09-02): öppningar sker i klump.
+// I Vasastan öppnade 50 sträckor i ett och samma kvartssteg (06:00) och noll i
+// kvarten runt omkring; i Göteborg 19 stycken 10:00. Vid 05:45 öppnade 100 % av alla
+// röda sträckor inom 30 minuter. En nedräknings-etikett per gata hade alltså tänts på
+// nästan allt rött samtidigt – den skiljer inget åt. Informationen är inte per gata,
+// den är per KLOCKSLAG, och då är rätt kontroll en tidpunkt och inte en dekoration.
+//
+// Att flytta hela klockan i stället för att räkna om enskilda gator är också det som
+// gör att BÅDA riktningarna svarar: gator som hunnit öppna blir gröna, och gator som
+// hunnit stängas blir röda. En markering på rött hade bara löst hälften av frågan.
+function settFramat(min) {
+  // Bandet är 50 px högt och äter av kartans yta. Leaflet ankrar då uppe till vänster,
+  // så mitten glider – uppmätt 61 m norrut vid varje på/av (2026-09-02). Att det syns som
+  // ett litet hopp är illa nog; att destinationsnålen samtidigt flyttar sig från mitten är
+  // värre, för det är nålen man tittar på. Vyn låses därför explicit över layoutbytet.
+  const centrumFore = (typeof map !== 'undefined' && map) ? map.getCenter() : null;
+  const zoomFore    = centrumFore ? map.getZoom() : null;
+  KLOCKA.sattFramat(min * 60000);
+  ritaFramatChrome();
+  if (centrumFore) {
+    map.invalidateSize({ pan: false });                       // säg till Leaflet att ytan bytt storlek
+    map.setView(centrumFore, zoomFore, { animate: false });   // och lägg tillbaka vyn exakt
+    // …och en gång till om ytan ändras igen strax efter. Lådan byter höjd när resultatet
+    // landar, alltså EFTER återställningen ovan – uppmätt 1 118 m hopp vid ett byte.
+    // ⚠ Lyssnaren tas bort efter två sekunder med flit: en kvarglömd `once('resize')` hade
+    // legat och väntat, och slagit till vid nästa skärmvändning flera minuter senare –
+    // ett kartryck utan orsak är värre än den drift den skulle rätta.
+    const igen = () => map.setView(centrumFore, zoomFore, { animate: false });
+    map.once('resize', igen);
+    setTimeout(() => map.off('resize', igen), 2000);
+  }
+  // Kör om exakt samma flöde som vanligt. Ingen egen "framtidsrendering" – en parallell
+  // kopia hade glidit isär från den riktiga koden vid nästa ändring (se projektminnet).
+  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng, true);   // samma plats, ny tid
+  else renderModeIntro();
+}
+
+function ritaFramatChrome() {
+  const min = KLOCKA.framatMin();
+  document.querySelectorAll('.framat-opt').forEach(b =>
+    b.classList.toggle('on', +b.dataset.min === min));
+  document.getElementById('app').classList.toggle('framat-aktiv', min > 0);
+  updateWhenChip(currentMode);   // chippet bär klockslaget, se kommentaren där
+  // Rubrikens datum sätts en gång vid start och blev DIREKT FALSKT över midnatt: kl 23:45
+  // + 60 min visade torsdagens karta under rubriken "Onsdag 2 sep" (upptäckt 2026-09-02).
+  // Datumet måste följa den tid kartan visar – annars motsäger appen sig själv på skärmen,
+  // vilket är exakt det bandet finns för att förhindra.
+  const dat = document.getElementById('header-date');
+  if (dat) dat.textContent = fmtDate(KLOCKA.nu());
+  if (min > 0) {
+    const nu = KLOCKA.nu();
+    const kl = nu.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    // Byter DYGNET måste veckodagen stå i bandet. "kl 00:45" utan "torsdag" läses som
+    // ikväll, och städscheman skiljer sig kraftigt mellan veckodagar – att tro att man
+    // ser onsdag när kartan visar torsdag är ett dyrt misstag.
+    const annanDag = nu.toDateString() !== KLOCKA.nuUtanFramat().toDateString();
+    const dag = annanDag ? ' · ' + nu.toLocaleDateString('sv-SE', { weekday: 'long' }) : '';
+    // Klockslaget bär informationen, underraden bär varningen. "kl 06:15" är det man
+    // ska ta med sig ut i bilen – inte "+30", som bara är hur man kom hit.
+    document.getElementById('framat-band-kl').textContent  = `Kartan visar kl ${kl}${dag}`;
+    document.getElementById('framat-band-sub').textContent = `om ${min} minuter – inte läget just nu`;
+  }
+}
+
+// Kontrollen hör bara hemma i Nu-läget (se markupen för varför).
+function framatSynlighet(mode) {
+  document.getElementById('mode-row').classList.toggle('framat-pa', mode === 'now');
+}
+
 function setMode(mode) {
   currentMode = mode;
+  // Ett lägesbyte nollställer tidsförskjutningen. Att bära med sig en framtid in i ett
+  // annat läge är ett tillstånd ingen har bett om och få skulle upptäcka.
+  KLOCKA.sattFramat(0);
+  framatSynlighet(mode);
+  ritaFramatChrome();
   const app = document.getElementById('app');
   const inp = document.getElementById('search-input');
 
