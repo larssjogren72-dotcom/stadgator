@@ -27,6 +27,29 @@ const TAXA = {
 };
 const SEASON = '1 november–15 maj';
 
+// ── Framåt-läget (v1.24.0) ────────────────────────────────────────────────────
+// EN källa för texten, återanvänd på varje sida som bär den. Skrivs den av för hand
+// per sida glider städerna isär vid nästa ändring, och då säger sajten två olika
+// saker om samma funktion (regel 13 i arbetssättet: sekundärtext synkas aldrig själv).
+//
+// Klockslagen är MÄTTA, inte antagna: Stockholms kvällsöppningar sker kl 19 och
+// Göteborgs kl 18, och de sker i klump – 50 sträckor i ett enda kvartssteg i Vasastan,
+// 19 i Göteborg. Det är hela skälet till att funktionen är en tidpunkt och inte en
+// nedräkning per gata.
+const FRAMAT_KL = { stockholm: '19', goteborg: '18' };
+function framatFaq(stad = 'stockholm') {
+  const kl = FRAMAT_KL[stad];
+  return {
+    q: 'Kan jag se hur parkeringen ser ut när jag kommer fram?',
+    a: 'Ja. Välj <b>+30 min</b> eller <b>+60 min</b> i appen, så visar kartan hela läget som det '
+     + 'blir vid framkomsten i stället för som det är nu. Gator där städningen eller lastplatsen '
+     + 'hunnit ta slut blir gröna och lyser upp, och gator som hunnit stängas blir röda. '
+     + 'Användbart när du ska in till stan och vill tajma en gata som släpper – många öppnar '
+     + 'samtidigt kl ' + kl + ', så en halvtimme kan ändra hela kartan. Ett rött band överst '
+     + 'visar vilket klockslag kartan gäller för. Kontrollera alltid skylten på plats.'
+  };
+}
+
 // ── Stadsdelar (kurerat: zon, läge, säsong, distrikt-matchning för live-widget) ──
 const DISTRICTS = [
   { slug:'sodermalm', name:'Södermalm', lat:59.3145, lng:18.0732, area:'inner', taxa:[2,3], match:['Södermalm','Reimersholme'], seasonal:false },
@@ -266,11 +289,58 @@ function garageSection(d, lat, lng) {
 
 // ── Sidtyper ─────────────────────────────────────────────────────────────────
 const pages = [];
+const rakn = { andrade: 0, oforandrade: 0 };   // vad som faktiskt hände i den här körningen
+// `lastmod` i sitemap betyder "den här sidan har ändrats". Tidigare stämplades dagens
+// datum på ALLA 225 sidor vid varje bygge – även de 220 som var byte-identiska. Det är
+// inte bara slöseri: Google slutar lita på signalen från en sajt som påstår att allt ändras
+// varje gång, och då förlorar de sidor som FAKTISKT ändrats sin knuff.
+//
+// Nu jämförs den nygenererade sidan med den som redan ligger på disk:
+//   identisk  → behåll det gamla datumet ur pages.json (sidan har inte ändrats)
+//   ändrad    → dagens datum
+// Saknas tidigare datum (ny sida) blir det också dagens, vilket är sant.
+const TIDIGARE_LASTMOD = (function () {
+  try {
+    const gammal = JSON.parse(fs.readFileSync(path.join(__dirname, 'pages.json'), 'utf8'));
+    return new Map(gammal.map(x => [x.loc, x.lastmod]));
+  } catch (e) { return new Map(); }   // första bygget, eller trasig fil – allt blir dagens
+})();
+
+// ⚠ KOPIAN MÅSTE TAS HÄR, INTE I emit(). Bygget tömmer hela seo/site längre ner
+// (fs.rmSync), så när emit körs finns ingen tidigare fil kvar att jämföra med – ett
+// försök att läsa från disk där svarar alltid "fanns inte", och då stämplas varenda
+// sida som ändrad igen. Modulen körs uppifrån och ner, så den här raden hinner före.
+const TIDIGARE_HTML = (function () {
+  const ut = new Map();
+  const gaIgenom = katalog => {
+    let poster = [];
+    try { poster = fs.readdirSync(katalog, { withFileTypes: true }); } catch (e) { return; }
+    for (const post of poster) {
+      const full = path.join(katalog, post.name);
+      if (post.isDirectory()) gaIgenom(full);
+      else if (post.name.endsWith('.html')) {
+        const slug = path.relative(OUT, full).replace(/\\/g, '/').replace(/\.html$/, '');
+        try { ut.set(slug, fs.readFileSync(full, 'utf8')); } catch (e) {}
+      }
+    }
+  };
+  gaIgenom(OUT);
+  return ut;
+})();
+
 function emit(slug, html) {
   const file = path.join(OUT, slug + '.html');
   fs.mkdirSync(path.dirname(file), { recursive: true });
+  const loc = `${SITE}/${slug}`;
+  // Vagnretur bort före jämförelsen: git skriver arbetsträdet med CRLF på Windows
+  // medan generatorn skriver LF. En rå strängjämförelse såg då skillnad på ALLA 225
+  // sidor, och hela poängen med kontrollen föll (uppmätt 2026-09-03).
+  const utanCR = t => t == null ? null : t.split(String.fromCharCode(13)).join('');
+  const fore = TIDIGARE_HTML.has(slug) ? TIDIGARE_HTML.get(slug) : null;
+  const oforandrad = fore != null && utanCR(fore) === utanCR(html);
   fs.writeFileSync(file, html);
-  pages.push({ loc: `${SITE}/${slug}`, lastmod: TODAY });
+  if (oforandrad) rakn.oforandrade++; else rakn.andrade++;
+  pages.push({ loc, lastmod: (oforandrad && TIDIGARE_LASTMOD.get(loc)) || TODAY });
 }
 
 function districtHub(d) {
@@ -606,6 +676,7 @@ function pillarStadgator() {
     { q:`Hur vet jag vilka gator som städas imorgon?`, a:`ParkSpot visar morgondagens städgator live på kartan, säsongsjusterat.` },
     { q:`Varför står det att en gata inte städas fast skylten säger städdag?`, a:`Troligen säsong: gatan städas bara ${SEASON}. Utanför den perioden gäller den inte. Kontrollera alltid skylten.` },
     { q:`Vad kostar en felparkering på en städgata?`, a:`Böter (kontrollavgift) och risk för bogsering. Det lönar sig att kolla först.` },
+    framatFaq('stockholm'),
   ];
   const related = [
     { href:`parkering-over-natten-stockholm`, text:`Parkera över natten i Stockholm` },
@@ -631,6 +702,7 @@ function pillarOverNatten() {
     { q:`Var får man parkera över natten i Stockholm?`, a:`På gator utan städning imorgon och utan förbud. ParkSpot visar dem gröna i läget "Över natten".` },
     { q:`Är det gratis att parkera på natten i Stockholm?`, a:`Ofta avgiftsfritt nattetid utanför taxetiden, särskilt i lägre zoner. Kontrollera skylten.` },
     { q:`Hur undviker jag bogsering på morgonen?`, a:`Stå inte på en gata som städas imorgon bitti. ParkSpot filtrerar bort morgondagens städgator (säsongssmart).` },
+    framatFaq('stockholm'),
   ];
   const related = [
     { href:`stadgator-stockholm`, text:`Städgator i Stockholm` },
@@ -902,6 +974,7 @@ function aboutPage() {
     <ul>
       <li><b>Städdagar per gata</b> – se exakt vilken veckodag och tid en specifik gata servas, säsongsjusterat.</li>
       <li><b>Två lägen</b> – Nu (inklusive vad som händer snart) och Över natten – anpassat efter när du parkerar.</li>
+      <li><b>Framme om 30 eller 60 minuter</b> – se kartan som den blir när du är framme, inte som den är nu. Gator som hunnit öppna lyser upp, gator som hunnit stängas blir röda.</li>
       <li><b>Fyra fordonstyper</b> – bil, motorcykel (även moped klass 1), cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd, varje med egna platser och regler.</li>
       <li><b>Pris innan du parkerar</b> – taxazonen visas direkt på kartan.</li>
       <li><b>Ingen inloggning, inga konton – helt gratis.</b></li>
@@ -918,6 +991,7 @@ function aboutPage() {
     { q:'Vilken data bygger ParkSpot på?', a:'Stockholms stads öppna data: parkeringsregler, servicedagar (städdagar) och taxazoner. Kontrollera alltid skylten på plats.' },
     { q:'Vad skiljer ParkSpot från EasyPark och Parkster?', a:'De är betal-appar för själva avgiften. ParkSpot visar i stället VAR du får stå lagligt, vad det kostar och när det städas – du betalar som vanligt via din vanliga app.' },
     { q:'Täcker ParkSpot hela Stockholm?', a:'ParkSpot täcker Stockholms stad där öppna data finns – från innerstaden (Taxa 1–2) till ytterområden (Taxa 4–5).' },
+    framatFaq('stockholm'),
   ];
   const related = [
     { href:'parkeringstaxor-stockholm', text:'Stockholms parkeringstaxor (Taxa 1–5)' },
@@ -1017,6 +1091,7 @@ function gbgStadgator() {
     { q:'Hur vet jag om det är jämn eller udda vecka?', a:'ParkSpot räknar ut veckonumret enligt svensk standard och visar bara den städning som gäller. På platskortet står det till exempel «Servas onsdagar 09–12 udda veckor».' },
     { q:'Gäller boendetillstånd under städningen?', a:'Nej. Är parkering förbjuden en viss tid för städning gäller inte boendetillståndet under den tiden – det står uttryckligen i Göteborgs föreskrift om boendeparkering.' },
     { q:'Städas alla gator i Göteborg?', a:'Nej. Registret innehåller cirka 470 gator med städdagar. En gata utan städuppgift kan ändå ha en skylt – kontrollera på plats.' },
+    framatFaq('goteborg'),
   ];
   emit('stadgator-goteborg', layout({
     slug:'stadgator-goteborg', title:'Städdagar i Göteborg – jämna och udda veckor | ParkSpot',
@@ -1045,6 +1120,7 @@ function gbgBoende() {
     { q:'Får jag parkera på en boendeparkering utan tillstånd?', a:'Ja, men bara så länge skyltens tidsgräns säger. Boendetillståndet är ett undantag från den gränsen för den som har det – inte ett förbud för övriga.' },
     { q:'Vad betyder n i till exempel M4n?', a:'Att tillståndet bara gäller kvällar och nätter, ungefär 18–09, samt från klockan 15 dagen före sön- och helgdag. Dagtid gäller platsens vanliga tidsgräns även för boende.' },
     { q:'Hur länge får jag stå med tillstånd?', a:'Högst 14 dygn i följd på samma plats.' },
+    framatFaq('goteborg'),
   ];
   emit('boendeparkering-goteborg', layout({
     slug:'boendeparkering-goteborg', title:'Boendeparkering i Göteborg – zoner, regler och n-suffixet | ParkSpot',
@@ -1119,4 +1195,8 @@ GBG_OMR.forEach(gbgOmrade);
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);
-console.log(`[seo] pages.json uppdaterad (för sitemap)`);
+// Räkna ut hur många sidor som faktiskt ändrades. Utan den här raden märker man inte
+// att lastmod-kontrollen slutat fungera – den felar tyst genom att stämpla allt som nytt,
+// vilket är exakt det beteende den skulle ta bort.
+console.log(`[seo] pages.json uppdaterad – ${rakn.andrade} sida(or) ändrades och fick dagens `
+          + `lastmod, ${rakn.oforandrade} var oförändrade och behöll sitt datum`);
