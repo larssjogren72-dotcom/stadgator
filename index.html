@@ -807,13 +807,16 @@
        en vald-markering i grått hittas inte, det är mätt två gånger i det här projektet. */
     .framat-opt.on { background: var(--accent); color: #fff; }
 
-    /* Bandet. Mörk skiffer med flit: varenda annan stark färg i appen BETYDER något på
-       kartan (grön=får stå, gul=snart, röd=förbjudet, blå=tidsgräns, lila=annat fordon,
-       rosa=gågata). En sjätte signalfärg hade lagt sig i samma kanal som kartans språk.
-       Mörkt läses som "appens ram", inte som "en sorts parkering". */
+    /* Bandet är RÖTT (Lars beslut 2026-09-02, ändrat från mörk skiffer).
+       Invändningen mot rött var att kulören betyder "får inte stå" på kartan. Den väger
+       lättare än argumentet för: appen har redan ett rött band för `?debugtid=`, alltså
+       betyder rött HÄR UPPE redan "det här är inte verklig tid". Att använda två olika
+       färger för samma budskap hade lärt ut två språk. Bandet ligger dessutom i appens ram,
+       inte på kartan, så det konkurrerar aldrig med en gatas färg i blicken.
+       Samma röda som SIMULERAD TID-badgen (#dc2626) – med flit, inte av en slump. */
     #framat-band {
       display: none; align-items: center; gap: 12px;
-      background: #0f172a; color: #fff; padding: 9px 14px;
+      background: #dc2626; color: #fff; padding: 9px 14px;
       font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
       flex-shrink: 0; letter-spacing: .01em;
     }
@@ -824,14 +827,20 @@
        samma tyngd och blev dessutom avklippt på mobil. */
     #framat-band-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
     #framat-band-kl  { font-size: 13.5px; font-weight: 700; color: #fff; }
-    #framat-band-sub { font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.72); }
+    /* Underraden ljusare än på den mörka bakgrunden: 0,72 vitt mot rött blir grumligt
+       rosa och tappar läsbarhet, och det är just den raden som bär varningen. */
+    #framat-band-sub { font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.88); }
+    /* Vit fylld knapp på det röda, inte en genomskinlig kontur: vägen tillbaka till
+       verkligheten ska vara den tydligaste tryckytan i bandet. En 14 %-transparent knapp
+       på rött var nätt och jämnt synlig – samma miss som gjorts två gånger förut i
+       projektet, se minnet om affordans. */
     #framat-tillbaka {
-      flex: none; background: rgba(255,255,255,0.14); color: #fff;
-      border: 1px solid rgba(255,255,255,0.28); border-radius: 8px;
-      padding: 6px 11px; font-family: inherit; font-size: 12.5px; font-weight: 600;
+      flex: none; background: #ffffff; color: #b91c1c;
+      border: none; border-radius: 8px;
+      padding: 7px 12px; font-family: inherit; font-size: 12.5px; font-weight: 700;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
-    #framat-tillbaka:active { background: rgba(255,255,255,0.26); }
+    #framat-tillbaka:active { background: rgba(255,255,255,0.82); }
     #when-icon svg { width: 19px; height: 19px; color: var(--accent); display: block; }
     .when-main { flex: 1; min-width: 0; }
     #when-pitch { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
@@ -6602,7 +6611,14 @@ function updateWhenChip(mode) {
   const p = MODE_PITCH[mode] || MODE_PITCH.now;
   const cur = document.getElementById('when-current'); if (cur) cur.textContent = WHEN_LABELS[mode] || '';
   const ic  = document.getElementById('when-icon');    if (ic) ic.innerHTML = svgIcon(p.icon);
-  const pt  = document.getElementById('when-pitch');   if (pt) pt.textContent = p.t;
+  // I Framåt-läget är "just nu" en osanning på chippet: bandet säger 19:05 medan chippet
+  // säger "var du får stå just nu". Två påståenden om tid på samma skärm som inte går ihop
+  // (upptäckt när Lars körde middagsscenariot 2026-09-02). Chippet följer därför tiden.
+  const fmin = (typeof KLOCKA !== 'undefined') ? KLOCKA.framatMin() : 0;
+  const pt  = document.getElementById('when-pitch');
+  if (pt) pt.textContent = (mode === 'now' && fmin > 0)
+    ? 'Nu — var du får stå kl ' + KLOCKA.nu().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+    : p.t;
   // Den utförliga förklaringen (fordons-/lägesmedveten) visas inte längre på chippet i vila –
   // bara toppraden (when-pitch) syns där, alltid. Texten flyttar in i "Byt"-menyn i stället,
   // på det AKTIVA lägets rad – fortfarande en tryckning bort, inte borttagen (Lars 2026-08-20).
@@ -7821,6 +7837,7 @@ function ritaFramatChrome() {
   document.querySelectorAll('.framat-opt').forEach(b =>
     b.classList.toggle('on', +b.dataset.min === min));
   document.getElementById('app').classList.toggle('framat-aktiv', min > 0);
+  updateWhenChip(currentMode);   // chippet bär klockslaget, se kommentaren där
   // Rubrikens datum sätts en gång vid start och blev DIREKT FALSKT över midnatt: kl 23:45
   // + 60 min visade torsdagens karta under rubriken "Onsdag 2 sep" (upptäckt 2026-09-02).
   // Datumet måste följa den tid kartan visar – annars motsäger appen sig själv på skärmen,
