@@ -312,8 +312,8 @@
     <p class="lede">Servern översätter, klienten resonerar. Varje stad får sina data omformade till samma form som Stockholms redan hade — sedan kör exakt samma regelmotor på allt.</p>
     <div class="stamp">
       <span data-kod="version_text">Live: v1.23.0 · parkspot.se</span>
-      <span data-kod="datum_text">Beskriver koden 2 sep 2026</span>
-      <span data-kod="alla_rader_text">9 858 rader i fyra filer</span>
+      <span data-kod="datum_text">Beskriver koden 3 sep 2026</span>
+      <span data-kod="alla_rader_text">9 885 rader i fyra filer</span>
     </div>
   </header>
 
@@ -340,7 +340,7 @@
           <text class="d-t" x="105" y="200" text-anchor="middle">Webbläsaren</text>
           <text class="d-m" x="105" y="221" text-anchor="middle">index.html</text>
           <text class="d-s" x="105" y="243" text-anchor="middle">all logik · all färg</text>
-          <text class="d-m" x="105" y="266" text-anchor="middle" data-kod="index_rader_text">7 919 rader</text>
+          <text class="d-m" x="105" y="266" text-anchor="middle" data-kod="index_rader_text">7 946 rader</text>
 
           <!-- Fråga in -->
           <line class="d-line" x1="194" y1="228" x2="284" y2="228" marker-end="url(#ar)"></line>
@@ -459,7 +459,7 @@
 
     <div class="pair">
       <div class="card">
-        <h3>Förslag <span class="where" data-kod="rad_fetchSuggestions">fetchSuggestions() · rad 7346</span></h3>
+        <h3>Förslag <span class="where" data-kod="rad_fetchSuggestions">fetchSuggestions() · rad 7373</span></h3>
         <p>Photon, medan man skriver. Faller den, fungerar sökknappen fortfarande.</p>
         <pre>photon.komoot.io/api/
   ?q=chalm
@@ -468,7 +468,7 @@
       </div>
 
       <div class="card">
-        <h3>Uppslag <span class="where" data-kod="rad_searchStreet">searchStreet() · rad 7277</span></h3>
+        <h3>Uppslag <span class="where" data-kod="rad_searchStreet">searchStreet() · rad 7304</span></h3>
         <p>Nominatim, när man tryckt på förstoringsglaset. Faller den, fungerar förslagen fortfarande.</p>
         <pre>nominatim.openstreetmap.org
   ?q=Chalmersgatan
@@ -498,7 +498,7 @@
     <p><strong>Ett filter får aldrig radera hela svaret i tysthet.</strong> Tar kommunfiltret bort allt medan tjänsten faktiskt svarade med träffar, visas träffarna ändå. Hellre ett förslag i grannkommunen — raden bär sin kommun, och vakten nedan fångar den om man väljer den — än en död sökruta.</p>
 
     <h3 style="margin-top:1rem">Stadsvakten</h3>
-    <p><code>flyToAndShow()</code> (<span data-kod="rad_flyToAndShow">rad 7214</span>) är den enda väg <em>alla</em> destinationer delar: sökknappen, ett valt förslag, hemknappen, GPS-punkten och ett klick på kartan. Därför ligger kontrollen där och ingen annanstans. Ligger destinationen i en av våra andra städer ställs frågan i stället för att en tom karta ritas — <strong>tomt betyder «vi vet inget» i appen, inte «här finns inget».</strong></p>
+    <p><code>flyToAndShow()</code> (<span data-kod="rad_flyToAndShow">rad 7241</span>) är den enda väg <em>alla</em> destinationer delar: sökknappen, ett valt förslag, hemknappen, GPS-punkten och ett klick på kartan. Därför ligger kontrollen där och ingen annanstans. Ligger destinationen i en av våra andra städer ställs frågan i stället för att en tom karta ritas — <strong>tomt betyder «vi vet inget» i appen, inte «här finns inget».</strong></p>
     <p>Destinationen följer med över omladdningen i <code>sessionStorage</code>, <em>inte</em> i URL:en: en sökt adress ska inte nå webbstatistiken eller följa med i en delad länk.</p>
     <p class="key">Stadsläget visar staden. Kartan flyttar sig aldrig till användarens GPS-position av sig själv — väljer man Göteborg ser man Göteborg, även från ett tåg i Norrland. Den blå punkten ritas, men flyttar inte kartan.</p>
   </section>
@@ -535,8 +535,8 @@
 
     <figure>
       <div class="figbox">
-        <svg viewBox="0 0 760 208" role="img" data-kod-aria="delning" aria-label="Av 9 858 rader kod är 8 708 delad grund och 1 150 stadsspecifika: 136 rader konfiguration i klienten plus 1 014 rader adaptrar på servern. Den stadsspecifika delen innehåller bara översättning, inga regler.">
-          <text class="d-s" x="40" y="44" data-kod="delad_text">Delad grund · 8 708 rader · 88 %</text>
+        <svg viewBox="0 0 760 208" role="img" data-kod-aria="delning" aria-label="Av 9 885 rader kod är 8 735 delad grund och 1 150 stadsspecifika: 136 rader konfiguration i klienten plus 1 014 rader adaptrar på servern. Den stadsspecifika delen innehåller bara översättning, inga regler.">
+          <text class="d-s" x="40" y="44" data-kod="delad_text">Delad grund · 8 735 rader · 88 %</text>
           <text class="d-s d-city-t" x="720" y="44" text-anchor="end" data-kod="stadsspec_text">Per stad · 1 150 rader · 12 %</text>
 
           <rect class="d-box" x="40" y="56" width="601" height="46" rx="2" data-kod-geom="delad_stapel"></rect>
@@ -549,7 +549,7 @@
           <text class="d-s d-city-t" x="720" y="168" text-anchor="end">bara översättning — inga regler</text>
 
           <line class="d-lead" x1="40" y1="188" x2="720" y2="188"></line>
-          <text class="d-m" x="40" y="204" data-kod="stadsfragor_text">1 av 7 919 rader i klienten frågar vilken stad det är</text>
+          <text class="d-m" x="40" y="204" data-kod="stadsfragor_text">1 av 7 946 rader i klienten frågar vilken stad det är</text>
         </svg>
       </div>
       <figcaption>Måttet på hur väl gränsen håller: <span data-kod="stadsfragor_mening">i hela <code>index.html</code> frågar en enda rad vilken stad det är, och den sitter inte i regelmotorn utan i dela-länken, som måste veta staden för att kunna bygga adressen</span>. Att den stadsspecifika koden ändå är <span data-kod="stadsspec_rader_text">1 150 rader</span> beror på att översättning tar plats; det är rader utan beslut i sig.</figcaption>
@@ -657,7 +657,7 @@
         <span>Konfigurationen ligger i <code>index.html</code>, adaptern på servern. De måste hållas i takt för hand, och inget larmar om de glider isär.</span>
       </div>
       <div>
-        <b data-kod="index_en_fil_text">index.html är 7 919 rader i en fil.</b>
+        <b data-kod="index_en_fil_text">index.html är 7 946 rader i en fil.</b>
         <span>Det fungerar, men gränsen mellan grunden och det stadsspecifika hålls uppe av disciplin, inte av filgränser. Inget hindrar att en stadsspecifik <code>if</code> smyger sig in i regelmotorn.</span>
       </div>
       <div>
@@ -668,7 +668,7 @@
   </section>
 
   <footer>
-    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 2 september 2026 · index.html 7 919 rader · server.js 925 · cities/goteborg.js 582 · cities/sundbyberg.js 432</span><br>
+    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 3 september 2026 · index.html 7 946 rader · server.js 925 · cities/goteborg.js 582 · cities/sundbyberg.js 432</span><br>
     Siffrorna och radhänvisningarna på sidan skrivs av <code>verktyg/kodpekare.js</code> — ändra dem inte för hand.<br>
     Källa: <code>docs/arkitektur.html</code> i repot — ändra där, publicera om till samma adress
   </footer>

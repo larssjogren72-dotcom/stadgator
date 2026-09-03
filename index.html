@@ -5923,6 +5923,33 @@ function forbudTogNyssSlut(s, now) {
   // Uppmätt vid Liljeholmsvägen 2026-08-29 18:07: 47 av 48 lysande sträckor i vyn var
   // sådana. Kommentaren nedan sa redan att det INTE får hända; koden kontrollerade det inte.
   if (!s.andamal) return null;
+  // ── Göteborg: fönstret ligger som MENING, inte som fält ───────────────────
+  // `andamalStart`/`andamalEnd` är null på varje Göteborgspost – tiderna står i prosa i
+  // `andamalVillkor` ("… klockan 06.00 - 18.00 …"). Utan den här grenen föll funktionen
+  // igenom på null-vakten nedan, och glöden tändes ALDRIG i Göteborg. Uppmätt 2026-09-02
+  // kring Linnégatan: elva lastplatser öppnade kl 18 (röda 15 → 4) och kartan sa bara
+  // "Får stå nu" – ingen glöd, ingen infotext. Färgen blev ändå rätt röd under fönstret,
+  // eftersom `andamalActiveAt` och `andamalSlutNu` redan har exakt den här grenen. Det var
+  // bara glöden som saknade den.
+  //
+  // Tabellvägen rör BARA lastplatser (uppslag på hela meningen), så vakten ovan och den
+  // fälla den skyddar mot – taxans START_TIME/END_TIME som lyste 47 av 48 sträckor falskt
+  // vid Liljeholmsvägen – berörs inte alls här.
+  if (s.andamalVillkor) {
+    const fonster = gbgLastplatsFonster(s.andamalVillkor, now);
+    if (fonster && fonster.length) {
+      const min = h => Math.floor(h / 100) * 60 + (h % 100);
+      const nu  = now.getHours() * 60 + now.getMinutes();
+      // Flera fönster kan gälla samma dag. Det som tog slut SENAST svarar på "öppnade när?".
+      let narmast = null;
+      for (const w of fonster) {
+        const sedan = nu - min(w.end);
+        if (sedan >= 0 && sedan < SENASTE_H * 60 && (narmast === null || sedan < narmast.sedan))
+          narmast = { slut: w.end, sedan };
+      }
+      return narmast ? narmast.slut : null;
+    }
+  }
   const start = s.andamalStart, slut = s.andamalEnd;
   if (start == null || slut == null || start >= slut) return null;
   // Gällde restriktionen alls idag? Samma dagtolkning som andamalActiveAt använder.
