@@ -2652,8 +2652,37 @@ function scheduleText(schedule) {
     });
     return parts;
   };
-  const aktiva  = grupp(schedule.filter(x => !x.vilande));
-  const vilande = grupp(schedule.filter(x =>  x.vilande));
+  // ── Datum i månaden (Malmö) ────────────────────────────────────────────────
+  // Rader med `monthDay` i stället för `day`. Grupperas på samma sätt – samma
+  // tidsfönster slås ihop – men skrivs som datum: «den 11:e & 23:e varje månad 12–16».
+  // Ordningstalet böjs som Malmö själv skriver det i föreskriften: 1:a, 2:a, 21:a,
+  // 22:a men 11:e, 12:e och alla andra :e. Att skriva «den 21:e» hade sett ut som
+  // ett stavfel bredvid kommunens egen skylt.
+  const ordningstal = n => {
+    const t = n % 10, h = n % 100;
+    return n + ((t === 1 || t === 2) && h !== 11 && h !== 12 ? ':a' : ':e');
+  };
+  const gruppManad = (rader) => {
+    const byWin = new Map();                     // "start_end" → [datum]
+    rader.forEach(x => {
+      if (x.s == null || x.monthDay == null) return;
+      const k = x.s + '_' + x.e;
+      if (!byWin.has(k)) byWin.set(k, []);
+      byWin.get(k).push(+x.monthDay);
+    });
+    const parts = [];
+    byWin.forEach((dagar, k) => {
+      const [s, e] = k.split('_').map(Number);
+      const ds = [...new Set(dagar)].sort((a, b) => a - b).map(ordningstal);
+      const dl = ds.length === 1 ? ds[0] : ds.slice(0, -1).join(', ') + ' & ' + ds.slice(-1);
+      parts.push(`den ${dl} varje månad ${fmtClock(s)}–${fmtClock(e)}`);
+    });
+    return parts;
+  };
+  const arManad  = x => x.monthDay != null;
+  const aktiva   = grupp(schedule.filter(x => !x.vilande && !arManad(x)))
+             .concat(gruppManad(schedule.filter(x => !x.vilande && arManad(x))));
+  const vilande = grupp(schedule.filter(x =>  x.vilande && !arManad(x)));
 
   if (aktiva.length) {
     // Aktivt schema vinner raden. Ett vilande schema bredvid nämns inte – det är brus när
@@ -5621,6 +5650,24 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 // Säsongskoll per gata: är städposten aktiv på datumet? (58% av datan är säsong,
 // mest vinter 1/11–15/5 i ytterstaden.) Saknar START_MONTH → året runt → alltid aktiv.
 function cleaningActiveOn(p, date) {
+  // ── DATUM I MÅNADEN (Malmö) ────────────────────────────────────────────────
+  // Malmö städar inte på veckodag utan på datum: «Parkering förbjuden klockan
+  // 18.00–22.00 den 23:e i månaden». Kommunen kallar det miljöparkering, och
+  // adaptern lägger datumet i MONTH_DAY (se cities/malmo.js).
+  //
+  // Grinden ligger HÄR och ingen annanstans med flit: de tre konsumenterna
+  // (buildCleaningMatcher för idag, buildNextCleaningLookup för imorgon och
+  // buildNextCleaningWeek för veckan framåt) frågar alla den här funktionen med
+  // ett konkret datum. En grind räcker därför för hela städflödet.
+  //
+  // Städer utan fältet är helt opåverkade: MONTH_DAY är undefined och testet
+  // hoppas över innan något annat hinner ändras.
+  //
+  // ⚠️ Eftersom den 23:e infaller på olika veckodag varje månad levererar Malmös
+  // adapter SAMMA städposter i alla sju dagsfacken. Det är datumet som avgör,
+  // aldrig facket – den som någon gång filtrerar per veckodag längre upp i kedjan
+  // måste veta det.
+  if (p.MONTH_DAY != null && date.getDate() !== +p.MONTH_DAY) return false;
   // Veckoparitet FÖRE säsongen, med flit: 1 527 av Göteborgs 2 002 städposter saknar
   // säsong men HAR jämn/udda-vecka. Låg testet efter raden nedan skulle de returnera
   // true direkt och paritetsvillkoret aldrig prövas – tyst fel varannan vecka.
@@ -5975,7 +6022,13 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
     // nästa tillfälle är nästa onsdag = i+7. Med i<=6 blev svaret felaktigt "ingen städning den
     // närmaste veckan" samtidigt som schemaraden bredvid sa "Servas onsdagar 00–06". Uppmätt på
     // Ynglingagatan.
-    for (let i = 0; i <= 7; i++) {
+    // Framåt får staden sätta horisonten; BAKÅT står den kvar på 7 dygn. Skälet är att
+    // "nyss städad" ändå kapas av SENASTE_H (timmar) hos anroparen – att leta en månad
+    // bakåt hade bara kostat varv utan att kunna ändra ett enda svar.
+    // Malmö städar en gång i månaden: med 7 dygn hade kortet svarat "ingen städning de
+    // närmaste 8 dygnen" tre veckor av fyra, trots att datumet är känt exakt.
+    const tak_i = bakat ? 7 : (STAD.stadHorisontDagar || 7);
+    for (let i = 0; i <= tak_i; i++) {
       const dat = new Date(now); dat.setDate(now.getDate() + (bakat ? -i : i));
       const kand = perDag[dat.getDay()].get(name);
       if (!kand) continue;
@@ -6003,7 +6056,7 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
 // till dess: maxtid (MAX_HOURS/MINUTES/DAYS) läses ännu inte, så ett "håller till"-påstående
 // vore för generöst. Den formuleringen kan användas först när maxtid är inbyggd.
 function nastaStadTxt(n, now) {
-  if (!n) return 'Ingen städning de närmaste 8 dygnen';
+  if (!n) return `Ingen städning de närmaste ${(STAD.stadHorisontDagar || 7) + 1} dygnen`;
   const h = (n.when - now) / 3600000;
   // ⚠ NEDRÄKNING BARA INOM ETT DYGN. Båda måtten på "om N dygn" ljuger åt var sitt håll,
   // och felet syns först när två sådana rader står bredvid varandra i samma kort
@@ -6016,7 +6069,11 @@ function nastaStadTxt(n, now) {
   const om = h < 1  ? ` · om ${Math.max(1, Math.round(h * 60))} min`
            : h < 24 ? ` · om ${Math.round(h)} tim`
            : '';
+  // Bortom en vecka duger inte veckodagen: "på fredag" om 26 dygn läses som DENNA fredag.
+  // Då skrivs datumet i stället. Gränsen är 7 och inte lägre för att Stockholm och
+  // Göteborg aldrig kan nå hit – deras horisont ÄR 7 dygn, så deras rader är oförändrade.
   const nar = n.dagar === 0 ? 'i dag' : n.dagar === 1 ? 'i morgon'
+            : n.dagar > 7   ? `den ${n.when.getDate()} ${SV_MAN_KORT[n.when.getMonth()]}`
             : 'på ' + SV_DAYS[n.when.getDay()].toLowerCase();
   // Alltid HH:MM här. fmtClock ger "00" för midnatt, vilket läser fel i en lös tidsangivelse
   // ("på fredag 00") även om det fungerar i ett intervall ("00–06").
