@@ -20,6 +20,12 @@ lagligt i tre lägen: **Nu / I kväll / Över natten**, + parkeringshus som sist
 - Bygg lokalt → testa → **committa lokalt** → **pusha till Railway endast på explicit "pusha"**.
 - Railway deployar från GitHub `master`. Live-deploy = Lars beslut.
 - SEO byggdes additivt (rör ej app-routes); appen (index.html) ska aldrig brytas av sidoprojekt.
+- **Versionsbump per arbetsbunt, och tagga den.** Föreslå CHANGELOG + `package.json` proaktivt
+  per tema, inte efter trettio committar. Vid varje bump: annoterad tagg på versionscommitten
+  (`git tag -a v1.25.0 <sha> -m "v1.25.0 - kort rubrik"`, ASCII i meddelandet som de gamla
+  taggarna) och `git push origin <tagg>`. Infört 2026-09-04 efter att taggarna släpat efter
+  CHANGELOG med tjugo releaser — SHA:t är facit, men utan tagg går en användarrapport mot
+  "v1.19.0" inte att checka ut.
 
 ## Datafakta att minnas (annars blir analyser fel)
 - ⚠️ **Koordinatsystem:** WFS/P_TILLATEN/P_FORBUD = **SWEREF99** (EPSG:3011, meter, abs>1000).
