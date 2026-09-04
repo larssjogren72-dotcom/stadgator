@@ -14,6 +14,49 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.25.1 – 2026-09-04
+**En 30-minutersruta låg grön, och lovades trygg över natten.**
+
+Lars fotograferade skylten vid Klädesvägen på Brommaplan: *P · 30 min 7–19 (8–16) 8–14 ·
+Avgift 7–19 Taxa 5 · ⛔ Övrig tid.* Appen målade den grön. I Natt-läget stod det dessutom
+"Trygg över natten" — på en ruta där skylten säger förbud nattetid.
+
+Posten i registret (`0180 2024-01525`) har rätt platstyp, rätt klockslag och rätt taxa. Men
+både tidsgränsen och meterangivelsen är tomma, och det var meterangivelsen appen lyssnade på.
+Den blå varningen krävde att `VF_METER` fanns och var högst 30 meter — alltså att fickan var
+kort *nog att gissa* att den är en korttidsplats. Utan den siffran fanns ingen signal.
+
+**Antagandet som brast** stod i våra egna regler: *"normala besöksrutor har VF_METER/VF_PLATSER
+null → behandlas som trygga"*. Klädesvägen har båda tomma **och** är en 30-minutersruta. Tomt
+betydde "vi vet inte", inte "ingen gräns" — samma inversion som playbooken varnar för när en
+ny stad ansluts, fast den satt i Stockholm hela tiden.
+
+**En rättelse på köpet:** tidsgränsen är null i Minneberg också, på alla sex besöksposter.
+Vi "ser" alltså aldrig 30 minuter någonstans. Minneberg blev blått för att en *längd i meter*
+råkade vara ifylld och användes som ställföreträdare för en kort tid. Skillnaden mellan
+platserna var aldrig känd gräns mot okänd gräns, utan ställföreträdare mot ingenting.
+
+**Mätt över åtta områden** (Brommaplan, Minneberg, Vasastan, Södermalm, Kungsholmen,
+Östermalm, Årsta, Kista): av 193 bilsträckor märkta "endast besök" har 5 bara meterangivelse,
+26 bara tidsgräns, 2 båda — och **160, alltså 83 %, ingendera**. Tidsgränsen publiceras
+nästan aldrig: 32 av 1 401 bilsträckor i fyra områden bär någon alls.
+
+Kvar som pålitlig signal finns då bara att kommunen kallat platsen "endast besök", och det
+fältet är ifyllt på alla 193. Därför räcker platstypen numera. Felet är asymmetriskt: en
+onödig blå kostar en sekunds kontroll, en felaktig grön en kontrollavgift.
+
+Rutan bär nu texten "kontrollera tidsgräns" där siffran saknas och "max 30 min" där den finns,
+och räknas inte längre som en trygg plats i Natt-lägets summering.
+
+**Uppmätt före och efter** på samma punkt, samma läge, samma procedur — Brommaplan i
+Nu-läget: gröna 771 → 708, blå 15 → 78, totalt 1 798 båda gångerna. 63 sträckor bytte färg
+och inget annat rördes. Göteborg (0 av 1 059) och Malmö (0 av 114) har inte platstypen alls
+och kan därför inte påverkas.
+
+Vad som **inte** är bevisat: att alla 160 är korttidsrutor. Ett foto bevisar ett fall. Vi
+väljer försiktighet där vi saknar besked, och en skyltrunda får avgöra om regeln kan bli
+precis igen i stället för bara försiktig.
+
 ## v1.25.0 – 2026-09-04
 **Malmö städar inte på veckodagar. Den städar den 23:e.**
 
