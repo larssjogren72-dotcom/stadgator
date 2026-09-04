@@ -14,6 +14,72 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.25.0 – 2026-09-04
+**Malmö städar inte på veckodagar. Den städar den 23:e.**
+
+Tre städer hade lärt appen att en gata sopas *på onsdagar*. Malmö kallar sin städning
+**miljöparkering** och skriver den så här: «Parkering förbjuden klockan 18.00–22.00 den 23:e
+i månaden.» Ett datum, inte en veckodag. Den formen kunde den delade koden inte uttrycka –
+och eftersom städdagen är det som gör skillnad mellan en ledig gata och en bogserad bil, gick
+det inte att runda.
+
+**Ändringen blev mindre än befarat, och det är den intressanta delen.** Alla tre ställen som
+frågar "städas det här?" – idag, imorgon, och veckan framåt – går redan genom samma funktion
+med ett konkret datum. Grinden ligger därför på **ett** ställe. Städer utan det nya fältet är
+opåverkade: fältet finns inte, testet hoppas över, ingenting annat hinner ändras.
+
+Två följdändringar tvingade datumformen fram:
+
+* **Horisonten blev ett stadsvärde.** En regel som återkommer en gång i månaden ligger oftare
+  än sju dygn bort. Med den gamla horisonten hade kortet svarat "ingen städning de närmaste
+  8 dygnen" tre veckor av fyra – fast datumet är känt exakt. Malmö tittar 31 dygn framåt,
+  övriga städer sju, precis som förut.
+* **Bortom en vecka skrivs datum i stället för veckodag.** "På fredag" om 26 dygn läses som
+  *denna* fredag. Gränsen är satt vid sju dygn just för att Stockholm och Göteborg aldrig kan
+  nå dit – deras rader är oförändrade in på tecknet.
+
+Kortet skriver "Servas den 11:e & 23:e varje månad 12–16". Ordningstalet böjs som Malmö själv
+skriver det i föreskriften – 1:a, 21:a, 22:a men 11:e och 12:e – eftersom "den 21:e" hade sett
+ut som ett stavfel bredvid kommunens egen skylt.
+
+**Malmö är byggd men avstängd.** Staden syns inte i väljaren och ingen användare möter den.
+Skälet är en lucka vi mätte i stället för att gissa: Malmö publicerar **fyra** lastplatser i
+hela kommunen. En lastplats som gäller 9–18 på Stora Nygatan ligger i datan som vanlig
+avgiftsparkering. Hur illa är det? Mätt mot Stockholms riktiga data är lastplats **7,4 % av
+innerstadens gatulängd** – och av 713 lastplatser gäller **noll** klockan 02 eller 23. Luckan
+biter alltså mitt på dagen och aldrig på natten. Det är därför svaret inte blev att måla halva
+staden blå, utan att fråga kommunen och vänta.
+
+**Bevisat mot verkligheten, inte mot antaganden.** Ett dygnssvep med appens egen testklocka
+körde den riktiga koden mot riktig data över hela månadscykeln: den 22:e grön, den 23:e kl
+12 orange med ljus kant, 17:30 orange, 19:00 röd medan städningen pågår, 23:00 med den
+ljusgröna kanten som säger att förbudet nyss tog slut, den 24:e grön igen. Och skylten Lars
+fotograferade på Stora Nygatan – «18–22, gäller den 23:a varje månad» – stämmer siffra för
+siffra med vad `/malmo/schedule` svarar.
+
+Regressionen kördes brett: Stockholm 204 gator och 771 ritade linjer, Göteborg 787 städposter
+över 84 gator. Veckodagstext rakt igenom, noll datumformuleringar, horisonten kvar på sju.
+
+**Tre brev till tre kommuner.** Varje mottagare är hämtad ur kommunens egen publicerade
+information, och varje fråga är kontrollerad mot deras data först – vi ber aldrig om något de
+redan publicerar. Malmö ombeds publicera sitt föreskriftsutdrag ofiltrerat. Göteborg ombeds
+fylla arbetsytan `ltf`, som är deklarerad i deras egen karttjänst men innehåller noll av 102
+lager. Sundbyberg får den enda blockerande frågan: **får vi använda datan alls?**
+
+Innan Göteborgs-brevet skrevs kontrollerades den frågan bakvägen: 1 452 poster i deras
+Parkeringskartan nämner "P-förbud", vilket såg ut som förbudsdata vi missat. Alla 1 427 som
+gick att tolka matchade en befintlig sopsträcka på gatunamn och klockslag. Det är städförbudet
+vi redan ritar – luckan finns kvar, nu bekräftad från ett andra håll.
+
+Med i samma bunt: Sundbybergs etikett som påstod att karttjänsten inte svarade (den gör det
+igen), playbooken för att ansluta en ny stad, och kodpekarnas omräkning. Arkitektursidan
+räknar medvetet **inte** Malmö – sidan beskriver appen i drift, och en stad som inte är
+påslagen ska inte namnges där.
+
+**Vad som inte är gjort:** skyltrundan i Malmö, SEO-sidorna och de arkitekturtexter som
+fortfarande bara känner tre städer. Inget av det påverkar någon användare så länge Malmö är
+avstängd.
+
 ## v1.24.0 – 2026-09-03
 **"Jag åker om en halvtimme – hur ser det ut när jag är framme?"**
 
