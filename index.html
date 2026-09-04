@@ -1459,10 +1459,20 @@ STADER_CFG.sundbyberg =
       heltStadenUrl:'',            // ingen hela-staden-fallback utanför Stockholm
       tillatenUrl:'/sbg/wfs-tillaten',
       phusUrl:'', phusTyp:null, phusRubrik:'Parkeringshus nära', phusEtikett:'Garage',
-      // Listas INTE i stadsväljaren: gis.sundbyberg.se svarar inte alls sedan
-      // 2026-08-27 (TCP vägras direkt), så valet hade lett till en tom karta.
-      // ?stad=sundbyberg fungerar oförändrat för den som redan har länken.
-      visaIVal:false, valUnder:'Pilot – karttjänsten svarar inte',
+      // Listas INTE i stadsväljaren – Lars beslut 2026-08-31: Sundbyberg ska vara dold
+      // i appen men nåbar för den som fått en direktlänk (?stad=sundbyberg fungerar
+      // oförändrat). Det är alltså ett produktval, inte en bugg – "laga" det inte.
+      //
+      // ⚠ Skälet var TIDIGARE ett annat: gis.sundbyberg.se svarade inte alls från
+      // 2026-08-27 (TCP vägrades). Den tjänsten ÄR TILLBAKA – mätt 2026-08-31 mot
+      // parkspot.se: /sbg/wfs-tillaten ger 237 kB på 0,39 s. Etiketten sa ändå
+      // "karttjänsten svarar inte", och den syns för EXAKT de pilotanvändare som följt
+      // länken (väljaren listar alltid staden man står i, även en dold). De fick veta att
+      // kartan var trasig medan den fungerade.
+      //
+      // Etiketten beskriver nu det som faktiskt är begränsat och som INTE ändrar sig:
+      // staden publicerar inga parkeringsförbud, ingen maxtid och inga p-hus.
+      visaIVal:false, valUnder:'Pilot – inga förbud eller tidsgränser i datan',
       taxaZon:null,
       pilot:true,
       disclaimer:'<span class="hint-disclaimer">Baseras på Sundbybergs öppna data. Kommunen publicerar '
