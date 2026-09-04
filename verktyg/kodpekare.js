@@ -75,19 +75,49 @@ function stadsfragor() {
   return traffar;
 }
 
+// Stader vars kod finns i huvudversionen men som INTE ar lanserade. Arkitektursidan
+// beskriver appen som den ar i drift, sa deras rader raknas inte - och deras filnamn
+// namns darfor inte heller pa sidan. Utan den har listan hade Malmos 52 rader
+// konfiguration hamnat i "stadsspecifikt" medan cities/malmo.js inte gjorde det, och
+// sidan hade publicerat en summa som inte gick ihop.
+// Vid lansering: ta bort staden harifran och lagg till dess adapter i mat() nedan.
+const EJ_LANSERADE = ['malmo'];
+
+// Hur manga rader upptar en stads block i STADER_CFG? Blocket borjar pa
+// "STADER_CFG.<id> =" och slutar dar nasta block (eller STAD-raden) borjar.
+function konfigBlockRader(id) {
+  const rader = las('index.html').split('\n');
+  const start = rader.findIndex(r => new RegExp(`^STADER_CFG\\.${id}\\s*=`).test(r));
+  if (start < 0) return 0;                       // staden finns inte langre - inget att dra av
+  let slut = rader.length;
+  for (let i = start + 1; i < rader.length; i++) {
+    if (/^STADER_CFG\./.test(rader[i]) || /^const STAD = STADER_CFG\[/.test(rader[i])) { slut = i; break; }
+  }
+  return slut - start;
+}
+
 function mat() {
+  // TVA olika tal om index.html, med flit:
+  //   index      = filens FAKTISKA langd. Sidan pastar "index.html ar N rader i en
+  //                fil", och det pastaendet ska vara sant om filen pa disk.
+  //   indexRakn  = samma minus de ej lanserade stadernas konfiguration. Anvands i
+  //                delad/stadsspecifik-uppdelningen, dar de raderna varken hor hemma
+  //                som delade (mest missvisande) eller som stadsspecifika (skulle
+  //                namna en stad som inte finns i drift).
+  const ejLanseradeRader = EJ_LANSERADE.reduce((s, id) => s + konfigBlockRader(id), 0);
   const index = radantal('index.html');
+  const indexRakn = index - ejLanseradeRader;
   const server = radantal('server.js');
   const gbg = radantal('cities/goteborg.js');
   const sbg = radantal('cities/sundbyberg.js');
 
   const konfigStart = radFor('index.html', /^const STADER_CFG = \{\};/);
   const konfigSlut = radFor('index.html', /^const STAD = STADER_CFG\[/);
-  const konfig = konfigSlut - konfigStart + 1;
+  const konfig = konfigSlut - konfigStart + 1 - ejLanseradeRader;
 
   const adaptrar = gbg + sbg;
   const stadsspec = konfig + adaptrar;
-  const alla = index + server + gbg + sbg;
+  const alla = indexRakn + server + gbg + sbg;
   const delad = alla - stadsspec;
 
   const paket = JSON.parse(las('package.json'));

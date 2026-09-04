@@ -1498,6 +1498,58 @@ STADER_CFG.sundbyberg =
       // billig att lägga till.
       schemaUrl:'/sbg/schedule' };
 
+STADER_CFG.malmo =
+    { id:'malmo', namn:'Malmö', geokodSuffix:', Malmö',
+      adressExempel:'Stora Nygatan 10',
+      // Kommungränsen, inte tätorten: Klagshamn och Tygelsjö i söder och Oxie i
+      // öster hör till Malmö. Klipps rutan snävare tystnar sökförslagen för folk
+      // som faktiskt bor i kommunen (samma lärdom som Göteborgs skärgård).
+      sokRuta:[12.8500, 55.4500, 13.1800, 55.6500], sokOrter:['Malmö', 'Malmo'],
+      center:[55.6050, 13.0038], zoom:15,
+      // Malmö publicerar ingen förbudsdata utanför städgatorna. Kontrollerat
+      // 2026-09-04 över sex värdar (gis.malmo.se med 619 lager och 5 895 fält,
+      // opendata.malmo.se, stadsatlas.malmo.se, geo.malmo.se m.fl.). De 114
+      // förbudssträckor som finns kommer med i städlagret – bara därför att de
+      // också sopas. En färglös gata betyder «ingen uppgift», inte «fritt».
+      harForbud:false,
+      servicedagarUrl:'/malmo/servicedagar-bbox',
+      heltStadenUrl:'',              // ingen hela-staden-källa utanför Stockholm
+      tillatenUrl:'/malmo/wfs-tillaten',
+      // ⚠️ STÄDNING PÅ DATUM, INTE VECKODAG. Malmös «miljöparkering» gäller några
+      // timmar EN gång i månaden: «den 23:e, 18–22». Adaptern lägger datumet i
+      // MONTH_DAY och cleaningActiveOn grindar på det. Horisonten måste därför
+      // vara en månad – med sju dygn hade kortet svarat «ingen städning de
+      // närmaste 8 dygnen» tre veckor av fyra, fast datumet är känt exakt.
+      stadHorisontDagar:31,
+      // Malmö stads parkeringsanläggningar drivs av bolaget P-Malmö och ligger
+      // inte i kommunens öppna data. Ingen adress = ingen lista, i stället för
+      // Stockholms garage presenterade som Malmös (se ja/nej-fällan nedan).
+      phusUrl:null, phusTyp:null, phusRubrik:'', phusEtikett:'',
+      // Taxan är text per sträcka (Taxa A–F + Pendlar), inte polygoner med
+      // distriktsnamn. Zonritningen kan inte matas av det; priset står på kortet.
+      taxaZon:null,
+      // SANT, men av ett annat skäl än i Göteborg. Malmö publicerar ingen
+      // tidsgräns i något fält – men behöver det inte för nattfrågan: kommunen
+      // skriver själv att «i Malmö betalar du för parkering dygnet runt, alla
+      // dagar i veckan», så taxan ÄR regleringen på avgiftssträckorna. De
+      // oreglerade bär i stället trafikförordningens 24-timmarsregel, som
+      // adaptern sätter som MAX_HOURS 24 – längre än en natt.
+      // Verifierat i verkligheten 2026-09-04 (Arkitektgatan, Dybäcksgatan):
+      // inga skyltar, och EasyPark hittar ingen zon.
+      skiljerKorttid:true,
+      // AV I VALET tills Malmö svarat på brevet om lastplatserna (MALMO_BREV.md)
+      // och tills dygnssvep + skyltrunda är körda enligt NY_STAD.md steg 5.
+      // Koden bor ändå i huvudversionen så den aldrig halkar efter – samma skäl
+      // som Sundbyberg. Nås under tiden med ?stad=malmo.
+      visaIVal:false, valUnder:'Under uppbyggnad – lastplatser saknas i datan',
+      pilot:true,
+      disclaimer:'<span class="hint-disclaimer">Baseras på Malmö stads öppna data. '
+        + 'Staden publicerar inga lastplatser och inga parkeringsförbud utanför '
+        + 'städgatorna – en gata utan färg betyder «ingen uppgift», inte «fritt», '
+        + 'och en avgiftssträcka kan dagtid vara lastplats. Kontrollera alltid '
+        + 'skylten på plats.</span>',
+      schemaUrl:'/malmo/schedule' };
+
 STADER_CFG.goteborg =
     { id:'goteborg', namn:'Göteborg', geokodSuffix:', Göteborg',
       adressExempel:'Kungsportsavenyen 10',
