@@ -2094,7 +2094,13 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     b.querySelector('#ps-msg').addEventListener('blur', resetPageScroll);   // täcker "tap bort utan skicka"
     b.querySelector('#ps-send').onclick = function () {
       var msg = ((b.querySelector('#ps-msg').value || '') + '').slice(0, 500).trim();
-      sendForm(msg);
+      // Prefix, precis som 👍-kommentaren har. Utan det gick 👎-kommentaren ut naken och
+      // kunde i arket inte skiljas från en 👍-kommentar – summeringen visste alltså inte
+      // vilken känsla orden hörde till. Gammal data saknar prefixet; Apps Script-skriptet
+      // tolkar därför prefixlösa rader som 👎-kommentarer (de kan bara komma härifrån).
+      // ⚠️ if-satsen behövs: sendForm() avbryter på tom text, men '👎💬 ' + '' är sant och
+      // hade börjat skicka tomma rader.
+      if (msg) sendForm('👎💬 ' + msg);
       track('feedback_sent');
       resetPageScroll();   // direkt, inte efter close() – inget gap där sidan hänger förskjuten
       render('<h4>Tack! Din feedback gör appen bättre. 🙏</h4>');
