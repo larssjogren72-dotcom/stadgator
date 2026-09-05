@@ -5186,7 +5186,37 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
     loadActiveServeringar(lat, lng, todayInt).catch(() => []),  // uteserveringar (egen tight ruta – ej fatalt)
   ]);
 
-  let allowed = tillRaw.map(toAllowedSegment);
+  // ── Utgångna föreskrifter ritas inte ─────────────────────────────────────
+  // VALID_FROM/VALID_TO fylls i av Stockholm och lästes hittills BARA för gågator
+  // (gagataAktiv) och uteserveringar (isActiveServering). Parkering och förbud ritades
+  // oavsett om beslutet gällde eller upphörde i somras.
+  //
+  // Uppmätt 2026-09-05 i fyra innerstadsområden: av 5 277 bilposter har 111 ett slutdatum,
+  // och **67 av de 111 hade redan passerat** – 60 % av de tidsbegränsade, 1,3 % av allt.
+  // Nästan alla är vägarbeten: en post skrivs med start- och slutdatum, arbetet blir klart,
+  // posten ligger kvar med sitt slutdatum ifyllt. Stadens data är alltså RÄTT; vi läste
+  // inte fältet. Exempel: Upplandsgatan 0180 2026-02563, VALID_TO 2026-07-01T22:00Z, och
+  // föreskriftstexten i RDT säger ordagrant "upphör att gälla den 2 juli 2026" – samma dag.
+  //
+  // Slår åt BÅDA håll, och den ena riktningen är farlig:
+  //   utgånget FÖRBUD  → rött där man numera får stå (irriterande)
+  //   utgånget TILLSTÅND → grönt på en tillfällig p-plats som kan vara trottoar igen
+  //
+  // Tom VALID_TO = tills vidare, den vanliga formen. Otolkbart datum släpps också igenom –
+  // en post försvinner aldrig på ett värde vi inte kan läsa.
+  const forRaknasBort = [];
+  const gallerNu = (f) => {
+    const p = f.properties || {};
+    const t = p.VALID_TO ? Date.parse(p.VALID_TO) : NaN;
+    if (!isFinite(t) || t >= tD.getTime()) return true;
+    forRaknasBort.push((p.CITATION || '?') + ' ' + (p.STREET_NAME || '') + ' t.o.m. ' + String(p.VALID_TO).slice(0, 10));
+    return false;
+  };
+  const tillGiltiga = tillRaw.filter(gallerNu);
+  const forbGiltiga = forbRaw.filter(gallerNu);
+  if (forRaknasBort.length) console.info('[Utgångna] ' + forRaknasBort.length + ' föreskrifter ritas inte:', forRaknasBort);
+
+  let allowed = tillGiltiga.map(toAllowedSegment);
   realignMcToNeighbor(allowed);   // MC-ytor: ärv grannens riktning, se kommentar ovan funktionen
 
   // Alla tillåten-punkter (SWEREF99) för närhetstest. isParkingForbud/nearestAllowedDist/
@@ -5257,7 +5287,7 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   // bort ett påstående ("förbud") för poster vars EGEN datatyp redan säger motsatsen – kan aldrig
   // dölja ett äkta förbud (de har aldrig taxa/besök-typ), bara sluta ljuga om ett som inte finns.
   const forbiddenLines = [];
-  forbRaw.forEach(f => featureLines(f).forEach(line => {
+  forbGiltiga.forEach(f => featureLines(f).forEach(line => {
     const fp = f.properties || {};
     if (isParkingForbud(fp)) return;                    // fas 2c – aldrig rött, oavsett sväljning
     // Avgiftsfri MED egna villkor (minst ett av DAY_TYPE/WEEKDAY/TIME) hanteras av egen gren
@@ -5291,7 +5321,7 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   // OCH (b) redan är släckta (tillåten inom 12 m). Villkor (b) garanterar att de
   // äkta röda (ingen tillåten inom 12 m) ALDRIG berörs. Klassas via samma
   // toAllowedSegment → enhetligt beteende (besök/VF_METER, fordonsfilter, städning).
-  forbRaw.forEach(f => {
+  forbGiltiga.forEach(f => {
     if (!isParkingForbud(f.properties || {})) return;       // äkta förbud → orört
     const keepLines = [];
     featureLines(f).forEach(line => {
@@ -5315,7 +5345,7 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   // från besök/taxa-räddningen ovan krävs INGEN närliggande tillåten-linje – tidsfönstret
   // är egen, direkt grund (forbudActiveAt === false är ett bevisat faktum om just den här
   // posten, ingen gissning om vad som finns runtomkring).
-  forbRaw.forEach(f => {
+  forbGiltiga.forEach(f => {
     const fp = f.properties || {};
     if (isParkingForbud(fp)) return;                        // redan hanterad ovan
     if ((fp.VF_PLATS_TYP || '') === 'Avgiftsfri parkering') return;  // egen gren nedan
@@ -5339,7 +5369,7 @@ async function loadParkingV2(lat, lng, radius = DEFAULT_SEARCH_RADIUS_M) {
   // samma falska trygghet. Egen, självständig gren (som fas 2d) – ingen gissning om grannskap,
   // markerar bara segmentet så rendering kan visa "kontrollera tidsgräns" i stället för att
   // antingen ljuga rött eller ljuga tyst grönt.
-  forbRaw.forEach(f => {
+  forbGiltiga.forEach(f => {
     const fp = f.properties || {};
     if ((fp.VF_PLATS_TYP || '') !== 'Avgiftsfri parkering') return;
     // HELT tom post (ingen DAY_TYPE/WEEKDAY/TIME) hör INTE hemma här längre – RDT-PDF-verifierat
