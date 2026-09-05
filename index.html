@@ -2011,7 +2011,13 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
       + '#ps-rev .prim{background:#818cf8;color:#0c1030;display:block;text-align:center;text-decoration:none;width:100%;box-sizing:border-box}'
       + '#ps-rev textarea{width:100%;box-sizing:border-box;background:rgba(15,23,42,.05);border:1px solid rgba(15,23,42,.10);border-radius:10px;color:#0f172a;padding:9px;font-size:14px;font-family:inherit;resize:vertical;min-height:60px;margin-bottom:8px}'
       + '#ps-rev .x{position:absolute;top:8px;right:10px;background:none;border:0;color:rgba(15,23,42,.45);font-size:18px;cursor:pointer;padding:0;flex:none;width:auto}'
-      + '#ps-rev .mut{color:rgba(15,23,42,.55);font-size:12px;margin-top:8px;text-align:center}#ps-rev .mut a{color:#16a34a}';
+      + '#ps-rev .mut{color:rgba(15,23,42,.55);font-size:12px;margin-top:8px;text-align:center}#ps-rev .mut a{color:#16a34a}'
+      // Frivilliga tummarna i direktrutan. Avstängd som förval – ingen känsla får
+      // uppstå av att knappen råkar se vald ut. Vald = grön ram + fylld botten.
+      + '#ps-rev .tgl{background:#eef1f6;color:#0f172a;border:1px solid rgba(15,23,42,.12);font-weight:600}'
+      + '#ps-rev .tgl.on{background:#dcfce7;border-color:#16a34a;color:#14532d}'
+      + '#ps-rev .lbl{font-size:12.5px;color:rgba(15,23,42,.62);margin:10px 0 6px}'
+      + '#ps-rev .varn{font-size:12.5px;color:#b91c1c;margin:6px 0 0;text-align:center}';
     document.head.appendChild(css);
     box = document.createElement('div'); box.id = 'ps-rev'; document.body.appendChild(box);
     return box;
@@ -2120,12 +2126,66 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
 
   // Värde-ögonblick (anropas från showPlaceCardV2) → markera att de fått nytta; prompten dyker upp NÄSTA gång.
   window.__reviewValueMoment = function () { var s = get(); if (!s.v) { s.v = true; set(s); } };
+  // ── Direktrutan: skrivfältet först ─────────────────────────────────────────
+  // Den som SJÄLV klickar "Skicka feedback" har redan bestämt sig för att skriva. Att då
+  // först fråga "Har ParkSpot hjälpt dig?" – och vid 👍 dessutom gömma skrivfältet bakom
+  // ännu en länk – gav den mest motiverade användaren den längsta vägen (tre steg).
+  // Här är det ett: skriv, välj tumme om du vill, skicka.
+  //
+  // Tummen är KVAR men frivillig, för den är det enda som går att räkna – månadsbrevet
+  // bygger helt på tumme-klicken. Ingen av knapparna är förvald: en känsla får aldrig
+  // uppstå för att en knapp råkade se vald ut.
+  //
+  // ⚠️ Den automatiska rutan (step1) är ORÖRD och frågar fortfarande om tummen först.
+  // Den avbryter någon mitt i något, och då är ett tryck en rimligare fråga än ett fält.
+  function stepDirekt() {
+    var vald = null;   // null | 'upp' | 'ner'
+    var b = render('<h4>Vad vill du säga om ParkSpot?</h4>'
+      + '<textarea id="ps-dm" placeholder="Vad fungerar bra, eller vad blev fel?"></textarea>'
+      + '<div class="lbl">Hur känns appen i stort? (frivilligt)</div>'
+      + '<div class="row" style="margin-bottom:8px">'
+      +   '<button class="tgl" id="ps-d-upp">👍 Bra</button>'
+      +   '<button class="tgl" id="ps-d-ner">👎 Inte helt</button>'
+      + '</div>'
+      + '<button class="prim" id="ps-d-send">Skicka</button>'
+      + '<div class="varn" id="ps-d-varn" style="display:none">Skriv något först.</div>');
+
+    var upp = b.querySelector('#ps-d-upp'), ner = b.querySelector('#ps-d-ner');
+    var varn = b.querySelector('#ps-d-varn'), fal = b.querySelector('#ps-dm');
+    fal.addEventListener('blur', resetPageScroll);
+    fal.addEventListener('input', function () { varn.style.display = 'none'; });
+    function valj(v) {                       // andra klicket på samma knapp ångrar valet
+      vald = (vald === v) ? null : v;
+      upp.classList.toggle('on', vald === 'upp');
+      ner.classList.toggle('on', vald === 'ner');
+    }
+    upp.onclick = function () { valj('upp'); };
+    ner.onclick = function () { valj('ner'); };
+
+    b.querySelector('#ps-d-send').onclick = function () {
+      var msg = ((fal.value || '') + '').slice(0, 500).trim();
+      if (!msg) { varn.style.display = 'block'; fal.focus(); return; }
+      // Tummen skickas som en EGEN rad, precis som i de andra flödena. Då fortsätter
+      // månadssummeringen räkna klick-rader och behöver ingen specialregel för den här
+      // vägen. Utan vald tumme skickas bara kommentaren, märkt "💬 " – den känslolösa
+      // sorten, som skriptet räknar som kommentar men varken som gillad eller ogillad.
+      if (vald === 'upp')      { sendForm('👍 Gillade appen'); sendForm('👍💬 ' + msg); }
+      else if (vald === 'ner') { sendForm('👎 Inte helt');     sendForm('👎💬 ' + msg); }
+      else                     { sendForm('💬 ' + msg); }
+      track(vald ? 'feedback_direct_sent_' + vald : 'feedback_direct_sent_utan_tumme');
+      resetPageScroll();
+      render('<h4>Tack för dina ord! 🙏</h4>');
+      var s = get(); s.done = true; set(s);
+      setTimeout(function () { close(false); }, 1800);
+    };
+  }
+
   // Manuell öppning (länk i Förklaring) – kringgår frekvens-spärrarna (de finns för att inte
   // tjata i onödan, inte för att stoppa någon som SJÄLV söker upp vägen att ge feedback).
   window.__openFeedback = function () {
     if (panelOpen()) return;
     shownThisSession = true;
-    track('feedback_manual_open'); step1(); ensureBox().classList.add('show');
+    track('feedback_manual_open'); stepDirekt(); ensureBox().classList.add('show');
   };
 })();
 

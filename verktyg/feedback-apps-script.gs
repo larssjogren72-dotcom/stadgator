@@ -31,22 +31,29 @@ var KLICK_UPP  = '👍 Gillade appen';
 var KLICK_NER  = '👎 Inte helt';
 var KOMM_UPP   = '👍💬';
 var KOMM_NER   = '👎💬';
+// Kommentar utan vald tumme. Uppstår bara via länken "Skicka feedback", där
+// tummen är frivillig. Räknas som kommentar men varken som gillad eller ogillad.
+var KOMM_UTAN  = '💬';
 
 // =============================================================================
 // Tolkning av en rad
 // =============================================================================
 /**
  * Varje rad är en text som appen byggt ihop:  <meddelande>  ·  läge: <kontext>
- * Returnerar { kansla: 'upp'|'ner', arKommentar: bool, text, kontext }
+ * Returnerar { kansla: 'upp'|'ner'|'okand', arKommentar: bool, text, kontext }
  * eller null om raden inte går att tolka.
  *
- * Fyra former förekommer, och den fjärde är historisk:
+ * Sex former, och den sista är historisk:
  *   "👍 Gillade appen …"  → klick, ingen kommentar
  *   "👎 Inte helt …"      → klick, ingen kommentar
  *   "👍💬 <ord> …"        → kommentar från en nöjd användare
  *   "👎💬 <ord> …"        → kommentar från en missnöjd (prefix infört 2026-09-05)
+ *   "💬 <ord> …"          → kommentar UTAN vald tumme (direktrutan, 2026-09-05)
  *   "<ord> …"             → GAMMAL data: prefixlös kommentar. Den kunde bara
  *                           uppstå i 👎-flödet, så den räknas som 👎-kommentar.
+ *
+ * ⚠️ Ordningen spelar roll: "👍💬" och "👎💬" innehåller också "💬", men börjar
+ * inte med det. De måste därför prövas FÖRE KOMM_UTAN.
  */
 function tolkaRad(raa) {
   var hel = String(raa == null ? '' : raa).trim();
@@ -64,6 +71,8 @@ function tolkaRad(raa) {
     return { kansla: 'upp', arKommentar: true,  text: text.slice(KOMM_UPP.length).trim(), kontext: kontext };
   if (text.indexOf(KOMM_NER) === 0)
     return { kansla: 'ner', arKommentar: true,  text: text.slice(KOMM_NER.length).trim(), kontext: kontext };
+  if (text.indexOf(KOMM_UTAN) === 0)
+    return { kansla: 'okand', arKommentar: true, text: text.slice(KOMM_UTAN.length).trim(), kontext: kontext };
   if (text.indexOf(KLICK_UPP) === 0)
     return { kansla: 'upp', arKommentar: false, text: '', kontext: kontext };
   if (text.indexOf(KLICK_NER) === 0)
@@ -102,13 +111,16 @@ function vidNyttSvar(e) {
     // Rena tummar mejlas inte. De räknas i månadssummeringen i stället.
     if (!tolkad || !tolkad.arKommentar || !tolkad.text) return;
 
-    var symbol = tolkad.kansla === 'upp' ? '👍' : '👎';
+    var symbol = tolkad.kansla === 'upp' ? '👍' : tolkad.kansla === 'ner' ? '👎' : '💬';
     var rubrik = symbol + ' Kommentar i ParkSpot';
 
+    var kansloText = tolkad.kansla === 'upp' ? 'nöjd (tumme upp)'
+                   : tolkad.kansla === 'ner' ? 'missnöjd (tumme ner)'
+                   : 'ingen tumme vald (skrev bara)';
     var kropp =
       tolkad.text + '\n\n' +
       '— — —\n' +
-      'Känsla:  ' + (tolkad.kansla === 'upp' ? 'nöjd (tumme upp)' : 'missnöjd (tumme ner)') + '\n' +
+      'Känsla:  ' + kansloText + '\n' +
       'Kontext: ' + (tolkad.kontext || 'okänd') + '\n' +
       'Tid:     ' + formateraTid(bit.nar || new Date()) + '\n\n' +
       'Skickas bara när någon skrivit något. Antalet tummar kommer i månadssummeringen.';
@@ -150,8 +162,12 @@ function skickaSummering(arForsta) {
 
     // ⚠️ Bara KLICK-raderna räknas. En kommentar skickas som en EGEN rad ovanpå
     // klicket, så att räkna alla rader hade dubbelräknat alla som skrev något.
-    if (!tolkad.arKommentar) perManad[nyckel][tolkad.kansla === 'upp' ? 'upp' : 'ner']++;
-    else kommentarer.push({ nar: bit.nar, kansla: tolkad.kansla, text: tolkad.text, kontext: tolkad.kontext });
+    // Ett klick är alltid 'upp' eller 'ner' – 'okand' kan bara vara en kommentar.
+    if (!tolkad.arKommentar) {
+      if (tolkad.kansla === 'upp' || tolkad.kansla === 'ner') perManad[nyckel][tolkad.kansla]++;
+    } else {
+      kommentarer.push({ nar: bit.nar, kansla: tolkad.kansla, text: tolkad.text, kontext: tolkad.kontext });
+    }
   }
 
   var manader = Object.keys(perManad).sort();
@@ -200,8 +216,9 @@ function skickaSummering(arForsta) {
 
   var kommHtml = visaKomm.length
     ? visaKomm.map(function (k) {
+        var ikon = k.kansla === 'upp' ? '👍' : k.kansla === 'ner' ? '👎' : '💬';
         return '<p style="margin:0 0 10px 0">' +
-          (k.kansla === 'upp' ? '👍' : '👎') + ' <i>' + escapeHtml(k.text) + '</i><br>' +
+          ikon + ' <i>' + escapeHtml(k.text) + '</i><br>' +
           '<span style="color:#666;font-size:12px">' + formateraTid(k.nar) +
           (k.kontext ? ' · ' + escapeHtml(k.kontext) : '') + '</span></p>';
       }).join('')
@@ -276,14 +293,18 @@ function installera() {
 /** Läser arket och skriver ut hur raderna tolkas – utan att mejla något. */
 function provtolkning() {
   var varden = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0].getDataRange().getValues();
-  var summa = { klickUpp: 0, klickNer: 0, kommUpp: 0, kommNer: 0, otolkade: 0, utanTid: 0 };
+  var summa = { klickUpp: 0, klickNer: 0, kommUpp: 0, kommNer: 0, kommUtanTumme: 0,
+                otolkade: 0, utanTid: 0 };
   for (var i = 1; i < varden.length; i++) {
     var bit = plockaUrRad(varden[i]);
     var t = tolkaRad(bit.text);
     if (!t) { summa.otolkade++; continue; }
     if (!bit.nar) summa.utanTid++;
-    if (t.arKommentar) summa[t.kansla === 'upp' ? 'kommUpp' : 'kommNer']++;
-    else summa[t.kansla === 'upp' ? 'klickUpp' : 'klickNer']++;
+    if (t.arKommentar) {
+      summa[t.kansla === 'upp' ? 'kommUpp' : t.kansla === 'ner' ? 'kommNer' : 'kommUtanTumme']++;
+    } else {
+      summa[t.kansla === 'upp' ? 'klickUpp' : 'klickNer']++;
+    }
   }
   console.log('Rader totalt (utan rubrik): ' + (varden.length - 1));
   console.log(JSON.stringify(summa, null, 2));
