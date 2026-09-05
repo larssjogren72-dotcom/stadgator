@@ -14,6 +14,42 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.25.2 – 2026-09-05
+**Sextiosju parkeringsregler hade slutat gälla, men ritades ändå.**
+
+Stockholm sätter ibland ett slutdatum på en föreskrift: "gäller 20 maj – 1 juli 2026".
+Nästan alltid handlar det om en tillfällig omreglering under ett vägarbete. När datumet
+passerat har regeln upphört – men ParkSpot ritade den vidare. `VALID_TO` lästes bara för
+gågator och uteserveringar, aldrig för P_TILLATEN eller P_FORBUD.
+
+Mätt över fyra innerstadsområden: av 5 277 bilposter hade 111 ett slutdatum, och **67 av
+dem hade redan gått ut** – sextio procent. Det slår åt båda hållen. En utgången förbudspost
+målar rött där man faktiskt får stå; en utgången tillåten post målar grönt där den
+tillfälliga p-platsen är bortplockad.
+
+`loadParkingV2` filtrerar nu bort dem innan segmenten byggs, i båda lagren. Det som sållas
+bort loggas i konsolen med beslutsnummer, gata och slutdatum, så att en tyst borttagning
+går att granska i efterhand.
+
+Stadens data var hela tiden rätt. Vi läste inte fältet.
+
+**Vad utredningen visade på köpet**
+
+Nio föreskrifter lästes ord för ord ur Transportstyrelsens register, sökta på *bygge,
+arbete, schakt, tillfällig, entreprenad, ombyggnad, renovering, kran, etablering*. Noll
+träffar. En svensk trafikföreskrift skriver vad som gäller och hur länge – aldrig varför.
+Slutdatumet är därmed den enda signalen på att något är tillfälligt, och nu används den.
+
+Kvar står ett hål vi inte kan täcka: en byggåtgärd som skrivs **utan** slutdatum rensas
+aldrig. Wallingatan `0180 2024-02575` är ett sådant fall – förbud att parkera på södra
+sidan, beslutat i september 2024, skrivet som permanent. Är det en byggåtgärd måste
+Stockholm aktivt upphäva den. Vi kan inte se skillnaden.
+
+Wallingatans fyra lila rutor mellan Upplandsgatan och Drottninggatan kontrollerades mot
+den riktiga appkoden efter en rapport om att några kunde vara fel: tre platser för
+rörelsehindrad och en MC-plats, alla permanenta beslut, inget par närmare än 25 meter –
+alltså inga dubbletter. De är rätt.
+
 ## v1.25.1 – 2026-09-04
 **En 30-minutersruta låg grön, och lovades trygg över natten.**
 
