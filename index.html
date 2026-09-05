@@ -2049,7 +2049,8 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   }
   function stepYes() {
     track('review_thumbs_up');
-    sendForm('👍 Gillade appen');   // logga gillningen i arket (räknebart) – Apps Script mejlar ej dessa
+    // Loggas i arket (räknebart) men mejlas inte – se verktyg/feedback-apps-script.gs.
+    sendForm('👍 Gillade appen');
     var inner = REVIEW_URL
       ? '<a class="prim" href="' + REVIEW_URL + '" target="_blank" rel="noopener">★ Lämna en recension →</a><div class="mut">Tar 20 sekunder och hjälper fler hitta appen 🙌</div>'
       : '<button class="prim" id="ps-share">📤 Dela med en vän</button><div class="mut">Tack för att du gillar ParkSpot! 🙌</div>';
@@ -2094,7 +2095,12 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   }
   function stepNo() {
     track('review_thumbs_down');
-    sendForm('👎 Inte helt');   // logga missnöjd-klicket i arket (även om ingen kommentar skrivs) – mejlas ej
+    // Loggas i arket även om ingen kommentar skrivs. ⚠️ Kommentaren här sa tidigare
+    // "mejlas ej", och det var FEL till 2026-09-05: det gamla Apps Script-skriptet hoppade
+    // bara över raden som innehöll "Gillade appen", så ett rent 👎 gick rakt till mejl.
+    // Från och med verktyg/feedback-apps-script.gs stämmer påståendet – rena tummar
+    // räknas i månadsbrevet i stället. Ändras skriptet i Google blir raden fel igen.
+    sendForm('👎 Inte helt');
     var b = render('<h4>Tack för ärligheten – vad kan bli bättre?</h4><textarea id="ps-msg" placeholder="Vad var fel eller saknades?"></textarea><button class="prim" id="ps-send">Skicka</button>'
       + (REVIEW_URL ? '<div class="mut"><a href="' + REVIEW_URL + '" target="_blank" rel="noopener">…eller lämna en publik recension →</a></div>' : ''));
     b.querySelector('#ps-msg').addEventListener('blur', resetPageScroll);   // täcker "tap bort utan skicka"
