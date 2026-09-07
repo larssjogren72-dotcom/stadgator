@@ -1617,6 +1617,12 @@ STADER_CFG.stockholm =
       // Stockholm har ett typfält och filtrerar till garage – "sista utväg" betyder
       // p-hus här. Regeln är oförändrad, den har bara flyttat till konfigurationen.
       phusTyp:/garage/i, phusRubrik:'Parkeringshus nära', phusEtikett:'Garage',
+      // Stockholm Parkering publicerar EGNA MC-taxor ("Besöksparkering MC") på 8 av
+      // 50 p-hus. Därför kan MC-läget både visa rätt pris där det finns och säga
+      // "biltaxa" där det saknas. Övriga städer har ingen fordonsuppdelning alls i
+      // sin källa – där vore "MC-pris ej publicerat" en anklagelse mot datan som
+      // inte stämmer: priset är inte biltaxan, det är priset.
+      phusMcTaxa:true,
       visaIVal:true, valUnder:'Full data – även parkeringsförbud',
       taxaZon:{ layer:'ltfr:LTFR_TAXA_VIEW', bbox:'17.74,59.20,18.22,59.45,EPSG:4326' },
       pilot:false,
@@ -3590,17 +3596,157 @@ function loadGarageData() {
   return garageDataPromise;
 }
 
-function garageTaxaText(a) {
-  const coll = a.BesokstaxaCollection || [];
-  if (!coll.length) return '';
-  const hourly = coll.find(t => /tim/i.test(t.Tidsenhet || ''));
-  const t = hourly || coll[0];
-  if (!t || t.Taxa == null) return '';
-  return /tim/i.test(t.Tidsenhet || '') ? `${t.Taxa} kr/tim` : `${t.Taxa} kr · ${t.Galler || t.Tidsenhet || ''}`;
+// ── Besökstaxa för en p-anläggning: rätt rad, rätt fordon, rätt klockslag ────
+// Tre fel rättas här (alla mätta mot riktig /phus-data 2026-09-07):
+//
+//   1. FEL ENHET SOM "kr/tim". Gamla koden tog första raden vars Tidsenhet
+//      innehöll "tim" – men "24 Timmar", "3 Timmar" och "1:a Timmen Därefter"
+//      matchar också. Alviks Torg P-Hus visade "15 kr/tim" ur en rad som betyder
+//      "första timmen, därefter". Bara Tidsenhet === "Timme" är ett timpris.
+//   2. DYGNET IGNORERADES. Arenagaraget och Parkören visade 30 kr/tim dygnet
+//      runt; kvällar 18–24 och hela helgen kostar 55 kr. Klockslagen står i
+//      fältet Galler, koden läste det aldrig.
+//   3. FORDONET IGNORERADES. Åtta av femtio p-hus har egen MC-taxa. Norra Latin
+//      kostar 95 kr/tim för bil och 8 kr/tim för MC – appen visade 95 kr även i
+//      MC-läge, tolv gånger fel åt det avskräckande hållet.
+//
+// Klockan hämtas med `new Date()` med flit: KLOCKA-proxyn gör att både
+// ?debugtid= och Framåt-läget slår igenom här utan egen ledning. Kommentaren
+// vid KLOCKA säger varför en andra tidskälla vore det farligaste vi kan bygga.
+
+// Rader som aldrig får bli ett besökspris. Personal-, boende- och campingtaxor
+// gäller andra människor än den som söker; laddning är ett elpris, inte en
+// parkeringsavgift. Att visa någon av dem som "vad det kostar att stå här" är
+// samma sorts fel som de tre ovan, bara ett steg tidigare i urvalet.
+function taxaArBesok(t) {
+  const namn = t.ParkeringsTypNamn || '';
+  if (/laddning/i.test(namn) || /kwh/i.test(t.Tidsenhet || '')) return false;
+  return !/personal|boende|camping|husbil/i.test(namn);
+}
+
+// Är raden MC-taxa? Stockholm Parkering suffixar typnamnet: "Besöksparkering MC",
+// "Nattparkering MC". Ordgräns krävs – annars matchar inget idag, men ett framtida
+// "MCDonalds-garaget" hade blivit MC-taxa.
+function taxaArMc(t) { return /\bMC\b/i.test(t.ParkeringsTypNamn || ''); }
+
+// Veckodagar en Galler-sträng gäller. null = går inte att avgöra.
+// "Vardag före sön- och helgdag" = lördag/helgafton (samma tolkning som taxa-
+// zonerna, se clarifyTaxa). Helgdagar som infaller på en vardag kan vi INTE
+// avgöra: appen har ingen röd-dag-kalender, och att gissa vore att gissa fel
+// två gånger om året på varje anläggning.
+function gallerDagar(txt) {
+  const s = txt.toLowerCase();
+  if (/alla dagar/.test(s))            return [0,1,2,3,4,5,6];
+  if (/vardag före|dag före röd/.test(s)) return [6];
+  if (/lö\/sö|lör-sön|lör\/sön/.test(s)) return [0,6];
+  if (/^sön|[^r]sön\/helgdag/.test(s)) return [0];
+  if (/mån-lör/.test(s))               return [1,2,3,4,5,6];
+  if (/vardagar|mån-fre/.test(s))      return [1,2,3,4,5];
+  return null;
+}
+
+// Gäller raden vid tidpunkten `nu`? true / false / null (vet ej).
+// Tidsfönstret skrivs antingen "0800-1800" eller "08:00-18:00", och kan gå över
+// midnatt ("2200-0800"). Saknas fönster gäller raden hela det dygn den nämner.
+function gallerMatchar(galler, nu) {
+  const txt = (galler || '').trim();
+  if (!txt) return null;
+  const dagar = gallerDagar(txt);
+  if (!dagar) return null;
+  // Helgdag som infaller mån–fre kan vi inte se. En rad som bara gäller helg
+  // får därför aldrig ett rakt "nej" på en vardag – den blir "vet ej", och
+  // urvalet nedan behandlar det som osäkert i stället för som uteslutet.
+  const helgberoende = /helgdag|röd dag/.test(txt.toLowerCase());
+  const dagOk = dagar.includes(nu.getDay());
+  if (!dagOk) return helgberoende ? null : false;
+
+  const m = /(\d{1,2}):?(\d{2})\s*[-–]\s*(\d{1,2}):?(\d{2})/.exec(txt);
+  if (!m) return true;                              // hela dygnet
+  const start = (+m[1]) * 60 + (+m[2]);
+  const slut  = (+m[3]) * 60 + (+m[4]);
+  const nuMin = nu.getHours() * 60 + nu.getMinutes();
+  if (start === slut) return true;                  // 00:00-24:00 och 0000-2400
+  return slut > start ? (nuMin >= start && nuMin < slut)
+                      : (nuMin >= start || nuMin < slut);   // över midnatt
+}
+
+// Perioder man köper i förväg, inte priset för att ställa bilen här om en stund.
+// Alexandria 4 har som enda besöksrad "1650 kr / 31 dygn" – ett månadskort. Att
+// visa det som platsens pris svarar på en helt annan fråga än den användaren
+// ställde, och 1650 kr avskräcker från en plats som kanske är den bästa som finns.
+// Hellre inget pris än fel sorts pris.
+function taxaArLangtid(t) {
+  const e = (t.Tidsenhet || '').toLowerCase();
+  if (/månad|month|år\b|^år$/.test(e)) return true;
+  const dyg = /^(\d+)\s*dygn$/.exec(e.trim());
+  return !!dyg && +dyg[1] > 1;
+}
+
+// Är raden ett rent timpris? Bara exakt "timme" – inte "24 Timmar", "3 Timmar"
+// eller "1:a Timmen Därefter", som var hela fel nummer ett. Jämförelsen är
+// skiftlägesokänslig med flit: Stockholm skriver "Timme", Göteborg bygger sina
+// rader i cities/goteborg.js med "timme". En strikt likhet mot "Timme" hade tyst
+// tagit bort Göteborgs alla timpriser och skrivit "20 kr · timme" i stället.
+function taxaArTimme(t) { return (t.Tidsenhet || '').trim().toLowerCase() === 'timme'; }
+
+// Snygga till en tidsenhet som inte är "Timme" så den kan stå efter ett pris:
+// "1:a Timmen Därefter" → "1:a timmen därefter", "24 Timmar" → "24 timmar".
+function enhetText(t) {
+  const e = (t.Tidsenhet || '').trim();
+  if (!e) return (t.Galler || '').trim();
+  return e.charAt(0) + e.slice(1).toLowerCase();
+}
+
+// Returnerar { text, varierar, lanad } – eller null när ingen användbar besökstaxa
+// finns. `varierar` är sant när det finns fler priser för samma fordon än det vi
+// visar, så att kortet kan säga det i stället för att låta priset se fast ut.
+// `lanad` betyder att MC-läget fick nöja sig med biltaxan.
+function garageTaxa(a, fordon) {
+  const alla = (a.BesokstaxaCollection || []).filter(t => taxaArBesok(t) && !taxaArLangtid(t));
+  if (!alla.length) return null;
+
+  const mcFinns = alla.some(taxaArMc);
+  const villMc  = fordon === 'mc';
+  // MC-läge utan publicerad MC-taxa: visa biltaxan, men säg vems den är. Att
+  // dölja priset helt vore ärligt men oanvändbart (42 av 50 p-hus saknar
+  // MC-taxa); att visa den omärkt är precis felet vi rättar.
+  // Bara i städer vars källa FAKTISKT skiljer på fordon (STAD.phusMcTaxa) – se
+  // kommentaren vid flaggan för varför caveaten annars blir en osanning.
+  const lanadBiltaxa = villMc && !mcFinns && !!STAD.phusMcTaxa;
+  const mina = alla.filter(t => taxaArMc(t) === (villMc && mcFinns));
+  if (!mina.length) return null;
+
+  const nu = new Date();
+  const timrader = mina.filter(t => taxaArTimme(t) && t.Taxa != null);
+
+  if (timrader.length) {
+    const traff = timrader.filter(t => gallerMatchar(t.Galler, nu) === true);
+    const kanske = traff.length ? traff
+                 : timrader.filter(t => gallerMatchar(t.Galler, nu) !== false);
+    const valda = kanske.length ? kanske : timrader;
+    // Lägsta bland raderna som gäller NU. Flera rader med samma fönster är
+    // pristrappor (Viking: 30 kr korttid, 50 kr från timme 27) – den lägsta är
+    // den en besökare möter först. Att i stället ta den högsta hade gjort
+    // Viking till 50 kr för alla, vilket är fel åt andra hållet.
+    const pris = Math.min(...valda.map(t => t.Taxa));
+    const olika = new Set(timrader.map(t => t.Taxa)).size > 1;
+    return { text: `${pris} kr/tim`, varierar: olika, lanad: lanadBiltaxa };
+  }
+
+  // Ingen ren timtaxa: visa den billigaste raden med sin EGNA enhet i stället
+  // för att döpa om den till "kr/tim". Det var fel nummer ett.
+  const med = mina.filter(t => t.Taxa != null);
+  if (!med.length) return null;
+  const t = med.reduce((b, x) => (x.Taxa < b.Taxa ? x : b), med[0]);
+  return { text: `${t.Taxa} kr · ${enhetText(t)}`, varierar: med.length > 1, lanad: lanadBiltaxa };
 }
 
 async function fetchNearbyGarages(lat, lng, radius = 1000) {
   const all = await loadGarageData();
+  // Fordonet läses här och inte inne i garageTaxa, så att listan och kortet
+  // garanterat talar om samma fordon även om användaren hinner byta mitt i.
+  // Vakten finns för att vehicleMode deklareras längre ned i filen.
+  const fordon = (typeof vehicleMode !== 'undefined') ? vehicleMode : 'bil';
   return (all || [])
     // Vilka anläggningar som räknas skiljer sig åt: Stockholm har ett typfält och
     // filtrerar till garage, Göteborg har INGET sådant fält alls (inget skiljer p-hus
@@ -3610,7 +3756,7 @@ async function fetchNearbyGarages(lat, lng, radius = 1000) {
               && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud)
     .map(a => ({
       name: a.Name || 'Parkeringshus', lat: a.AdressLatitud, lng: a.AdressLongitud,
-      spaces: a.AntalBesokPlatser, taxa: garageTaxaText(a), agare: a.Agare || '',
+      spaces: a.AntalBesokPlatser, taxa: garageTaxa(a, fordon), agare: a.Agare || '',
       dist: Math.round(map.distance([lat, lng], [a.AdressLatitud, a.AdressLongitud]))
     }))
     .filter(x => x.dist <= radius)
@@ -3701,7 +3847,7 @@ function renderGarageRows(gs) {
           <div class="sl-name">${escHtml(g.name)}</div>
           <div class="sl-sub">
             <span class="sl-badge phus-cap">${STAD.phusTyp ? 'Garage · ' : ''}${g.spaces} platser</span>
-            ${g.taxa ? `<span class="sl-badge sl-time">${escHtml(g.taxa)}</span>` : ''}
+            ${g.taxa ? `<span class="sl-badge sl-time">${escHtml(g.taxa.text)}${g.taxa.lanad ? ' · biltaxa' : ''}</span>` : ''}
             <span class="sl-dist">${distStr(g.dist)}</span>
           </div>
         </div>
@@ -3744,7 +3890,13 @@ function selectGarage(g, marker) {
   taxaRow.innerHTML = `🅿 <b>${escHtml(STAD.phusEtikett)}</b>`
     + (g.spaces ? ` · ${g.spaces} platser` : '') + '<br>'
     + (g.agare ? `🏢 ${escHtml(g.agare)}<br>` : '')
-    + (g.taxa ? `💰 <b>${escHtml(g.taxa)}</b><br>` : '')
+    // Priset står aldrig ensamt när det inte är hela sanningen. "Varierar" betyder
+    // att anläggningen har fler timpriser än det som gäller just nu (kväll/helg är
+    // ofta dubbelt), "biltaxa" att MC-priset inte är publicerat här.
+    + (g.taxa ? `💰 <b>${escHtml(g.taxa.text)}</b>`
+                + (g.taxa.lanad   ? ' <span style="opacity:.85">– biltaxa, MC-pris ej publicerat</span>' : '')
+                + (g.taxa.varierar ? '<br><span style="opacity:.85">Priset varierar över dygnet – detta gäller nu.</span>' : '')
+                + '<br>' : '')
     + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
   taxaRow.style.display = 'block';
   document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för garage

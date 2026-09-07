@@ -500,8 +500,11 @@ module.exports = function skapaGoteborg(delade) {
             Anlaggningstyp: a.Anlaggningstyp,
             AntalBesokPlatser: a.AntalBesokPlatser,
             AdressLatitud: a.AdressLatitud, AdressLongitud: a.AdressLongitud,
-            // Klientens garageTaxaText läser den här listan och skriver "N kr/tim"
-            // när Tidsenhet innehåller "tim". Tomt när priset inte går att räkna ut.
+            // Klientens garageTaxa läser den här listan. Den kräver att Tidsenhet
+            // är exakt "timme" (skiftlägesokänsligt) för att skriva "N kr/tim" –
+            // "24 Timmar" och liknande får sin egen enhet utskriven i stället.
+            // Ändra INTE strängen nedan utan att läsa taxaArTimme i index.html.
+            // Tomt när priset inte går att räkna ut.
             BesokstaxaCollection: kr == null ? [] : [{ Taxa: kr, Tidsenhet: 'timme' }],
             ZonkodCollection: [],
             GBG_TELEFONKOD: a.GBG_TELEFONKOD, GBG_PRISTEXT: a.GBG_PRISTEXT
