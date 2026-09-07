@@ -1,70 +1,87 @@
 # Svar till Ann-Marie, Sundbybergs stad
 
-Skickas manuellt av Lars. Bifoga fotot på skylten vid Brunnsgatans vändplan.
+Skickas manuellt av Lars.
 
-Omskrivet 2026-09-07 efter jämförelsen av alla fyra kommuners data. Den visade att min
-ursprungliga fråga var fel ställd: ingen svensk kommun registrerar tidsgränser generellt,
-inte ens Stockholm. Att be Sundbyberg om det vore att be om något ingen har. Det som
-faktiskt saknas är mycket mindre — se punkt 1.
+Omskrivet 2026-09-07 — tredje versionen. De två första ställde frågor och bad om data.
+Den här meddelar i stället att vi pausar Sundbyberg, och lämnar en tydlig lista över vad
+som skulle krävas om staden vill ta upp frågan igen. Ingen press, ingen skuld.
+
+Bakgrund till beslutet: appens huvudfråga är "kan jag lämna bilen här över natten?", och
+den kan aldrig besvaras med ja i Sundbyberg. Se `project_stadgator_stadsdata_jamforelse`.
 
 ---
 
-**Ämne:** Tack – och en rättelse från min sida
+**Ämne:** Vi pausar Sundbyberg – och vad som skulle behövas
 
 Hej Ann-Marie,
 
-Tack för ett rakt och konkret svar. Två av uppgifterna var direkt användbara, och den ena
-fick mig att inse att jag ställde fel fråga från början. Det ber jag om ursäkt för.
+Tack för ditt svar. Det var ärligt och konkret, och det gav mig mer klarhet än flera
+veckors letande i datan hade gjort. Jag vill återkoppla vad jag landat i.
 
-**1. Jag bad om för mycket – det räcker med mycket mindre**
+**Jag pausar Sundbyberg tills vidare.**
 
-Sedan vi skrev har jag jämfört vad Stockholm, Göteborg, Malmö och Sundbyberg publicerar.
-Resultatet överraskade mig: **tre av fyra saknar tidsgränser i sin data, inklusive
-Stockholm.** Bara Göteborg har dem. Att be er registrera hur länge man får stå på varje
-gata vore alltså att be om något nästan ingen kommun gör. Den frågan drar jag tillbaka.
+Skälet är inte något ni gjort fel. Det handlar om vad min app försöker svara på.
 
-Det jag egentligen behöver är något betydligt enklare, och ditt svar gav mig nyckeln.
+Den ställer i grunden en enda fråga: *kan jag lämna bilen här över natten?* För att svara
+ja behöver jag kunna utesluta att platsen är tidsbegränsad. Det kan jag inte göra i
+Sundbyberg — inte för att gatorna är tidsbegränsade, utan för att inget i datan skiljer
+en tidsbegränsad ruta från en oreglerad. Alla 808 bilsegment bär samma platstyp.
 
-Du skriver att tidsgränser i praktiken bara finns på ett fåtal ställen – 30 minuter vid
-vissa skolor och 2 timmar vid vissa platser för rörelsehindrade. Om det stämmer behöver
-jag inte veta gränserna. **Jag behöver bara veta vilka rutor som har en.** Allt annat är
-då oreglerat, och det är den slutsatsen jag saknar i dag.
+Följden är att appen måste svara "kontrollera skylten" på varenda gata i kommunen, även
+på de gator där det troligen är helt fritt. Det är, som du förstår, ungefär vad någon
+hade gjort utan appen. Då tillför den inte tillräckligt för att jag ska vilja släppa
+den skarpt.
 
-I dag bär alla era 808 bilsegment en enda platstyp, "P Avgift". Ingenting skiljer en
-skolruta från en vanlig gatuparkering. Räckte det med en enkel markering på de få platser
-som faktiskt är tidsbegränsade – en ja/nej-kolumn, eller ett värde i ett fält som redan
-finns – skulle appen kunna sluta varna på resten av kommunen.
+Jag vill vara tydlig med en sak: **det här betyder inte att Sundbyberg är svårt att
+parkera i.** Om din bild stämmer — att tidsgränser i praktiken bara finns vid vissa
+skolor och vissa platser för rörelsehindrade — så är det tvärtom fritt på det mesta.
+Problemet är att jag inte kan bevisa det, inte att verkligheten är krånglig.
 
-Det är den skillnaden som gör att Stockholm fungerar i appen trots att man inte heller
-där vet hur länge man får stå: Stockholm anger vad för *sorts* plats det är.
+**Det som är bra i er data, och som jag gärna säger högt**
 
-**2. Parkeringsförbudsområdena – dem kände jag inte till, och de är viktigast**
+Era servicedagar är bland det bästa jag sett. Både säsong och klockslag ligger som egna
+fält, vilket flera större kommuner inte publicerar. Zonerna med priser är kompletta, och
+lastplatserna ligger som eget lager med villkoren i klartext.
 
-Du nämner att det finns p-förbudsområden i ett par stadsdelar, framför allt Lilla Ursvik
-och Duvbo. Det var nytt för mig och väger tyngre än tidsgränserna.
+Jag hittade också ett fält jag missat tidigare, `Avgift_tid`, som anger när avgiften
+gäller — "08:00-21:00 och lördag 10:00-17:00" och liknande. Det hade jag förbisett när
+jag skrev till dig första gången, och det var mitt fel, inte er brist. Den uppgiften är
+användbar och kommer med om vi startar om.
 
-I den data jag hämtar finns inga parkeringsförbud alls. En gata utan uppgift ritas därför
-färglös, och användaren läser det som "oklart". Men inne i ett förbudsområde betyder
-tystnad i stället *förbjudet*. Där riskerar min app att vara tyst på ett sätt som kan
-uppfattas som tillåtande – och det är den sortens fel som kostar någon en
-kontrollavgift.
+**Om ni någon gång kommer på andra tankar**
 
-Finns områdenas gränser någonstans som karta eller fil? Även grovt, även som en skiss,
-räcker långt. Jag behöver inte exakta linjer för att sluta vara tyst.
+Tre saker skulle förändra läget. De står i den ordning som ger mest effekt per insats.
 
-**3. En skylt jag inte får ihop**
+*1. En markering på de få rutor som faktiskt har en tidsgräns.*
+Inte gränsen i sig — bara ett ja eller nej. Du skrev att det rör sig om vissa skolor och
+vissa RH-platser. Om de rutorna märks ut betyder tystnaden på alla andra att de är
+oreglerade, och appen kan säga "här går det bra att stå över natten" i hela resten av
+kommunen. Det här är den enskilt största skillnaden, och sannolikt den minsta insatsen.
 
-Vid vändplanen på Brunnsgatan står en skylt med "2 tim" (foto bifogat). Du nämner att
-2 timmar förekommer vid vissa platser för rörelsehindrade. Är just den rutan en sådan?
+*2. Parkeringsförbuden, även grovt.*
+Både de enstaka sträckorna och förbudsområdena i Lilla Ursvik och Duvbo. I dag finns
+inga förbud alls i datan, vilket gör att en gata utan uppgift ritas färglös — och inne i
+ett förbudsområde betyder tystnad ju i själva verket förbjudet. Även en skiss av
+områdesgränserna skulle hjälpa.
 
-Jag frågar därför att den är mitt enda motexempel mot din bild av att centrala Sundbyberg
-saknar tidsgränser, och jag vill hellre förstå den än anta att jag har rätt.
+Ett konkret exempel, inte som kritik utan för att visa vad jag menar: på Brunnsgatans
+västra sida, en bit nedanför vändplanen, står en förbudsskylt. Jag har letat igenom
+samtliga 60 karttjänster på gis.sundbyberg.se och det finns inget lager alls för
+parkeringsförbud, så den skylten har ingen motsvarighet i datan. Den är en av de
+sträckor "här och där" du nämnde.
 
-Jag är tacksam för att du tar upp frågan med trafikingenjörerna, och det är ingen brådska
-från min sida. Hör gärna av dig när lagret setts över, så mäter jag om och återkopplar
-vad det gav.
+*3. Vilken sida av gatan en sträcka ligger på.*
+Den här är minst brådskande men värd att nämna: även om jag fick förbuden skulle jag
+inte kunna placera dem rätt, eftersom det inte framgår om en sträcka avser östra eller
+västra sidan. Stockholm har det fältet.
 
-Tack för att du tog dig tid.
+**Ingen brådska, och inga förväntningar**
+
+Jag skriver det här för att du var hjälpsam och förtjänar ett rakt besked, inte för att
+be om något. Skulle lagret ses över och något av ovanstående komma på plats hör jag
+gärna av mig igen — arbetet finns kvar och kan tas upp när som helst.
+
+Tack för att du tog dig tid att svara ordentligt.
 
 Vänliga hälsningar
 Lars Sjögren
