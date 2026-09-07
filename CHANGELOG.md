@@ -14,6 +14,56 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.26.0 – 2026-09-07
+**P-huspriset visade fel enhet, fel klockslag och fel fordon.**
+
+Priset i p-huslistan lästes med en rad som tog första taxan vars tidsenhet innehöll
+"tim". Tre saker gick fel samtidigt, och alla tre är mätta mot Stockholm Parkerings
+riktiga `/phus`-data:
+
+**1. Fel enhet fick etiketten "kr/tim".** "24 Timmar", "3 Timmar" och "1:a Timmen
+Därefter" matchar också "tim". Alviks Torg P-Hus visade "15 kr/tim" ur en rad som
+betyder något annat – timpriset där är 20 kr. Nu räknas bara enheten "timme" som
+timpris; övriga rader skrivs ut med sin egen enhet i stället för att döpas om.
+
+**2. Dygnet ignorerades.** Arenagaraget och Parkören kostar 30 kr/tim vardagar 00–18
+men **55 kr/tim kvällar 18–24 och hela helgen**. Appen visade 30 kr dygnet runt –
+alltså nästan hälften av verkligt pris precis när flest söker, i lägena "i kväll"
+och "över natten". Klockslagen stod hela tiden i fältet `Galler`. Nu läses de, via
+appens egen klocka – samma klocka som färgar gatorna, så `?debugtid=` och Framåt-läget
+slår igenom även här.
+
+**3. Fordonet ignorerades.** Åtta av femtio p-hus har egen MC-taxa. Norra Latin kostar
+95 kr/tim för bil och **8 kr/tim för MC** – appen visade 95 kr även i MC-läge. Tolv
+gånger fel, åt det håll som avråder från en plats som var billig. Nu följer priset
+fordonsvalet. Saknas MC-taxa visas biltaxan märkt "biltaxa – MC-pris ej publicerat"
+i stället för omärkt, eftersom 42 av 50 hus saknar den och ett tomt fält vore
+ärligt men oanvändbart.
+
+**Två rader som aldrig borde varit priser är också borta.** Personal-, boende-,
+camping- och laddningstaxor svarar på en annan fråga än "vad kostar det att stå här",
+och periodkort likaså: Alexandria 4 hade som enda besöksrad "1650 kr / 31 dygn". Nu
+visas inget pris hellre än fel sorts pris.
+
+Kortet säger dessutom **"Priset varierar över dygnet – detta gäller nu"** när
+anläggningen har fler timpriser än det som visas, så att en enda siffra inte läses
+som ett fast pris.
+
+**Vad som INTE ändrades:** 46 av 50 p-hus visar exakt samma pris som förut. Sveriges
+röda dagar finns inte i appen, så en taxa som bara gäller helgdag kan aldrig få ett
+rakt nej på en vardag – den räknas som osäker i stället för utesluten.
+
+**Regression som fångades före release:** Göteborg bygger sina taxarader i
+`cities/goteborg.js` med `Tidsenhet: 'timme'` i gemener. En strikt jämförelse mot
+"Timme" hade tyst tagit bort samtliga göteborgspriser. Jämförelsen är skiftläges-
+okänslig, och Göteborg är verifierad i webbläsaren efteråt. Göteborgs källa skiljer
+inte på fordon alls, så "MC-pris ej publicerat" visas bara i städer vars källa
+faktiskt gör det (`STAD.phusMcTaxa`).
+
+Testat i webbläsaren mot riktig data: 50 p-hus × 4 fordon × 4 tidpunkter = 800 anrop,
+noll fel och noll felformade texter, plus Arenagaraget avläst både 10:00 (30 kr) och
+20:00 (55 kr) via hela kedjan sökning → p-huslista → kort.
+
 ## v1.25.2 – 2026-09-05
 **Sextiosju parkeringsregler hade slutat gälla, men ritades ändå.**
 
