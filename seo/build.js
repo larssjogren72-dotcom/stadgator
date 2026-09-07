@@ -84,15 +84,54 @@ const DESTINATIONS = [
   { slug:'kistamassan', name:'Kistamässan', lat:59.4062, lng:17.9572, what:'mässor och event på Kistamässan', district:'kista', en:false },
 ];
 
-// ── Garage (cachad öppen data) ───────────────────────────────────────────────
+// ── Parkeringsanläggningar (cachad öppen data) ───────────────────────────────
+// Fram till v1.28.0 filtrerade den här filen med sitt EGET /garage/i och kände
+// varken till de 403 ytparkeringarna eller villkoren i fritexten. Sidorna sa
+// "Närmaste parkeringshus" och var tomma i hela ytterstaden, där appen numera
+// har flest träffar.
+//
+// ⚠ LOGIKEN KOPIERAS INTE HIT. `taxaArBesok`, `maxtidUr` och `garageVillkor`
+// LÄSES UT UR index.html vid bygget. En kopia hade glidit isär från appen tyst,
+// och då hade sidan och kartan sagt olika saker om samma parkering – precis den
+// sortens skuld som fick arkitektursidan att räknas automatiskt (kodpekare.js).
+// Saknas markörerna kraschar bygget med flit i stället för att tyst tappa villkor.
+const APP_HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+function appLogik() {
+  const start = APP_HTML.indexOf('function taxaArBesok');
+  const slut  = APP_HTML.indexOf('async function fetchNearbyGarages');
+  if (start < 0 || slut < 0 || slut <= start) {
+    throw new Error('[seo] hittar inte villkorslogiken i index.html – har funktionerna '
+      + 'döpts om? Bygget stoppas hellre än att generera sidor utan maxtid och villkor.');
+  }
+  const kod = APP_HTML.slice(start, slut);
+  for (const namn of ['taxaArBesok', 'taxaArMc', 'taxaArLangtid', 'maxtidUr', 'garageVillkor', 'garageArForBesok']) {
+    if (!kod.includes('function ' + namn)) throw new Error('[seo] saknar ' + namn + ' i utsnittet');
+  }
+  const STAD = { phusMcTaxa: true };           // används bara av garageTaxa, som vi inte kallar
+  return eval(kod + '\n({ garageVillkor, garageArForBesok, maxtidUr, taxaArBesok })');
+}
+const { garageVillkor, garageArForBesok } = appLogik();
+
+// Priset utelämnas med flit på de HÄR sidorna: appens `garageTaxa` svarar på vad
+// det kostar JUST NU, och en statisk sida kan inte bära ett svar som byter värde
+// klockan 18. Sidan hänvisar till kartan för priset.
+const ANL_TYP = /^(garage|ytparkering)$/i;
 let GARAGES = [];
 try {
   GARAGES = JSON.parse(fs.readFileSync(path.join(__dirname, 'garages.json'), 'utf8'))
-    .filter(a => /garage/i.test(a.Anlaggningstyp || '') && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud)
+    .filter(a => ANL_TYP.test(a.Anlaggningstyp || '') && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud
+              && garageArForBesok(a, 'bil'))
     .map(a => ({ name: a.Name, lat: a.AdressLatitud, lng: a.AdressLongitud, spaces: a.AntalBesokPlatser,
-      taxa: (a.BesokstaxaCollection || []).map(t => t && t.Taxa).filter(x => x != null)[0] }));
-  console.log(`[seo] ${GARAGES.length} publika besöksgarage laddade`);
-} catch { console.warn('[seo] saknar garages.json – garage-sektioner utelämnas'); }
+      sort: /ytparkering/i.test(a.Anlaggningstyp || '') ? 'Yta' : 'Garage',
+      villkor: garageVillkor(a) }))
+    // Anläggningar bara för rörelsehindrade hör inte hemma i en allmän sidlista.
+    // Appen visar dem i RH-läget; sidorna har inget lägesval att visa dem i.
+    .filter(a => !(a.villkor && a.villkor.baraRh));
+  const yt = GARAGES.filter(g => g.sort === 'Yta').length;
+  console.log(`[seo] ${GARAGES.length} publika besöksanläggningar laddade `
+    + `(${GARAGES.length - yt} garage, ${yt} ytparkeringar, `
+    + `${GARAGES.filter(g => g.villkor && g.villkor.maxtid).length} med maxtid)`);
+} catch (e) { console.warn('[seo] kunde inte läsa garages.json – anläggningssektioner utelämnas:', e.message); }
 
 // ── Gator (top per stadsdel ur P_TILLATEN, cachat) ───────────────────────────
 let STREETS = [];
@@ -107,9 +146,30 @@ function dist(aLat, aLng, bLat, bLng) {
   const h = Math.sin(dLa/2)**2 + Math.cos(toR(aLat))*Math.cos(toR(bLat))*Math.sin(dLo/2)**2;
   return Math.round(2 * R * Math.asin(Math.sqrt(h)));
 }
+// Samma sorteringsregel som appen: avstånd, men anläggningar med färre än sex
+// platser sjunker sist. Utan den hamnar en parkering med EN plats överst på en
+// sida som ska svara "var ställer jag bilen".
+const SMA_PLATSER = 6;
 const nearestGarages = (lat, lng, n = 4, radius = 2000) => GARAGES
   .map(g => ({ ...g, d: dist(lat, lng, g.lat, g.lng) }))
-  .filter(g => g.d <= radius).sort((a, b) => a.d - b.d).slice(0, n);
+  .filter(g => g.d <= radius)
+  .sort((a, b) => (a.spaces < SMA_PLATSER) - (b.spaces < SMA_PLATSER) || a.d - b.d)
+  .slice(0, n);
+
+// Villkorscellen i tabellerna. Maxtiden först – den är det man faktiskt planerar
+// efter – sedan en varning när fritexten säger att platsen inte är för vem som helst.
+const villkorCell = g => {
+  const v = g.villkor;
+  if (!v) return '<span class="muted">–</span>';
+  const bitar = [];
+  if (v.maxtid)  bitar.push(`<b>${esc(v.maxtid.text)}</b>`);
+  if (v.etikett) bitar.push(`⚠️ ${esc(v.etikett)}`);
+  return bitar.length ? bitar.join(' · ') : '<span class="muted">–</span>';
+};
+const anlTabell = rader => `<table><tr><th>Anläggning</th><th>Typ</th><th>Platser</th>`
+  + `<th>Villkor</th><th>Avstånd</th></tr>${rader.map(g => `<tr><td>${esc(g.name)}</td>`
+  + `<td class="muted">${g.sort}</td><td>${g.spaces}</td><td>${villkorCell(g)}</td>`
+  + `<td class="muted">${km(g.d)}</td></tr>`).join('')}</table>`;
 
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const km = d => d < 1000 ? `${d} m` : `${(d/1000).toFixed(1)} km`;
@@ -280,11 +340,11 @@ function freeTimesLine(taxa) {
 function garageSection(d, lat, lng) {
   const gs = nearestGarages(lat, lng);
   if (!gs.length) return '';
-  return `<section class="card"><h2>🅿 Närmaste parkeringshus</h2>
-  <p>Är gatorna fulla? Närmaste publika besöksgarage:</p>
-  <table><tr><th>Garage</th><th>Platser</th><th>Avstånd</th></tr>${
-    gs.map(g => `<tr><td>${esc(g.name)}</td><td>${g.spaces}</td><td class="muted">${km(g.d)}</td></tr>`).join('')}</table>
-  <p class="muted">Antal = husets kapacitet (ej live-beläggning). Kontrollera på plats.</p></section>`;
+  return `<section class="card"><h2>🅿 Garage och parkeringsytor nära</h2>
+  <p>Är gatorna fulla? Närmaste publika besöksparkeringar utanför gatan:</p>
+  ${anlTabell(gs)}
+  <p class="muted">Antal = anläggningens kapacitet (ej live-beläggning). Priset varierar
+  över dygnet och visas i kartan. Kontrollera alltid skylten på plats.</p></section>`;
 }
 
 // ── Sidtyper ─────────────────────────────────────────────────────────────────
@@ -466,21 +526,21 @@ function destination(x) {
   const gs = nearestGarages(x.lat, x.lng, 5, 1500);
   const inD = x.district ? DISTRICTS.find(d => d.slug === x.district) : null;
   const priceSection = inD ? `<section class="card"><h2>Vad kostar parkering vid ${esc(x.name)}?</h2>
-    <p>${esc(x.name)} ligger i ${esc(inD.name)} – gatuparkering här är ${inD.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}. ${freeTimesLine(inD.taxa)} Parkeringshusets pris styrs av huset (se nedan).</p>${taxaTable(inD.taxa)}</section>` : '';
+    <p>${esc(x.name)} ligger i ${esc(inD.name)} – gatuparkering här är ${inD.taxa.map(z=>`<span class="pill">Taxa ${z} · ${TAXA[z].pris} kr/tim</span>`).join('')}. ${freeTimesLine(inD.taxa)} Garagen och parkeringsytorna har egna taxor som står utanför zonerna (se nedan).</p>${taxaTable(inD.taxa)}</section>` : '';
   const sections = `
   <section class="card"><h2>Parkera nära ${esc(x.name)}</h2>
     <p>Ska du till ${esc(x.what)}? Gatuparkering i området kan vara begränsad, särskilt sommartid. ParkSpot visar lagliga platser och pris på kartan — och närmaste garage om gatorna är fulla.</p>
     <a class="cta" href="/">📍 Se lediga platser nära ${esc(x.name)} →</a></section>
   ${x.note ? `<section class="card"><h2>Bra att veta inför besöket</h2><p>${x.note}</p></section>` : ''}
   ${priceSection}
-  ${gs.length ? `<section class="card"><h2>🅿 Parkeringshus nära ${esc(x.name)}</h2>
-    <table><tr><th>Garage</th><th>Platser</th><th>Avstånd</th></tr>${gs.map(g=>`<tr><td>${esc(g.name)}</td><td>${g.spaces}</td><td class="muted">${km(g.d)}</td></tr>`).join('')}</table>
-    <p class="muted">Antal = kapacitet (ej live). Kontrollera på plats.</p></section>` : ''}
+  ${gs.length ? `<section class="card"><h2>🅿 Garage och parkeringsytor nära ${esc(x.name)}</h2>
+    ${anlTabell(gs)}
+    <p class="muted">Antal = kapacitet (ej live). Priset varierar över dygnet och visas i kartan. Kontrollera på plats.</p></section>` : ''}
   <section class="card"><h2>Tips för besöket</h2>
     <ul><li>Kolla städgator imorgon om du står över natten.</li><li>Kvällar, nätter och söndagar är ofta avgiftsfria i ytterzoner (lördag 11–17 har dock ofta avgift).</li><li>Kommer du på sommaren? Då vilar många vintergator — fler platser.</li></ul></section>`;
   const faq = [
-    { q:`Var kan jag parkera nära ${x.name}?`, a:`På lagliga gatuplatser i området eller i närmaste garage (se ovan). ParkSpot visar var du får stå just nu.` },
-    { q:`Finns parkeringshus nära ${x.name}?`, a:`${gs.length ? `Ja, t.ex. ${esc(gs[0].name)} (${km(gs[0].d)}).` : 'Använd ParkSpot för att hitta närmaste garage.'}` },
+    { q:`Var kan jag parkera nära ${x.name}?`, a:`På lagliga gatuplatser i området, eller i närmaste garage eller parkeringsyta (se ovan). ParkSpot visar var du får stå just nu.` },
+    { q:`Finns parkeringshus nära ${x.name}?`, a:`${gs.length ? `Ja, närmast är ${esc(gs[0].name)} (${gs[0].sort === 'Yta' ? 'parkeringsyta' : 'garage'}, ${km(gs[0].d)}${gs[0].villkor && gs[0].villkor.maxtid ? `, ${esc(gs[0].villkor.maxtid.text)}` : ''}).` : 'Använd ParkSpot för att hitta närmaste anläggning.'}` },
     { q:`Är det svårt att parkera vid ${x.name} på sommaren?`, a:`Det kan vara fullt vid populära mål. ParkSpot visar lediga lagliga platser och garage som sista utväg.` },
   ];
   const related = [
@@ -505,9 +565,9 @@ function destinationEN(x) {
   <section class="card"><h2>Parking near ${esc(x.name)}</h2>
     <p>Heading to ${whatEN}? On-street parking nearby can be limited, especially in summer. ParkSpot shows legal spots and the price on a map — plus the nearest garage if the streets are full.</p>
     <a class="cta" href="/">📍 See free spots near ${esc(x.name)} →</a></section>
-  ${gs.length ? `<section class="card"><h2>🅿 Parking garages near ${esc(x.name)}</h2>
-    <table><tr><th>Garage</th><th>Spaces</th><th>Distance</th></tr>${gs.map(g=>`<tr><td>${esc(g.name)}</td><td>${g.spaces}</td><td class="muted">${km(g.d)}</td></tr>`).join('')}</table>
-    <p class="muted">Number = capacity (not live occupancy). Check on site.</p></section>` : ''}
+  ${gs.length ? `<section class="card"><h2>🅿 Car parks near ${esc(x.name)}</h2>
+    <table><tr><th>Car park</th><th>Type</th><th>Spaces</th><th>Max stay</th><th>Distance</th></tr>${gs.map(g=>`<tr><td>${esc(g.name)}</td><td class="muted">${g.sort === 'Yta' ? 'Surface' : 'Garage'}</td><td>${g.spaces}</td><td>${g.villkor && g.villkor.maxtid ? esc(g.villkor.maxtid.text.replace('max ','').replace(' tim',' h').replace(' dygn',' days')) : '<span class="muted">–</span>'}</td><td class="muted">${km(g.d)}</td></tr>`).join('')}</table>
+    <p class="muted">Number = capacity (not live occupancy). Prices vary by time of day — see the map. Check the sign on site.</p></section>` : ''}
   <section class="card"><h2>Good to know</h2>
     <ul><li>Staying overnight? Check tomorrow's <b>cleaning day</b> ("städdag") — parking is banned then.</li>
     <li>Evenings, nights and Sundays are often free in outer zones (Saturday 11–17 usually has a charge).</li>
@@ -718,24 +778,33 @@ function pillarOverNatten() {
 
 function pillarGarages() {
   const top = GARAGES.slice().sort((a,b)=>b.spaces-a.spaces).slice(0, 12);
+  const ytor   = GARAGES.filter(g => g.sort === 'Yta');
+  const medMax = GARAGES.filter(g => g.villkor && g.villkor.maxtid);
   const sections = `
-  <section class="card"><h2>Parkeringshus i Stockholm – sista utväg när gatan är full</h2>
-    <p>När gatorna är fulla är ett parkeringshus räddningen. ParkSpot visar närmaste publika besöksgarage med kapacitet och pris — direkt i kartan.</p></section>
-  ${top.length ? `<section class="card"><h2>Några av de största besöksgaragen</h2>
-    <table><tr><th>Garage</th><th>Besöksplatser</th></tr>${top.map(g=>`<tr><td>${esc(g.name)}</td><td>${g.spaces}</td></tr>`).join('')}</table>
-    <p class="muted">Antal = kapacitet (ej live-beläggning). Kontrollera på plats.</p></section>` : ''}`;
+  <section class="card"><h2>Parkeringshus och parkeringsytor – sista utväg när gatan är full</h2>
+    <p>När gatorna är fulla finns ${GARAGES.length} publika besöksanläggningar i Stockholms stads öppna data: ${GARAGES.length - ytor.length} parkeringshus och ${ytor.length} parkeringsytor. Ytorna ligger till stor del i ytterstaden, där det ofta inte finns något garage alls. ParkSpot visar den närmaste med kapacitet och aktuellt pris — direkt i kartan.</p></section>
+  ${top.length ? `<section class="card"><h2>Några av de största besöksanläggningarna</h2>
+    <table><tr><th>Anläggning</th><th>Typ</th><th>Besöksplatser</th><th>Villkor</th></tr>${top.map(g=>`<tr><td>${esc(g.name)}</td><td class="muted">${g.sort}</td><td>${g.spaces}</td><td>${villkorCell(g)}</td></tr>`).join('')}</table>
+    <p class="muted">Antal = kapacitet (ej live-beläggning). Kontrollera på plats.</p></section>` : ''}
+  <section class="card"><h2>Tidsgräns – ${medMax.length} anläggningar har en</h2>
+    <p>På ${medMax.length} av anläggningarna publicerar staden en <b>längsta tillåtna parkeringstid</b>, från 30 minuter till flera dygn. Den syns i ParkSpot på både listan och platskortet, så att du vet innan du kör. Övriga anläggningar publicerar ingen gräns — det betyder inte att det säkert saknas en, bara att den inte står i datan. Skylten på plats gäller alltid.</p></section>`;
   const faq = [
-    { q:`Hur hittar jag närmaste parkeringshus i Stockholm?`, a:`ParkSpot visar närmaste publika besöksgarage med kapacitet när du söker en plats.` },
-    { q:`Visar ParkSpot lediga platser i realtid i p-hus?`, a:`Vi visar husets kapacitet och läge ur öppna data. Live-beläggning finns inte öppet — kontrollera på plats.` },
+    { q:`Hur hittar jag närmaste parkeringshus i Stockholm?`, a:`ParkSpot visar närmaste publika besöksanläggning — parkeringshus eller parkeringsyta — med kapacitet, pris och eventuell tidsgräns när du söker en plats.` },
+    { q:`Vad är skillnaden på parkeringshus och parkeringsyta?`, a:`Ett parkeringshus är ett garage eller p-däck, en parkeringsyta är en öppen asfaltsyta. Båda ligger utanför gatumarken och har egen taxa. I Stockholms ytterstad är ytorna ofta det enda alternativet till gatan.` },
+    { q:`Finns det en tidsgräns i parkeringshusen?`, a:`På ${medMax.length} av anläggningarna publicerar staden en längsta parkeringstid, och den visar ParkSpot. Saknas uppgiften vet vi inte om en gräns finns — läs skylten på plats.` },
+    { q:`Visar ParkSpot lediga platser i realtid i p-hus?`, a:`Vi visar anläggningens kapacitet och läge ur öppna data. Live-beläggning finns inte öppet — kontrollera på plats.` },
   ];
   const related = [
     { href:`parkering-nara/grona-lund`, text:`Parkering nära Gröna Lund` },
     { href:`sommar-parkering-stockholm`, text:`Sommarparkering` },
   ];
+  // SLUGGEN RÖRS INTE. `parkeringshus-stockholm` är indexerad sedan juni och ligger
+  // i sju interna länkar; rubriken får bli bredare, adressen får inte byta.
   emit('parkeringshus-stockholm', layout({
-    slug:'parkeringshus-stockholm', title:'Parkeringshus i Stockholm – närmaste garage med plats | ParkSpot',
-    desc:'Hitta parkeringshus i Stockholm när gatan är full. ParkSpot visar närmaste publika besöksgarage med kapacitet och pris.',
-    h1:'Parkeringshus i Stockholm', lead:'Gatan full? Hitta närmaste garage — ParkSpot visar kapacitet och läge.',
+    slug:'parkeringshus-stockholm', title:'Parkeringshus och parkeringsytor i Stockholm – med tidsgräns | ParkSpot',
+    desc:'Hitta parkeringshus och parkeringsytor i Stockholm när gatan är full. ParkSpot visar närmaste anläggning med kapacitet, pris och tidsgräns.',
+    h1:'Parkeringshus och parkeringsytor i Stockholm',
+    lead:'Gatan full? Hitta närmaste anläggning — ParkSpot visar kapacitet, pris och tidsgräns.',
     sections, faq, related, lat:null, lng:null, match:null }));
 }
 

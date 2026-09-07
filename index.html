@@ -3810,6 +3810,31 @@ const ANM_PRIS = /\d+\s*kr|kronor|avgift|taxa|\d+:-/i;
 // och den föll bort som prisdetalj i första försöket.
 const ANM_VILLKOR = /r[öo]relsehindrad|medlemspark|tillst[åa]nd kr[äa]vs|busspark/i;
 
+// Är anläggningen alls till för besökare med det här fordonet?
+//
+// `AntalBesokPlatser > 0` räcker inte som bevis, och det är MÄTT: "Sveriges Radio
+// Personal" har 343 registrerade besöksplatser men inte en enda besöksrad för bil –
+// alla biltaxor är Personalparkering. Sju anläggningar med 656 platser ser likadana
+// ut: fyra personalparkeringar, två husbilscampingar och en till. De föreslogs för
+// förare som inte får använda dem.
+//
+// TYSTNAD DISKVALIFICERAR INTE. En anläggning helt utan taxarader (19 stycken) vet
+// vi ingenting om och den behålls. Bara den som HAR rader, där ingen av dem är en
+// besöksrad för fordonet, är positivt utesluten. Samma skillnad som mellan "ingen
+// maxtid publicerad" och "maxtid = ingen".
+// ⚠ REGELN ÄR ASYMMETRISK, OCH DET ÄR HELA POÄNGEN. Ett första försök krävde en
+// besöksrad för RÄTT fordon, och då föll 409 av 453 anläggningar bort i MC-läget –
+// nio av tio. Att en MC-taxa saknas betyder inte att motorcyklar är förbjudna; det
+// är precis vad v1.26.0 redan slog fast när MC-läget fick låna biltaxan märkt
+// "biltaxa". En bil behöver alltså en besöksrad som INTE är MC-taxa; en MC duger
+// med vilken besöksrad som helst, för den kan betala bilpriset.
+function garageArForBesok(a, fordon) {
+  const rader = a.BesokstaxaCollection || [];
+  if (!rader.length) return true;                       // okänt, inte diskvalificerat
+  const villMc = fordon === 'mc';
+  return rader.some(t => taxaArBesok(t) && (villMc || !taxaArMc(t)));
+}
+
 // Villkoren för EN anläggning, lästa ur bilraderna. Returnerar null när fritexten
 // inte säger något som påverkar ett besök.
 //
@@ -3863,7 +3888,8 @@ async function fetchNearbyGarages(lat, lng, radius = 1000) {
     // från öppen parkeringsyta, och bara 71 av 923 avslöjar det i namnet). Därför bor
     // filtret i stadskonfigurationen. Tom regel = ingen typfiltrering.
     .filter(a => (!STAD.phusTyp || STAD.phusTyp.test(a.Anlaggningstyp || ''))
-              && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud)
+              && a.AntalBesokPlatser > 0 && a.AdressLatitud && a.AdressLongitud
+              && garageArForBesok(a, fordon))
     .map(a => ({
       name: a.Name || 'Parkeringshus', lat: a.AdressLatitud, lng: a.AdressLongitud,
       spaces: a.AntalBesokPlatser, taxa: garageTaxa(a, fordon), agare: a.Agare || '',
