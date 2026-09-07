@@ -14,6 +14,53 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.29.0 – 2026-09-07
+**SEO-sidorna kände inte igen appen längre – och sju anläggningar visades för förare som inte får stå där.**
+
+De 225 genererade sidorna hade ett eget `/garage/i`-filter och en egen ögonblicksbild
+av datan från **9 juni**. De sa "Närmaste parkeringshus", listade bara de 50 garagen och
+var därför tomma i hela ytterstaden — precis där appen sedan v1.27.0 har flest träffar.
+
+**Logiken kopieras inte, den läses ur appen.** `seo/build.js` plockar ut
+`taxaArBesok`, `maxtidUr`, `garageVillkor` och `garageArForBesok` ur `index.html` vid
+bygget. En kopia hade glidit isär tyst, och då hade sidan och kartan sagt olika saker om
+samma parkering. Saknas funktionerna kraschar bygget med flit i stället för att generera
+225 sidor utan villkor.
+
+**Sidorna visar nu typ, platser, villkor och maxtid**, sorterat med samma regel som appen
+(under sex platser sjunker sist). Anläggningar bara för rörelsehindrade utelämnas: appen
+har ett RH-läge att visa dem i, sidorna har inget.
+
+**Sju anläggningar med 656 platser var inte till för besökare alls.** Det upptäcktes när
+"Sveriges Radio Personal" med sina 343 platser hamnade på hubbsidans lista över stadens
+största besöksanläggningar. Den har inte en enda besöksrad för bil — alla biltaxor är
+Personalparkering. Samma sak för Glasbruket, Bodö, Måsholmen 33, Pilvingen 3 garage och
+två husbilscampingar (Kaknästornet, Långholmen).
+
+`AntalBesokPlatser > 0` räcker alltså inte som bevis. Den nya regeln `garageArForBesok`
+utesluter en anläggning som HAR taxarader där ingen är en besöksrad för fordonet — men
+**tystnad diskvalificerar inte**: 19 anläggningar saknar taxarader helt och behålls, för
+vi vet ingenting om dem. Samma skillnad som mellan "ingen maxtid publicerad" och
+"maxtid = ingen". Regeln gäller nu både appen och sidorna.
+
+> **Regeln är asymmetrisk, och det är hela poängen.** Ett första försök krävde en besöksrad
+> för rätt fordon, och då föll **409 av 453 anläggningar bort i MC-läget** — nio av tio.
+> Att en MC-taxa saknas betyder inte att motorcyklar är förbjudna; det slog v1.26.0 redan
+> fast när MC-läget fick låna biltaxan märkt "biltaxa". En bil behöver en besöksrad som
+> inte är MC-taxa; en MC duger med vilken besöksrad som helst. Fångat i svepet, inte i
+> huvudet.
+
+**Ögonblicksbilden är uppdaterad** från juni till idag, efter en jämförelse: två
+anläggningar borta, sju tillkomna, ett ändrat timpris. Litet och trovärdigt.
+
+**Hubbsidan heter nu "Parkeringshus och parkeringsytor i Stockholm"** och har fått en
+sektion om tidsgränser samt två nya FAQ-frågor. **Adressen är oförändrad** —
+`parkeringshus-stockholm` är indexerad sedan juni och ligger i sju interna länkar;
+rubriken får bli bredare, adressen får inte byta.
+
+179 av 225 sidor ändrades och fick dagens `lastmod`; 46 var byte-identiska och behöll sitt
+datum. Arkitektursidans 22 kodpekare är uppdaterade med `verktyg/kodpekare.js --skriv`.
+
 ## v1.28.0 – 2026-09-07
 **Villkoren stod i klartext i datan. Appen läste dem aldrig.**
 
