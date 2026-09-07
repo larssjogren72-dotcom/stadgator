@@ -1614,9 +1614,20 @@ STADER_CFG.stockholm =
       heltStadenUrl:'/proxy/servicedagar/weekday',   // hela staden – bara Stockholm
       tillatenUrl:'',              // tomt = Stockholms WFS via nyckel (se fetchLayer)
       phusUrl:'/phus',
-      // Stockholm har ett typfält och filtrerar till garage – "sista utväg" betyder
-      // p-hus här. Regeln är oförändrad, den har bara flyttat till konfigurationen.
-      phusTyp:/garage/i, phusRubrik:'Parkeringshus nära', phusEtikett:'Garage',
+      // Stockholm har ett typfält. Fram till v1.26.0 slapp bara "Garage" igenom, och
+      // det doldes 403 ytparkeringar med 15 948 besöksplatser – kommunens egna, i
+      // samma API. Mätt 2026-09-07: 237 av dem har inget garage alls inom en
+      // kilometer, så de var inte dubbletter utan ett tomt lager i ytterstaden.
+      // Farsta centrum svarade "Inga parkeringshus inom 1 km. Prova en plats mer
+      // centralt" med 781 platser inom en kilometer, den närmaste 53 meter bort.
+      // Listan är fortfarande "sista utväg" – den har bara slutat ljuga om ytterstan.
+      // Typerna räknas upp med flit: "Cykelgarage" och "Lokal" ska aldrig med.
+      phusTyp:/^(garage|ytparkering)$/i,
+      phusRubrik:'Garage och ytparkering nära', phusEtikett:'Garage',
+      // Stadens EGNA ord för de två sorterna (se kommentaren vid garagekortet om
+      // varför ordet måste vara sant för staden). Städer utan typfält – Göteborg –
+      // definierar den inte och faller tillbaka på phusEtikett för allt.
+      phusEtikettAv: a => /ytparkering/i.test(a.Anlaggningstyp || '') ? 'Yta' : 'Garage',
       // Stockholm Parkering publicerar EGNA MC-taxor ("Besöksparkering MC") på 8 av
       // 50 p-hus. Därför kan MC-läget både visa rätt pris där det finns och säga
       // "biltaxa" där det saknas. Övriga städer har ingen fordonsuppdelning alls i
@@ -3701,6 +3712,10 @@ function enhetText(t) {
 // finns. `varierar` är sant när det finns fler priser för samma fordon än det vi
 // visar, så att kortet kan säga det i stället för att låta priset se fast ut.
 // `lanad` betyder att MC-läget fick nöja sig med biltaxan.
+// Under så här många platser sjunker en anläggning sist i listan. Se sorteringen
+// i fetchNearbyGarages för varför den sänker i stället för att sålla.
+const SMA_PLATSER = 6;
+
 function garageTaxa(a, fordon) {
   const alla = (a.BesokstaxaCollection || []).filter(t => taxaArBesok(t) && !taxaArLangtid(t));
   if (!alla.length) return null;
@@ -3757,10 +3772,25 @@ async function fetchNearbyGarages(lat, lng, radius = 1000) {
     .map(a => ({
       name: a.Name || 'Parkeringshus', lat: a.AdressLatitud, lng: a.AdressLongitud,
       spaces: a.AntalBesokPlatser, taxa: garageTaxa(a, fordon), agare: a.Agare || '',
+      // Stadens eget ord för just den här anläggningen. Utan hook: stadens enda ord.
+      etikett: STAD.phusEtikettAv ? STAD.phusEtikettAv(a) : STAD.phusEtikett,
       dist: Math.round(map.distance([lat, lng], [a.AdressLatitud, a.AdressLongitud]))
     }))
     .filter(x => x.dist <= radius)
-    .sort((a, b) => a.dist - b.dist)
+    // Avstånd som förut – men anläggningar med FÄRRE ÄN SEX platser sjunker sist.
+    // Ren avståndssortering gick sönder i samma stund som ytorna kom in: vid Globen
+    // hamnade en parkering med EN plats på andra plats medan Arenagaraget med 761
+    // knappt kom med. Vi har ingen live-beläggning, så antalet är det enda vi har,
+    // och en ensam plats som toppförslag är nästan säkert fel svar.
+    //
+    // SJUNKA, INTE TA BORT (mätt 2026-09-07): topp 12 blir IDENTISK med att sålla
+    // bort dem, eftersom de ändå trängs undan där det finns alternativ. Skillnaden
+    // syns på ett enda ställe i staden – Hjorthagens skola, 3 platser, är den enda
+    // parkeringen inom en kilometer. Sållning ger Hjorthagen ingenting; sänkning
+    // ger samma rena lista överallt och behåller trean där den är allt som finns.
+    // Gränsen sex är en bedömning, inte en härledd konstant: 24 anläggningar har
+    // exakt en plats och 71 har fem eller färre – där tar hopen slut.
+    .sort((a, b) => (a.spaces < SMA_PLATSER) - (b.spaces < SMA_PLATSER) || a.dist - b.dist)
     .slice(0, 12);
 }
 
@@ -3778,6 +3808,10 @@ function clearGarages() {
 }
 
 const distStr = d => d < 1000 ? `${d} m` : `${(d/1000).toFixed(1)} km`;
+
+// "1 platser" stod aldrig i appen förut eftersom inget garage har en enda plats.
+// Bland ytparkeringarna har 24 stycken exakt en.
+const platsAntal = n => `${n} plats${n === 1 ? '' : 'er'}`;
 
 let inGarageView = false;
 
@@ -3810,7 +3844,7 @@ async function showGarageList() {
   if (!searchCenter) return;
   const btn = document.getElementById('phus-btn');
   const lbl = btn.querySelector('.phus-label');
-  btn.classList.add('loading'); lbl.textContent = 'Hämtar parkeringshus…';
+  btn.classList.add('loading'); lbl.textContent = 'Hämtar…';   // stadsneutralt: lagret ar inte bara p-hus langre
   try {
     const gs = await fetchNearbyGarages(searchCenter.lat, searchCenter.lng, 1000);
     clearGarages();
@@ -3834,19 +3868,30 @@ function renderGarageRows(gs) {
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
   document.getElementById('street-panel').style.display = 'none';
+  // Rubriken ritas ÄVEN när listan är tom. Förut stod ordet "parkeringshus" i själva
+  // tomma-meningen, och det blev osant så fort ytparkeringarna kom in. Att bygga
+  // meningen ur stadens rubrik i stället gick inte: "Ingen parkeringsanläggningar"
+  // och "Ingen garage" är inte svenska, och genus går inte att härleda ur en sträng.
+  // Låt rubriken bära substantivet, så kan meningen vara ordlös och rätt i alla städer.
+  const rubrik = `<div class="garage-head"><h2>${escHtml(STAD.phusRubrik)}</h2>`
+               + `<span>${gs.length} inom 1 km</span></div>`;
   if (!gs.length) {
-    list.innerHTML = `<div class="garage-empty">Inga parkeringshus inom 1 km. Prova en plats mer centralt.</div>`;
+    list.innerHTML = rubrik
+      // Rubriken säger redan "0 inom 1 km", så meningen behöver bara ge rådet.
+      + `<div class="garage-empty">Prova en plats mer centralt.</div>`;
     list.style.display = 'block'; sheetSnapTo('peek'); return;
   }
-  list.innerHTML =
-    `<div class="garage-head"><h2>${STAD.phusRubrik}</h2><span>${gs.length} inom 1 km</span></div>`
+  list.innerHTML = rubrik
     + gs.map((g, i) => `
       <div class="sl-item garage-row" data-i="${i}">
         <div class="phus-ic">P</div>
         <div class="sl-info">
           <div class="sl-name">${escHtml(g.name)}</div>
           <div class="sl-sub">
-            <span class="sl-badge phus-cap">${STAD.phusTyp ? 'Garage · ' : ''}${g.spaces} platser</span>
+            <!-- Sorten skrivs ut bara där staden HAR mer än en sort. I Göteborg är
+                 allt "Parkeringsanläggning" och ordet skiljer ingenting – då är det
+                 bara en lång badge. Kortet visar etiketten i båda städerna som förut. -->
+            <span class="sl-badge phus-cap">${STAD.phusEtikettAv ? escHtml(g.etikett) + ' · ' : ''}${platsAntal(g.spaces)}</span>
             ${g.taxa ? `<span class="sl-badge sl-time">${escHtml(g.taxa.text)}${g.taxa.lanad ? ' · biltaxa' : ''}</span>` : ''}
             <span class="sl-dist">${distStr(g.dist)}</span>
           </div>
@@ -3854,7 +3899,7 @@ function renderGarageRows(gs) {
         <a class="sl-nav" href="${navUrl(g.lat, g.lng)}" data-navlat="${g.lat}" data-navlng="${g.lng}"
            target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>
       </div>`).join('')
-    + `<div class="garage-note">ⓘ Live-tillgång visas ej – antalet är husets kapacitet. Kontrollera skylten på plats.</div>`;
+    + `<div class="garage-note">ⓘ Live-tillgång visas ej – antalet är anläggningens kapacitet. Kontrollera skylten på plats.</div>`;
   list.style.display = 'block';
   list.querySelectorAll('.garage-row').forEach((el, i) => el.addEventListener('click', () => selectGarage(gs[i])));
   sheetSnapTo('peek');
@@ -3872,10 +3917,10 @@ function selectGarage(g, marker) {
   // det här är parkering på kvartersmark, inte längs en gatukant. "Avgiftsparkering"
   // dög inte – nästan all gatuparkering i centrala Göteborg är också avgiftsbelagd,
   // så det ordet skiljer ingenting (Lars 2026-08-27).
-  bd.textContent = '🅿 ' + STAD.phusEtikett;
+  bd.textContent = '🅿 ' + (g.etikett || STAD.phusEtikett);
   bd.style.background = 'rgba(129,140,248,.14)'; bd.style.borderColor = 'rgba(129,140,248,.4)'; bd.style.color = '#3730a3';
   const bt = document.getElementById('badge-time');
-  bt.style.display = ''; bt.textContent = `${g.spaces} platser`;
+  bt.style.display = ''; bt.textContent = platsAntal(g.spaces);
   bt.style.background = 'rgba(129,140,248,.1)'; bt.style.borderColor = 'rgba(129,140,248,.3)'; bt.style.color = '#3730a3';
   const taxaRow = document.getElementById('taxa-row');
   // Vem som driver anläggningen är riktig data och läses aldrig som ett gatunamn.
@@ -3887,8 +3932,8 @@ function selectGarage(g, marker) {
   // varit osynligt på garagekortet. Upptäckt 2026-08-27 när Lars påpekade att kortet
   // inte visade att Kristinelundsgatan var en anläggning. Därför står både etiketten
   // och antalet här, i raden som faktiskt renderas.
-  taxaRow.innerHTML = `🅿 <b>${escHtml(STAD.phusEtikett)}</b>`
-    + (g.spaces ? ` · ${g.spaces} platser` : '') + '<br>'
+  taxaRow.innerHTML = `🅿 <b>${escHtml(g.etikett || STAD.phusEtikett)}</b>`
+    + (g.spaces ? ` · ${platsAntal(g.spaces)}` : '') + '<br>'
     + (g.agare ? `🏢 ${escHtml(g.agare)}<br>` : '')
     // Priset står aldrig ensamt när det inte är hela sanningen. "Varierar" betyder
     // att anläggningen har fler timpriser än det som gäller just nu (kväll/helg är
