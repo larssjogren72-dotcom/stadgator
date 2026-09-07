@@ -3756,6 +3756,101 @@ function garageTaxa(a, fordon) {
   return { text: `${t.Taxa} kr · ${enhetText(t)}`, varierar: med.length > 1, lanad: lanadBiltaxa };
 }
 
+// ── Fritexten i `Anm`: vem som får stå, och hur länge ───────────────────────
+// Stockholm Parkering skriver villkor som fri text på varje taxarad. Appen läste
+// den aldrig. Hela korpusen är 82 unika texter på de rader som kan bli ett
+// besökspris – liten nog att LÄSA i stället för att söka i, vilket är precis vad
+// jag missade första gången (min regex letade efter en av fem kategorier och jag
+// rapporterade träffarna som om de vore hela sanningen).
+
+// ⚠ FÄLLAN I KORPUSEN: "Max p-tid till 24" och "Parkeringsautomat Max p-tid till
+// 24.00" betyder till klockan 24 – inte 24 timmar. Läses de som varaktighet blir
+// en tvåtimmarsgräns till ett dygn. Därför avvisas allt med "till" före siffran.
+const MAXTID_TILL = /max[^.]{0,24}\btill\b\s*(?:kl\.?\s*)?\d/i;
+// "Max 2t p-tid", "Max p-tid 3 h", "Max P-tid 4 timmar", "Max 10  dygn",
+// "Max p-tid är 2 timmar", "Max 30 min parkering", "Max 7 dagar".
+const MAXTID_RE = /\bmax\.?\s*(?:p-?tid\s*)?(?:är\s*)?(\d+)\s*(minuter|minut|min|timmar|timme|timma|tim|dygn|dagar|dag|[th])\b/i;
+
+// Returnerar { minuter, text } eller null. `minuter` finns för att kunna välja den
+// KORTASTE gränsen när en anläggning har flera – aldrig lova längre tid än man får.
+function maxtidUr(anm) {
+  const s = (anm || '').trim();
+  if (!s || MAXTID_TILL.test(s)) return null;
+  const m = MAXTID_RE.exec(s);
+  if (!m) return null;
+  const n = +m[1], enhet = m[2].toLowerCase();
+  if (!n) return null;
+  if (/^min/.test(enhet))                    return { minuter: n,          text: `max ${n} min` };
+  if (/^(dygn|dag)/.test(enhet))             return { minuter: n * 1440,   text: `max ${n} dygn` };
+  return { minuter: n * 60, text: `max ${n} tim` };          // tim/timme/timmar/timma/t/h
+}
+
+// Vem platsen är till för. Bara texter som pekar ut en ANNAN grupp än "vem som
+// helst som betalar" – och bara när de gäller ALLA bilrader på anläggningen.
+// Den skillnaden är avgörande och mätt: Värtaterminalen har 58 platser där två
+// rader säger "Endast för rörelsehindrade" men en tredje är en vanlig
+// tvåtimmarsruta, och Valparaiso har bussparkering på två rader av fyra. Att
+// utesluta dem hade tagit bort 268 platser som allmänheten faktiskt får använda.
+const BARA_RH      = /r[öo]relsehindrad/i;
+const BARA_MEDLEM  = /medlemspark/i;
+const BARA_TILLST  = /tillst[åa]nd kr[äa]vs/i;
+const BARA_BUSS    = /busspark/i;
+
+// Texter som är prisdetaljer eller ren etikett – de säger inget om villkoren och
+// ska inte stå som "bra att veta" på kortet.
+const ANM_BRUS = /^(bes[öo]kspark\w*|garage|yta|infartspark\w*|mc parkering)$/i;
+//
+// ⚠ `kr\b` går INTE att använda här. I JavaScript är \w bara [A-Za-z0-9_], så å ä ö
+// räknas som ordgräns – och `kr\b` träffar då mitt inne i "krävs". Villkoret
+// "Tillstånd krävs mellan 07-23" försvann därför som "prisdetalj" i mitt första
+// försök. Ett pris ser ut som en SIFFRA följd av kr, och det är vad som står nu.
+const ANM_PRIS = /\d+\s*kr|kronor|avgift|taxa|\d+:-/i;
+// En text som bär ett villkor ska med till kortet ÄVEN när den också nämner ett
+// pris. Salkhallens "Medlemsparkering 3tim 20 kr BA i reception" är just en sådan,
+// och den föll bort som prisdetalj i första försöket.
+const ANM_VILLKOR = /r[öo]relsehindrad|medlemspark|tillst[åa]nd kr[äa]vs|busspark/i;
+
+// Villkoren för EN anläggning, lästa ur bilraderna. Returnerar null när fritexten
+// inte säger något som påverkar ett besök.
+//
+// `baraRh` är det enda som DÖLJER en anläggning, och bara i andra fordonslägen –
+// samma tanke som gatulagret: en plats som inte är din ska inte föreslås dig, men
+// den ska finnas kvar för den den är till för. Övriga villkor döljer ingenting.
+// Att gömma en anläggning på en fritextträff vore att låta min läsning av en
+// mening bestämma över 210 platser.
+function garageVillkor(a) {
+  const rader = (a.BesokstaxaCollection || [])
+    .filter(t => taxaArBesok(t) && !taxaArLangtid(t) && !taxaArMc(t));
+  if (!rader.length) return null;
+  const anm = rader.map(t => (t.Anm || '').trim());
+  const alla = re => anm.every(s => re.test(s));
+  const nagon = re => anm.some(s => re.test(s));
+
+  // Kortaste gränsen bland raderna – aldrig lova längre tid än man får stå.
+  let maxtid = null;
+  for (const s of anm) {
+    const m = maxtidUr(s);
+    if (m && (!maxtid || m.minuter < maxtid.minuter)) maxtid = m;
+  }
+
+  let etikett = null;
+  if (alla(BARA_RH))          etikett = 'Endast rörelsehindrade';
+  else if (alla(BARA_MEDLEM)) etikett = 'Endast medlemmar';
+  else if (alla(BARA_TILLST)) etikett = 'Kräver tillstånd';
+  else if (alla(BARA_BUSS))   etikett = 'Endast buss';
+  else if (nagon(BARA_RH) || nagon(BARA_MEDLEM) || nagon(BARA_TILLST) || nagon(BARA_BUSS))
+    etikett = 'Vissa platser har villkor';
+
+  // Anläggningens egna ord, till kortet. Rena etiketter ("Yta", "Garage") och rena
+  // prisdetaljer ("165 kr ger tid till 24:00") säger inget om villkoren – men en
+  // text som BÅDE nämner pris och en gräns ("Max P-tid 3 tim= 75kr") ska med.
+  const egnaOrd = [...new Set(anm.filter(s =>
+    s && !ANM_BRUS.test(s) && (maxtidUr(s) || ANM_VILLKOR.test(s) || !ANM_PRIS.test(s))))];
+
+  if (!maxtid && !etikett && !egnaOrd.length) return null;
+  return { maxtid, etikett, baraRh: alla(BARA_RH), egnaOrd };
+}
+
 async function fetchNearbyGarages(lat, lng, radius = 1000) {
   const all = await loadGarageData();
   // Fordonet läses här och inte inne i garageTaxa, så att listan och kortet
@@ -3774,8 +3869,16 @@ async function fetchNearbyGarages(lat, lng, radius = 1000) {
       spaces: a.AntalBesokPlatser, taxa: garageTaxa(a, fordon), agare: a.Agare || '',
       // Stadens eget ord för just den här anläggningen. Utan hook: stadens enda ord.
       etikett: STAD.phusEtikettAv ? STAD.phusEtikettAv(a) : STAD.phusEtikett,
+      villkor: garageVillkor(a),
       dist: Math.round(map.distance([lat, lng], [a.AdressLatitud, a.AdressLongitud]))
     }))
+    // Anläggningar som ENBART är för rörelsehindrade föreslås bara i RH-läget.
+    // Samma tanke som gatulagret, men motsatt utfall, och skillnaden är avsiktlig:
+    // på gatan ritas en RH-ruta även för bilister, eftersom den som SER rutan
+    // slipper ta den av misstag. En rad i en förslagslista hindrar inget misstag –
+    // ingen undviker en felparkering genom att läsa "Personnevägen, 1 plats" bland
+    // sina alternativ. Där är den bara ett dåligt förslag. I RH-läget är den ett bra.
+    .filter(x => !(x.villkor && x.villkor.baraRh) || fordon === 'rh')
     .filter(x => x.dist <= radius)
     // Avstånd som förut – men anläggningar med FÄRRE ÄN SEX platser sjunker sist.
     // Ren avståndssortering gick sönder i samma stund som ytorna kom in: vid Globen
@@ -3893,6 +3996,13 @@ function renderGarageRows(gs) {
                  bara en lång badge. Kortet visar etiketten i båda städerna som förut. -->
             <span class="sl-badge phus-cap">${STAD.phusEtikettAv ? escHtml(g.etikett) + ' · ' : ''}${platsAntal(g.spaces)}</span>
             ${g.taxa ? `<span class="sl-badge sl-time">${escHtml(g.taxa.text)}${g.taxa.lanad ? ' · biltaxa' : ''}</span>` : ''}
+            <!-- Maxtiden bär phus-cap (indigo) som platsantalet: det är ett FAKTUM om
+                 anläggningen, inte en varning. sl-warn (gul) är reserverad för det man
+                 ska se upp med, och används redan med exakt den betydelsen i gatulistan
+                 ("⚠️ Boende – max 3 tim"). Att ge maxtiden gul hade gjort tre av fyra
+                 badgar gula och urvattnat varningen. -->
+            ${g.villkor && g.villkor.maxtid ? `<span class="sl-badge phus-cap">${escHtml(g.villkor.maxtid.text)}</span>` : ''}
+            ${g.villkor && g.villkor.etikett ? `<span class="sl-badge sl-warn">⚠️ ${escHtml(g.villkor.etikett)}</span>` : ''}
             <span class="sl-dist">${distStr(g.dist)}</span>
           </div>
         </div>
@@ -3942,6 +4052,15 @@ function selectGarage(g, marker) {
                 + (g.taxa.lanad   ? ' <span style="opacity:.85">– biltaxa, MC-pris ej publicerat</span>' : '')
                 + (g.taxa.varierar ? '<br><span style="opacity:.85">Priset varierar över dygnet – detta gäller nu.</span>' : '')
                 + '<br>' : '')
+    // Villkoren ur anläggningens fritext. Anläggningens EGNA ord citeras ordagrant
+    // och märks som deras – inte omskrivna. En omskrivning som blir en aning fel är
+    // farligare än ett citat som är en aning kryptiskt ("BA 5529"), och koden i
+    // citatet kan dessutom vara samma som står på betalautomaten.
+    + (g.villkor && g.villkor.maxtid ? `⏱ Får stå <b>${escHtml(g.villkor.maxtid.text)}</b><br>` : '')
+    + (g.villkor && g.villkor.etikett ? `⚠️ <b>${escHtml(g.villkor.etikett)}</b><br>` : '')
+    + (g.villkor && g.villkor.egnaOrd.length
+        ? `<span style="opacity:.85">Anläggningens egen text: `
+          + g.villkor.egnaOrd.map(o => `”${escHtml(o)}”`).join(' · ') + '</span><br>' : '')
     + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
   taxaRow.style.display = 'block';
   document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för garage
