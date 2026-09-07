@@ -14,6 +14,67 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.27.0 – 2026-09-07
+**403 parkeringar med 15 948 platser var gömda bakom ett filter.**
+
+P-huslistan filtrerade Stockholm Parkerings `/phus` med `/garage/i` och visade därför
+**50 garage med 7 480 besöksplatser**. I exakt samma svar låg **403 ytparkeringar med
+15 948 besöksplatser** – kommunens egna anläggningar, med publicerad taxa.
+
+De var inte dubbletter. **237 av dem har inget garage alls inom en kilometer.**
+Garagen är innerstadens svar, ytparkeringarna är ytterstadens, och ytterstaden hade
+inget lager över huvud taget.
+
+Så här såg det ut i Farsta centrum före den här versionen:
+
+> *"Inga parkeringshus inom 1 km. Prova en plats mer centralt."*
+
+Nio parkeringar med 781 platser låg inom en kilometer. Den närmaste 53 meter bort.
+
+**Sorteringen fick lagas samtidigt.** Ren avståndssortering gick sönder i samma stund
+som ytorna kom in: vid Globen hamnade en parkering med **en enda plats** på andra plats
+medan Arenagaraget med 761 knappt kom med i listan. Nu sjunker anläggningar med färre
+än sex platser sist.
+
+Valet att **sänka i stället för att sålla bort** är mätt, inte tyckt: topp tolv blir
+identisk med båda reglerna, eftersom de små ändå trängs undan där det finns
+alternativ. Skillnaden syns på ett enda ställe i staden – **Hjorthagens skola, tre
+platser**, är den enda parkeringen inom en kilometer. Sållning ger Hjorthagen
+ingenting. Sänkning ger samma rena lista överallt och behåller trean där den är allt
+som finns. Gränsen sex är en bedömning: 24 anläggningar har exakt en plats, 71 har
+fem eller färre.
+
+**Taket är kvar på tolv rader.** Problemet var aldrig att listan var för kort, utan
+att fel tolv stod i den.
+
+**Rubriken använder stadens egna ord:** "Garage och ytparkering nära". Samma princip
+som avgjorde Göteborgs etikett i augusti – ordet måste vara sant för staden, och
+"parkeringshus" blev osant i samma stund som en asfaltsyta kom in i listan. Varje rad
+bär stadens ord för just den anläggningen, "Garage" eller "Yta".
+
+**Tomma listan hade också ordet inbakat.** Att bygga meningen ur stadens rubrik gick
+inte – "Ingen parkeringsanläggningar" och "Ingen garage" är inte svenska, och genus
+går inte att härleda ur en sträng. Rubriken ritas därför även när listan är tom, och
+meningen nöjer sig med rådet.
+
+**"1 platser"** stod aldrig i appen förut, eftersom inget garage har en enda plats.
+Tjugofyra ytparkeringar har det.
+
+**Göteborg är orört.** Staden har inget typfält, så den behöll sin rubrik, sin
+etikett och sin lista. Sorten skrivs ut i listan bara i städer som HAR mer än en sort
+– i Göteborg är allt "Parkeringsanläggning" och ordet hade bara gjort badgen längre.
+Verifierat i webbläsaren efteråt: badge och kort identiska med före.
+
+Testat mot riktig data: urvalet innehåller exakt de två avsedda typerna (453 poster,
+inga cykelgarage), och sju destinationer × fyra fordon gav noll fel på tak, sortering,
+etikett och grammatik. Gatukartan oförändrad (222 gator på Odengatan, som förut).
+
+**Kvar att göra (steg 2):** 55 av de 403 bär villkor i fritext som appen ännu inte
+läser – 34 med **maxtid** ("Max p-tid 3 h"), 13 med vem som får stå där (medlem,
+personal, tillstånd, rörelsehindrad, buss), åtta med bara vissa platsnummer. Två av
+de femtio garagen har också en maxtid vi inte visar: Viking P-Hus 8 timmar,
+Kolonistugan 24. Och SEO-sidorna använder fortfarande sitt eget `/garage/i`-filter.
+
 ## v1.26.0 – 2026-09-07
 **P-huspriset visade fel enhet, fel klockslag och fel fordon.**
 
