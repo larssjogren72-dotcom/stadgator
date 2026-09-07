@@ -14,6 +14,65 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.28.0 – 2026-09-07
+**Villkoren stod i klartext i datan. Appen läste dem aldrig.**
+
+Stockholm Parkering skriver villkor som fri text på varje taxarad. Hela korpusen är
+**82 unika texter** på de rader som kan bli ett besökspris – liten nog att läsa i sin
+helhet, vilket också var enda sättet: när jag först *sökte* i den hittade min regex
+elva träffar och jag rapporterade dem som om de vore hela sanningen. De var en av fem
+kategorier.
+
+**Maxtiden visas nu – 32 anläggningar.** "Max p-tid 3 h", "Max 48 timmar", "Max 30 min
+parkering". Det är samma uppgift som appens hela grönfärgning vilar på att sakna, och
+den låg i en källa vi redan laddar ner. **Två av garagen som redan visades i drift har
+en maxtid vi tigit om:** Viking P-Hus 8 timmar, Kolonistugan 24.
+
+> **Fällan i korpusen:** "Max p-tid till 24" och "Parkeringsautomat Max p-tid till
+> 24.00" betyder *till klockan 24* – inte 24 timmar. Lästa som varaktighet hade en
+> tvåtimmarsgräns blivit ett dygn. Allt med "till" före siffran avvisas, och de två
+> texterna citeras i stället ordagrant på kortet. Parsern är körd mot alla 82
+> texterna, en i taget, och varje utfall är läst.
+
+**Tre anläggningar föreslås inte längre i bil-, mc- eller cykelläget.** Personnevägen,
+Svedjaren 2 och Örbytoppen har bara platser för rörelsehindrade – de dyker upp i
+RH-läget i stället. Skillnaden mot gatulagret är avsiktlig: på gatan ritas en RH-ruta
+även för bilister, eftersom den som SER rutan slipper ta den av misstag. En rad i en
+förslagslista hindrar inget misstag – där är den bara ett dåligt förslag.
+
+**Fyra anläggningar till får en varning, men döljs inte.** Att gömma på en
+fritexträff hade låtit min läsning av en mening bestämma över hundratals platser, och
+mätningen visar varför det vore fel: **Värtaterminalen** har 58 platser där två rader
+säger "Endast för rörelsehindrade" men en tredje är en vanlig tvåtimmarsruta, och
+**Valparaiso** har bussparkering på två rader av fyra. Att utesluta dem hade tagit bort
+268 platser som allmänheten faktiskt får använda. En etikett sätts därför bara som
+"Endast …" när ALLA bilrader bär villkoret; annars står det "Vissa platser har villkor".
+
+**Anläggningens egna ord citeras ordagrant på kortet** – 57 anläggningar. Salkhallen,
+som var platsen som startade hela den här utredningen, säger nu själv:
+*"Medlemsparkering 3tim 20 kr BA i reception"*. En omskrivning som blir en aning fel
+är farligare än ett citat som är en aning kryptiskt, och koden i citatet kan dessutom
+vara samma som står på betalautomaten.
+
+**Maxtiden bär indigo, som platsantalet** – den är ett faktum om anläggningen. Gult
+(`sl-warn`) är reserverat för det man ska se upp med, och används redan med exakt den
+betydelsen i gatulistan ("⚠️ Boende – max 3 tim"). Ingen ny färg infördes.
+
+**Två buggar i mitt eget filter, hittade i test:** en ordgräns efter `kr` träffar mitt inne i "krävs",
+eftersom JavaScripts `\w` bara är [A-Za-z0-9_] och åäö därför räknas som ordgräns –
+"Tillstånd krävs mellan 07-23" försvann som "prisdetalj". Och en text som bär både
+villkor och pris (Salkhallens medlemsrader) föll bort av samma filter.
+
+**Göteborg orört:** stadens rader saknar fritext helt, så villkorsläsningen returnerar
+tomt för alla 923 poster. Lista och kort verifierade identiska med före.
+
+Testat mot riktig data: 453 anläggningar lästa utan en enda krasch eller felformad
+maxtid; RH-grindningen ger 0 av 3 synliga i bil-, mc- och cykelläget och 3 av 3 i
+RH-läget; gatukartan oförändrad (831 ritade linjer, 222 gator på Odengatan).
+
+**Kvar:** SEO-sidorna använder fortfarande sitt eget `/garage/i`-filter och känner
+varken till ytparkeringarna eller villkoren.
+
 ## v1.27.0 – 2026-09-07
 **403 parkeringar med 15 948 platser var gömda bakom ett filter.**
 
