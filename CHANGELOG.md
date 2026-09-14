@@ -14,6 +14,26 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.29.1 – 2026-09-14
+**Snabbare start på mobil, och lådan slutar åka upp när du stängt den.**
+
+**Bibliotek och typsnitt från egen server** (`52ac3a7`). PageSpeed (mobil) mätte 6,8 s
+till kartan och 69 poäng. Leaflet, proj4 och typsnittet Inter hämtades från tre olika
+externa servrar, och varje ny server kostade en egen uppkoppling innan kartan kunde
+ritas (Google uppskattade ~1,8 s). De ligger nu i `vendor/` med versionen i
+katalognamnet och cachas ett år. Uppkopplingen mot bakgrundskartans server öppnas
+direkt. Google har ingen data från riktiga användare för parkspot.se, så siffrorna
+är en simulering. Ritningen verifierad identisk mot live i båda städerna.
+
+**Lådan minns att du minimerat den** (`0fffb02`). Efter sökning eller valt mål åkte
+lådan alltid upp, även om man nyss stängt den. Nu åker den upp första gången; har man
+minimerat den stannar den nere, också vid nästa besök, tills man själv drar upp den.
+Ett tryck på en gata öppnar alltid lådan med kortet.
+
+**Feedbackfrågan täcker inte handtaget** (`bce8a3b`). "Har ParkSpot hjälpt dig?" satt
+fast längst ner och låg över handtaget på en minimerad låda. Den står nu ovanför
+lådan, följer med när lådan flyttas och göms när lådan är helt öppen.
+
 ## v1.29.0 – 2026-09-07
 **SEO-sidorna kände inte igen appen längre – och sju anläggningar visades för förare som inte får stå där.**
 
