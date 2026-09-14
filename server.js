@@ -809,11 +809,18 @@ http.createServer((req, res) => {
       if (err) { res.writeHead(404); res.end('Not found'); return; }
       const types = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
                       '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                      '.svg': 'image/svg+xml; charset=utf-8', '.webp': 'image/webp', '.ico': 'image/x-icon' };
+                      '.svg': 'image/svg+xml; charset=utf-8', '.webp': 'image/webp', '.ico': 'image/x-icon',
+                      '.woff2': 'font/woff2' };
       const ext = path.extname(filePath);
       // Utan charset tolkar webbläsaren text/plain som Latin-1 → å/ä/ö blir rappakalja
       // (upptäckt via llms.txt, som är första icke-ASCII .txt-filen som serverats härifrån).
       res.setHeader('Content-Type', types[ext] || 'text/plain; charset=utf-8');
+      // vendor/ = tredjepartsbibliotek med versionen i katalognamnet (leaflet-1.9.4,
+      // inter-v20). Innehållet under en sökväg ändras aldrig → får cachas ett år.
+      // Ny version = ny katalog, annars fastnar besökare på den gamla filen.
+      if (reqUrl.pathname.startsWith('/vendor/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
       // App-skalet (index.html) får ALDRIG cachas – annars kör webbläsaren kvar gammal
       // kod efter en deploy/ändring (stale-JS-fällan slog till flera ggr trots no-cache).
       // no-store = webbläsaren sparar aldrig svaret → omöjligt att servera gammal JS.

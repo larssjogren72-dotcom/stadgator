@@ -6,6 +6,8 @@ lagligt i tre lägen: **Nu / I kväll / Över natten**, + parkeringshus som sist
 
 ## Struktur
 - `index.html` — hela appen (HTML+CSS+JS i ett). `server.js` — proxy/statisk server, port 3456.
+- `vendor/` — Leaflet, proj4 och Inter serverade från egen server (cachas ett år; ny version =
+  ny katalog, skriv aldrig över en fil på samma sökväg). Se ARKITEKTUR.md §7d.
 - `seo/` — programmatisk SEO-generator (`build.js`) + genererade sidor (`site/`) + `pages.json`.
 - `.apikey` (gitignorerad) — Stockholms API-nyckel. **COMMITTA ALDRIG.**
 - Docs: `ARKITEKTUR.md`, `UX_DESIGN.md`.

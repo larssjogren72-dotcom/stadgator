@@ -267,6 +267,26 @@ och det den fick, så att två strängar som SER identiska ut ändå går att sk
 
 ---
 
+## 7d. Tredjepartsbibliotek serveras från egen server (tillagt 2026-09-14)
+
+Leaflet 1.9.4, proj4 2.9.0 och typsnittet Inter ligger i `vendor/` och serveras av
+`server.js`, inte från unpkg, cdnjs och Google Fonts. Varje extern värd kostade en egen
+uppkoppling innan kartan kunde ritas: PageSpeed mätte ~1,8 s på simulerad mobil.
+Bakgrundskartans rutor kommer fortfarande från CARTO; `index.html` öppnar uppkopplingen
+mot `a/b/c.basemaps.cartocdn.com` direkt (preconnect).
+
+- **Versionen sitter i katalognamnet** (`leaflet-1.9.4`, `inter-v20`), och `/vendor/`
+  cachas ett år (`immutable`). Uppgradering = ny katalog + ändrad sökväg i `index.html`.
+  Skrivs en fil över på samma sökväg ser besökare den gamla i upp till ett år.
+- **Inter är en variabel fil** (vikterna 400–700 i en), bara latin + latin-ext.
+  Licensen (SIL OFL) ligger bredvid och ska följa med.
+- `docs/arkitektur.html` och SEO-sidorna använder fortfarande externa typsnitt/CDN:er.
+  De rördes inte.
+- Bakgrundskartans rutor hämtas i dubbel upplösning (`{r}`) trots att PageSpeed föreslår
+  mindre bilder – annars blir kartan suddig på riktiga mobilskärmar.
+
+---
+
 ## 8. Migrering – utan att bryta det som fungerar
 
 1. Bygg lager 1–4 **bredvid** befintlig kod, bakom en flagga.
