@@ -156,6 +156,9 @@ Resultaten *rankas alltid* efter chans – inte bara visas. Konkret:
 
 - Mjuk omfärgnings-animation vid byte av "när".
 - Draggbar sheet med tre lägen (peek / halv / full) – Apple Maps-känsla.
+  **Minns minimering (2026-09-14):** efter sökning/valt mål åker lådan upp första gången.
+  Har användaren minimerat den (kryss eller dra ner) stannar den nere – även vid nästa besök –
+  tills hen själv drar/trycker upp den. Ett tryck på en gata öppnar ALLTID lådan med kortet.
 - Tomt-läge och fel-läge med konstruktiva nästa steg.
 - Subtil haptik vid val (mobil).
 - Zon/taxa som diskret underlag, inte i vägen (auto-kollaps – redan byggt).

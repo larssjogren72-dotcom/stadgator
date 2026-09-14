@@ -6160,7 +6160,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       DISCLAIMER_HTML;
 
     loadZonesForViewport(getKey());
-    sheetSnapTo('peek');   // mät peek mot färgraden
+    sheetSnapToResultat();   // mät peek mot färgraden (min om användaren minimerat)
     console.log(`[UC2-v2] säkra=${safe} | kontrollera-tid=${kollaTid} | städas=${städas} | tillåtna=${allowed.length} | förbud=${forbiddenLines.length} | städsegment=${cleaningSegs.length}`);
   } catch(e) {
     console.error('[UC2-v2]', e);
@@ -7077,7 +7077,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för tider och vägbeskrivning.${mcSuffix}</span>` +
       DISCLAIMER_HTML;
     loadZonesForViewport(getKey());
-    sheetSnapTo('peek');
+    sheetSnapToResultat();
     console.log(`[UC3-nu] får-stå=${okNu} | förbud=${forbiddenLines.length} | städsegment=${clean.count}`);
   } catch(e) {
     console.error('[UC3-nu]', e);
@@ -7303,6 +7303,10 @@ function sheetMinimize() { if (!sheetEl || sheetDragging) return; sheetCompute()
 // lägesförklaringen återställer det i stället för att alltid hoppa till peek. Default = peek (visa text).
 function getSheetPref() { const p = localStorage.getItem('sheet_pref'); return ['full','half','peek','min'].includes(p) ? p : 'peek'; }
 function setSheetPref(state) { try { localStorage.setItem('sheet_pref', state); } catch {} }
+// Resultatvyn efter sökning/valt mål: lådan åker upp första gången, men har användaren
+// minimerat den (kryss eller dra ner) stannar den nere – också vid nästa besök (Lars 2026-09-14).
+// Ett tryck på en gata går INTE hit utan via showPlaceCardV2 → sheetSnapTo('peek'), alltid upp.
+function sheetSnapToResultat() { sheetSnapTo(getSheetPref() === 'min' ? 'min' : 'peek'); }
 function initSheet() {
   sheetEl = document.getElementById('bottom');
   const handle = document.getElementById('sheet-handle');
@@ -7843,7 +7847,7 @@ function clearStreetsFromMap() {
   document.getElementById('street-panel').style.display = 'none';
   document.getElementById('hint').style.display = 'block';
   document.getElementById('count-badge').style.display = 'none';
-  sheetSnapTo('peek');
+  sheetSnapToResultat();
 }
 
 // ── Rita gator ───────────────────────────────────────────────────────────────
@@ -8330,7 +8334,7 @@ function buildStreetList(features) {
   document.getElementById('hint').style.display         = 'none';
   document.getElementById('street-panel').style.display = 'none';
   list.style.display = 'block';
-  sheetSnapTo('peek');   // stanna i nedre läget – skym inte kartan; listan nås genom att dra upp
+  sheetSnapToResultat();   // stanna i nedre läget – skym inte kartan; listan nås genom att dra upp
 }
 
 function highlightFromList(visualLayer, itemEl, hitLayer) {
@@ -8785,7 +8789,7 @@ function buildSafeStreetList(streets) {
   document.getElementById('hint').style.display         = 'none';
   document.getElementById('street-panel').style.display = 'none';
   list.style.display = 'block';
-  sheetSnapTo('peek');   // stanna i nedre läget – skym inte kartan; listan nås genom att dra upp
+  sheetSnapToResultat();   // stanna i nedre läget – skym inte kartan; listan nås genom att dra upp
 }
 </script>
 </body>
