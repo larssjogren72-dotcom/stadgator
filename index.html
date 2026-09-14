@@ -2025,10 +2025,15 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   function ensureBox() {
     if (box) return box;
     var css = document.createElement('style');
-    css.textContent = '#ps-rev{position:fixed;left:12px;right:12px;bottom:14px;z-index:1200;max-width:440px;margin:0 auto;'
+    // Rutan står ovanför lådans överkant (--lada-synlig sätts i sheetSet) så att handtaget
+    // aldrig täcks. Ryms den inte ovanför lådan får den klassen .undan (sheetSet) och göms.
+    // Dold = osynlig, inte bara nedskjuten – en nedskjutning räcker inte när rutan står högt.
+    css.textContent = '#ps-rev{position:fixed;left:12px;right:12px;bottom:calc(var(--lada-synlig,0px) + 10px);z-index:1200;max-width:440px;margin:0 auto;'
       + 'background:#ffffff;border:1px solid rgba(129,140,248,.35);border-radius:14px;padding:14px 14px 12px;'
-      + 'box-shadow:0 10px 30px rgba(15,23,42,.18);color:#0f172a;font-size:14px;transform:translateY(150%);transition:transform .3s ease}'
-      + '#ps-rev.show{transform:translateY(0)}#ps-rev h4{margin:0 0 10px;font-size:15px;font-weight:700}'
+      + 'box-shadow:0 10px 30px rgba(15,23,42,.18);color:#0f172a;font-size:14px;transform:translateY(24px);opacity:0;visibility:hidden;pointer-events:none;'
+      + 'transition:transform .3s ease,opacity .3s ease,visibility .3s,bottom .28s cubic-bezier(.16,1,.3,1)}'
+      + '#ps-rev.show{transform:translateY(0);opacity:1;visibility:visible;pointer-events:auto}'
+      + '#ps-rev.show.undan{opacity:0;visibility:hidden;pointer-events:none}#ps-rev h4{margin:0 0 10px;font-size:15px;font-weight:700}'
       + '#ps-rev .row{display:flex;gap:8px}#ps-rev button{flex:1;border:0;border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}'
       + '#ps-rev .yes{background:#16a34a;color:#fff}#ps-rev .no{background:#eef1f6;color:#0f172a;border:1px solid rgba(15,23,42,.12)}'
       + '#ps-rev .prim{background:#818cf8;color:#0c1030;display:block;text-align:center;text-decoration:none;width:100%;box-sizing:border-box}'
@@ -2059,10 +2064,13 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     if (markDone) { var s = get(); s.done = true; set(s); }
     resetPageScroll();
   }
+  // Nytt innehåll ändrar rutans höjd → räkna om om den ryms ovanför lådan (se sheetSet).
+  function placera() { try { if (sheetEl) sheetSet(sheetCurY, false); } catch (e) {} }
   function render(html) {
     var b = ensureBox();
     b.innerHTML = '<button class="x" aria-label="Stäng">✕</button>' + html;
     b.querySelector('.x').onclick = function () { close(false); };
+    placera();
     return b;
   }
   function step1() {
@@ -2150,7 +2158,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     if (!eligible() || panelOpen()) return;                                // aldrig ovanpå ett öppet kort
     shownThisSession = true;
     var s = get(); s.shown = (s.shown || 0) + 1; s.last = Date.now(); set(s);
-    track('review_prompt_shown'); step1(); ensureBox().classList.add('show');
+    track('review_prompt_shown'); step1(); ensureBox().classList.add('show'); placera();
   }, 7000);
 
   // Värde-ögonblick (anropas från showPlaceCardV2) → markera att de fått nytta; prompten dyker upp NÄSTA gång.
@@ -7290,6 +7298,18 @@ function sheetSet(y, animate = true) {
   sheetEl.style.transition = animate ? 'transform .28s cubic-bezier(.16,1,.3,1)' : 'none';
   sheetEl.style.transform  = `translateY(${y}px)`;
   sheetCurY = y;
+  // Hur mycket av lådan som syns nedifrån skärmkanten. Feedbackfrågan (#ps-rev) lägger sig
+  // ovanför den – annars täckte den handtaget på en minimerad låda (Lars 2026-09-14).
+  const app = document.getElementById('app');
+  const ladTopp = app.getBoundingClientRect().top + app.offsetHeight - sheetEl.offsetHeight + y;
+  document.documentElement.style.setProperty('--lada-synlig', Math.max(0, Math.round(window.innerHeight - ladTopp)) + 'px');
+  // Får rutan inte plats mellan kartans topp och lådan (halv/full låda) göms den tills lådan
+  // dras ner igen – hellre borta en stund än ovanpå handtaget eller sökfältet.
+  const rev = document.getElementById('ps-rev');
+  if (rev) {
+    const kartTopp = document.getElementById('map-wrap').getBoundingClientRect().top;
+    rev.classList.toggle('undan', ladTopp - rev.offsetHeight - 10 < kartTopp);
+  }
 }
 // Rör ALDRIG lådan medan användaren aktivt drar den – annars kan ett sent async-svar (flöde/
 // fordonsbyte som svarar medan man drar) rycka undan lådan mitt i gesten ("åker upp och fastnar",
