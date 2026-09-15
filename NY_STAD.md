@@ -95,6 +95,27 @@ svarar på vilka påståenden appen skulle kunna göra.
 tjänsternas namn. Sundbybergs städdata låg i lager 70 av 169, inuti en tjänst som hette
 något helt annat. Att läsa tjänstenamnen gav svaret "ingen städdata" — vilket var fel.
 
+### Steg 1b. Grundfrågan: hur städar staden? *(före allt annat — säg svaret till Lars i klartext)*
+
+ParkSpot föddes som en städgatukarta. Stockholms modell — **fasta städdagar per gata,
+varje vecka, skyltade permanent** — är appens grund, och den är **inte** självklar i en
+annan stad. Svaret ändrar vad appen är i staden, inte bara en rad i konfigurationen.
+Därför ska det stå **först** i varje inventering och byggrapport, som egen rubrik, aldrig
+som en parentes.
+
+| Städmodell | Exempel | Vad appen kan |
+|---|---|---|
+| Fasta dagar per gata, varje vecka | Stockholm | Hela kärnan: städvarning, "trygg över natten", glöd när städningen slutat |
+| Fasta dagar, jämna/udda veckor | Göteborg | Samma, om veckoparitet räknas |
+| Fasta datum i månaden | Malmö | Samma, med datumlogik |
+| **Inga fasta dagar — tillfälliga skyltar** (t.ex. 24 h före vårens sandupptagning) | **Uppsala** | **Ingenting om städning.** Natt-lägets grönt vilar då bara på tidsgränser, och användaren måste själv hålla utkik efter skyltar |
+
+Hittat i efterhand 2026-09-15: Uppsala byggdes och lanserades innan skillnaden sagts
+rakt ut — den stod bara som "saknar städ (kommunen skyltar tillfälligt)" i inventeringen.
+Lars fick fråga själv. Källan till svaret är kommunens egna sidor om gatudrift
+(sandupptagning, lövsopning, snöröjning), inte parkeringsdatan — ett dataset kan inte
+visa att en städmodell *saknas*.
+
 ### Steg 2. Frånvarotabellen *(en dag, kräver en människa — hoppa aldrig över)*
 
 Det här är steget som avgör om staden blir en Göteborg eller en Sundbyberg.
@@ -331,6 +352,7 @@ som inte gått in i master.
 ## 9. Snabbchecklista
 
 ```
+[ ] STÄDMODELLEN utredd och sagd till Lars   — fasta dagar? paritet? datum? eller bara tillfälliga skyltar?
 [ ] node verktyg/stadskoll.js <stad>          — finns datan?
 [ ] Frånvarotabell ifylld, med källa per rad  — MÄNSKLIGT, hoppa aldrig över
 [ ] cities/<stad>.js — fem fällorna avbockade
