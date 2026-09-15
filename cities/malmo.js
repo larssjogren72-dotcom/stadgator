@@ -36,6 +36,9 @@
 //    geometriskt 2026-09-04: «Parkering, avgift» ligger på en avgiftslinje i
 //    100 % av 581 fall, «Förbud mot att parkera fordon» i 1,8 % av 114. Fältet
 //    beskriver alltså vad platsen ÄR; `copy_value` beskriver städregeln.
+// 5. PARKERINGEN MÅSTE UT I METER (EPSG:3011). Grader ritas rätt, men klientens
+//    klippning runt lastplatser räknar i meter – med grader försvann all parkering
+//    runt stadens lastplatser. Rättat 2026-09-15, se byggTillaten.
 // 4. GATUNAMN SAKNAS på både avgifts- och städlagret. De härleds ur kommunens
 //    egna vägmittlinjer — se harledNamn() och varningen där.
 //
@@ -90,9 +93,12 @@ module.exports = function skapaMalmo(delade) {
     });
   }
 
-  function fragaLager(lager, bbox, falt = '*') {
+  // outSR: sökrutan skickas alltid i WGS84, men geometrin kan begäras i ett annat
+  // system i SAMMA anrop. Parkeringen måste ut i SWEREF 99 TM (EPSG:3011, meter) –
+  // se byggTillaten. Städdatan och schema-uppslaget stannar i grader (WGS84).
+  function fragaLager(lager, bbox, falt = '*', outSR = 4326) {
     const [aLng, aLat, bLng, bLat] = bbox;
-    const q = `f=geojson&where=1%3D1&outFields=${encodeURIComponent(falt)}&outSR=4326`
+    const q = `f=geojson&where=1%3D1&outFields=${encodeURIComponent(falt)}&outSR=${outSR}`
             + `&geometry=${aLng},${aLat},${bLng},${bLat}&geometryType=esriGeometryEnvelope`
             + `&inSR=4326&spatialRel=esriSpatialRelIntersects&returnGeometry=true`
             + `&resultRecordCount=${TAK}`;
@@ -142,22 +148,31 @@ module.exports = function skapaMalmo(delade) {
     return segment;
   }
 
-  function narmasteNamn(segment, pt) {
+  // Avståndet mäts i METER oavsett koordinatsystem. Vägindex och sträcka måste ligga i
+  // SAMMA system – städlagret är i grader, parkeringen i SWEREF 99 (meter).
+  const distGrad  = (pt, a, b) => segDistM(pt[1], pt[0], a, b);            // [lng,lat]
+  const distMeter = (pt, a, b) => {                                         // [x,y] EPSG:3011
+    const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy;
+    const t = L2 ? Math.max(0, Math.min(1, ((pt[0] - a[0]) * dx + (pt[1] - a[1]) * dy) / L2)) : 0;
+    return Math.hypot(pt[0] - (a[0] + t * dx), pt[1] - (a[1] + t * dy));
+  };
+
+  function narmasteNamn(segment, pt, dist) {
     let bast = null, bastD = Infinity;
     for (const s of segment) {
-      const d = segDistM(pt[1], pt[0], s.a, s.b);
+      const d = dist(pt, s.a, s.b);
       if (d < bastD) { bastD = d; bast = s.namn; }
     }
     return bastD <= NAMN_MAX_M ? { namn: bast, d: bastD } : null;
   }
 
-  function harledNamn(segment, f) {
+  function harledNamn(segment, f, dist = distGrad) {
     const p = punkterUr(f);
     if (!p.length || !segment.length) return '';
     const prov = [p[0], p[Math.floor(p.length / 2)], p[p.length - 1]];
     const roster = new Map();
     for (const q of prov) {
-      const t = narmasteNamn(segment, q);
+      const t = narmasteNamn(segment, q, dist);
       if (!t) continue;
       const rad = roster.get(t.namn) || { n: 0, d: Infinity };
       rad.n++; rad.d = Math.min(rad.d, t.d);
@@ -228,6 +243,13 @@ module.exports = function skapaMalmo(delade) {
   //     publicera. Tomt fält betyder här alltså "ingen gräns", inte "vet inte" —
   //     det är enda stället i den här filen där tystnad tolkas, och det är läst
   //     hos kommunen, inte gissat ur datan.
+  //
+  // ⚠ GEOMETRIN ÄR I METER (EPSG:3011), inte i grader. Klientens loadParkingV2 klipper
+  // gröna linjer runt ändamålsplatser, mäter 12 m-närhet och täckningsgrad – allt i
+  // meter. Levererades grader blev toleransen 12 GRADER, och en enda lastplats i rutan
+  // klippte bort all parkering runt sig. Uppmätt 2026-09-15 vid Kornettsgatan: 85
+  // sträckor i svaret, 1 ritad (lastplatsen). `segment` är därför vägindexet i SAMMA
+  // system, och gatunamnen härleds med planavstånd.
   function byggTillaten(avgiftRaa, oreglRaa, segment) {
     const ut = [];
 
@@ -238,7 +260,7 @@ module.exports = function skapaMalmo(delade) {
         type: 'Feature',
         geometry: f.geometry,
         properties: {
-          STREET_NAME: harledNamn(segment, f),
+          STREET_NAME: harledNamn(segment, f, distMeter),
           VEHICLE: 'fordon',
           VF_PLATS_TYP: boende ? 'P Avgift, boende' : 'P Avgift',
           PARKING_RATE: String(p.taxa || '').trim(),
@@ -309,16 +331,19 @@ module.exports = function skapaMalmo(delade) {
     const k = nyckelFor(bbox);
     const traff = ruteCache(k);
     if (traff) return Promise.resolve({ data: traff, varm: true });
+    // Vägnätet hämtas i BÅDA systemen: grader för städlinjernas namn (städdatan och
+    // schema-uppslaget är i grader), meter för parkeringens. Ett extra parallellt anrop
+    // mot samma ruta – billigare och säkrare än att räkna om koordinater själva.
     return Promise.all([
-      fragaLager(LAGER.avgift, bbox),
+      fragaLager(LAGER.avgift, bbox, '*', 3011),
       fragaLager(LAGER.stad,   bbox),
-      fragaLager(LAGER.oregl,  bbox),
-      fragaLager(LAGER.vagar,  bbox, 'NAME')
-    ]).then(([avgift, stad, oregl, vagar]) => {
-      const segment = byggVagIndex(vagar);
+      fragaLager(LAGER.oregl,  bbox, '*', 3011),
+      fragaLager(LAGER.vagar,  bbox, 'NAME'),
+      fragaLager(LAGER.vagar,  bbox, 'NAME', 3011)
+    ]).then(([avgift, stad, oregl, vagar, vagarMeter]) => {
       const data = {
-        stad:     byggStadFeatures(stad, segment),
-        tillaten: byggTillaten(avgift, oregl, segment)
+        stad:     byggStadFeatures(stad, byggVagIndex(vagar)),
+        tillaten: byggTillaten(avgift, oregl, byggVagIndex(vagarMeter))
       };
       spara(k, data);
       return { data, varm: false };
@@ -354,8 +379,9 @@ module.exports = function skapaMalmo(delade) {
       return true;
     }
 
-    // Parkering i P_TILLATEN-form. WGS84 i grader — klientens toLatLng klarar
-    // både det och SWEREF99 (den skiljer på |x| > 1000), så ingen omprojicering.
+    // Parkering i P_TILLATEN-form, SWEREF 99 TM (EPSG:3011) – samma som Stockholm,
+    // Göteborg och Uppsala. Klienten ritar grader rätt också (toLatLng skiljer på
+    // |x| > 1000), men den räknar avstånd i meter. Se byggTillaten.
     if (reqUrl.pathname === '/malmo/wfs-tillaten') {
       const bbox = tolkaBbox(reqUrl.searchParams.get('BBOX') || reqUrl.searchParams.get('bbox'));
       if (!bbox) return fel(res, 400, 'BBOX=minLng,minLat,maxLng,maxLat krävs'), true;
