@@ -1556,6 +1556,44 @@ STADER_CFG.malmo =
         + 'skylten på plats.</span>',
       schemaUrl:'/malmo/schedule' };
 
+STADER_CFG.uppsala =
+    { id:'uppsala', namn:'Uppsala', geokodSuffix:', Uppsala',
+      adressExempel:'Svartbäcksgatan 10',
+      // Kommungränsens omslutande rektangel ur OSM (Nominatim, «Uppsala kommun»,
+      // hämtad 2026-09-15). Storvreta, Björklinge och Almunge ligger långt ut.
+      sokRuta:[17.0798, 59.7306, 18.4734, 60.1863], sokOrter:['Uppsala'],
+      center:[59.8586, 17.6389], zoom:15,
+      // Uppsala har inget förbudslager. Förbud som står som restriktion på en
+      // parkeringssträcka («Parkeringsförbud 23-06 alla dagar») tar adaptern med som
+      // tidsfönster – men en gata utan parkering är fortfarande «ingen uppgift».
+      harForbud:false,
+      // INGA STÄDDAGAR i kommunens data. Uppsala skyltar tillfälligt inför
+      // sandupptagning. Tom adress = appen säger ingenting om städning – inte heller
+      // «ingen städning», som vore ett påstående utan grund.
+      servicedagarUrl:'',
+      heltStadenUrl:'',
+      tillatenUrl:'/uppsala/wfs-tillaten',
+      // Fyra kommunala garage. Priset står i fritext per område och räknas inte ut.
+      phusUrl:'/uppsala/phus', phusTyp:null, phusRubrik:'Parkeringshus nära', phusEtikett:'Garage',
+      taxaZon:null,
+      // SANT: Uppsala pekar ut hur länge på sträckan (`Tidsbegransning`, kodad) och i
+      // områdets avgiftstext («Max-P 4tim»). Mätt 2026-09-15 på hela kommunen: av 325
+      // avgiftsfria sträckor bär 301 en tidsgräns. Avgiftssträckor utan egen gräns
+      // följer områdets, och saknas områdesposten fäller adaptern till «kontrollera».
+      skiljerKorttid:true,
+      // AV I VALET tills skyltrundan är gjord (NY_STAD.md steg 5). Den viktigaste
+      // frågan till den: gäller en ensam tid på skylten («4 tim 8-18») bara vardagar?
+      visaIVal:false, valUnder:'Under uppbyggnad – städdagar finns inte i datan',
+      pilot:true,
+      // «Parkeringskarta», inte «öppna data»: lagren är publikt åtkomliga men står inte i
+      // kommunens öppna dataportal (opendata.uppsala.se, sökt 2026-09-15). Frågan om
+      // användning ligger hos Lars/kommunen, se UPPSALA_BREV.md.
+      disclaimer:'<span class="hint-disclaimer">Baseras på Uppsala kommuns parkeringskarta. '
+        + 'Kommunen publicerar inga städdagar och inga parkeringsförbud utanför '
+        + 'parkeringsplatserna – en gata utan färg betyder «ingen uppgift», inte «fritt». '
+        + 'Kontrollera alltid skylten på plats.</span>',
+      schemaUrl:'' };
+
 STADER_CFG.goteborg =
     { id:'goteborg', namn:'Göteborg', geokodSuffix:', Göteborg',
       adressExempel:'Kungsportsavenyen 10',
@@ -4349,7 +4387,13 @@ function parseRate(raw) {
 // "Övrig tid får fordon parkeras" står ordagrant i föreskrifterna (3/3 lästa 2026-07-28)
 // → utanför fönstret faller posten igenom till vanlig logik, precis som i dag.
 const ANDAMAL_LABELS = { '7': 'Lastplats', '17': 'På-/avstigning', '18': 'Lastplats',
-                         '20': 'Taxiplats', '22': 'Skolskjuts' };
+                         '20': 'Taxiplats', '22': 'Skolskjuts',
+                         // Tresiffriga koder är VÅRA, inte en stads – Stockholms platstyps-id
+                         // är små tal. Uppsala (cities/uppsala.js) har inget eget ändamålsfält,
+                         // men samma sorts fönster: under tiden får platsen inte användas som
+                         // vanlig parkering, övrig tid får den det. Samma logik bär dem.
+                         '901': 'Parkeringsförbud', '902': 'Tillståndsparkering',
+                         '903': 'Korttidsparkering' };
 const andamalKod = (t) => { const s = String(t == null ? '' : t).trim();
                             return /^\d+$/.test(s) && ANDAMAL_LABELS[s] ? s : null; };
 
@@ -4577,7 +4621,11 @@ const SV_WEEKDAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','l
 // [] = känd mening men ingen regel träffar dagen (lastplatsen vilar då).
 function gbgLastplatsFonster(mening, d) {
   if (!mening) return null;
-  const post = GBG_LASTPLATS_TIDER[String(mening).replace(/\s+/g, ' ').trim()];
+  // Uppsala (cities/uppsala.js) levererar reglerna FÄRDIGA som objekt i samma form som
+  // tabellraderna – deras tider är kodlistor, inte meningar, och översätts i adaptern.
+  // Då slås inget upp; formen och dagtyperna nedan är desamma.
+  const post = typeof mening === 'object' ? mening
+             : GBG_LASTPLATS_TIDER[String(mening).replace(/\s+/g, ' ').trim()];
   if (!post) return null;
   const udda = isoWeek(d) % 2 === 1;
   const ut = [];
@@ -4977,7 +5025,9 @@ function maxtidGallerDag(dagTyp, d) {
 // återupptas ju på morgonen. Där är det bara hela dagar utan gräns som ska ge grönt.
 function maxtidGallerVillkor(mening, d, baraDag) {
   if (!mening) return null;
-  const rader = GBG_MAXTID_VILLKOR_TABELL[String(mening).replace(/\s+/g, ' ').trim()];
+  // Objekt = färdiga regler från en adapter (Uppsala), samma form som tabellraderna.
+  const rader = typeof mening === 'object' ? mening
+              : GBG_MAXTID_VILLKOR_TABELL[String(mening).replace(/\s+/g, ' ').trim()];
   if (!rader) return null;                       // okänd mening → dagens beteende
   // Säsong först: utanför den gäller gränsen inte alls.
   if (rader.s) {
@@ -5459,7 +5509,9 @@ function toAllowedSegment(f) {
     // Göteborgs motsvarighet: villkoret som FRITEXT. Egen nyckel eftersom den bär både
     // dagar och klockslag i EN mening, ibland flera regler – något dagtyp/start/slut
     // ovan inte kan uttrycka. Slås upp i GBG_MAXTID_VILLKOR_TABELL, aldrig tolkad här.
-    maxTidVillkor: p.GBG_MAXTID_VILLKOR || null,
+    // Uppsala skickar samma sak som färdiga regler (MAXTID_REGLER) – deras fönster är
+    // kodlistor med flera dagklasser, så de översätts i adaptern i stället för här.
+    maxTidVillkor: p.GBG_MAXTID_VILLKOR || p.MAXTID_REGLER || null,
     // VILKA TIMMAR maxtiden gäller – men BARA när posten saknar veckodag. Bär den en
     // veckodag hör klockslagen till städfönstret och säger ingenting om tidsgränsen
     // (se maxtidGallerKlockan för mätningen som skiljer de två fallen åt).
@@ -5487,7 +5539,15 @@ function toAllowedSegment(f) {
     // Samma källfält som maxTidVillkor, men en HELT annan innebröd: på en lastplats
     // beskriver meningen när ÄNDAMÅLET gäller, inte hur länge man får stå. Egen nyckel
     // så att de två betydelserna aldrig förväxlas i läsningen.
-    andamalVillkor: andamalKod(p.VF_PLATS_TYP) ? (p.GBG_MAXTID_VILLKOR || null) : null,
+    andamalVillkor: andamalKod(p.VF_PLATS_TYP) ? (p.GBG_MAXTID_VILLKOR || p.ANDAMAL_REGLER || null) : null,
+    // Adaptern har sett att något på platsen styr hur länge eller när man får stå, men
+    // kan inte säga vad (Uppsala: lastplats utan tid, område utan villkor). Värdet är
+    // förklaringen till föraren. Fäller grönt till blått i båda lägena – aldrig tvärtom.
+    kontrollera: p.KONTROLLERA_SKYLT || null,
+    // En ändamålsplats (lastplats) där adaptern uttryckligen säger att fönstret saknas.
+    // Skilj den från Stockholms fall utan fönster, som fortfarande lämnas orörda.
+    andamalOkand: !!(andamalKod(p.VF_PLATS_TYP) && p.KONTROLLERA_SKYLT
+                     && !p.GBG_MAXTID_VILLKOR && !p.ANDAMAL_REGLER && p.START_TIME == null),
     street: p.STREET_NAME || '',
     district: p.CITY_DISTRICT || '',
     citation: p.CITATION || ''
@@ -5991,6 +6051,10 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       // NÄR något börjar i morgon, och för den här posten finns ingen sådan tidpunkt.
       // Samma ordning som i Nu-flödet: "får jag stå här alls" före "när städas det".
       else if (s.andamalAlltid)        { color = '#ef4444'; txt = andamalTxt(s); }
+      // Lastplats utan känd tid: inte trygg över natten (vi vet inte om den börjar 06 eller
+      // 09), men inte röd heller – i kväll kan den mycket väl vara fri. Orange = en tid att
+      // hålla reda på, vilket är sant. Räknas inte som trygg i badgen.
+      else if (s.andamalOkand)         { color = '#f59e0b'; txt = `${andamalNamnFor(s)} · kontrollera skylten`; städas++; }
       // ── Ändamålsplatsen gäller JUST NU ────────────────────────────────────────
       // Natt-läget frågade bara "vad händer i morgon" och aldrig "vad gäller nu", så en
       // lastplats mitt i sitt eget fönster kunde få två fel svar (Vegagatan, verifierat
@@ -6046,6 +6110,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       let infoRow = s.gagata ? gagataRange(s.gagataFrom, s.gagataUntil)
                     // Samma förklaring som i Nu-flödet – lägena ska säga samma sak om samma plats.
                     : s.andamalAlltid ? 'Här får du aldrig parkera – bara lasta och lossa'
+                    : s.andamalOkand ? s.kontrollera
                     // Ändamålsplatsen gäller just nu (se motsvarande färggren ovan). Chipet bär
                     // fönstret; raden säger konsekvensen – att bilen inte kan ställas hit ÄN.
                     // Utan den läser chipet som ett godkännande med en fotnot, och det är just
@@ -6116,6 +6181,13 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
         infoRow = s.boendeZon
           ? `Boendezon ${s.boendeZon} – hur länge du får stå utan tillstånd står inte i stadens data`
           : 'Boendezon – hur länge du får stå utan tillstånd står inte i stadens data';
+        safe--; kollaTid++;
+      }
+      // Samma sak som i Nu-flödet: ett villkor finns som adaptern inte kan läsa.
+      else if (color === '#16a34a' && s.kontrollera) {
+        color = '#38bdf8';
+        txt   = 'Får parkera · kontrollera skylten';
+        infoRow = s.kontrollera;
         safe--; kollaTid++;
       }
       // ── Städer utan maxtid i datan får inte säga "Trygg över natten" ──────────
@@ -6477,6 +6549,10 @@ let nastaStadUppslag = null;
 // Hela veckans städdata i ETT bbox-anrop (sju separata vore sju rundturer).
 // Uppmätt: hela veckan = 104 kB i Vasastan, mot 4 046 kB för TVÅ dagar tidigare.
 async function fetchServicedaysWeek(lat, lng) {
+  // Staden publicerar inga städdagar (Uppsala). Utan den här raden hämtades
+  // «?dagar=…» relativt sidan, fick HTML tillbaka och föll i catch – samma utfall,
+  // men av en slump och med en varning i konsolen vid varje sökning.
+  if (!STAD.servicedagarUrl) return null;
   try {
     const r = await fetch(`${STAD.servicedagarUrl}?dagar=0,1,2,3,4,5,6&bbox=${servicedagarBbox(lat, lng).join(',')}`);
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -6745,7 +6821,11 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     const grp = L.layerGroup();
     const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp);
     // Indexet byggs en gång; själva uppslaget sker vid klick (se s.visaNastaStad).
-    nastaStadUppslag = buildNextCleaningWeek(veckoData, lat, lng);
+    // Utan veckodata finns inget att slå upp. buildNextCleaningWeek svarar då med en
+    // funktion som alltid säger null – och kortet skrev «Ingen städning de närmaste
+    // 8 dygnen», ett påstående vi inte har grund för (och `.senaste` saknades, så
+    // klicket kastade fel). null döljer raden, vilket är det enda ärliga.
+    nastaStadUppslag = veckoData ? buildNextCleaningWeek(veckoData, lat, lng) : null;
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
     const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
     // HIDDEN_GEM_MIN_H/MAX_H: global const (se SENASTE_H ovan) – bara Nu-läget använder den här,
@@ -6797,6 +6877,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         : null;
       if (s.gagata)                    { color = GAGATA_COLOR; txt = gagataTxt(s.gagataUntil); }
       else if (anda)                   { color = '#ef4444'; txt = andamalTxt(s); }
+      // Lastplats utan känd tid (Uppsala: 117 av 121). «Får stå nu» vore fel större delen
+      // av dagen – i Stockholm gäller 706 av 713 lastplatser kl 10. Rött kostar en plats
+      // man kanske hade fått ta på kvällen; blått hade kostat en kontrollavgift mitt på dagen.
+      else if (s.andamalOkand)         { color = '#ef4444'; txt = `${andamalNamnFor(s)} · tider saknas`; }
       // MÅSTE ligga före städgrenarna: "får jag stå här överhuvudtaget" besvaras före "när städas
       // det". Låg den efter, tog en städvarning över och platsen fick texten "Får stå nu · servas
       // i natt" + räknades i badgen – uppmätt 17 platser i Vasastan, 45 på Östermalm.
@@ -6959,6 +7043,12 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         color = '#38bdf8';
         txt   = `Får stå nu · ${tidsklausul(null)}`;
       }
+      // Adaptern har sett ett villkor den inte kan läsa (se `kontrollera` i toAllowedSegment).
+      // Samma nivå och samma skäl som boendezonen ovan: något begränsar platsen, vi vet inte vad.
+      else if (color === '#16a34a' && s.kontrollera) {
+        color = '#38bdf8';
+        txt   = 'Får stå nu · kontrollera skylten';
+      }
       // Detaljraden ska aldrig ge en städinstruktion för en plats man inte får använda –
       // "Pågår – flytta bilen" på en busshållplats vore obegripligt.
       // "Kort besök går bra" är ett FAKTUM (du hinner därifrån innan fönstret börjar), inte en
@@ -6972,6 +7062,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
                     // dygnet runt» + «tillåten övrig tid» i samma kort. Säg konsekvensen i stället.
                     : (anda && s.andamalAlltid) ? `Här får du aldrig parkera – bara lasta och lossa`
                     : anda ? `Parkering tillåten övrig tid`
+                    : s.andamalOkand ? s.kontrollera
                     : (isRhPlats(s) || ejForDig) ? ''
                     // Förbudet börjar senare i dag. Chipet bär när (klockslag eller minuter);
                     // raden ger då fönstret och beskedet att gatan är fri igen efteråt – annars
@@ -7008,6 +7099,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
           ? `Boendezon ${s.boendeZon} – hur länge du får stå utan tillstånd står inte i stadens data`
           : 'Boendezon – hur länge du får stå utan tillstånd står inte i stadens data';
       }
+      else if (color === '#38bdf8' && s.kontrollera && !infoRow) infoRow = s.kontrollera;
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
       // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
       // "Nästa städning" är dessutom irrelevant på platser man inte får använda.

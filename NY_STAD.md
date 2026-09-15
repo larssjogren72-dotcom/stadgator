@@ -141,6 +141,15 @@ Filen ska erbjuda samma tre adresser som de andra städerna — se avsnitt 4.
 5. **Koordinatsystem.** Stockholms parkeringsdata är SWEREF99 (meter), städdatan WGS84
    (grader). Appens `toLatLng` klarar båda, men analysskript som antar fel system ger
    svar som ser rimliga ut.
+6. **Parkeringen MÅSTE vara i meter.** `/<stad>/wfs-tillaten` ska svara i SWEREF 99 TM
+   (EPSG:3011), inte i grader. `toLatLng` ritar grader rätt, så kartan ser hel ut –
+   men klippningen runt ändamålsplatser, 12 m-närheten och täckningsgraden i
+   `loadParkingV2` räknar i meter. Med grader blir toleransen 12 **grader**, och varje
+   grön linje i rutan klipps bort så fort en lastplats finns där. Uppmätt 2026-09-15:
+   Uppsalas första prov gav 37 sträckor i centrum i stället för flera hundra. Samma fel
+   finns i Malmös adapter (Kornettsgatan: 85 sträckor i datan, 1 ritad) – egen uppgift.
+   Provet som fångar det: kör `loadParkingV2` vid en lastplats och jämför `allowed.length`
+   med antalet poster i adapterns svar.
 
 ### Steg 4. Konfigurationen `STADER_CFG` i `index.html` *(en timme)*
 
@@ -207,6 +216,9 @@ precis det vi inte vill.
 | `CITATION` | Föreskriftens nummer — spårbarheten tillbaka till originalet | Går inte att kontrollera |
 | `ANDAMAL_ALLTID` | Ändamålsplats utan klockslag **som är läst i föreskriften** | Sätt bara efter steg 2 |
 | `ENDAST_BOENDE` | Boendezon utan publicerad tidsgräns | — |
+| `MAXTID_REGLER` | Tidsgränsens fönster som färdiga regler, `{r:[['vardag-ej-dagfore',800,1800],['dagfore',800,1800]]}` – samma form och dagtyper som Göteborgs tabeller. För städer vars fönster är kodlistor med flera dagklasser (Uppsala) | Gränsen antas gälla jämt |
+| `ANDAMAL_REGLER` | Ändamålsplatsens fönster i samma form. Används med de tresiffriga koderna `901` parkeringsförbud, `902` tillståndsparkering, `903` korttidsparkering – «inte vanlig parkering under fönstret, tillåten övrig tid» | Ändamålet antas okänt och segmentet lämnas orört |
+| `KONTROLLERA_SKYLT` | Förklaring till föraren när adaptern SER ett villkor men inte kan läsa det (Uppsala: område utan villkor, lastplats utan tid). Fäller grönt till blått; på en ändamålsplats blir den röd i Nu och orange i Natt | — |
 
 Stadsegna fält är tillåtna med prefix (`GBG_…`). De får bara läsas via en
 uppslagstabell, aldrig tolkas i farten. Se nästa avsnitt.

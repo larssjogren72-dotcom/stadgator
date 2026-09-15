@@ -405,7 +405,7 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
 //
 // Fallerar en stad loggas det och servern startar ändå: en trasig pilotstad ska
 // aldrig kunna ta ner Stockholm.
-const STADSNAMN = ['sundbyberg', 'goteborg', 'malmo'];
+const STADSNAMN = ['sundbyberg', 'goteborg', 'malmo', 'uppsala'];
 
 // ── AV I DRIFT, PÅ LOKALT ────────────────────────────────────────────────────
 // Koden bor i huvudversionen så att den ALDRIG halkar efter Stockholm-fixarna –
@@ -522,6 +522,15 @@ const SEO_STADER = {
     beskrivning: 'Se på karta var du får parkera i Göteborg – just nu eller över natten. Städdagar med jämna och udda veckor, maxtider, boendezoner och parkeringsanläggningar.',
     nyckelord: 'parkering göteborg, städdagar göteborg, boendeparkering göteborg, nattparkering göteborg, parkeringszoner göteborg, gratis parkering göteborg, parkeringshus göteborg, städgator göteborg',
     kanonisk: 'https://parkspot.se/?stad=goteborg'
+  },
+  uppsala: {
+    namn: 'ParkSpot Uppsala',
+    titel: 'ParkSpot Uppsala – var får du parkera?',
+    // Säger det appen KAN i Uppsala (tidsgränser, avgifter, lastplatser, tillstånds-
+    // parkering vid skolor) och lovar inte städdagar, som kommunen inte publicerar.
+    beskrivning: 'Se på karta var du får parkera i Uppsala – just nu eller över natten. Tidsgränser, avgiftsområden, lastplatser och parkeringshus ur kommunens parkeringskarta.',
+    nyckelord: 'parkering uppsala, gratis parkering uppsala, nattparkering uppsala, parkeringszoner uppsala, parkeringshus uppsala, tidsbegränsad parkering uppsala',
+    kanonisk: 'https://parkspot.se/?stad=uppsala'
   },
   sundbyberg: {
     namn: 'ParkSpot Sundbyberg',

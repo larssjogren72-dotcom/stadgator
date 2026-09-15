@@ -14,6 +14,37 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.30.0 – 2026-09-15
+**Uppsala – stad fem. Byggd, men dold i stadsväljaren tills skyltrundan är gjord.**
+
+**Uppsalas parkering på kartan** (`cities/uppsala.js`). Nås med `?stad=uppsala`.
+Källan är kommunens egen parkeringskarta (`kartportal.uppsala.se`, ingen nyckel). Lagren
+är publikt åtkomliga men står inte i kommunens öppna dataportal – därför «parkeringskarta»
+i appens texter, och användningsfrågan först i `UPPSALA_BREV.md`. Hela
+kommunen: 2 288 poster, varav 2 272 ritas; de 16 som inte ritas har ett loggat skäl
+(säsongsregler, laddplatser, platser som inte är för allmänheten). Uppsala pekar ut
+hur länge man får stå – på sträckan och i områdets avgiftstext («Max-P 4tim») – så
+staden kan visa grönt. Skolområdens «7-16 Tillstånd erfordras» blir röd dagtid och
+grön kväll och helg. Lastplatser utan tid i datan (117 av 121) visas röda i Nu och
+orange i Natt med texten att tiderna saknas, i stället för «Får stå nu».
+
+**Kommunen publicerar inga städdagar.** Appen säger därför ingenting om städning i
+Uppsala – inte heller «ingen städning de närmaste 8 dygnen», som vore ett påstående
+utan grund.
+
+**Stadsneutralt i klienten:** tidsgränsens och ändamålets fönster kan nu levereras som
+färdiga regler (`MAXTID_REGLER`, `ANDAMAL_REGLER`) i samma form som Göteborgs tabeller,
+och en adapter kan märka en plats med `KONTROLLERA_SKYLT` när den ser ett villkor den
+inte kan läsa. Stockholm, Göteborg och Malmö är bevisat orörda: 36 dygnssvepstillfällen
+(Nu och Natt, vardag, lördag, kväll) i åtta områden ritade byte-identiskt mot v1.29.1.
+
+**Rättat på vägen:** när veckans städdata inte gick att hämta kastade ett klick på en
+gata fel (`nastaStadUppslag.senaste` saknades). Raden döljs nu i stället.
+
+**Hittat på vägen, inte rättat här:** Malmös adapter levererar grader i stället för
+meter, och då klipps nästan all parkering bort runt stadens lastplatser (Kornettsgatan:
+85 sträckor i datan, 1 ritad). Malmö är dold i stadsväljaren. Egen uppgift.
+
 ## v1.29.1 – 2026-09-14
 **Snabbare start på mobil, och lådan slutar åka upp när du stängt den.**
 
