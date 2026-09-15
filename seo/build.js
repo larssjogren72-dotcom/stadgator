@@ -1116,10 +1116,23 @@ function upsPillar() {
     '<p>Klockslagen läses som skylten gör: <b>«4 tim 8-18»</b> utan parentes gäller vardagar, utom dag före sön- och helgdag. En tid <b>inom parentes</b> gäller dag före sön- och helgdag (oftast lördag), och en <b>röd</b> tid sön- och helgdagar.</p></section>' +
     '<section class="card"><h2>Lastplatser gäller dygnet runt</h2>' +
     '<p>De flesta lastplatser i Uppsala har ingen tid på skylten. Då gäller förbudet att parkera <b>hela dygnet, alla dagar</b> – de lokala trafikföreskrifterna för dem anger inget klockslag. ParkSpot visar dem röda i alla lägen.</p></section>' +
+    // Städningen: kommunens egna sidor om sandupptagning, lövsopning och fordonsflytt,
+    // lästa 2026-09-15. Inga fasta städdagar – därför inga klockslag här, och inga
+    // årsdatum som blir gamla: bara mönstret och det som alltid gäller (skylten).
+    '<section class="card"><h2>Städning: inga fasta städdagar – håll utkik efter skyltar</h2>' +
+    '<p>Uppsala har <b>inga fasta städdagar</b> per gata, till skillnad från till exempel Stockholm och Göteborg. Den städning som kräver att du flyttar bilen är <b>vårens sandupptagning</b>, som brukar börja i mars och vara klar i mitten av maj. Kommunen sopar flera områden parallellt, och det tar normalt fem till sju veckor.</p>' +
+    '<ul>' +
+    '<li><b>Tillfälliga skyltar sätts upp 24 timmar före</b> och anger vilken dag det sopas.</li>' +
+    '<li>Så länge skylten står får du <b>varken stanna eller parkera</b> – även om gatan redan ser färdigsopad ut. När skylten är borta gäller vanliga regler igen.</li>' +
+    '<li>En felparkerad bil som hindrar snöröjning eller städning kan flyttas, och ägaren betalar kostnaden.</li>' +
+    '</ul>' +
+    '<p>Lövsopningen på hösten pågår två till tre veckor i hela kommunen samtidigt. Kommunen publicerar en preliminär plan per område och vecka inför sandupptagningen, men det som gäller är skylten på plats.</p>' +
+    '<p>Eftersom förbudet bara finns på en tillfällig skylt säger ParkSpot <b>ingenting om städning i Uppsala</b> – varken att gatan städas eller att den inte gör det. Står du i Uppsala under våren: titta efter skyltarna.</p></section>' +
     '<section class="card"><h2>Skolor: tillstånd dagtid</h2>' +
     '<p>Vid många skolor står «7-16 Tillstånd erfordras». Dagtid på vardagar är platsen bara för den som har tillstånd; kvällar och helger får alla stå där. Appen växlar färg efter klockan.</p></section>';
   const faq = [
-    { q:'Visar ParkSpot städdagar i Uppsala?', a:'Nej. Uppsala kommun publicerar inga städdagar – sandupptagning och städning skyltas tillfälligt på plats. Appen säger därför ingenting om städning i Uppsala, inte heller att det inte städas.' },
+    { q:'Visar ParkSpot städdagar i Uppsala?', a:'Nej. Uppsala har inga fasta städdagar per gata. Vårens sandupptagning skyltas tillfälligt 24 timmar i förväg, och så länge skylten står får du varken stanna eller parkera. Appen säger därför ingenting om städning i Uppsala, inte heller att det inte städas.' },
+    { q:'När är sandupptagningen i Uppsala?', a:'På våren, normalt från mars till mitten av maj, område för område. Exakt dag för din gata står på den tillfälliga skylt som sätts upp 24 timmar innan.' },
     { q:'Gäller «4 tim 8-18» på lördagar?', a:'Nej, inte om tiden står utan parentes. Enligt vägmärkesförordningen gäller en sådan tid vardagar utom dag före sön- och helgdag. Lördagens tid står inom parentes, sön- och helgdagens i rött.' },
     { q:'Får jag stanna på en lastplats på kvällen?', a:'Inte om skylten saknar tid. Då gäller lastplatsen hela dygnet. Står en tid på skylten gäller den bara då.' },
     { q:'Kostar ParkSpot något?', a:'Nej, gratis och utan inloggning. Uppsala är en pilot, byggd på kommunens parkeringskarta.' },
