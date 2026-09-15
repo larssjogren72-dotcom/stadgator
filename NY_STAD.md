@@ -147,7 +147,7 @@ Filen ska erbjuda samma tre adresser som de andra städerna — se avsnitt 4.
    `loadParkingV2` räknar i meter. Med grader blir toleransen 12 **grader**, och varje
    grön linje i rutan klipps bort så fort en lastplats finns där. Uppmätt 2026-09-15:
    Uppsalas första prov gav 37 sträckor i centrum i stället för flera hundra. Samma fel
-   finns i Malmös adapter (Kornettsgatan: 85 sträckor i datan, 1 ritad) – egen uppgift.
+   fanns i Malmös adapter (Kornettsgatan: 85 sträckor i datan, 1 ritad) – rättat samma dag.
    Provet som fångar det: kör `loadParkingV2` vid en lastplats och jämför `allowed.length`
    med antalet poster i adapterns svar.
 

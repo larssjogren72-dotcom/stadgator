@@ -41,9 +41,14 @@ inte kan läsa. Stockholm, Göteborg och Malmö är bevisat orörda: 36 dygnssve
 **Rättat på vägen:** när veckans städdata inte gick att hämta kastade ett klick på en
 gata fel (`nastaStadUppslag.senaste` saknades). Raden döljs nu i stället.
 
-**Hittat på vägen, inte rättat här:** Malmös adapter levererar grader i stället för
-meter, och då klipps nästan all parkering bort runt stadens lastplatser (Kornettsgatan:
-85 sträckor i datan, 1 ritad). Malmö är dold i stadsväljaren. Egen uppgift.
+**Malmö: parkeringen försvann runt lastplatserna** (`68e3566`, egen commit som kan gå
+till master för sig). Adaptern levererade grader i stället för meter, och klientens
+klippning runt lastplatser räknar i meter – en lastplats i sökrutan tog bort all
+parkering runt sig. Kornettsgatan: 85 sträckor i datan, 1 ritad; nu ritas alla 85.
+Gatunamn, platstyper, priser och städdata är oförändrade, och fyra Malmöområden utan
+lastplats ritar byte-identiskt mot förut. Malmö är fortfarande dold i stadsväljaren.
+Kvar i Malmö: stadens fyra lastplatser saknar tider och visas gröna – samma sorts lucka
+som Uppsalas, egen fråga.
 
 ## v1.29.1 – 2026-09-14
 **Snabbare start på mobil, och lådan slutar åka upp när du stängt den.**
