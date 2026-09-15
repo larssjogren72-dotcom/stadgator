@@ -51,14 +51,15 @@
         "@type": "Organization",
         "@id": "https://parkspot.se/#organization",
         "name": "ParkSpot",
-        "alternateName": ["ParkSpot Stockholm", "ParkSpot Göteborg"],
+        "alternateName": ["ParkSpot Stockholm", "ParkSpot Göteborg", "ParkSpot Uppsala"],
         "url": "https://parkspot.se/",
         "logo": "https://parkspot.se/og-image-v2.png",
         "image": "https://parkspot.se/og-image-v2.png",
         "description": "ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.",
         "areaServed": [
           { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
-          { "@type": "City", "name": "Göteborg", "sameAs": "https://sv.wikipedia.org/wiki/G%C3%B6teborg" }
+          { "@type": "City", "name": "Göteborg", "sameAs": "https://sv.wikipedia.org/wiki/G%C3%B6teborg" },
+          { "@type": "City", "name": "Uppsala", "sameAs": "https://sv.wikipedia.org/wiki/Uppsala" }
         ],
         "knowsAbout": ["Gatuparkering i Stockholm", "Parkeringstaxor (Taxa 1–5)", "Städgator och servicedagar", "Nattparkering", "Boendeparkering", "MC-parkering (motorcykel och moped klass 1)", "Cykel- och mopedparkering (moped klass 2)", "Parkering för rörelsehindrade"]
       },
@@ -90,7 +91,8 @@
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "SEK" },
         "areaServed": [
           { "@type": "City", "name": "Stockholm", "sameAs": "https://sv.wikipedia.org/wiki/Stockholm" },
-          { "@type": "City", "name": "Göteborg", "sameAs": "https://sv.wikipedia.org/wiki/G%C3%B6teborg" }
+          { "@type": "City", "name": "Göteborg", "sameAs": "https://sv.wikipedia.org/wiki/G%C3%B6teborg" },
+          { "@type": "City", "name": "Uppsala", "sameAs": "https://sv.wikipedia.org/wiki/Uppsala" }
         ],
         "publisher": { "@id": "https://parkspot.se/#organization" },
         "featureList": [
@@ -1581,9 +1583,10 @@ STADER_CFG.uppsala =
       // avgiftsfria sträckor bär 301 en tidsgräns. Avgiftssträckor utan egen gräns
       // följer områdets, och saknas områdesposten fäller adaptern till «kontrollera».
       skiljerKorttid:true,
-      // AV I VALET tills skyltrundan är gjord (NY_STAD.md steg 5). Den viktigaste
-      // frågan till den: gäller en ensam tid på skylten («4 tim 8-18») bara vardagar?
-      visaIVal:false, valUnder:'Under uppbyggnad – städdagar finns inte i datan',
+      // I VALET sedan 2026-09-15 (Lars «kör»). Skyltrundan bekräftade tidstolkningen
+      // (Hagundagatan «4 tim 8-18» utan parentes) och avgifterna; lastplatserna är lästa
+      // i föreskrifterna. Kvar som pilot: inga städdagar, inga förbud, licensfrågan öppen.
+      visaIVal:true, valUnder:'Pilot – städdagar och förbud finns inte i datan',
       pilot:true,
       // «Parkeringskarta», inte «öppna data»: lagren är publikt åtkomliga men står inte i
       // kommunens öppna dataportal (opendata.uppsala.se, sökt 2026-09-15). Frågan om

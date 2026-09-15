@@ -15,9 +15,14 @@ redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
 ## v1.30.0 – 2026-09-15
-**Uppsala – stad fem. Byggd, men dold i stadsväljaren tills skyltrundan är gjord.**
+**Uppsala – stad fem, som pilot i stadsväljaren.**
 
-**Uppsalas parkering på kartan** (`cities/uppsala.js`). Nås med `?stad=uppsala`.
+**Uppsalas parkering på kartan** (`cities/uppsala.js`). Syns i stadsväljaren med
+«Pilot – städdagar och förbud finns inte i datan», och nås med `?stad=uppsala`.
+Skyltrundan (Lars, Street View) bekräftade tidstolkningen och avgifterna innan valet
+tändes. Ny SEO-sida `/parkering-uppsala`, länkad från Om-sidan; Uppsala i entitets-
+grafen (appen och Om-sidan) och i `llms.txt`. Stockholms och Göteborgs 224 sidor
+oförändrade (lastmod behållen). Brevet om användningen är inte skickat.
 Källan är kommunens egen parkeringskarta (`kartportal.uppsala.se`, ingen nyckel). Lagren
 är publikt åtkomliga men står inte i kommunens öppna dataportal – därför «parkeringskarta»
 i appens texter, och användningsfrågan först i `UPPSALA_BREV.md`. Hela

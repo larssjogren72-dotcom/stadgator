@@ -1071,6 +1071,7 @@ function aboutPage() {
     // sidorna föräldralösa: sitemap räcker för att bli hittad, men indexeras långsamt.
     // Om-sidan är rätt ställe – det är där tjänsten beskrivs som helhet.
     { href:'parkering-goteborg', text:'Parkering i Göteborg' },
+    { href:'parkering-uppsala', text:'Parkering i Uppsala' },
   ];
   const extraLd = { '@context':'https://schema.org', '@graph':[
     // SYSKONMODELLEN (Lars beslut 2026-08-28): 'ParkSpot' är moderorganisationen och
@@ -1078,19 +1079,57 @@ function aboutPage() {
     // identiteterna, alltså syskon – inte två organisationer. Ett nationellt varumärke
     // valdes bort för att 212 sidor redan rankar på det gamla namnet; additivt före
     // omskrivning. Ändra inte det här utan att fråga.
-    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:['ParkSpot Stockholm','ParkSpot Göteborg'], url:SITE, logo:`${SITE}/og-image-v2.png`,
+    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:['ParkSpot Stockholm','ParkSpot Göteborg','ParkSpot Uppsala'], url:SITE, logo:`${SITE}/og-image-v2.png`,
       description:'ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.',
       areaServed:[{ '@type':'City', name:'Stockholm', sameAs:'https://sv.wikipedia.org/wiki/Stockholm' },
-                  { '@type':'City', name:'Göteborg', sameAs:'https://sv.wikipedia.org/wiki/G%C3%B6teborg' }] },
+                  { '@type':'City', name:'Göteborg', sameAs:'https://sv.wikipedia.org/wiki/G%C3%B6teborg' },
+                  { '@type':'City', name:'Uppsala', sameAs:'https://sv.wikipedia.org/wiki/Uppsala' }] },
     { '@type':'WebApplication', '@id':`${SITE}/#app`, name:'ParkSpot Stockholm', alternateName:'ParkSpot', url:SITE,
       applicationCategory:'TravelApplication', applicationSubCategory:'Parking', operatingSystem:'Web', inLanguage:'sv', isAccessibleForFree:true,
-      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:[{ '@type':'City', name:'Stockholm' },{ '@type':'City', name:'Göteborg' }], publisher:{ '@id':`${SITE}/#organization` },
+      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:[{ '@type':'City', name:'Stockholm' },{ '@type':'City', name:'Göteborg' },{ '@type':'City', name:'Uppsala' }], publisher:{ '@id':`${SITE}/#organization` },
       description:'Visar var du får parkera lagligt just nu i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per zon, städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning.' } ] };
   emit('om-parkspot', layout({
     slug:'om-parkspot', title:'Om ParkSpot – gratis parkeringsapp för Stockholm | ParkSpot',
     desc:'Vad är ParkSpot? Gratis app som visar var du får parkera lagligt i Stockholm – bil, MC, moped, rörelsehindrade. Pris, städdagar och nattparkering.',
     h1:'Om ParkSpot', lead:'ParkSpot är en gratis app som visar var du får parkera lagligt i Stockholm – för bil, MC, cykel/moped och rörelsehindrade, nu eller över natten. Här förklarar vi vad appen gör och varför.',
     sections, faq, related, lat:null, lng:null, match:null, extraLd }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UPPSALA
+// ═══════════════════════════════════════════════════════════════════════════
+// En enda översiktssida, additiv som Göteborgs. Siffrorna är uppmätta 2026-09-15 mot
+// cities/uppsala.js (hela kommunen). ⚠ TRE SAKER SOM MÅSTE STÅ:
+//   1. «Parkeringskarta», aldrig «öppna data» – lagren finns inte på opendata.uppsala.se.
+//   2. Inga städdagar och inga parkeringsförbud i datan.
+//   3. Ensam tid på skylten = vardagar (T6), bekräftat på Hagundagatan.
+const UPS = { namn: 'ParkSpot Uppsala', relText: 'Mer om ParkSpot', karta: '/?stad=uppsala' };
+const UPS_FORBEHALL = 'Uppsala kommun publicerar inga städdagar och inga parkeringsförbud utanför parkeringsplatserna. ParkSpot visar därför var du <b>får</b> parkera – inte var du inte får, och aldrig när gatan städas. En gata utan färg betyder «ingen uppgift», inte «fritt». Kontrollera alltid skylten.';
+
+function upsPillar() {
+  const sections =
+    '<section class="card"><h2>Parkering i Uppsala på karta</h2>' +
+    '<p>ParkSpot visar var det är lagligt att parkera på gatan i Uppsala – <b>just nu</b> eller <b>över natten</b>. Underlaget är Uppsala kommuns parkeringskarta: omkring 2 300 parkeringssträckor och -ytor i hela kommunen med avgift, tidsgräns, lastplatser, MC-platser, platser för rörelsehindrade och kommunens parkeringsgarage.</p>' +
+    '<p>' + UPS_FORBEHALL + '</p></section>' +
+    '<section class="card"><h2>Tidsgränsen – och vad klockslagen på skylten betyder</h2>' +
+    '<p>Uppsala anger hur länge du får stå, både på sträckan och i områdets avgiftstext («Max-P 4 tim»). Därför kan appen skilja en plats med fyra timmars gräns från en där du kan lämna bilen över natten.</p>' +
+    '<p>Klockslagen läses som skylten gör: <b>«4 tim 8-18»</b> utan parentes gäller vardagar, utom dag före sön- och helgdag. En tid <b>inom parentes</b> gäller dag före sön- och helgdag (oftast lördag), och en <b>röd</b> tid sön- och helgdagar.</p></section>' +
+    '<section class="card"><h2>Lastplatser gäller dygnet runt</h2>' +
+    '<p>De flesta lastplatser i Uppsala har ingen tid på skylten. Då gäller förbudet att parkera <b>hela dygnet, alla dagar</b> – de lokala trafikföreskrifterna för dem anger inget klockslag. ParkSpot visar dem röda i alla lägen.</p></section>' +
+    '<section class="card"><h2>Skolor: tillstånd dagtid</h2>' +
+    '<p>Vid många skolor står «7-16 Tillstånd erfordras». Dagtid på vardagar är platsen bara för den som har tillstånd; kvällar och helger får alla stå där. Appen växlar färg efter klockan.</p></section>';
+  const faq = [
+    { q:'Visar ParkSpot städdagar i Uppsala?', a:'Nej. Uppsala kommun publicerar inga städdagar – sandupptagning och städning skyltas tillfälligt på plats. Appen säger därför ingenting om städning i Uppsala, inte heller att det inte städas.' },
+    { q:'Gäller «4 tim 8-18» på lördagar?', a:'Nej, inte om tiden står utan parentes. Enligt vägmärkesförordningen gäller en sådan tid vardagar utom dag före sön- och helgdag. Lördagens tid står inom parentes, sön- och helgdagens i rött.' },
+    { q:'Får jag stanna på en lastplats på kvällen?', a:'Inte om skylten saknar tid. Då gäller lastplatsen hela dygnet. Står en tid på skylten gäller den bara då.' },
+    { q:'Kostar ParkSpot något?', a:'Nej, gratis och utan inloggning. Uppsala är en pilot, byggd på kommunens parkeringskarta.' },
+  ];
+  emit('parkering-uppsala', layout({
+    slug:'parkering-uppsala', title:'Parkering i Uppsala – var får du parkera? | ParkSpot',
+    desc:'Se på karta var du får parkera i Uppsala – nu eller över natten. Tidsgränser, avgiftsområden, lastplatser och parkeringsgarage ur kommunens parkeringskarta.',
+    h1:'Parkering i Uppsala',
+    lead:'Var får du stå, hur länge, och vad betyder klockslagen på skylten? ParkSpot visar det på karta – byggt på Uppsala kommuns parkeringskarta.',
+    sections, faq, related: [{ href:'om-parkspot', text:'Om ParkSpot' }], lat:null, lng:null, match:null, stad:UPS }));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1261,6 +1300,7 @@ STREETS.forEach(streetPage);
 
 gbgPillar(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
 GBG_OMR.forEach(gbgOmrade);
+upsPillar();
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);
