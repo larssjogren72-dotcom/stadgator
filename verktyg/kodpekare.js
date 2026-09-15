@@ -67,7 +67,8 @@ function siffra(n) {
 // lanken maste veta staden - men de ska synas, inte forsvinna.
 function stadsfragor() {
   const rader = las('index.html').split('\n');
-  const monster = /STAD\.id\s*===|STAD\.id\s*==|===\s*'(goteborg|sundbyberg|stockholm)'/;
+  const namn = ['stockholm'].concat(stadsadaptrar().map(s => s.id)).join('|');
+  const monster = new RegExp(`STAD\\.id\\s*===|STAD\\.id\\s*==|===\\s*'(${namn})'`);
   const traffar = [];
   rader.forEach((r, i) => {
     if (monster.test(r)) traffar.push({ rad: i + 1, text: r.trim().slice(0, 90) });
@@ -75,13 +76,32 @@ function stadsfragor() {
   return traffar;
 }
 
-// Stader vars kod finns i huvudversionen men som INTE ar lanserade. Arkitektursidan
-// beskriver appen som den ar i drift, sa deras rader raknas inte - och deras filnamn
-// namns darfor inte heller pa sidan. Utan den har listan hade Malmos 52 rader
-// konfiguration hamnat i "stadsspecifikt" medan cities/malmo.js inte gjorde det, och
-// sidan hade publicerat en summa som inte gick ihop.
-// Vid lansering: ta bort staden harifran och lagg till dess adapter i mat() nedan.
-const EJ_LANSERADE = ['malmo'];
+// Stader vars kod finns i huvudversionen men som INTE ska raknas. Tom sedan
+// 2026-09-15: Uppsala lanserades och Malmo ar inne i drift pa samma satt som
+// Sundbyberg (adaptern pa, dold i stadsvaljaren) - och Sundbyberg har alltid raknats.
+// Listan finns kvar for en stad som ligger i koden men INTE i STADSNAMN: da maste
+// dess konfigblock dras av, annars gar summan inte ihop.
+const EJ_LANSERADE = [];
+
+// Adaptrarna LASES UR server.js (STADSNAMN), inte ur en handskriven lista har. Tidigare
+// stod goteborg och sundbyberg inskrivna i mat(): nar Uppsala lanserades raknades dess
+// 118 rader konfiguration som stadsspecifika medan cities/uppsala.js (702 rader) inte
+// raknades alls, och sidan publicerade en summa som inte gick ihop. Uppmatt 2026-09-15.
+function stadsadaptrar() {
+  const m = las('server.js').match(/const STADSNAMN = \[([^\]]*)\]/);
+  if (!m) throw new Error('Hittar inte STADSNAMN i server.js. Har den bytt namn?');
+  return m[1].match(/'([a-z]+)'/g).map(s => s.slice(1, -1))
+    .filter(id => !EJ_LANSERADE.includes(id))
+    .sort()
+    .map(id => {
+      const fil = `cities/${id}.js`;
+      const p = las(fil).match(/prefix:\s*'([^']+)'/);
+      if (!p) throw new Error(`Hittar inget prefix i ${fil}.`);
+      return { id, fil, prefix: p[1], rader: radantal(fil) };
+    });
+}
+
+const TALORD = ['noll', 'en', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta', 'nio', 'tio'];
 
 // Hur manga rader upptar en stads block i STADER_CFG? Blocket borjar pa
 // "STADER_CFG.<id> =" och slutar dar nasta block (eller STAD-raden) borjar.
@@ -108,17 +128,18 @@ function mat() {
   const index = radantal('index.html');
   const indexRakn = index - ejLanseradeRader;
   const server = radantal('server.js');
-  const gbg = radantal('cities/goteborg.js');
-  const sbg = radantal('cities/sundbyberg.js');
+  const stader = stadsadaptrar();
 
   const konfigStart = radFor('index.html', /^const STADER_CFG = \{\};/);
   const konfigSlut = radFor('index.html', /^const STAD = STADER_CFG\[/);
   const konfig = konfigSlut - konfigStart + 1 - ejLanseradeRader;
 
-  const adaptrar = gbg + sbg;
+  const adaptrar = stader.reduce((s, x) => s + x.rader, 0);
   const stadsspec = konfig + adaptrar;
-  const alla = indexRakn + server + gbg + sbg;
+  const alla = indexRakn + server + adaptrar;
   const delad = alla - stadsspec;
+  const filer = 2 + stader.length;
+  const seoSidor = JSON.parse(las('seo/pages.json')).length;
 
   const paket = JSON.parse(las('package.json'));
   const nu = new Date();
@@ -128,8 +149,8 @@ function mat() {
                     'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
 
   return {
-    index, server, gbg, sbg, alla, konfig, konfigStart, konfigSlut,
-    adaptrar, stadsspec, delad,
+    index, server, stader, alla, konfig, konfigStart, konfigSlut,
+    adaptrar, stadsspec, delad, filer, seoSidor,
     deladProcent: Math.round((delad / alla) * 100),
     stadsProcent: Math.round((stadsspec / alla) * 100),
     version: paket.version,
@@ -157,11 +178,14 @@ function texter(f) {
   return {
     version_text: `Live: v${f.version} · parkspot.se`,
     datum_text: `Beskriver koden ${f.datumKort}`,
-    alla_rader_text: `${siffra(f.alla)} rader i fyra filer`,
+    alla_rader_text: `${siffra(f.alla)} rader i ${TALORD[f.filer] || f.filer} filer`,
 
     index_rader_text: `${siffra(f.index)} rader`,
-    gbg_rader_text: `prefix /gbg/ · ${siffra(f.gbg)} rader`,
-    sbg_rader_text: `prefix /sbg/ · ${siffra(f.sbg)} rader`,
+    // En markering per adapter: data-kod="stad_<id>_text". Saknas den på sidan larmar
+    // kontrollen – en ny stad i STADSNAMN kan alltså inte glömmas bort i diagrammet.
+    ...Object.fromEntries(f.stader.map(s =>
+      [`stad_${s.id}_text`, `prefix ${s.prefix} · ${siffra(s.rader)} rader`])),
+    seo_sidor_text: `de ${siffra(f.seoSidor)} SEO-sidorna`,
 
     delad_text: `Delad grund · ${siffra(f.delad)} rader · ${f.deladProcent} %`,
     stadsspec_text: `Per stad · ${siffra(f.stadsspec)} rader · ${f.stadsProcent} %`,
@@ -196,7 +220,7 @@ function texter(f) {
     index_en_fil_text: `index.html är ${siffra(f.index)} rader i en fil.`,
     fot_text: `Kodpekarna är verifierade mot arbetsmappen ${f.datumLangt} · `
       + `index.html ${siffra(f.index)} rader · server.js ${f.server} · `
-      + `cities/goteborg.js ${f.gbg} · cities/sundbyberg.js ${f.sbg}`,
+      + f.stader.map(s => `${s.fil} ${s.rader}`).join(' · '),
   };
 }
 
@@ -312,7 +336,8 @@ function main() {
 
   console.log('Kodpekare i docs/arkitektur.html\n');
   console.log(`  index.html ${siffra(f.index)} · server.js ${f.server} `
-            + `· goteborg ${f.gbg} · sundbyberg ${f.sbg}  =  ${siffra(f.alla)} rader`);
+            + f.stader.map(s => `· ${s.id} ${s.rader} `).join('')
+            + ` =  ${siffra(f.alla)} rader`);
   console.log(`  delad grund ${siffra(f.delad)} (${f.deladProcent} %) `
             + `· per stad ${siffra(f.stadsspec)} (${f.stadsProcent} %)`);
   console.log(`  STADER_CFG rad ${f.konfigStart}-${f.konfigSlut} (${f.konfig} rader)\n`);

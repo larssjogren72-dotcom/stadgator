@@ -308,12 +308,12 @@
 
   <header>
     <span class="eyebrow">Parkspot · arkitektur</span>
-    <h1>Grunden och<br>de tre städerna</h1>
+    <h1>Grunden och<br>de fem städerna</h1>
     <p class="lede">Servern översätter, klienten resonerar. Varje stad får sina data omformade till samma form som Stockholms redan hade — sedan kör exakt samma regelmotor på allt.</p>
     <div class="stamp">
       <span data-kod="version_text">Live: v1.30.0 · parkspot.se</span>
       <span data-kod="datum_text">Beskriver koden 15 sep 2026</span>
-      <span data-kod="alla_rader_text">10 817 rader i fyra filer</span>
+      <span data-kod="alla_rader_text">12 004 rader i sex filer</span>
     </div>
   </header>
 
@@ -325,7 +325,7 @@
 
     <figure>
       <div class="figbox">
-        <svg viewBox="0 0 940 492" role="img" aria-label="Dataflödet: webbläsaren frågar servern, adressens prefix väljer väg. Stockholm går rakt igenom till sina egna källor medan Göteborg och Sundbyberg passerar var sin adapter som översätter till Stockholms svarsform. Alla tre svarar tillbaka i samma form.">
+        <svg viewBox="0 0 940 560" role="img" aria-label="Dataflödet: webbläsaren frågar servern, adressens prefix väljer väg. Stockholm går rakt igenom till sina egna källor medan Göteborg, Sundbyberg, Malmö och Uppsala passerar var sin adapter som översätter till Stockholms svarsform. Alla svarar tillbaka i samma form.">
           <defs>
             <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
@@ -336,24 +336,24 @@
           </defs>
 
           <!-- Webbläsaren -->
-          <rect class="d-box" x="20" y="170" width="170" height="116" rx="3"></rect>
-          <text class="d-t" x="105" y="200" text-anchor="middle">Webbläsaren</text>
-          <text class="d-m" x="105" y="221" text-anchor="middle">index.html</text>
-          <text class="d-s" x="105" y="243" text-anchor="middle">all logik · all färg</text>
-          <text class="d-m" x="105" y="266" text-anchor="middle" data-kod="index_rader_text">8 911 rader</text>
+          <rect class="d-box" x="20" y="190" width="170" height="116" rx="3"></rect>
+          <text class="d-t" x="105" y="220" text-anchor="middle">Webbläsaren</text>
+          <text class="d-m" x="105" y="241" text-anchor="middle">index.html</text>
+          <text class="d-s" x="105" y="263" text-anchor="middle">all logik · all färg</text>
+          <text class="d-m" x="105" y="286" text-anchor="middle" data-kod="index_rader_text">8 911 rader</text>
 
           <!-- Fråga in -->
-          <line class="d-line" x1="194" y1="228" x2="284" y2="228" marker-end="url(#ar)"></line>
-          <text class="d-arrl" x="239" y="218" text-anchor="middle">prefixet väljer väg</text>
+          <line class="d-line" x1="194" y1="248" x2="284" y2="248" marker-end="url(#ar)"></line>
+          <text class="d-arrl" x="239" y="238" text-anchor="middle">prefixet väljer väg</text>
 
           <!-- Serverhölje -->
-          <rect class="d-hull" x="290" y="30" width="330" height="412" rx="5"></rect>
+          <rect class="d-hull" x="290" y="30" width="330" height="480" rx="5"></rect>
           <text class="d-t" x="306" y="53">server.js — din server på Railway</text>
           <text class="d-s" x="306" y="70">cache 6 h · api-nyckel · rutt per prefix</text>
 
           <!-- Spine -->
-          <line class="d-line" x1="302" y1="126" x2="302" y2="316"></line>
-          <line class="d-line" x1="284" y1="228" x2="302" y2="228"></line>
+          <line class="d-line" x1="302" y1="126" x2="302" y2="423"></line>
+          <line class="d-line" x1="284" y1="248" x2="302" y2="248"></line>
 
           <!-- A: Stockholm -->
           <line class="d-line" x1="302" y1="126" x2="308" y2="126" marker-end="url(#ar)"></line>
@@ -363,24 +363,40 @@
           <text class="d-s" x="328" y="152">grundläget — ingen adapter</text>
 
           <!-- B: Göteborg -->
-          <line class="d-line" x1="302" y1="226" x2="308" y2="226" marker-end="url(#ar)"></line>
-          <rect class="d-city" x="312" y="192" width="286" height="68" rx="3"></rect>
-          <text class="d-t d-city-t" x="328" y="216">cities/goteborg.js</text>
-          <text class="d-m" x="328" y="238" data-kod="gbg_rader_text">prefix /gbg/ · 585 rader</text>
+          <line class="d-line" x1="302" y1="213" x2="308" y2="213" marker-end="url(#ar)"></line>
+          <rect class="d-city" x="312" y="184" width="286" height="58" rx="3"></rect>
+          <text class="d-t d-city-t" x="328" y="208">cities/goteborg.js</text>
+          <text class="d-m" x="328" y="228" data-kod="stad_goteborg_text">prefix /gbg/ · 585 rader</text>
 
-          <!-- C: Sundbyberg -->
-          <line class="d-line" x1="302" y1="316" x2="308" y2="316" marker-end="url(#ar)"></line>
-          <rect class="d-city" x="312" y="282" width="286" height="68" rx="3"></rect>
-          <text class="d-t d-city-t" x="328" y="306">cities/sundbyberg.js</text>
-          <text class="d-m" x="328" y="328" data-kod="sbg_rader_text">prefix /sbg/ · 432 rader</text>
+          <!-- C: Malmö -->
+          <line class="d-line" x1="302" y1="283" x2="308" y2="283" marker-end="url(#ar)"></line>
+          <rect class="d-city" x="312" y="254" width="286" height="58" rx="3"></rect>
+          <text class="d-t d-city-t" x="328" y="278">cities/malmo.js</text>
+          <text class="d-m" x="328" y="298" data-kod="stad_malmo_text">prefix /malmo/ · 433 rader</text>
+
+          <!-- D: Sundbyberg -->
+          <line class="d-line" x1="302" y1="353" x2="308" y2="353" marker-end="url(#ar)"></line>
+          <rect class="d-city" x="312" y="324" width="286" height="58" rx="3"></rect>
+          <text class="d-t d-city-t" x="328" y="348">cities/sundbyberg.js</text>
+          <text class="d-m" x="328" y="368" data-kod="stad_sundbyberg_text">prefix /sbg/ · 432 rader</text>
+
+          <!-- E: Uppsala -->
+          <line class="d-line" x1="302" y1="423" x2="308" y2="423" marker-end="url(#ar)"></line>
+          <rect class="d-city" x="312" y="394" width="286" height="58" rx="3"></rect>
+          <text class="d-t d-city-t" x="328" y="418">cities/uppsala.js</text>
+          <text class="d-m" x="328" y="438" data-kod="stad_uppsala_text">prefix /uppsala/ · 702 rader</text>
 
           <!-- Ut till källorna -->
           <line class="d-line" x1="602" y1="126" x2="694" y2="126" marker-end="url(#ar)"></line>
           <text class="d-arrl" x="648" y="116" text-anchor="middle">nyckel läggs på</text>
-          <line class="d-line" x1="602" y1="226" x2="694" y2="226" marker-end="url(#ar)"></line>
-          <text class="d-arrl" x="648" y="216" text-anchor="middle">översätter</text>
-          <line class="d-line" x1="602" y1="316" x2="694" y2="316" marker-end="url(#ar)"></line>
-          <text class="d-arrl" x="648" y="306" text-anchor="middle">översätter</text>
+          <line class="d-line" x1="602" y1="213" x2="694" y2="213" marker-end="url(#ar)"></line>
+          <text class="d-arrl" x="648" y="203" text-anchor="middle">översätter</text>
+          <line class="d-line" x1="602" y1="283" x2="694" y2="283" marker-end="url(#ar)"></line>
+          <text class="d-arrl" x="648" y="273" text-anchor="middle">översätter</text>
+          <line class="d-line" x1="602" y1="353" x2="694" y2="353" marker-end="url(#ar)"></line>
+          <text class="d-arrl" x="648" y="343" text-anchor="middle">översätter</text>
+          <line class="d-line" x1="602" y1="423" x2="694" y2="423" marker-end="url(#ar)"></line>
+          <text class="d-arrl" x="648" y="413" text-anchor="middle">översätter</text>
 
           <!-- Källor -->
           <rect class="d-sunk" x="700" y="76" width="222" height="100" rx="3"></rect>
@@ -389,23 +405,31 @@
           <text class="d-s" x="716" y="139">Stockholm Parkering — p-hus</text>
           <text class="d-s" x="716" y="159">OpenStreetMap — hållplatser</text>
 
-          <rect class="d-sunk" x="700" y="196" width="222" height="60" rx="3"></rect>
-          <text class="d-s" x="716" y="220">Göteborgs Trafikkontor</text>
-          <text class="d-m" x="716" y="240">öppen WFS, ingen nyckel</text>
+          <rect class="d-sunk" x="700" y="184" width="222" height="58" rx="3"></rect>
+          <text class="d-s" x="716" y="208">Göteborgs Trafikkontor</text>
+          <text class="d-m" x="716" y="228">öppen WFS, ingen nyckel</text>
 
-          <rect class="d-sunk" x="700" y="286" width="222" height="60" rx="3"></rect>
-          <text class="d-s" x="716" y="310">Sundbybergs GIS</text>
-          <text class="d-m" x="716" y="330">gis.sundbyberg.se</text>
+          <rect class="d-sunk" x="700" y="254" width="222" height="58" rx="3"></rect>
+          <text class="d-s" x="716" y="278">Malmö stads GIS</text>
+          <text class="d-m" x="716" y="298">gis.malmo.se</text>
+
+          <rect class="d-sunk" x="700" y="324" width="222" height="58" rx="3"></rect>
+          <text class="d-s" x="716" y="348">Sundbybergs GIS</text>
+          <text class="d-m" x="716" y="368">gis.sundbyberg.se</text>
+
+          <rect class="d-sunk" x="700" y="394" width="222" height="58" rx="3"></rect>
+          <text class="d-s" x="716" y="418">Uppsalas parkeringskarta</text>
+          <text class="d-m" x="716" y="438">kartportal.uppsala.se</text>
 
           <!-- Svaret tillbaka -->
-          <path class="d-back" d="M 340 404 H 105 V 292" marker-end="url(#arb)"></path>
-          <text class="d-arrl d-acc-t" x="352" y="408">samma svarsform oavsett stad</text>
+          <path class="d-back" d="M 340 482 H 105 V 312" marker-end="url(#arb)"></path>
+          <text class="d-arrl d-acc-t" x="352" y="486">samma svarsform oavsett stad</text>
 
           <!-- Teckenförklaring -->
-          <rect class="d-city" x="20" y="462" width="20" height="12" rx="2"></rect>
-          <text class="d-s" x="48" y="472">stadsspecifik kod</text>
-          <line class="d-back" x1="196" y1="468" x2="230" y2="468"></line>
-          <text class="d-s" x="238" y="472">svaret tillbaka till appen</text>
+          <rect class="d-city" x="20" y="530" width="20" height="12" rx="2"></rect>
+          <text class="d-s" x="48" y="540">stadsspecifik kod</text>
+          <line class="d-back" x1="196" y1="536" x2="230" y2="536"></line>
+          <text class="d-s" x="238" y="540">svaret tillbaka till appen</text>
         </svg>
       </div>
       <figcaption>Stockholm är inte en adapter — Stockholm är grundläget, och det är den formen alla andra städer översätts till. En adapter svarar bara på sitt eget prefix; allt utanför det rör den aldrig. Läses en adapterfil inte in loggas det och servern startar ändå: en trasig pilotstad kan inte ta ner Stockholm.</figcaption>
@@ -417,10 +441,10 @@
     <span class="eyebrow">Servern</span>
     <h2>Fyra jobb, inget mer</h2>
     <ol>
-      <li><strong>Mellanhand mot kommunerna.</strong> Stockholms karttjänst kräver en nyckel som inte får ligga i webbläsaren — servern lägger på den. Göteborgs och Sundbybergs tjänster går inte att anropa direkt från en webbsida; webbläsaren blockerar det.</li>
+      <li><strong>Mellanhand mot kommunerna.</strong> Stockholms karttjänst kräver en nyckel som inte får ligga i webbläsaren — servern lägger på den. De andra kommunernas tjänster går inte att anropa direkt från en webbsida; webbläsaren blockerar det.</li>
       <li><strong>Cache.</strong> Kommunernas svar sparas i minnet i 6 timmar, upp till 512 MB. Stockholm Parkerings p-hus-API tar ungefär 30 sekunder och förvärms vid start — annars hade första besökaren fått vänta ut det.</li>
       <li><strong>Översättare.</strong> Här bor stadsanpassningen, och ingen annanstans på servern.</li>
-      <li><strong>Sidhuvud, sökmotorer och räknare.</strong> Servern skriver titel och förhandsvisning innan någon JavaScript hunnit köra — en delad länk till Göteborg förhandsvisades annars som Stockholm. Här ligger också de 212 SEO-sidorna och den kakfria räknaren på <code>/r</code> och <code>/statistik</code>.</li>
+      <li><strong>Sidhuvud, sökmotorer och räknare.</strong> Servern skriver titel och förhandsvisning innan någon JavaScript hunnit köra — en delad länk till Göteborg förhandsvisades annars som Stockholm. Här ligger också <span data-kod="seo_sidor_text">de 226 SEO-sidorna</span> och den kakfria räknaren på <code>/r</code> och <code>/statistik</code>.</li>
     </ol>
   </section>
 
@@ -428,7 +452,7 @@
   <section>
     <span class="eyebrow">Integrationer</span>
     <h2>Vem levererar vad</h2>
-    <p>Tio källor, varav nio i drift. Två av dem är värda att skilja ut. Transportstyrelsens register går aldrig via appen, utan är källan när en föreskrift måste bevisas i efterhand. Och adressöket använder <strong>två olika</strong> geokodare — se nästa avsnitt för varför det spelar roll.</p>
+    <p>Tolv källor, varav elva i drift. Två av dem är värda att skilja ut. Transportstyrelsens register går aldrig via appen, utan är källan när en föreskrift måste bevisas i efterhand. Och adressöket använder <strong>två olika</strong> geokodare — se nästa avsnitt för varför det spelar roll.</p>
 
     <div class="tablewrap">
       <table>
@@ -441,6 +465,8 @@
           <tr><td>Stockholm Parkering</td><td>p-hus och kapacitet — ingen realtid</td><td class="path">/phus</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>Göteborgs Trafikkontor</td><td>parkering, städning, maxtid, boende, lastplatser</td><td class="path">/gbg/…</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>Sundbybergs GIS</td><td>parkering och städtider</td><td class="path">/sbg/…</td><td><span class="tag tag-live">i drift</span></td></tr>
+          <tr><td>Malmö stads GIS</td><td>parkering, städdagar, taxor — dold i stadsväljaren</td><td class="path">/malmo/…</td><td><span class="tag tag-live">i drift</span></td></tr>
+          <tr><td>Uppsalas parkeringskarta</td><td>parkering, tidsgränser, lastplatser, garage — inga städdagar</td><td class="path">/uppsala/…</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>OpenStreetMap</td><td>busshållplatser för markören</td><td class="path">/hallplatser</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>CARTO</td><td>bakgrundskartan under linjerna</td><td class="path">kaklager</td><td><span class="tag tag-live">i drift</span></td></tr>
           <tr><td>Photon</td><td>sökförslag medan man skriver</td><td class="path">photon.komoot.io</td><td><span class="tag tag-live">i drift</span></td></tr>
@@ -530,29 +556,29 @@
   <section>
     <span class="eyebrow">Grunden</span>
     <h2>Vad alla städer delar</h2>
-    <p>I princip all logik. Samma två funktioner ritar färgen i alla tre städerna: <code>showNowParkingV2Flow</code> för Nu-läget och <code>showSafeStreetsV2Flow</code> för I kväll och Över natten. Under dem ligger regelmotorn — <code>toAllowedSegment</code>, <code>forbudActiveAt</code>, <code>cleaningState</code>, <code>andamalActiveAt</code>, <code>nastaAndamalFonster</code> — och ovanpå dem hela gränssnittet.</p>
+    <p>I princip all logik. Samma två funktioner ritar färgen i alla städer: <code>showNowParkingV2Flow</code> för Nu-läget och <code>showSafeStreetsV2Flow</code> för I kväll och Över natten. Under dem ligger regelmotorn — <code>toAllowedSegment</code>, <code>forbudActiveAt</code>, <code>cleaningState</code>, <code>andamalActiveAt</code>, <code>nastaAndamalFonster</code> — och ovanpå dem hela gränssnittet.</p>
     <p>Även säkerhetsreglerna är gemensamma. Regeln <em>inget grönt om staden inte kan skilja korttidsplats från långtidsplats</em> skrevs för Sundbyberg, men gäller överallt.</p>
 
     <figure>
       <div class="figbox">
-        <svg viewBox="0 0 760 208" role="img" data-kod-aria="delning" aria-label="Av 10 817 rader kod är 9 598 delad grund och 1 219 stadsspecifika: 202 rader konfiguration i klienten plus 1 017 rader adaptrar på servern. Den stadsspecifika delen innehåller bara översättning, inga regler.">
-          <text class="d-s" x="40" y="44" data-kod="delad_text">Delad grund · 9 598 rader · 89 %</text>
-          <text class="d-s d-city-t" x="720" y="44" text-anchor="end" data-kod="stadsspec_text">Per stad · 1 219 rader · 11 %</text>
+        <svg viewBox="0 0 760 208" role="img" data-kod-aria="delning" aria-label="Av 12 004 rader kod är 9 598 delad grund och 2 406 stadsspecifika: 254 rader konfiguration i klienten plus 2 152 rader adaptrar på servern. Den stadsspecifika delen innehåller bara översättning, inga regler.">
+          <text class="d-s" x="40" y="44" data-kod="delad_text">Delad grund · 9 598 rader · 80 %</text>
+          <text class="d-s d-city-t" x="720" y="44" text-anchor="end" data-kod="stadsspec_text">Per stad · 2 406 rader · 20 %</text>
 
-          <rect class="d-box" x="40" y="56" width="603" height="46" rx="2" data-kod-geom="delad_stapel"></rect>
-          <rect class="d-city" x="643" y="56" width="77" height="46" rx="2" data-kod-geom="stad_stapel"></rect>
+          <rect class="d-box" x="40" y="56" width="544" height="46" rx="2" data-kod-geom="delad_stapel"></rect>
+          <rect class="d-city" x="584" y="56" width="136" height="46" rx="2" data-kod-geom="stad_stapel"></rect>
 
-          <text class="d-s" x="342" y="84" text-anchor="middle" data-kod-geom="delad_etikett">regelmotor · färgkedja · gränssnitt · cache · SEO</text>
+          <text class="d-s" x="312" y="84" text-anchor="middle" data-kod-geom="delad_etikett">regelmotor · färgkedja · gränssnitt · cache · SEO</text>
 
-          <path class="d-lead" d="M 682 106 V 126 H 720" data-kod-geom="stad_streck"></path>
-          <text class="d-m" x="720" y="146" text-anchor="end" data-kod="uppdelning_text">STADER_CFG 202 + cities/*.js 1 017</text>
+          <path class="d-lead" d="M 652 106 V 126 H 720" data-kod-geom="stad_streck"></path>
+          <text class="d-m" x="720" y="146" text-anchor="end" data-kod="uppdelning_text">STADER_CFG 254 + cities/*.js 2 152</text>
           <text class="d-s d-city-t" x="720" y="168" text-anchor="end">bara översättning — inga regler</text>
 
           <line class="d-lead" x1="40" y1="188" x2="720" y2="188"></line>
           <text class="d-m" x="40" y="204" data-kod="stadsfragor_text">1 av 8 911 rader i klienten frågar vilken stad det är</text>
         </svg>
       </div>
-      <figcaption>Måttet på hur väl gränsen håller: <span data-kod="stadsfragor_mening">i hela <code>index.html</code> frågar en enda rad vilken stad det är, och den sitter inte i regelmotorn utan i dela-länken, som måste veta staden för att kunna bygga adressen</span>. Att den stadsspecifika koden ändå är <span data-kod="stadsspec_rader_text">1 219 rader</span> beror på att översättning tar plats; det är rader utan beslut i sig.</figcaption>
+      <figcaption>Måttet på hur väl gränsen håller: <span data-kod="stadsfragor_mening">i hela <code>index.html</code> frågar en enda rad vilken stad det är, och den sitter inte i regelmotorn utan i dela-länken, som måste veta staden för att kunna bygga adressen</span>. Att den stadsspecifika koden ändå är <span data-kod="stadsspec_rader_text">2 406 rader</span> beror på att översättning tar plats; det är rader utan beslut i sig.</figcaption>
     </figure>
   </section>
 
@@ -631,12 +657,12 @@
     <h3 style="margin-top:1rem">Det enda som verkligen bara finns hos en stad</h3>
     <p>Göteborgs tider står som <strong>meningar i fritext</strong>, inte i fält. Därför finns <code>gbgLastplatsFonster</code> plus två uppslagstabeller, <code>gbg-maxtid-villkor.json</code> och <code>gbg-lastplats-tider.json</code>, som en robot i GitHub Actions läser om och testar automatiskt. Stockholm har en motsvarande tabell i <code>forbud-ovrig-tid.json</code>. Det är inte snyggt — men det är inlåst i namngivna filer med larm på, i stället för utspritt i logiken.</p>
 
-    <p>Utöver det finns en strömbrytare, <code>STADER_PA</code>. Adaptrarnas kod bor i huvudversionen så att den aldrig halkar efter Stockholm-fixarna, men är avstängd i drift om inte miljövariabeln sätts. Sundbyberg är dessutom dold i stadsväljaren och nåbar bara via direktlänk.</p>
+    <p>Utöver det finns en strömbrytare, <code>STADER_PA</code>. Adaptrarnas kod bor i huvudversionen så att den aldrig halkar efter Stockholm-fixarna, men är avstängd i drift om inte miljövariabeln sätts. Sundbyberg och Malmö är dessutom dolda i stadsväljaren och nåbara bara via direktlänk.</p>
   </section>
 
   <!-- ══ NÄSTA STAD ════════════════════════════════════════ -->
   <section>
-    <span class="eyebrow">Stad nummer fyra</span>
+    <span class="eyebrow">Nästa stad</span>
     <h2>Fyra steg, noll ändringar i regelmotorn</h2>
     <ol class="steps">
       <li>Inventera kommunens öppna data: finns parkering, städning, förbud, maxtid?</li>
@@ -662,13 +688,13 @@
       </div>
       <div>
         <b>Adaptrarna delar ingen kod med varandra.</b>
-        <span>Göteborg och Sundbyberg löser cache och rutfiltrering var för sig. Med två städer är det billigare än en gemensam abstraktion. Med fem är det inte det.</span>
+        <span>De fyra adaptrarna löser cache, hämtning och rutfiltrering var för sig. Med två städer var det billigare än en gemensam abstraktion. Med fyra är det inte längre självklart.</span>
       </div>
     </div>
   </section>
 
   <footer>
-    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 15 september 2026 · index.html 8 911 rader · server.js 941 · cities/goteborg.js 585 · cities/sundbyberg.js 432</span><br>
+    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 15 september 2026 · index.html 8 911 rader · server.js 941 · cities/goteborg.js 585 · cities/malmo.js 433 · cities/sundbyberg.js 432 · cities/uppsala.js 702</span><br>
     Siffrorna och radhänvisningarna på sidan skrivs av <code>verktyg/kodpekare.js</code> — ändra dem inte för hand.<br>
     Källa: <code>docs/arkitektur.html</code> i repot — ändra där, publicera om till samma adress
   </footer>
