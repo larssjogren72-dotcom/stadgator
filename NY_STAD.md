@@ -104,7 +104,7 @@ var du läste det. Tre svar är möjliga:
 
 | Svar | Vad appen får göra | Exempel |
 |---|---|---|
-| **Alltid** — regeln gäller dygnet runt | Rita regeln jämt | Göteborgs lastplatser utan mening (fyra föreskrifter lästa, 2008–2026, inget klockslag) |
+| **Alltid** — regeln gäller dygnet runt | Rita regeln jämt | Göteborgs lastplatser utan mening (fyra föreskrifter lästa, 2008–2026, inget klockslag); Uppsalas lastplatser utan tid (fyra föreskrifter lästa 2026-09-15, inget klockslag) → `ANDAMAL_ALLTID` |
 | **Vet inte** | Tiga, eller degradera grönt till blått | Göteborgs boendezoner utan tidsgräns |
 | **Finns inte** — dimensionen saknas i hela kommunen | Stäng av påståendet för hela staden | Sundbybergs maxtid → `skiljerKorttid:false` |
 
@@ -218,7 +218,7 @@ precis det vi inte vill.
 | `ENDAST_BOENDE` | Boendezon utan publicerad tidsgräns | — |
 | `MAXTID_REGLER` | Tidsgränsens fönster som färdiga regler, `{r:[['vardag-ej-dagfore',800,1800],['dagfore',800,1800]]}` – samma form och dagtyper som Göteborgs tabeller. För städer vars fönster är kodlistor med flera dagklasser (Uppsala) | Gränsen antas gälla jämt |
 | `ANDAMAL_REGLER` | Ändamålsplatsens fönster i samma form. Används med de tresiffriga koderna `901` parkeringsförbud, `902` tillståndsparkering, `903` korttidsparkering – «inte vanlig parkering under fönstret, tillåten övrig tid» | Ändamålet antas okänt och segmentet lämnas orört |
-| `KONTROLLERA_SKYLT` | Förklaring till föraren när adaptern SER ett villkor men inte kan läsa det (Uppsala: område utan villkor, lastplats utan tid). Fäller grönt till blått; på en ändamålsplats blir den röd i Nu och orange i Natt | — |
+| `KONTROLLERA_SKYLT` | Förklaring till föraren när adaptern SER ett villkor men inte kan läsa det (Uppsala: område utan villkor eller med okänd text; Malmös lastplatser utan tid är nästa kandidat). Fäller grönt till blått; på en ändamålsplats blir den röd i Nu och orange i Natt | — |
 
 Stadsegna fält är tillåtna med prefix (`GBG_…`). De får bara läsas via en
 uppslagstabell, aldrig tolkas i farten. Se nästa avsnitt.

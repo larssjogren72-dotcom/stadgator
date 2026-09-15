@@ -40,10 +40,11 @@ använder data utan lov. Om det finns villkor följer vi dem, och vi anger allti
 bara vardagar, utom dag före sön- och helgdag. «2 tim 8-18 (8-18) 8-18» tolkar vi som att
 den även gäller lördagar och sön- och helgdagar. Stämmer det för er kodlista?
 
-**3. Lastplatser utan tid.** 116 av 121 lastplatser i `GOT_Lastplats` har tomt fält för
-restriktioner. Betyder det att lastplatsen gäller hela dygnet, eller att tiden inte är
-inlagd? Appen visar dem i dag som «tider saknas», och det blir fel åt ena eller andra
-hållet.
+**3. Lastplatser och på- och avstigningsplatser.** 117 av 121 lastplatser i
+`GOT_Lastplats` har tomt fält för restriktioner. Vi har läst fyra av era föreskrifter
+(bland annat 0380 2020:224 på Skolgatan) och ingen har klockslag, så appen visar dem som
+gällande dygnet runt – säg till om det finns undantag. Däremot heter alla 121 «Lastplats»,
+även där skylten säger «På- och avstigningsplats». Går det att skilja dem åt i datan?
 
 **4. Områdeskoder utan områdespost.** 26 koder som används på parkeringssträckor finns
 inte i `GOT_Omradeskoder`, bland annat 18531 (34 sträckor), 18534 (19), 18520 och 18128

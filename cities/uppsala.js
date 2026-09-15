@@ -57,8 +57,8 @@
 //   · STÄDDAGAR. Kommunen skyltar tillfälligt inför sandupptagning; inga fasta
 //     servicedagar finns i någon tjänst. Appen säger därför ingenting om städning
 //     i Uppsala – varken att det städas eller att det inte gör det.
-//   · LASTPLATSERNAS TIDER på 116 av 121 lastplatser (fältet tomt). Vad tomrummet
-//     betyder står i föreskriften, inte i datan → «kontrollera skylten».
+//   · LASTPLATSERNAS TIDER på 117 av 121 lastplatser (fältet tomt). Föreskrifterna
+//     visar att tomt betyder dygnet runt (4 av 4 lästa) → ANDAMAL_ALLTID, se lastplatsgrenen.
 //   · OREGLERADE GATOR. Bara reglerade sträckor finns; resten ritas inte.
 
 module.exports = function skapaUppsala(delade) {
@@ -478,10 +478,15 @@ module.exports = function skapaUppsala(delade) {
         '7-17. Parkering övrig tid 1 tim.': { r: [['vardag-ej-dagfore', 700, 1700]] }
       };
       if (!r) {
-        // 116 av 121 saknar tid. Om tomrummet betyder «alltid» eller «okänt» står i
-        // föreskriften – inte här. Utan läst föreskrift sätter vi INTE ANDAMAL_ALLTID
-        // (se kommentaren i cities/goteborg.js), utan säger rakt ut att vi inte vet.
-        props.KONTROLLERA_SKYLT = 'Lastplats – när den gäller står inte i stadens data. Läs skylten.';
+        // 117 av 121 saknar tid. Tomt betyder «dygnet runt» – LÄST i föreskrifterna, inte
+        // gissat. 2026-09-15, fyra föreskrifter i tre stadsdelar och tre årtal, alla utan
+        // klockslag: 0380 2016-00593 (Väktargatan), 0380 2020:224 (Skolgatan),
+        // 0380 2025:424 och 0380 2025:450 (Rosendalsvägen). Samma dag två skyltar på
+        // Skolgatan (Lars, Street View): «Lastplats» respektive «På- och avstigningsplats»,
+        // båda med förbud att stanna och parkera och utan tid.
+        // ⚠ Lagret kallar ALLA 121 «Lastplats» – även på- och avstigningsplatser. Färgen
+        // blir rätt (ingen av dem är parkering), men kortets ord kan vara fel sort.
+        props.ANDAMAL_ALLTID = true;
       } else if (LASTPLATS_TIDER[r]) {
         props.ANDAMAL_REGLER = LASTPLATS_TIDER[r];
         if (/övrig tid 1 tim/.test(r)) props.MAX_MINUTES = 60;

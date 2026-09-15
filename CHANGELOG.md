@@ -25,8 +25,12 @@ kommunen: 2 288 poster, varav 2 272 ritas; de 16 som inte ritas har ett loggat s
 (säsongsregler, laddplatser, platser som inte är för allmänheten). Uppsala pekar ut
 hur länge man får stå – på sträckan och i områdets avgiftstext («Max-P 4tim») – så
 staden kan visa grönt. Skolområdens «7-16 Tillstånd erfordras» blir röd dagtid och
-grön kväll och helg. Lastplatser utan tid i datan (117 av 121) visas röda i Nu och
-orange i Natt med texten att tiderna saknas, i stället för «Får stå nu».
+grön kväll och helg. Lastplatser utan tid i datan (117 av 121) visas röda dygnet runt,
+«Lastplats · gäller dygnet runt», i stället för «Får stå nu». Det är läst, inte gissat:
+fyra föreskrifter i Transportstyrelsens register (0380 2016-00593 Väktargatan,
+0380 2020:224 Skolgatan, 0380 2025:424 och 0380 2025:450 Rosendalsvägen) saknar alla
+klockslag, och Lars två skyltfoton från Skolgatan har ingen tid. Känd brist: lagret kallar
+alla 121 «Lastplats», även på- och avstigningsplatser – färgen blir rätt, ordet ibland fel.
 
 **Kommunen publicerar inga städdagar.** Appen säger därför ingenting om städning i
 Uppsala – inte heller «ingen städning de närmaste 8 dygnen», som vore ett påstående
