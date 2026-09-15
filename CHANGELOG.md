@@ -14,6 +14,29 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.30.1 – 2026-09-15
+**Uppsala är inte pilot längre – och skillnaden mot Stockholm står rakt ut.**
+
+**Uppsala har inga fasta städdagar.** Städningen som kräver att bilen flyttas är vårens
+sandupptagning, som skyltas tillfälligt 24 timmar före (kommunens sidor om gatudrift).
+Appen visar inte de skyltarna och säger därför ingenting om städning i Uppsala. Det är en
+grundskillnad mot Stockholm, där appen föddes som städgatukarta – och den sades inte
+till Lars förrän efter lanseringen. Nu står den i disclaimern, i stadsväljaren («Inga
+fasta städdagar och inga förbud i datan»), i `llms.txt` och som eget avsnitt på
+`/parkering-uppsala` med två frågor i FAQ.
+
+**Pilotmärkningen borttagen** (Lars beslut): ingen PILOT-banderoll, fliktiteln «ParkSpot
+Uppsala – var får du parkera?», Uppsala sorteras bland de fullständiga städerna. Samma
+modell som Göteborg: varningen bärs av disclaimern, som alltid syns.
+
+**NY_STAD.md steg 1b – städmodellen först.** Varje ny stad: fasta dagar, veckoparitet,
+datum i månaden eller bara tillfälliga skyltar? Utreds ur kommunens gatudriftssidor och
+sägs som egen rubrik, aldrig som en parentes.
+
+**Arkitektursidan räknar alla städer** (`verktyg/kodpekare.js`). Adaptrarna läses ur
+`STADSNAMN` i server.js i stället för en handskriven lista, så en ny stad kan inte glömmas
+i diagrammet. Uppsalas 702 rader saknades i summan; per stad nu 20 % av koden.
+
 ## v1.30.0 – 2026-09-15
 **Uppsala – stad fem, som pilot i stadsväljaren.**
 

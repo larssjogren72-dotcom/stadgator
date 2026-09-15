@@ -1,6 +1,6 @@
 # ParkSpot
 
-> Gratis webb-app som visar var det är lagligt att parkera på gatan – just nu eller över natten. Täcker **Stockholm**, **Göteborg** och **Uppsala** (pilot). Visar städdagar per gata, tidsgränser, boendezoner och parkeringsanläggningar, med egna lägen för bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd. Bygger på kommunernas egna parkeringsdata. Helt gratis, inget konto, ingen inloggning.
+> Gratis webb-app som visar var det är lagligt att parkera på gatan – just nu eller över natten. Täcker **Stockholm**, **Göteborg** och **Uppsala**. Visar städdagar per gata, tidsgränser, boendezoner och parkeringsanläggningar, med egna lägen för bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd. Bygger på kommunernas egna parkeringsdata. Helt gratis, inget konto, ingen inloggning.
 
 ParkSpot har inga sensorer för lediga parkeringsplatser i realtid. Appen visar var det ÄR LAGLIGT att parkera, aktuellt pris och nästa städdag – inte beläggning på enskilda p-rutor. Kontrollera alltid skylten på plats; data kan vara inaktuell.
 
@@ -16,10 +16,10 @@ Städdagar (med **jämna och udda veckor**, vilket är hur Göteborg städar –
 
 **Boendezoner i Göteborg** (t.ex. `Boende Ö6`) är ett undantag från platsens tidsgräns, inte ett förbud för andra: utan tillstånd gäller skyltens tid, med tillstånd upp till 14 dygn. Ett `n` efter zonkoden (t.ex. `V5n`) betyder att tillståndet bara gäller kvällar och nätter, ungefär 18–09.
 
-### Uppsala (pilot) — [parkspot.se/?stad=uppsala](https://parkspot.se/?stad=uppsala)
+### Uppsala —[parkspot.se/?stad=uppsala](https://parkspot.se/?stad=uppsala)
 Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehindrade, tillståndsparkering vid skolor och kommunens parkeringsgarage – ur Uppsala kommuns parkeringskarta (inte kommunens öppna dataportal).
 
-**Viktigt om Uppsala:** kommunen publicerar **inga städdagar** och **inga parkeringsförbud** utanför parkeringsplatserna. Appen säger ingenting om städning i Uppsala. En tid på skylten utan parentes («4 tim 8-18») gäller vardagar utom dag före sön- och helgdag. Lastplatser utan tid gäller dygnet runt.
+**Viktigt om Uppsala:** Uppsala har **inga fasta städdagar** – vårens sandupptagning skyltas tillfälligt 24 timmar före – och kommunen publicerar **inga parkeringsförbud** utanför parkeringsplatserna. Appen säger ingenting om städning i Uppsala. En tid på skylten utan parentes («4 tim 8-18») gäller vardagar utom dag före sön- och helgdag. Lastplatser utan tid gäller dygnet runt.
 
 ## Huvudsidor
 - [ParkSpot – live-kartan](https://parkspot.se/): Själva appen.

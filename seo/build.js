@@ -1135,7 +1135,7 @@ function upsPillar() {
     { q:'När är sandupptagningen i Uppsala?', a:'På våren, normalt från mars till mitten av maj, område för område. Exakt dag för din gata står på den tillfälliga skylt som sätts upp 24 timmar innan.' },
     { q:'Gäller «4 tim 8-18» på lördagar?', a:'Nej, inte om tiden står utan parentes. Enligt vägmärkesförordningen gäller en sådan tid vardagar utom dag före sön- och helgdag. Lördagens tid står inom parentes, sön- och helgdagens i rött.' },
     { q:'Får jag stanna på en lastplats på kvällen?', a:'Inte om skylten saknar tid. Då gäller lastplatsen hela dygnet. Står en tid på skylten gäller den bara då.' },
-    { q:'Kostar ParkSpot något?', a:'Nej, gratis och utan inloggning. Uppsala är en pilot, byggd på kommunens parkeringskarta.' },
+    { q:'Kostar ParkSpot något?', a:'Nej, gratis och utan inloggning. Uppsala bygger på kommunens parkeringskarta.' },
   ];
   emit('parkering-uppsala', layout({
     slug:'parkering-uppsala', title:'Parkering i Uppsala – var får du parkera? | ParkSpot',

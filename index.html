@@ -1585,16 +1585,19 @@ STADER_CFG.uppsala =
       skiljerKorttid:true,
       // I VALET sedan 2026-09-15 (Lars «kör»). Skyltrundan bekräftade tidstolkningen
       // (Hagundagatan «4 tim 8-18» utan parentes) och avgifterna; lastplatserna är lästa
-      // i föreskrifterna. Kvar som pilot: inga städdagar, inga förbud, licensfrågan öppen.
-      visaIVal:true, valUnder:'Pilot – städdagar och förbud finns inte i datan',
-      pilot:true,
+      // i föreskrifterna. INTE pilot längre (Lars 2026-09-15, efter att skillnaden mot
+      // Stockholm sagts rakt ut: inga fasta städdagar, inga förbud). Som Göteborg bär
+      // disclaimern varningen i stället för banderollen. Licensfrågan är fortfarande öppen.
+      visaIVal:true, valUnder:'Inga fasta städdagar och inga förbud i datan',
+      pilot:false,
       // «Parkeringskarta», inte «öppna data»: lagren är publikt åtkomliga men står inte i
       // kommunens öppna dataportal (opendata.uppsala.se, sökt 2026-09-15). Frågan om
       // användning ligger hos Lars/kommunen, se UPPSALA_BREV.md.
       disclaimer:'<span class="hint-disclaimer">Baseras på Uppsala kommuns parkeringskarta. '
-        + 'Kommunen publicerar inga städdagar och inga parkeringsförbud utanför '
-        + 'parkeringsplatserna – en gata utan färg betyder «ingen uppgift», inte «fritt». '
-        + 'Kontrollera alltid skylten på plats.</span>',
+        + 'Uppsala har inga fasta städdagar – vid städning, som vårens sandupptagning, sätts '
+        + 'tillfälliga skyltar upp 24 timmar före, och dem visar appen inte. Kommunen publicerar '
+        + 'heller inga parkeringsförbud utanför parkeringsplatserna – en gata utan färg betyder '
+        + '«ingen uppgift», inte «fritt». Kontrollera alltid skylten på plats.</span>',
       schemaUrl:'' };
 
 STADER_CFG.goteborg =
