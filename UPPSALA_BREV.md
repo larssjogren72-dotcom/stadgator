@@ -11,6 +11,10 @@ Bilaga att skicka med: `KOMMUNBREV.md` (den fullständiga listan över vad appen
 
 **Ingenting är skickat.** Lars avgör om och när.
 
+⚠ Brevet skrevs 2026-09-15 medan Uppsala var dold. Staden är **live sedan 2026-09-17**
+(v1.30.1), så brevet säger nu rakt ut att den är uppe och att vi stänger av den samma dag
+om kommunen säger nej. Tänds eller släcks staden igen måste de två ställena följa med.
+
 ---
 
 ## Förslag till mejl
@@ -20,21 +24,26 @@ Bilaga att skicka med: `KOMMUNBREV.md` (den fullständiga listan över vad appen
 Hej,
 
 Jag heter Lars Sjögren och bygger **ParkSpot** (parkspot.se), en gratis karta som visar
-var man får parkera lagligt just nu. Den är i drift för **Stockholm** och **Göteborg**.
+var man får parkera lagligt just nu. Den är i drift för **Stockholm**, **Göteborg** och
+sedan den 17 september även **Uppsala**.
 Appen hittar inte på något: den visar kommunens egna uppgifter, och när en uppgift saknas
 säger den det rakt ut i stället för att gissa. Inga personuppgifter, inga betalningar,
 ingen inloggning.
 
-Jag har byggt en version för Uppsala på de parkeringslager som ligger i er kartportal och
-som kommunens egen parkeringskarta läser (`kartportal.uppsala.se/mapping/rest/services/
-iKommunkartan/GOT_*`). Datan håller hög kvalitet. Tidsgränser, tillåten tid och avgiftstid
-ligger som kodlistor i stället för fritext, vilket gör den ovanligt lätt att läsa rätt.
+Uppsala-versionen bygger på de parkeringslager som ligger i er kartportal och som kommunens
+egen parkeringskarta läser (`kartportal.uppsala.se/mapping/rest/services/iKommunkartan/GOT_*`).
+Datan håller hög kvalitet. Tidsgränser, tillåten tid och avgiftstid ligger som kodlistor i
+stället för fritext, vilket gör den ovanligt lätt att läsa rätt. Vi har också kontrollerat
+tolkningen mot skyltar på plats och mot era föreskrifter i Transportstyrelsens register.
 
-Innan appen visar Uppsala för allmänheten har jag några frågor.
+Nedan har jag åtta frågor. Den första är den viktigaste, och jag vill vara rak om den.
 
 **1. Får lagren användas?** De är öppet åtkomliga, men jag hittar dem inte på
-opendata.uppsala.se och ingen licens anges i tjänsterna. Vi publicerar hellre inte än
-använder data utan lov. Om det finns villkor följer vi dem, och vi anger alltid källan.
+opendata.uppsala.se och ingen licens anges i tjänsterna. Appen anger källan – «Baseras på
+Uppsala kommuns parkeringskarta» står under kartan – och den anropar era tjänster i samma
+omfattning som er egen parkeringskarta gör, med svaren mellanlagrade i sex timmar.
+**Säger ni nej, eller vill se villkor uppfyllda först, stänger jag av Uppsala samma dag.**
+Om det finns en licens eller villkor följer vi dem.
 
 **2. Tider som står ensamma.** En tidsgräns som «4 tim 8-18» tolkar vi som skylten gör:
 bara vardagar, utom dag före sön- och helgdag. «2 tim 8-18 (8-18) 8-18» tolkar vi som att
