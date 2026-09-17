@@ -14,6 +14,25 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.31.1 – 2026-09-17
+**Sidfotens länkar följer staden.**
+
+Uppsala-vyn länkade «Parkering i Stockholms områden» till sexton Stockholmsstadsdelar
+(Lars såg det). Sidfoten låg hårdkodad i `index.html` och satt kvar i alla städer.
+Servern byter nu ut hela footern efter `?stad=`, av samma skäl som titeln byts där:
+sökmotorer och AI-läsare läser HTML:en innan någon JavaScript kört.
+
+- **Göteborg:** stadens tio områdessidor + fyra guider.
+- **Uppsala:** `/parkering-uppsala` + Om ParkSpot.
+- **Malmö och Sundbyberg:** tom sidfot – de har inga egna sidor än. Tomt är sant;
+  Stockholms länkar är det inte.
+- **Stockholm:** oförändrad (HTML:en är rad för rad identisk mot live, bortsett från
+  byggtidsstämpeln).
+
+**Malmö saknades i `SEO_STADER`** och föll därför tillbaka på Stockholms metadata – en
+delad `?stad=malmo`-länk förhandsvisades som «ParkSpot Stockholm». Staden har nu egen
+titel och beskrivning. Den är fortfarande dold i stadsväljaren.
+
 ## v1.31.0 – 2026-09-17
 **Tidsgränsen som vilar syns nu – och säger till innan den vaknar.**
 

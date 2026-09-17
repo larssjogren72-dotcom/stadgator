@@ -1260,6 +1260,10 @@
 </div>
 <!-- SEO: intern länkning. Utanför appen (body overflow:hidden + #app height:100%) →
      osynlig för användaren men i DOM och crawlbar (ej display:none). -->
+<!-- Sidfoten följer STADEN. Blocket nedan är Stockholms; servern byter ut HELA footern
+     när ?stad= pekar på en annan stad (se SEO_FOTER i server.js), av samma skäl som
+     titeln byts där: den ska stå rätt innan någon JavaScript kört. Uppmätt 2026-09-17:
+     en Uppsala-vy länkade "Parkering i Stockholms områden". -->
 <footer id="seo-links" aria-label="Parkering i Stockholm">
   <div class="seo-h">Parkering i Stockholms områden</div>
   <div class="seo-grid">

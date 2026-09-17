@@ -532,6 +532,17 @@ const SEO_STADER = {
     nyckelord: 'parkering uppsala, gratis parkering uppsala, nattparkering uppsala, parkeringszoner uppsala, parkeringshus uppsala, tidsbegränsad parkering uppsala',
     kanonisk: 'https://parkspot.se/?stad=uppsala'
   },
+  // Malmö saknades här tills 2026-09-17: en delad ?stad=malmo-länk förhandsvisades
+  // som "ParkSpot Stockholm", och sidfoten blev Stockholms av samma skäl (stadIdFor
+  // faller tillbaka på Stockholm för en stad som inte står i den här tabellen).
+  // Staden är fortfarande dold i väljaren; metadatan lovar bara det datan bär.
+  malmo: {
+    namn: 'ParkSpot Malmö',
+    titel: 'ParkSpot Malmö – var får du parkera?',
+    beskrivning: 'Se på karta var du får parkera i Malmö – just nu eller över natten. Städdagar, avgiftszoner och tidsgränser ur stadens öppna data.',
+    nyckelord: 'parkering malmö, städdagar malmö, nattparkering malmö, parkeringszoner malmö, gratis parkering malmö',
+    kanonisk: 'https://parkspot.se/?stad=malmo'
+  },
   sundbyberg: {
     namn: 'ParkSpot Sundbyberg',
     titel: 'ParkSpot Sundbyberg – var får du parkera?',
@@ -540,16 +551,54 @@ const SEO_STADER = {
     kanonisk: 'https://parkspot.se/?stad=sundbyberg'
   }
 };
-function metaFor(reqUrl) {
-  // Samma ordning som klienten: ?stad= vinner, annars Stockholm. Är adaptrarna
-  // avstängda serveras alltid Stockholm – annars hade metadatan lovat en stad
-  // appen inte kan visa.
-  let id = 'stockholm';
+// ── Sidfotens interna länkar, per stad ───────────────────────────────────────
+// index.html bär Stockholms sidfot. Den satt kvar i alla städer, så en Uppsala-vy
+// länkade «Parkering i Stockholms områden» till sexton Stockholmsstadsdelar (Lars
+// såg det 2026-09-17). Länkarna är en SEO-tillgång i Stockholm, men på en annan
+// stads sida är de bara fel stad.
+//
+// Här, inte i klienten: sidfoten är till för sökmotorer och AI-läsare, som läser
+// HTML:en innan någon JavaScript kört – samma skäl som titeln byts på servern.
+// Saknar staden egna sidor lämnas footern TOM. Tom är sant; Stockholms länkar är det inte.
+const GBG_OMRADEN = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'seo', 'goteborg.json'), 'utf8')); }
+  catch (e) { return []; }
+})();
+const SEO_FOTER = {
+  goteborg:
+    '<footer id="seo-links" aria-label="Parkering i Göteborg">'
+    + '<div class="seo-h">Parkering i Göteborgs områden</div><div class="seo-grid">'
+    + GBG_OMRADEN.map(o => `<a href="/parkering-goteborg/${o.slug}">${o.namn}</a>`).join('')
+    + '</div><div class="seo-h">Guider</div><div class="seo-grid">'
+    + '<a href="/parkering-goteborg">Parkering i Göteborg</a>'
+    + '<a href="/stadgator-goteborg">Städdagar</a>'
+    + '<a href="/boendeparkering-goteborg">Boendeparkering</a>'
+    + '<a href="/parkeringsanlaggningar-goteborg">Parkeringsanläggningar</a>'
+    + '<a href="/om-parkspot">Om ParkSpot</a>'
+    + '</div></footer>',
+  uppsala:
+    '<footer id="seo-links" aria-label="Parkering i Uppsala">'
+    + '<div class="seo-h">Guider</div><div class="seo-grid">'
+    + '<a href="/parkering-uppsala">Parkering i Uppsala</a>'
+    + '<a href="/om-parkspot">Om ParkSpot</a>'
+    + '</div></footer>',
+  // Malmö och Sundbyberg har inga egna sidor än – tom sidfot tills de får det.
+  malmo: '',
+  sundbyberg: ''
+};
+const FOTER_RE = /<footer id="seo-links"[\s\S]*?<\/footer>/;
+// Samma ordning som klienten: ?stad= vinner, annars Stockholm. Är adaptrarna
+// avstängda serveras alltid Stockholm – annars hade metadatan lovat en stad
+// appen inte kan visa. EN läsning, använd av både metadatan och sidfoten.
+function stadIdFor(reqUrl) {
   try {
     const q = (reqUrl.searchParams.get('stad') || '').toLowerCase();
-    if (STADER_PA && SEO_STADER[q]) id = q;
+    if (STADER_PA && SEO_STADER[q]) return q;
   } catch (e) {}
-  const s = SEO_STADER[id];
+  return 'stockholm';
+}
+function metaFor(reqUrl) {
+  const s = SEO_STADER[stadIdFor(reqUrl)];
   return {
     '__META_TITEL__': s.titel,
     '__META_BESKRIVNING__': s.beskrivning,
@@ -856,6 +905,9 @@ http.createServer((req, res) => {
         // "ParkSpot Stockholm" ända tills detta byggdes. Servern hinner före.
         const meta = metaFor(reqUrl);
         for (const nyckel of Object.keys(meta)) html = html.split(nyckel).join(meta[nyckel]);
+        // Sidfotens länkar följer samma stad som metadatan (se SEO_FOTER).
+        const stadId = stadIdFor(reqUrl);
+        if (stadId !== 'stockholm') html = html.replace(FOTER_RE, SEO_FOTER[stadId] || '');
         body = Buffer.from(html, 'utf8');
       }
       finish(req, res, 200, body);
