@@ -350,6 +350,54 @@ som inte gått in i master.
 
 ---
 
+## 8b. Lärdomar från Uppsala (stad fem, byggd och lanserad 2026-09-15–17)
+
+Uppsala gick från inventering till live i två arbetsdagar. Det som kostade tid var inte
+adaptern – det var fyra saker som är värda att göra i rätt ordning nästa gång.
+
+**1. Säg städmodellen FÖRST.** Se steg 1b. Uppsala har inga fasta städdagar, bara
+tillfälliga skyltar 24 h före vårens sandupptagning. Det stod som en parentes i
+inventeringen, staden lanserades, och Lars fick fråga själv. Städgator är appens grund –
+saknas de ändras vad appen ÄR i staden.
+
+**2. Fråga vad ett tomt fält betyder INNAN du väljer färg.** 117 av 121 lastplatser saknade
+tid. Första bygget gjorde dem «tider saknas» (röd i Nu, orange i Natt). Lars sa «läs
+föreskrifterna först» – fyra av fyra i RDT saknade klockslag, alltså gäller de dygnet runt,
+och rätt svar var `ANDAMAL_ALLTID`. En halv dags läsning hade sparat två omgångar kod.
+
+**3. En stad som publicerar tidsgränser brett avslöjar hål i den DELADE koden.**
+Stockholm har gränsen på 3,3 % av sträckorna, Uppsala på nästan alla. Två fel som legat
+dolda sedan v1.22.0 blev synliga först nu:
+  · en gräns utanför sitt fönster nämndes inte alls → v1.31.0 skriver ut fönstret och
+    räknar ner («max 30 min om 10 min»)
+  · nedräkningens gräns räknades i bråkdelar av en timme medan texten rundade minuter →
+    samma sekund kunde ge två olika svar. v1.32.2: ett heltal avgör båda.
+Räkna alltså med att stad N+1 hittar buggar i den gemensamma delen, inte i sin egen fil –
+och testa den nya stadens starkaste dimension extra hårt.
+
+**4. Läs kommunens egna fält innan du bygger något nytt.** `VF_PLATSER` (antal platser)
+låg redan i tre städers adaptrar utan att klienten läste det. Uppsala har det på 1 350 av
+1 351 avgiftssträckor. En rad på kortet – «26 platser · antalet platser, inte hur många som
+är lediga» – kostade en halvtimme. Fråga alltid: vad skickar adaptern som vi inte visar?
+
+**5. SEO byggs ur ett MÄTT underlag, aldrig ur minnet.** Mönstret är
+`verktyg/bygg-<stad>-seo.js` → `seo/<stad>.json` → sidor i `seo/build.js`. Sidorna får
+aldrig anropa nätet vid byggtid: ett fel blir då en sida med nollor i drift.
+⚠ **ArcGIS svarar HTTP 200 MED ett `error`-objekt** när ett fältnamn inte finns. Ett lager
+gav noll poster och verktyget rapporterade 1 563 av 1 888 sträckor som om allt gått bra.
+Varje hämtning som bygger ett underlag ska (a) kasta på `j.error` och (b) jämföra antalet
+mot lagrets eget `returnCountOnly`.
+
+**6. Sekundärtexten följer inte staden av sig själv.** Sidfoten i `index.html` länkade
+«Parkering i Stockholms områden» i Uppsala-vyn (rättat i v1.31.1 – servern byter footer per
+stad). Malmö saknades helt i `SEO_STADER` och förhandsvisades som «ParkSpot Stockholm».
+Gå igenom: titel, sidfot, `llms.txt`, ARKITEKTUR, kodpekare, SEO-sidor, disclaimer.
+
+**7. Kodpekarna ska läsa listan, inte upprepa den.** `verktyg/kodpekare.js` hade
+Göteborg och Sundbyberg inskrivna för hand; när Uppsala kom räknades dess konfiguration men
+inte dess adapter, och arkitektursidan publicerade en summa som inte gick ihop. Nu läses
+städerna ur `STADSNAMN` och en saknad markering underkänner kontrollen.
+
 ## 9. Snabbchecklista
 
 ```
@@ -360,7 +408,12 @@ som inte gått in i master.
 [ ] STADER_CFG-block — adresser, inte ja/nej
 [ ] Dygnssvep: nya staden OCH Stockholm
 [ ] Skyltrunda: minst fem platser, foto med datum
-[ ] Sekundärtext: disclaimer, FAQ, SEO, ARKITEKTUR.md, llms.txt, CHANGELOG
+[ ] Tomma fält: vad BETYDER tomrummet? (föreskrift/telefon, aldrig gissning)
+[ ] Läs vad adaptern redan skickar som klienten inte visar (t.ex. VF_PLATSER)
+[ ] Testa den nya stadens STARKASTE dimension hårt – där sitter de delade buggarna
+[ ] SEO: verktyg/bygg-<stad>-seo.js → seo/<stad>.json → sidor (aldrig nät vid byggtid)
+[ ]   varje hämtning: kasta på ArcGIS error-objekt OCH jämför mot returnCountOnly
+[ ] Sekundärtext: disclaimer, FAQ, SEO, sidfot per stad, SEO_STADER, ARKITEKTUR.md, llms.txt, CHANGELOG
 [ ] Versionsbump
 [ ] Projektminnet uppdaterat
 ```
