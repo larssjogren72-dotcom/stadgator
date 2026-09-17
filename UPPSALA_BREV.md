@@ -9,7 +9,9 @@ svaren – be gärna att frågan skickas vidare dit.
 
 Bilaga att skicka med: `KOMMUNBREV.md` (den fullständiga listan över vad appen behöver).
 
-**Ingenting är skickat.** Lars avgör om och när.
+**SKICKAT av Lars 2026-09-17** till `opendata@uppsala.se`. Väntar svar.
+Kommer svaret, för in det här (som `SUNDBYBERG_SVAR.md` och `MALMO_SVAR.md`) och rätta
+det appen påstår innan något byggs vidare.
 
 ⚠ Brevet skrevs 2026-09-15 medan Uppsala var dold. Staden är **live sedan 2026-09-17**
 (v1.30.1), så brevet säger nu rakt ut att den är uppe och att vi stänger av den samma dag
