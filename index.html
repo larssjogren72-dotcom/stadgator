@@ -6527,10 +6527,31 @@ function nastaAndamalFonster(s, now) {
   }
   return null;
 }
+// ── EN nedräkning, ett tal ───────────────────────────────────────────────────
+// Gränsen räknades tidigare i bråkdelar av en timme (`h < 1`) medan texten rundade
+// minuterna. Vid exakt en timme kvar kunde två renderingar i SAMMA sekund därför ge
+// olika svar – «Lastplats om 60 min» respektive «Får stå tills 07» – beroende på hur
+// många millisekunder som gått. Uppmätt 2026-09-17: fyra körningar av samma svep vid
+// klockslaget 06:00 gav 6, 0, 6, 0 nedräkningar i Uppsala centrum.
+//
+// Nu avgörs både gränsen och texten av SAMMA heltal, och det räknas uppåt (ceil):
+// hela intervallet «mer än 59 men högst 60 minuter kvar» blir 60, och 60 hör till
+// klockslags-grenen. Talet «om 60 min» kan alltså inte längre skrivas, vilket också var
+// en dubblett av «om 1 tim». Kvar är en enda övergång, vid 59 minuter, och den ligger på
+// ett helt minutbyte i stället för på en millisekund.
+function minuterKvar(ms) { return Math.ceil(ms / 60000); }
+// Hela klausulen för en kommande händelse: « · om 12 min», « · om 3 tim» eller tomt
+// (≥ 24 tim – se resonemanget i nastaAndamalTxt om varför dygn inte skrivs ut).
+function omKlausul(ms) {
+  const min = minuterKvar(ms);
+  if (min <= 0) return '';
+  if (min < 60) return ` · om ${min} min`;
+  const tim = Math.round(min / 60);
+  return tim < 24 ? ` · om ${tim} tim` : '';
+}
 // Samma sätt att säga det som nastaStadTxt, så de två raderna läses som syskon.
 function nastaForbudTxt(s, n, now) {
   if (!n) return '';
-  const h = (n.when - now) / 3600000;
   // ≥ 7 dygn bort landar på SAMMA veckodag som i dag, och då läser "på lördag" som
   // "i dag" – sett på Saltmätargatan en lördag kväll, där nästa lastplatsfönster ligger
   // en vecka bort.
@@ -6539,9 +6560,7 @@ function nastaForbudTxt(s, n, now) {
                             : 'på ' + SV_DAYS[n.when.getDay()].toLowerCase());
   // Exakt samma trappa som nastaStadTxt – se den långa kommentaren där. Raderna står
   // bredvid varandra i kortet och måste räkna likadant för att kunna läsas ihop.
-  const om = h < 1  ? ` · om ${Math.max(1, Math.round(h * 60))} min`
-           : h < 24 ? ` · om ${Math.round(h)} tim`
-           : '';
+  const om = omKlausul(n.when - now);
   // fmtClock i BÅDA ändarna: ett intervall skrivs "07–19" i hela appen, och att blanda
   // "07:00–19" i samma streck läser som ett skrivfel.
   return `${andamalNamnFor(s)} igen ${nar} ${fmtClock(n.start)}–${fmtClock(n.end)}${om}`;
@@ -6822,7 +6841,6 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
 // vore för generöst. Den formuleringen kan användas först när maxtid är inbyggd.
 function nastaStadTxt(n, now) {
   if (!n) return `Ingen städning de närmaste ${(STAD.stadHorisontDagar || 7) + 1} dygnen`;
-  const h = (n.when - now) / 3600000;
   // ⚠ NEDRÄKNING BARA INOM ETT DYGN. Båda måtten på "om N dygn" ljuger åt var sitt håll,
   // och felet syns först när två sådana rader står bredvid varandra i samma kort
   // (Holländargatan/Saltmätargatan 2026-08-29, lördag kväll):
@@ -6831,9 +6849,7 @@ function nastaStadTxt(n, now) {
   // Veckodagen och klockslaget står redan i raden och är exakta. En ungefärlig siffra som
   // motsäger dem tillför inget – den tas bort. Inom ett dygn finns ingen veckodag att luta
   // sig mot ("i dag"/"i morgon"), och där är timmarna både exakta nog och det man vill veta.
-  const om = h < 1  ? ` · om ${Math.max(1, Math.round(h * 60))} min`
-           : h < 24 ? ` · om ${Math.round(h)} tim`
-           : '';
+  const om = omKlausul(n.when - now);
   // Bortom en vecka duger inte veckodagen: "på fredag" om 26 dygn läses som DENNA fredag.
   // Då skrivs datumet i stället. Gränsen är 7 och inte lägre för att Stockholm och
   // Göteborg aldrig kan nå hit – deras horisont ÄR 7 dygn, så deras rader är oförändrade.
@@ -6954,7 +6970,10 @@ function forbudTogNyssSlut(s, now) {
 function senasteStadTxt(n, now) {
   if (!n) return null;
   const h = (now - n.when) / 3600000;
-  const sen = h < 1 ? `${Math.max(1, Math.round(h * 60))} min sen` : `${Math.round(h)} tim sen`;
+  // Samma heltalsräkning som nedräkningen, fast bakåt: minuterna räknas uppåt så att
+  // «60 min sen» aldrig står där «1 tim sen» hör hemma.
+  const gatt = minuterKvar(now - n.when);
+  const sen = gatt < 60 ? `${Math.max(1, gatt)} min sen` : `${Math.round(gatt / 60)} tim sen`;
   return `Städat klar ${sen}`;
 }
 
@@ -7118,9 +7137,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // dagkartan är oförändrad.
       else if (andaSenareIdag) {
         color = '#f59e0b'; okNu++;
-        const minKvar = (andaSenareIdag.when - now) / 60000;
+        // Samma heltal avgör grenen och skrivs i texten – se minuterKvar för varför.
+        const minKvar = minuterKvar(andaSenareIdag.when - now);
         txt = minKvar < 60
-          ? `${andamalNamnFor(s)} om ${Math.max(1, Math.round(minKvar))} min`
+          ? `${andamalNamnFor(s)} om ${minKvar} min`
           : `Får stå tills ${fmtClock(andaSenareIdag.start)}`;
       }
       else if (vehicleMode === 'mc' && isMcExclusive(s.vehicle)) { color = '#2563eb'; txt = 'MC-ruta · bara MC'; }
@@ -7311,7 +7331,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         const nastaGrans = maxtidNastaStart(s, now);
         const fonster = nastaGrans ? maxtidFonsterText(s) : null;
         if (nastaGrans && fonster) {
-          const minKvar = Math.round((nastaGrans - now) / 60000);
+          const minKvar = minuterKvar(nastaGrans - now);
           if (minKvar <= MAXTID_VARNING_MIN) txt += ` · ${tidsklausul(s.maxMinutes)} om ${minKvar} min`;
           const rad = `Max ${fmtMaxTid(s.maxMinutes)} ${fonster} – fritt just nu`;
           infoRow = infoRow ? `${infoRow} · ${rad}` : rad;

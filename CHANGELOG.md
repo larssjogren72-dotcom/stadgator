@@ -14,6 +14,30 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.32.2 – 2026-09-17
+**Nedräkningen flimrade på hel timme. Nu räknar gränsen och texten samma tal.**
+
+Gränsen för att skriva minuter i stället för klockslag räknades i bråkdelar av en timme
+(`h < 1`) medan texten rundade minuterna. Vid exakt en timme kvar kunde två renderingar i
+**samma sekund** därför ge olika svar – «Lastplats om 60 min» respektive «Får stå tills 07»
+– beroende på hur många millisekunder som gått. Uppmätt när Uppsala-svepet kördes fyra
+gånger på klockslaget 06:00: 6, 0, 6, 0 nedräkningar. Felet fanns i alla versioner sedan
+v1.22.0 och satt i ord, aldrig i färg.
+
+Nu avgörs både gränsen och texten av **samma heltal**, räknat uppåt: hela intervallet «mer
+än 59 men högst 60 minuter kvar» blir 60, och 60 hör till klockslags-grenen. «om 60 min»
+kan alltså inte längre skrivas – det var också en dubblett av «om 1 tim». Samma räkning i
+alla fyra nedräkningarna: lastplats som öppnar, nästa förbud, nästa städning och den nyss
+avslutade städningen («Städat klar 1 tim sen» i stället för «60 min sen»).
+
+**Bevis:** sex körningar av samma svep kl 06:00 gav sex identiska resultat (förut 6/0/6/0).
+Trappan kontrollerad minut för minut: 06:00 och 06:00:30 «Får stå tills 07», 06:01 «om 59
+min», 06:05 «om 55 min», 06:50 «om 10 min», 06:59:30 «om 1 min» – alla stabila vid upprepning.
+
+**Regression mot live:** Stockholm 25 184 ritade sträckor i tre rutor, Göteborg 17 312 i
+tre rutor. Identiska utom **4 av 96** svep i vardera stad, alla på klockslaget 06:00 och
+alla samma sorts byte: «om 60 min» → «Får stå tills 07». Färgen är oförändrad överallt.
+
 ## v1.32.1 – 2026-09-17
 **Antal platser även på MC-, RH- och cykelkorten – och rätt böjning.**
 
