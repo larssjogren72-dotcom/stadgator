@@ -5026,6 +5026,17 @@ function maxtidGallerDag(dagTyp, d) {
       { r: [['vardag',900,1800],['dagfore',900,1800]] },   // 2 sträckor
   };
   // ▲▲ SLUT GENERERAD TABELL (Göteborgs villkor) ▲▲
+// Dagtypen i en regelrad mot ett datum. true/false = svar, null = okänd dagtyp (gissa aldrig).
+// Egen funktion sedan 2026-09-17: samma fem dagtyper läses nu på tre ställen (gäller den nu,
+// när börjar den igen, hur skrivs fönstret ut) och fick inte kunna glida isär mellan dem.
+function maxtidDagOk(typ, d) {
+  if (typ === 'alla') return true;
+  if (typ === 'vardag-ej-dagfore') return arVardag(d) && !arDagFore(d);
+  if (typ === 'dagfore') return arVardag(d) && arDagFore(d);
+  if (typ === 'sonhelg') return !arVardag(d);
+  if (typ === 'vardag') return arVardag(d);
+  return null;
+}
 // baraDag = true: strunta i klockslaget och fråga bara om DAGEN. Används av Natt-läget,
 // som enligt Lars beslut 2026-08-28 ska fälla även när gränsen vilar på natten – den
 // återupptas ju på morgonen. Där är det bara hela dagar utan gräns som ska ge grönt.
@@ -5045,13 +5056,8 @@ function maxtidGallerVillkor(mening, d, baraDag) {
   const nu = d.getHours() * 100 + d.getMinutes();
   // Gränsen gäller om NÅGON regel träffar – dagtypen stämmer OCH klockan ligger i fönstret.
   for (const r of rader.r) {
-    let dagOk;
-    if (r[0] === 'alla') dagOk = true;
-    else if (r[0] === 'vardag-ej-dagfore') dagOk = arVardag(d) && !arDagFore(d);
-    else if (r[0] === 'dagfore') dagOk = arVardag(d) && arDagFore(d);
-    else if (r[0] === 'sonhelg') dagOk = !arVardag(d);
-    else if (r[0] === 'vardag') dagOk = arVardag(d);
-    else return null;                            // okänd dagtyp → gissa inte
+    const dagOk = maxtidDagOk(r[0], d);
+    if (dagOk === null) return null;             // okänd dagtyp → gissa inte
     if (!dagOk) continue;
     if (baraDag) return true;                    // dagen räcker – Natt-läget frågar inte om timmen
     if (r[1] == null) return true;               // hela dygnet den dagen
@@ -5060,6 +5066,87 @@ function maxtidGallerVillkor(mening, d, baraDag) {
     if (inom) return true;
   }
   return false;                                  // ingen regel träffar → gränsen vilar nu
+}
+// ── En tidsgräns som VILAR just nu ───────────────────────────────────────────
+// Grönt betyder "du får stå nu", och en gräns utanför sitt fönster nämndes därför inte
+// alls. Det höll så länge Stockholm var enda staden: gränsen finns där på 3,3 % av
+// sträckorna, och ett vilande fönster är nästan obefintligt. Uppsala publicerar sina
+// gränser brett – i centrala Uppsala 2026-09-17 har 41 sträckor ett fönster, 24 av dem
+// högst två timmar. Lars stod vid en 30-minutersruta klockan 19 och kortet sa bara
+// "Får stå nu": sant, men det säger ingenting om att gränsen är tillbaka 07:00.
+//
+// De två funktionerna nedan svarar på "när börjar den igen" och "hur skrivs fönstret ut".
+// De GISSAR aldrig: saknas reglerna, eller är dagtypen okänd, blir svaret null och
+// texten uteblir precis som förut.
+//
+// Källorna till ett fönster är tre, och alla tre landar i samma form som tabellraderna:
+//   Uppsala   – färdiga regler ur adaptern (MAXTID_REGLER)
+//   Göteborg  – villkoret som mening, uppslaget i GBG_MAXTID_VILLKOR_TABELL
+//   Stockholm – klockslagen i egna fält + dagarna som text (DAY_TYPE)
+function maxtidReglerFor(s) {
+  const v = s.maxTidVillkor;
+  if (v) {
+    const rader = typeof v === 'object' ? v
+                : GBG_MAXTID_VILLKOR_TABELL[String(v).replace(/\s+/g, ' ').trim()];
+    return rader && Array.isArray(rader.r) && rader.r.length ? rader : null;
+  }
+  if (s.maxTidStart == null || s.maxTidSlut == null) return null;
+  // Vändande fönster (22–06) är enligt maxtidGallerKlockan inte en tidsgräns – rör dem inte.
+  if (s.maxTidStart >= s.maxTidSlut) return null;
+  const dt = (s.maxTidDagTyp || '').toLowerCase();
+  const dag = !dt ? 'alla'
+    : (dt.includes('utom vardag före') || dt.includes('utom dag före')) ? 'vardag-ej-dagfore'
+    : (dt.includes('vardag före') || dt.includes('dag före')) ? 'dagfore'
+    : dt.includes('sön- och helgdag') ? 'sonhelg'
+    : dt.includes('vardag') ? 'vardag'
+    : null;                                      // okänt mönster → gissa inte
+  if (!dag) return null;
+  return { r: [[dag, s.maxTidStart, s.maxTidSlut]] };
+}
+// Nästa gång gränsen börjar gälla, som Date – eller null om den gäller nu, aldrig mer
+// inom en vecka, eller inte går att läsa. Söker dygn för dygn, så helgdagskalendern och
+// säsongen får styra i stället för en egen formel.
+function maxtidNastaStart(s, nu) {
+  const rader = maxtidReglerFor(s);
+  if (!rader) return null;
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(nu.getFullYear(), nu.getMonth(), nu.getDate() + i);
+    if (rader.s) {                               // utanför säsongen gäller gränsen inte alls
+      const md = (d.getMonth() + 1) * 100 + d.getDate();
+      const a = rader.s[0], b = rader.s[1];
+      if (!(a <= b ? (md >= a && md <= b) : (md >= a || md <= b))) continue;
+    }
+    let bast = null;
+    for (const r of rader.r) {
+      if (maxtidDagOk(r[0], d) !== true) continue;
+      const hhmm = r[1] == null ? 0 : r[1];      // hela dygnet → börjar vid midnatt
+      const t = new Date(d);
+      t.setHours(Math.floor(hhmm / 100), hhmm % 100, 0, 0);
+      if (t > nu && (!bast || t < bast)) bast = t;
+    }
+    if (bast) return bast;
+  }
+  return null;
+}
+const MAXTID_DAGORD = {
+  'alla': 'alla dagar',
+  'vardag': 'vardagar',
+  'vardag-ej-dagfore': 'vardagar utom dag före helgdag',
+  'dagfore': 'dag före sön- och helgdag',
+  'sonhelg': 'sön- och helgdagar'
+};
+// "vardagar utom dag före helgdag 07–18". Två regler skrivs ut, fler kortas med "m.fl." –
+// en kortrad ska gå att läsa, och den som vill ha alla detaljer har skylten.
+function maxtidFonsterText(s) {
+  const rader = maxtidReglerFor(s);
+  if (!rader) return null;
+  const delar = rader.r.map(r => {
+    const dag = MAXTID_DAGORD[r[0]];
+    if (!dag) return null;
+    return r[1] == null ? dag : `${dag} ${fmtClock(r[1])}–${fmtClock(r[2])}`;
+  });
+  if (delar.some(d => !d)) return null;
+  return delar.length <= 2 ? delar.join(' och ') : `${delar[0]} m.fl.`;
 }
 function maxtidGallerKlockan(start, slut, d) {
   if (start == null || slut == null) return null;
@@ -6214,6 +6301,26 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
         infoRow = 'Vi vet inte hur länge du får stå här – skylten avgör';
         safe--; kollaTid++;
       }
+      // ── Vilande tidsgräns, Natt-läget ────────────────────────────────────────
+      // Biter gränsen i morgon har blocket längst upp redan fällt segmentet till blått.
+      // Är det fortfarande grönt vilar gränsen ÖVER hela natten (en lördagskväll när
+      // gränsen bara gäller vardagar) – då är "Trygg över natten" sant, och raden säger
+      // bara vilket fönster som finns, så att kortet inte är tyst om en gräns som står
+      // på skylten. Ingen nedräkning här: lägets fråga är natten, inte den här timmen.
+      if (color === '#16a34a' && s.maxMinutes != null) {
+        const fonster = maxtidFonsterText(s);
+        if (fonster) {
+          // Biter gränsen i morgon? Samma två frågor som blocket längst upp ställer, minus
+          // längdkravet. En 24-timmarsgräns som gäller dygnet runt är fortfarande grön (du
+          // hinner hämta bilen), men den VILAR inte – och fick i första versionen texten
+          // "gäller inte i natt", vilket var rakt av falskt. Uppmätt i Göteborgssvepet
+          // 2026-09-17 innan det gick ut.
+          const biter = maxtidGallerDag(s.maxTidDagTyp, imorgon) !== false
+                     && maxtidGallerVillkor(s.maxTidVillkor, imorgon, true) !== false;
+          const rad = `Max ${fmtMaxTid(s.maxMinutes)} ${fonster}${biter ? '' : ' – gäller inte i natt'}`;
+          infoRow = infoRow ? `${infoRow} · ${rad}` : rad;
+        }
+      }
       drawParkingSegment(s, color, txt, dest, infoRow, grp);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
@@ -6311,6 +6418,9 @@ const ON_NIGHT_HM = 700, ON_SAFE_HM = 1000;
 // Kortaste maxtid som ändå duger för att lämna bilen över natten. Ett dygn:
 // 18:00 → 08:00 är 14 timmar, så "12 tim" räcker inte heller. Se uc2-renderingen.
 const NATT_MIN_MINUTER = 1440;
+// Hur nära en vilande tidsgräns ska börja för att chipet ska räkna ner. En timme, samma
+// horisont som glöden och de kommande förbuden använder – ett tal, inte tre.
+const MAXTID_VARNING_MIN = 60;
 function overnightCleaningTier(start, end) {
   if (start == null) return 'morgon';                  // okänt fönster → behandla som varning
   if (end != null && start > end) return 'natt';       // vänder över midnatt → täcker natten
@@ -7146,6 +7256,26 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         color   = '#38bdf8';
         txt     = `Får stå nu · ${tidsklausul(s.maxMinutes)}`;
         infoRow = 'Vi vet inte hur länge du får stå här – skylten avgör';
+      }
+      // ── Tidsgränsen vilar just nu – men den kommer tillbaka ──────────────────
+      // Färgen står kvar: grönt är sant, du får stå här utan tidsgräns i det här ögonblicket.
+      // Det som saknades var beskedet om NÄR den börjar igen. Två tillägg, i den ordningen:
+      //   · börjar den inom en timme → nedräkning i chipet, samma mönster som lastplatsen
+      //     som öppnar (Vegagatan 06:50, v1.22.0). Ingen orange: en tidsgräns som börjar
+      //     hindrar dig inte från att parkera, den säger bara hur länge – till skillnad
+      //     från ett förbud, där färgen måste varna.
+      //   · alltid → fönstret på detaljraden, så kortet säger vad som gäller i morgon bitti.
+      // Ligger sist bland de gröna tilläggen så att en glöd- eller städrad hinner sättas
+      // först; raden läggs till efter den i stället för att skriva över den.
+      if (color === '#16a34a' && s.maxMinutes != null && s.maxMinutes < NATT_MIN_MINUTER) {
+        const nastaGrans = maxtidNastaStart(s, now);
+        const fonster = nastaGrans ? maxtidFonsterText(s) : null;
+        if (nastaGrans && fonster) {
+          const minKvar = Math.round((nastaGrans - now) / 60000);
+          if (minKvar <= MAXTID_VARNING_MIN) txt += ` · ${tidsklausul(s.maxMinutes)} om ${minKvar} min`;
+          const rad = `Max ${fmtMaxTid(s.maxMinutes)} ${fonster} – fritt just nu`;
+          infoRow = infoRow ? `${infoRow} · ${rad}` : rad;
+        }
       }
       // Glöden ritas av samma gren som nyss städad – det ÄR samma signal.
       drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad || oppnadeKl != null, hiddenGem);

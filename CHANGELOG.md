@@ -14,6 +14,45 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.31.0 – 2026-09-17
+**Tidsgränsen som vilar syns nu – och säger till innan den vaknar.**
+
+Lars stod vid en 30-minutersruta på Studentvägen i Uppsala klockan 19. Kortet sa
+«Får stå nu» och ingenting mer. Det var sant – skylten säger «30 min 7-18», och efter
+18 gäller ingen gräns – men kortet sa heller ingenting om att gränsen är tillbaka 07:00.
+
+**Varför det aldrig syntes förut:** appens genomgående regel är att kortet visar det som
+gäller **just nu**, och en gräns utanför sitt fönster nämndes inte alls. Det höll så länge
+Stockholm var enda staden: gränsen finns där på 3,3 % av sträckorna, och i ett svep över
+fem innerstadsrutor hade **en enda** sträcka en gräns. Uppsala publicerar sina brett – i
+centrala Uppsala 41 sträckor med fönster, 24 av dem högst två timmar.
+
+**Tre tillägg, alla städer:**
+- **Fönstret på detaljraden.** Grön ruta med vilande gräns: «Max 30 min vardagar utom dag
+  före helgdag 07–18 – fritt just nu».
+- **Nedräkning när gränsen är nära.** Inom en timme: «Får stå nu · max 30 min om 10 min».
+  Samma mönster som lastplatsen som öppnar (v1.22.0). **Ingen orange:** en tidsgräns
+  hindrar dig inte från att parkera, den säger hur länge – till skillnad från ett förbud.
+- **Natt-läget** skriver ut fönstret på de gröna som klarar natten, och säger «gäller inte
+  i natt» bara när gränsen faktiskt vilar hela natten.
+
+Källorna till ett fönster är tre och landar i samma form: Uppsalas färdiga regler,
+Göteborgs villkorsmening ur tabellen, Stockholms klockslagsfält plus `DAY_TYPE`. Saknas
+reglerna eller är dagtypen otolkbar blir det ingen text alls – ingen gissning.
+
+**Regressionsbevis (dygnssvep mot orörd master på port 3457, ons + lör, varannan timme,
+båda lägena):**
+- **Stockholm** 5 rutor: 240 av 240 svep **byte-identiska**, 72 768 ritade sträckor.
+- **Göteborg** 5 rutor: 29 088 sträckor, allt **byte-identiskt** när de nya raderna räknas
+  bort; 4 774 rader fick den nya texten.
+- **Uppsala** 5 rutor: 10 944 sträckor, 239 av 240 identiska. Det avvikande svepet ligger
+  exakt på klockslaget 06:00 och **flimrar likadant i master** (6 respektive 0 nedräkningar
+  mellan körningar) – en millisekundsgräns i den gamla nedräkningen, inte i det här bygget.
+
+**Fångat i svepet innan det gick ut:** en 24-timmarsgräns som gäller dygnet runt fick först
+texten «gäller inte i natt», vilket var rakt av falskt. Natt-raden frågar nu om gränsen
+biter i morgon innan den påstår att den vilar.
+
 ## v1.30.1 – 2026-09-15
 **Uppsala är inte pilot längre – och skillnaden mot Stockholm står rakt ut.**
 
