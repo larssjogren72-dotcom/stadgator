@@ -55,7 +55,19 @@ till?
 att Uppsala bara skyltar tillfälligt, till exempel inför sandupptagning? Finns tillfälliga
 förbud som data någonstans?
 
-**6. Hur ofta uppdateras lagren** när ett beslut ändras?
+**6. Parkeringen som ytor.** All bilparkering ligger som linjer längs gatan. Ytor finns
+bara för lastplatser, cykelparkering, boendeområden och områdeskoder. Fälten `PPID` och
+`PYID` ser ut att peka på en parkeringsplats respektive en parkeringsyta, men `PYID` är
+unikt per sträcka (1 351 sträckor, 1 351 värden). Finns parkeringsytorna som polygoner
+någon annanstans, och går de att publicera? Med ytor kan vi rita en parkering där den
+faktiskt ligger, i stället för som ett streck i gatan.
+
+**7. Två lager vi valt att inte visa.** I `UPAB_Parkering_visning` ligger «Avstängda
+parkeringar» med två poster, båda med slutdatum 2024-12-31 men fortfarande märkta
+«Pågående: Ja». Där finns också «P 5 minuter» som en enda polygon på 2,4 km². Underhålls
+de lagren? Avstängningar i realtid vore värdefullt för förarna om de är aktuella.
+
+**8. Hur ofta uppdateras lagren** när ett beslut ändras?
 
 Vi rapporterar gärna tillbaka där skylt och data inte stämmer.
 

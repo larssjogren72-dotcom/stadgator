@@ -234,6 +234,7 @@ precis det vi inte vill.
 | `START_MONTH` / `START_DAY` / `END_MONTH` / `END_DAY` | Säsong. Året runt ska vara **null**, inte 1/1–31/12 | Kortet skriver ut en säsong som inte är ett villkor |
 | `ODD_WEEKS` / `EVEN_WEEKS` | Varannan vecka | 80 % av Göteborgs städning blir fel, osynligt |
 | `VF_METER` | Stockholms signal för äkta korttidsficka | Sätt **null** i andra städer, aldrig ett hittepåvärde |
+| `VF_PLATSER` | Hur många bilar som ryms på sträckan. Ren sakuppgift på kortet, styr ingen färg. Skriv aldrig ett räknat eller gissat tal – bara kommunens eget | Raden «N platser» uteblir |
 | `CITATION` | Föreskriftens nummer — spårbarheten tillbaka till originalet | Går inte att kontrollera |
 | `ANDAMAL_ALLTID` | Ändamålsplats utan klockslag **som är läst i föreskriften** | Sätt bara efter steg 2 |
 | `ENDAST_BOENDE` | Boendezon utan publicerad tidsgräns | — |

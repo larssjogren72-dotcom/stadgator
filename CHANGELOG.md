@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.32.0 – 2026-09-17
+**Antal platser på sträckan – och en fråga till Uppsala om ytor.**
+
+Lars frågade om Uppsala publicerar parkering som **ytor** (polygoner) som vi kan rita.
+Svaret efter en genomgång av hela kartportalen: **nej.** All bilparkering är linjer längs
+gatan. Ytor finns bara för lastplatser (121, som appen gör om till streck), cykelparkering,
+boendeområden och de 95 områdeskoderna. Två polygonlager finns i UPAB-tjänsten men går
+inte att lita på: «Avstängda parkeringar» har två poster som båda slutade 2024-12-31 och
+ändå står som «Pågående: Ja», och «P 5 minuter» är en enda polygon på 2,4 km². Fälten
+`PPID`/`PYID` såg ut att peka på en parkeringsyta men `PYID` är unikt per sträcka – radens
+eget nummer. Frågan ligger nu i `UPPSALA_BREV.md` (ny fråga 6 och 7).
+
+**Det som däremot fanns: antalet platser.** `VF_PLATSER` är ifyllt på 1 350 av Uppsalas
+1 351 avgiftssträckor (10 888 platser totalt), på 884 av 1 075 sträckor i centrala
+Göteborg och på 16 av 530 i Vasastan. Adaptrarna skickade redan fältet – klienten läste
+det aldrig. Nu står det på kortet: **«26 platser · antalet platser, inte hur många som är
+lediga»**. Sista ledet är inte fyllnad: ingen av städerna publicerar beläggning, och utan
+det läses talet som ett löfte om ledig plats.
+
+Raden styr ingen färg och inget beslut. Saknas talet visas ingen rad – en gissad siffra
+vore värre än tyst.
+
+**Regression:** dygnssvep mot live (ons + lör, var fjärde timme, båda lägena, tre rutor per
+stad) – Stockholm 18 888 ritade sträckor och Göteborg 12 984, **byte-identiska**.
+
 ## v1.31.1 – 2026-09-17
 **Sidfotens länkar följer staden.**
 

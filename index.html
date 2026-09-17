@@ -503,7 +503,7 @@
     #hero-why { font-size: 12px; line-height: 1.5; color: rgba(15,23,42,0.62); margin-top: 6px; }
 
     /* Metarader – lugna rader, ingen tung box */
-    #clean-row, #taxa-row, #next-clean-row, #next-forbud-row {
+    #clean-row, #taxa-row, #platser-row, #next-clean-row, #next-forbud-row {
       display: flex; align-items: flex-start; gap: 8px;
       background: none; border: 0; padding: 0;
       font-size: 12.5px; line-height: 1.5; margin-bottom: 7px;
@@ -517,8 +517,11 @@
        är en restriktion; färgen säger att den inte gäller än. Skulle raden också vara orange
        hade den tävlat med städraden om samma blick, och den akuta är städraden. */
     #next-forbud-row { color: var(--text); font-weight: 500; }
-    #clean-row svg, #taxa-row svg, #next-clean-row svg, #next-forbud-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
-    #taxa-row b  { color: var(--text); font-weight: 600; }
+    /* Antal platser – samma lugna sakton som taxaraden: en uppgift om platsen, inte en
+       varning och inte ett löfte om att det finns ledigt. */
+    #platser-row { color: rgba(15,23,42,0.62); }
+    #clean-row svg, #taxa-row svg, #platser-row svg, #next-clean-row svg, #next-forbud-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
+    #taxa-row b, #platser-row b  { color: var(--text); font-weight: 600; }
     #clean-row b { color: #b45309; font-weight: 600; }
     #clean-row .season { color: rgba(15,23,42,0.58); font-size: 11.5px; }
 
@@ -1235,6 +1238,7 @@
       <div id="next-forbud-row" style="display:none"></div>
       <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
+      <div id="platser-row" style="display:none"></div>
       <div class="nav-split">
         <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
@@ -3074,7 +3078,7 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
         forbudIgen = nastaForbudTxt(s, nastaAndamalFonster(s, now2), now2) || null;
       }
       showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow,
-                      color === '#ef4444' && !!s.andamal, false, nasta, forbudIgen); });
+                      color === '#ef4444' && !!s.andamal, false, nasta, forbudIgen, s.platser); });
   });
 }
 
@@ -3534,7 +3538,7 @@ async function busHallplatserOverlay(lat, lng) {
 // ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
 // skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
 // visaRattigheter: sant för en reserverad plats i rörelsehindrad-läget → visa rättighetsrutan.
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud) {
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -3568,6 +3572,24 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
     taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa, z.name)}${mcNote}</span>`;
     taxaRow.style.display = 'flex';
   } else { taxaRow.style.display = 'none'; }
+
+  // ── Antal platser på sträckan ────────────────────────────────────────────
+  // Kommunernas eget fält (VF_PLATSER), oöversatt: Uppsala har det på 1 350 av 1 351
+  // avgiftssträckor, Göteborg på 884 av 1 075 i centrum, Stockholm på 16 av 530 i
+  // Vasastan. Saknas talet visas ingen rad – en gissad siffra vore värre än tyst.
+  //
+  // ⚠️ ANTAL, INTE LEDIGA. Ingen av städerna publicerar beläggning (Göteborgs API har
+  // fältet men fyller det aldrig, se reference_goteborg_parkingservice_opalitlig), och
+  // raden säger därför rakt ut vad talet är. Utan det sista ledet läses «26 platser» som
+  // ett löfte om att det finns plats – exakt den falska tryggheten vi inte får bygga.
+  const platserRow = document.getElementById('platser-row');
+  if (platserRow) {
+    if (platser != null && platser > 0) {
+      platserRow.innerHTML = svgIcon('car')
+        + `<span><b>${platser} platser</b> · antalet platser, inte hur många som är lediga</span>`;
+      platserRow.style.display = 'flex';
+    } else platserRow.style.display = 'none';
+  }
   if (dest) setNavDest(dest.lat, dest.lng);
 
   // ── Meta: veckoschemat (beviset bakom hjälten). Gågata/uteservering har sin info i hjälten.
@@ -5599,6 +5621,12 @@ function toAllowedSegment(f) {
     // här och nu (tidsklausul) – vilken FÄRG en maxtid ska ge är en egen fråga som inte
     // är avgjord, så inget segment byter färg av att fältet börjar läsas.
     maxMinutes: maxTidMinuter(p),
+    // HUR MÅNGA bilar som ryms på sträckan. Ren sakuppgift till kortet – den styr ingen
+    // färg och inget beslut, för antal platser säger ingenting om hur många som är LEDIGA
+    // (samma skäl som p-husens kapacitetssiffra aldrig får kallas «lediga platser»).
+    // Fyllnadsgrad uppmätt 2026-09-17: Uppsala 1 350 av 1 351 avgiftssträckor, Göteborg
+    // 884 av 1 075 i centrum, Stockholm 16 av 530 i Vasastan. Saknas den visas ingen rad.
+    platser: (p.VF_PLATSER != null && +p.VF_PLATSER > 0) ? +p.VF_PLATSER : null,
     // VILKA DAGAR maxtiden gäller. Egen nyckel, inte andamalDayType: den beskriver
     // ändamålsplatsens fönster och kan komma från en annan post. Kan skrivas om av
     // citation-räddningen i loadParkingV2 (Stockholms avgiftsfria tvillingpar).
