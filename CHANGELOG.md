@@ -14,6 +14,22 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.32.1 – 2026-09-17
+**Antal platser även på MC-, RH- och cykelkorten – och rätt böjning.**
+
+De tre specialplatserna har egna anrop till kortet och fick därför ingen platsrad i
+v1.32.0. Nu har de den, med **ikonen efter platsens sort** (cykelställ får cykel, inte bil).
+Göteborg har uppgiften på 49 av 50 cykelparkeringar och 12 av 12 RH-platser i centrum;
+Stockholm har den på ett fåtal RH-platser (Arbetargatan 6 platser). MC-rutor saknar den i
+båda städerna, och då visas ingen rad.
+
+**Rättat i samma bunt:** raden skrev «1 platser» på en enstaka plats – 11 av Göteborgs 12
+RH-platser i centrum är enstaka, så felet syntes direkt. Böjningen räknas nu ut, och för en
+enda plats säger raden «1 plats · om den är ledig vet vi inte».
+
+**Regression:** dygnssvep mot live i Vasastan (ons + lör, var tredje timme, båda lägena):
+12 320 ritade sträckor, **byte-identiska**. Ändringen rör bara kortet.
+
 ## v1.32.0 – 2026-09-17
 **Antal platser på sträckan – och en fråga till Uppsala om ytor.**
 

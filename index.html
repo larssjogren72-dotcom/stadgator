@@ -3299,7 +3299,7 @@ async function mcRutorOverlay(lat, lng) {
         // Uppmätt 2026-08-25: 64 av 64 MC-rutor i sex innerstadsområden har en egen städ-
         // föreskrift, och dagen skiljer sig ofta från gatans – därför är den värd att visa.
         // doljTaxa/visaRattigheter lämnas undefined = oförändrat beteende (MC-taxaraden kvar).
-        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', titleOverride || 'MC-ruta · MC och moped klass 1 får stå', '#2563eb', dest, info, undefined, undefined, s.ownScheduleText); })
+        .on('click', e => { L.DomEvent.stopPropagation(e); showPlaceCardV2(s.street || 'MC-ruta', titleOverride || 'MC-ruta · MC och moped klass 1 får stå', '#2563eb', dest, info, undefined, undefined, s.ownScheduleText, null, s.platser); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));   // rensas med nästa flöde
@@ -3360,7 +3360,7 @@ async function rhPlatserOverlay(lat, lng) {
                        alt: 'Reserverad plats för rörelsehindrade' + (s.street ? ' på ' + s.street : ''),
                        keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Reserverad plats', titleOverride || 'Reserverad plats', RH_COLOR, dest, info, false, true); })
+          showPlaceCardV2(s.street || 'Reserverad plats', titleOverride || 'Reserverad plats', RH_COLOR, dest, info, false, true, null, null, s.platser); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
@@ -3482,7 +3482,7 @@ async function cykelPlatserOverlay(lat, lng) {
       L.marker(dest, { icon: cykelPinIcon(CYKEL_COLOR, ring), pane: 'markerPane', riseOnHover: true,
                        alt: 'Cykel-/mopedplats' + (s.street ? ' på ' + s.street : ''), keyboard: true })
         .on('click', e => { L.DomEvent.stopPropagation(e);
-          showPlaceCardV2(s.street || 'Cykel-/mopedplats', titleOverride || 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest, info, true, false, s.ownScheduleText); })
+          showPlaceCardV2(s.street || 'Cykel-/mopedplats', titleOverride || 'Dedikerad plats · ' + undertyp, CYKEL_COLOR, dest, info, true, false, s.ownScheduleText, null, s.platser); })
         .addTo(grp);
     });
     streetGroupLayers.push(grp.addTo(map));
@@ -3585,8 +3585,16 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   const platserRow = document.getElementById('platser-row');
   if (platserRow) {
     if (platser != null && platser > 0) {
-      platserRow.innerHTML = svgIcon('car')
-        + `<span><b>${platser} platser</b> · antalet platser, inte hur många som är lediga</span>`;
+      // Ikonen följer platsens sort, precis som hjältens gör: en cykelparkering med
+      // bilikon läses som att bilar ryms där.
+      const platsIkon = statusColor === CYKEL_COLOR ? 'bike'
+                      : isMcRuta                    ? 'motorcycle'
+                      : statusColor === RH_COLOR    ? 'wheelchair' : 'car';
+      // Böjningen räknas ut, den skrivs inte: «1 platser» stod på Lorensbergsgatan i
+      // Göteborg i första versionen (11 av 12 RH-platser där är enstaka).
+      platserRow.innerHTML = svgIcon(platsIkon) + (platser === 1
+        ? '<span><b>1 plats</b> · om den är ledig vet vi inte</span>'
+        : `<span><b>${platser} platser</b> · antalet platser, inte hur många som är lediga</span>`);
       platserRow.style.display = 'flex';
     } else platserRow.style.display = 'none';
   }
