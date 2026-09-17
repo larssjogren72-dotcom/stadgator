@@ -1,0 +1,1226 @@
+{
+ "matt": "2026-09-17",
+ "strackorTotalt": 1888,
+ "platserTotalt": 15328,
+ "granser": [
+  {
+   "namn": "24 tim",
+   "antal": 103
+  },
+  {
+   "namn": "15 min",
+   "antal": 59
+  },
+  {
+   "namn": "30 min",
+   "antal": 52
+  },
+  {
+   "namn": "48 tim",
+   "antal": 36
+  },
+  {
+   "namn": "4 tim",
+   "antal": 35
+  },
+  {
+   "namn": "30 min 7-16",
+   "antal": 18
+  },
+  {
+   "namn": "2 tim",
+   "antal": 11
+  },
+  {
+   "namn": "15 min 7-16",
+   "antal": 8
+  },
+  {
+   "namn": "1 tim 12-18",
+   "antal": 6
+  },
+  {
+   "namn": "4 tim 8-18",
+   "antal": 4
+  },
+  {
+   "namn": "1 tim 10-14",
+   "antal": 3
+  },
+  {
+   "namn": "2 tim 8-18",
+   "antal": 3
+  },
+  {
+   "namn": "5 min övrig tid",
+   "antal": 3
+  },
+  {
+   "namn": "2 tim 8-18 (8-18) 8-18",
+   "antal": 2
+  },
+  {
+   "namn": "30 min 7-18",
+   "antal": 2
+  },
+  {
+   "namn": "15 min 6-10",
+   "antal": 2
+  },
+  {
+   "namn": "3 tim",
+   "antal": 2
+  },
+  {
+   "namn": "4 tim 9-18",
+   "antal": 2
+  },
+  {
+   "namn": "4 tim 8-18 (8-18) 8-18",
+   "antal": 1
+  },
+  {
+   "namn": "1 tim 7-18",
+   "antal": 1
+  },
+  {
+   "namn": "2 tim 5-19",
+   "antal": 1
+  },
+  {
+   "namn": "30 min 8-18",
+   "antal": 1
+  },
+  {
+   "namn": "12 tim",
+   "antal": 1
+  },
+  {
+   "namn": "1 tim",
+   "antal": 1
+  },
+  {
+   "namn": "2 tim 7-16",
+   "antal": 1
+  }
+ ],
+ "stadsdelar": [
+  {
+   "namn": "Luthagen",
+   "slug": "luthagen",
+   "stracker": 210,
+   "platser": 1586,
+   "avgift": 190,
+   "avgiftsfri": 9,
+   "samnyttjad": 11,
+   "granser": {
+    "30 min": 5,
+    "15 min": 4,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "30 min",
+   "medGrans": 10
+  },
+  {
+   "namn": "Kungsängen",
+   "slug": "kungsangen",
+   "stracker": 126,
+   "platser": 648,
+   "avgift": 119,
+   "avgiftsfri": 7,
+   "samnyttjad": 0,
+   "granser": {
+    "24 tim": 4,
+    "2 tim 5-19": 1,
+    "15 min": 1,
+    "30 min": 1
+   },
+   "vanligasteGrans": "24 tim",
+   "medGrans": 7
+  },
+  {
+   "namn": "Främre Luthagen Fjärdinge",
+   "slug": "framre-luthagen-fjardinge",
+   "stracker": 119,
+   "platser": 814,
+   "avgift": 107,
+   "avgiftsfri": 11,
+   "samnyttjad": 1,
+   "granser": {
+    "4 tim": 7,
+    "30 min": 1,
+    "5 min övrig tid": 3,
+    "15 min": 7
+   },
+   "vanligasteGrans": "4 tim",
+   "medGrans": 18
+  },
+  {
+   "namn": "Fålhagen",
+   "slug": "falhagen",
+   "stracker": 118,
+   "platser": 1079,
+   "avgift": 100,
+   "avgiftsfri": 7,
+   "samnyttjad": 11,
+   "granser": {
+    "30 min": 4,
+    "15 min": 3,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "30 min",
+   "medGrans": 8
+  },
+  {
+   "namn": "Gränby",
+   "slug": "granby",
+   "stracker": 109,
+   "platser": 1199,
+   "avgift": 97,
+   "avgiftsfri": 2,
+   "samnyttjad": 10,
+   "granser": {
+    "1 tim 10-14": 3,
+    "15 min": 1,
+    "30 min": 1,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "1 tim 10-14",
+   "medGrans": 6
+  },
+  {
+   "namn": "Svartbäcken",
+   "slug": "svartbacken",
+   "stracker": 98,
+   "platser": 959,
+   "avgift": 91,
+   "avgiftsfri": 5,
+   "samnyttjad": 2,
+   "granser": {
+    "30 min": 4,
+    "15 min": 1
+   },
+   "vanligasteGrans": "30 min",
+   "medGrans": 5
+  },
+  {
+   "namn": "Sala Backe",
+   "slug": "sala-backe",
+   "stracker": 78,
+   "platser": 553,
+   "avgift": 70,
+   "avgiftsfri": 0,
+   "samnyttjad": 8,
+   "granser": {},
+   "vanligasteGrans": null,
+   "medGrans": 0
+  },
+  {
+   "namn": "Eriksberg",
+   "slug": "eriksberg",
+   "stracker": 75,
+   "platser": 643,
+   "avgift": 64,
+   "avgiftsfri": 9,
+   "samnyttjad": 2,
+   "granser": {
+    "4 tim": 4,
+    "30 min": 3,
+    "30 min 8-18": 1,
+    "1 tim": 1
+   },
+   "vanligasteGrans": "4 tim",
+   "medGrans": 9
+  },
+  {
+   "namn": "Centrum",
+   "slug": "centrum",
+   "stracker": 72,
+   "platser": 396,
+   "avgift": 54,
+   "avgiftsfri": 8,
+   "samnyttjad": 10,
+   "granser": {
+    "30 min": 1,
+    "15 min": 7
+   },
+   "vanligasteGrans": "15 min",
+   "medGrans": 8
+  },
+  {
+   "namn": "Kapellgärdet",
+   "slug": "kapellgardet",
+   "stracker": 71,
+   "platser": 407,
+   "avgift": 63,
+   "avgiftsfri": 3,
+   "samnyttjad": 5,
+   "granser": {
+    "30 min": 3,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "30 min",
+   "medGrans": 4
+  },
+  {
+   "namn": "Årsta",
+   "slug": "arsta",
+   "stracker": 59,
+   "platser": 580,
+   "avgift": 31,
+   "avgiftsfri": 16,
+   "samnyttjad": 12,
+   "granser": {
+    "30 min": 4,
+    "4 tim": 8,
+    "2 tim": 4,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "4 tim",
+   "medGrans": 17
+  },
+  {
+   "namn": "Boländerna",
+   "slug": "bolanderna",
+   "stracker": 45,
+   "platser": 432,
+   "avgift": 41,
+   "avgiftsfri": 2,
+   "samnyttjad": 2,
+   "granser": {
+    "1 tim 12-18": 6,
+    "24 tim": 2
+   },
+   "vanligasteGrans": "1 tim 12-18",
+   "medGrans": 8
+  },
+  {
+   "namn": "Höganäs",
+   "slug": "hoganas",
+   "stracker": 44,
+   "platser": 329,
+   "avgift": 40,
+   "avgiftsfri": 2,
+   "samnyttjad": 2,
+   "granser": {
+    "15 min": 2,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "15 min",
+   "medGrans": 3
+  },
+  {
+   "namn": "Rosendal",
+   "slug": "rosendal",
+   "stracker": 41,
+   "platser": 86,
+   "avgift": 10,
+   "avgiftsfri": 31,
+   "samnyttjad": 0,
+   "granser": {
+    "15 min": 23,
+    "30 min": 8
+   },
+   "vanligasteGrans": "15 min",
+   "medGrans": 31
+  },
+  {
+   "namn": "Sunnersta",
+   "slug": "sunnersta",
+   "stracker": 40,
+   "platser": 634,
+   "avgift": 0,
+   "avgiftsfri": 32,
+   "samnyttjad": 8,
+   "granser": {
+    "48 tim": 9,
+    "24 tim": 10,
+    "4 tim": 10,
+    "30 min": 2,
+    "12 tim": 1
+   },
+   "vanligasteGrans": "24 tim",
+   "medGrans": 32
+  },
+  {
+   "namn": "Ulleråker",
+   "slug": "ulleraker",
+   "stracker": 38,
+   "platser": 365,
+   "avgift": 30,
+   "avgiftsfri": 2,
+   "samnyttjad": 6,
+   "granser": {
+    "3 tim": 2,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "3 tim",
+   "medGrans": 3
+  },
+  {
+   "namn": "Kvarngärdet",
+   "slug": "kvarngardet",
+   "stracker": 35,
+   "platser": 232,
+   "avgift": 29,
+   "avgiftsfri": 0,
+   "samnyttjad": 6,
+   "granser": {
+    "15 min 7-16": 4
+   },
+   "vanligasteGrans": "15 min 7-16",
+   "medGrans": 4
+  },
+  {
+   "namn": "Valsätra",
+   "slug": "valsatra",
+   "stracker": 31,
+   "platser": 244,
+   "avgift": 23,
+   "avgiftsfri": 0,
+   "samnyttjad": 8,
+   "granser": {
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "30 min 7-16",
+   "medGrans": 1
+  },
+  {
+   "namn": "Stenhagen",
+   "slug": "stenhagen",
+   "stracker": 31,
+   "platser": 240,
+   "avgift": 0,
+   "avgiftsfri": 11,
+   "samnyttjad": 20,
+   "granser": {
+    "30 min": 1,
+    "2 tim": 2,
+    "4 tim 9-18": 2,
+    "2 tim 7-16": 1
+   },
+   "vanligasteGrans": "2 tim",
+   "medGrans": 6
+  },
+  {
+   "namn": "Flogsta Ekeby",
+   "slug": "flogsta-ekeby",
+   "stracker": 30,
+   "platser": 270,
+   "avgift": 20,
+   "avgiftsfri": 2,
+   "samnyttjad": 8,
+   "granser": {
+    "4 tim": 2,
+    "2 tim": 1,
+    "15 min 7-16": 1,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "4 tim",
+   "medGrans": 5
+  },
+  {
+   "namn": "Löten",
+   "slug": "loten",
+   "stracker": 30,
+   "platser": 262,
+   "avgift": 18,
+   "avgiftsfri": 2,
+   "samnyttjad": 10,
+   "granser": {
+    "30 min": 2,
+    "15 min 7-16": 3
+   },
+   "vanligasteGrans": "15 min 7-16",
+   "medGrans": 5
+  },
+  {
+   "namn": "Kungsgärdet",
+   "slug": "kungsgardet",
+   "stracker": 29,
+   "platser": 306,
+   "avgift": 23,
+   "avgiftsfri": 4,
+   "samnyttjad": 2,
+   "granser": {
+    "4 tim 8-18": 4
+   },
+   "vanligasteGrans": "4 tim 8-18",
+   "medGrans": 4
+  },
+  {
+   "namn": "Kåbo",
+   "slug": "kabo",
+   "stracker": 27,
+   "platser": 279,
+   "avgift": 16,
+   "avgiftsfri": 11,
+   "samnyttjad": 0,
+   "granser": {
+    "4 tim 8-18 (8-18) 8-18": 1,
+    "2 tim": 1,
+    "30 min": 1,
+    "15 min": 7,
+    "2 tim 8-18": 1,
+    "2 tim 8-18 (8-18) 8-18": 1
+   },
+   "vanligasteGrans": "15 min",
+   "medGrans": 12
+  },
+  {
+   "namn": "Nyby",
+   "slug": "nyby",
+   "stracker": 27,
+   "platser": 73,
+   "avgift": 21,
+   "avgiftsfri": 1,
+   "samnyttjad": 5,
+   "granser": {
+    "30 min 7-16": 2,
+    "30 min": 1
+   },
+   "vanligasteGrans": "30 min 7-16",
+   "medGrans": 3
+  },
+  {
+   "namn": "Storvretabygden",
+   "slug": "storvretabygden",
+   "stracker": 26,
+   "platser": 248,
+   "avgift": 0,
+   "avgiftsfri": 26,
+   "samnyttjad": 0,
+   "granser": {
+    "24 tim": 9,
+    "48 tim": 17
+   },
+   "vanligasteGrans": "48 tim",
+   "medGrans": 26
+  },
+  {
+   "namn": "Tuna Backar",
+   "slug": "tuna-backar",
+   "stracker": 25,
+   "platser": 255,
+   "avgift": 21,
+   "avgiftsfri": 1,
+   "samnyttjad": 3,
+   "granser": {
+    "30 min": 1,
+    "30 min 7-16": 1
+   },
+   "vanligasteGrans": "30 min",
+   "medGrans": 2
+  }
+ ],
+ "stadsdelarUtanSida": 29,
+ "omraden": [
+  {
+   "kod": "18114",
+   "sort": "Besöksparkering",
+   "namn": "Fyristorg",
+   "avgiftstext": "8-18 (8-18) 20kr/tim i 2 timmar därefter 35kr/tim; 18-24 (18-24) 5kr/tim; Max-P 4tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18201",
+   "sort": "Besöksparkering",
+   "namn": "Hamnplan",
+   "avgiftstext": "8-18 (8-18) 20kr/tim; 18-24 (18-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18203",
+   "sort": "Besöksparkering",
+   "namn": "Kungsängstorg",
+   "avgiftstext": "8-18 (8-18) 20kr/tim; 18-24 (18-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18115",
+   "sort": "Besöksparkering",
+   "namn": "S:t Eriks torg",
+   "avgiftstext": "8-18 (8-18) 20kr/tim i 2 timmar därefter 35kr/tim; 18-24 (18-24) 5kr/tim; Max-P 4tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18208",
+   "sort": "Besöksparkering",
+   "namn": "Österplan norra",
+   "avgiftstext": "8-18 (8-18) 20kr/tim; 18-24 (18-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18300",
+   "sort": null,
+   "namn": "C",
+   "avgiftstext": "8-18 (8-18) 15kr/tim; 18-24 (18-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18200",
+   "sort": null,
+   "namn": "B",
+   "avgiftstext": "8-18 (8-18) 20kr/tim; 18-24 (18-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18056",
+   "sort": "Besöksparkering",
+   "namn": "Bernhard Jackobowskys väg 2",
+   "avgiftstext": "Alla dagar 9-24 5kr/tim; 20kr/dygn; 100kr/7dygn; Max-P 7 dygn",
+   "restriktioner": "Endast personbil klass |"
+  },
+  {
+   "kod": "18506",
+   "sort": "Besöksparkering",
+   "namn": "Gränby sportfält",
+   "avgiftstext": "Alla dagar 7-23 9kr/tim; 23-7 2kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18055",
+   "sort": null,
+   "namn": "K",
+   "avgiftstext": "Alla dagar 9-24 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18999",
+   "sort": null,
+   "namn": "Boendeparkering Uppsala",
+   "avgiftstext": "Måndag-Fredag 20kr/dygn; Månadsbiljett 400kr; 1200kr/90dagar; 2400kr/180dagar; Årsbiljett 4400kr",
+   "restriktioner": null
+  },
+  {
+   "kod": "18401",
+   "sort": "Besöksparkering",
+   "namn": "Södra torget",
+   "avgiftstext": "Måndag-Fredag 5-24 30kr/tim i 2 timmar därefter 40kr/tim; Lördag-Söndag 5-24 30kr/tim. Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18404",
+   "sort": "Besöksparkering",
+   "namn": "Södra parkeringen",
+   "avgiftstext": "Måndag-Fredag 5-15 20kr/tim; 15-24 10kr/tim; Lördag-Söndag 8-24 10kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18151",
+   "sort": "Rörelsehindrad",
+   "namn": "Centralgaraget",
+   "avgiftstext": "3 timmar 0kr därefter ordinarie taxa: Alla dagar 05-19 36kr/tim; 19-05 9kr/tim; 220kr/dygn; Max-P 14 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18112",
+   "sort": "Besöksparkering",
+   "namn": "Kvarnengaraget",
+   "avgiftstext": "Alla dagar 0-24 30kr/tim; 220kr/dygn; Max-P 3 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18551",
+   "sort": "Rörelsehindrad",
+   "namn": "Dansmästaren",
+   "avgiftstext": "3 timmar 0kr därefter ordinarie taxa;",
+   "restriktioner": null
+  },
+  {
+   "kod": "18500",
+   "sort": null,
+   "namn": "E",
+   "avgiftstext": "8-24 (8-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18511",
+   "sort": "Besöksparkering",
+   "namn": "Dansmästaren",
+   "avgiftstext": "8-18 15kr/tim; 18-8 5kr/tim; Max-P 7 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18581",
+   "sort": null,
+   "namn": "Danmästaren",
+   "avgiftstext": "Alla dagar 8-18 27kr/tim; 18-8 12 kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18111",
+   "sort": "Besöksparkering",
+   "namn": "Centralgaraget",
+   "avgiftstext": "Alla dagar 5-19 36kr/tim; 19-5 9kr/tim; 220kr/dygn; Max-P 14 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18058",
+   "sort": null,
+   "namn": "N",
+   "avgiftstext": "8-18 (8-18) 10kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18181",
+   "sort": null,
+   "namn": "Centralgaraget - Ladd",
+   "avgiftstext": "Alla dagar 0-24 48 kr/tim i 4 timmar därefter 12 kr/tim; Max-P 7 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18113",
+   "sort": "Besöksparkering",
+   "namn": "Stadshuset",
+   "avgiftstext": "8-18 (8-18) 36 kr/tim; 18-24 (18-24) 9 kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18406",
+   "sort": "Besöksparkering",
+   "namn": "Hällbygatan",
+   "avgiftstext": "8-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18407",
+   "sort": "Besöksparkering",
+   "namn": "Fålhagens IP",
+   "avgiftstext": "8-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18408",
+   "sort": "Besöksparkering",
+   "namn": "Bergsbrunnagatan",
+   "avgiftstext": "Alla dagar 0-24 10kr/tim; 80kr/dygn; 685kr/30 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18509",
+   "sort": "Besöksparkering",
+   "namn": "Årsta Centrum",
+   "avgiftstext": "8-24 (8-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18553",
+   "sort": "Rörelsehindrad",
+   "namn": "Fyrishov",
+   "avgiftstext": "3 timmar 0kr därefter ordinarie taxa",
+   "restriktioner": null
+  },
+  {
+   "kod": "18503",
+   "sort": "Besöksparkering",
+   "namn": "Fyrishov",
+   "avgiftstext": "8-18 15kr/tim; 18-8 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182100",
+   "sort": null,
+   "namn": "Nannaskolan",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 20 kr/tim i 2 tim Därefter 35 kr/tim 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18100",
+   "sort": null,
+   "namn": "A",
+   "avgiftstext": "8-18 (8-18) 20 kr/ timme i 2 timmar därefter 35 kr/timme; 18-24 (18-24) 5 kr/timme; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182200",
+   "sort": null,
+   "namn": "Ellen Fries gymnasium  - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter 8-18 (8-18) 20 kr/tim 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182102",
+   "sort": null,
+   "namn": "Vaksalaskolan",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 20kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182103",
+   "sort": null,
+   "namn": "Bredablick, cederblad, Uppsala estetiska gymnasium",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 20kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182201",
+   "sort": null,
+   "namn": "Bredablick, cederblad, Uppsala estetiska gymnasium - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter 8-18  (8-18) 20 kr/tim 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182104",
+   "sort": null,
+   "namn": "Botulvs förskola",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 15kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182105",
+   "sort": null,
+   "namn": "Kattedralskolan",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 15kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182202",
+   "sort": null,
+   "namn": "Kattedralskolan - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter 8-18  (8-18) 15 kr/tim; 18-24 (18-24) 5kr/tim;",
+   "restriktioner": null
+  },
+  {
+   "kod": "182106",
+   "sort": null,
+   "namn": "Rektorsgården",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 15kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182108",
+   "sort": null,
+   "namn": "Almtuna förskola",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182109",
+   "sort": null,
+   "namn": "Brune förskola",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182110",
+   "sort": null,
+   "namn": "Celsiusskolan",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182111",
+   "sort": null,
+   "namn": "Fyrisskolan",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182111",
+   "sort": null,
+   "namn": "Fyrisskolan",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182205",
+   "sort": null,
+   "namn": "Fyriskolan - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182112",
+   "sort": null,
+   "namn": "Kims förskola",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182206",
+   "sort": null,
+   "namn": "Kims förskola - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18412",
+   "sort": "Besöksparkering",
+   "namn": "Sibyllegatan",
+   "avgiftstext": "Alla dagar 8-18 10kr/tim; 18-8 5kr/tim; Max-P 24 tim.",
+   "restriktioner": null
+  },
+  {
+   "kod": "182113",
+   "sort": null,
+   "namn": "Luthagens förskola",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182115",
+   "sort": null,
+   "namn": "Sverkerskolan",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182209",
+   "sort": null,
+   "namn": "Sverkerskolan - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182116",
+   "sort": null,
+   "namn": "Sten Sture förskola",
+   "avgiftstext": "7-16 15 min eller tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182210",
+   "sort": null,
+   "namn": "Sten Sture förskola -Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182117",
+   "sort": null,
+   "namn": "Tiundaskolan",
+   "avgiftstext": "6-18 Endast skolverksamhet; 18-24 (18-24) 5kr/tim; (8-18) 10kr/tim;",
+   "restriktioner": null
+  },
+  {
+   "kod": "182211",
+   "sort": null,
+   "namn": "Tiundaskolan - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182117",
+   "sort": null,
+   "namn": "Tiundaskolan",
+   "avgiftstext": "6-18 Endast skolverksamhet; 18-24 (18-24) 5kr/tim; (8-18) 10kr/tim;",
+   "restriktioner": null
+  },
+  {
+   "kod": "182114",
+   "sort": null,
+   "namn": "Ringarens förskola",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18 (8-18) 10kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18513",
+   "sort": "Besöksparkering",
+   "namn": "Ewa Lagerwall",
+   "avgiftstext": "Alla dagar 00-24 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182207",
+   "sort": null,
+   "namn": "Luthagens förskola - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18400",
+   "sort": null,
+   "namn": "D",
+   "avgiftstext": "8-18 (8-18) 10 kr/timme 18-24 (18-24) 5 kr/timme",
+   "restriktioner": null
+  },
+  {
+   "kod": "18451",
+   "sort": "Rörelsehindrad",
+   "namn": "Återbruket",
+   "avgiftstext": "Alla dagar; 3 timmar 0kr; Därefter 0-24 10 kr/tim;",
+   "restriktioner": null
+  },
+  {
+   "kod": "18411",
+   "sort": "Besöksparkering",
+   "namn": "Återbruket",
+   "avgiftstext": "Alla dagar; 0-24 10 kr/tim; 12-18 1 timmes parkering",
+   "restriktioner": null
+  },
+  {
+   "kod": "18410",
+   "sort": null,
+   "namn": "Besökare - Utbildnings- och Jobbcenter Boländerna",
+   "avgiftstext": "Alla dagar; 0-24 10 kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18450",
+   "sort": "Rörelsehindrad",
+   "namn": "Utbildnings- och\r\n Jobbcenter Boländerna",
+   "avgiftstext": "Alla dagar; 3 timmar 0kr; Därefter 0-24 10 kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18409",
+   "sort": null,
+   "namn": "Besökare - Utbildnings- och Jobbcenter Boländerna",
+   "avgiftstext": "Alla dagar; 0-24 10 kr/tim;",
+   "restriktioner": null
+  },
+  {
+   "kod": "18459",
+   "sort": "Rörelsehindrad",
+   "namn": "Utbildnings- och\r\n Jobbcenter Boländerna",
+   "avgiftstext": "Alla dagar; 3 timmar 0kr; Därefter 0-24 10 kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18510",
+   "sort": "Besöksparkering",
+   "namn": "Lötens IP",
+   "avgiftstext": "alla dagar 00-24 5 kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18550",
+   "sort": "Rörelsehindrad",
+   "namn": "Lötens IP",
+   "avgiftstext": "3 timmar 0kr därefter ordinarie taxa",
+   "restriktioner": null
+  },
+  {
+   "kod": "182208",
+   "sort": null,
+   "namn": "Ringarens förskola - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182101",
+   "sort": null,
+   "namn": "Ellen Fries gymnasium",
+   "avgiftstext": "7-16 Tillstånd erfodras; 16-18  (8-18) 20kr/tim 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182204",
+   "sort": null,
+   "namn": "Celsiusskolan - Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter  8-18  (8-18) 10 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18508",
+   "sort": "Besöksparkering",
+   "namn": "Brillinge",
+   "avgiftstext": "5kr/tim 8-24 (8-24)",
+   "restriktioner": null
+  },
+  {
+   "kod": "18413",
+   "sort": "Besöksparkering",
+   "namn": "Norra Hovstallängen",
+   "avgiftstext": "8-18 10 kr/tim 18-8 5 kr/tim; Avgift dygnet runt.",
+   "restriktioner": null
+  },
+  {
+   "kod": "18414",
+   "sort": "Besöksparkering",
+   "namn": "Gymnastikhuset",
+   "avgiftstext": "8-18 (8-18) 10 kr/tim;  18-24 (18-24) 5 kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18209",
+   "sort": "Besöksparkering",
+   "namn": "Höganäs",
+   "avgiftstext": "8-18 (8-18) 20 kr/tim;  18-24 (18-24) 5 kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18517",
+   "sort": "Besöksparkering",
+   "namn": "Gustavsbergsgatan",
+   "avgiftstext": "5 kr/tim 8-24 (8-24)",
+   "restriktioner": null
+  },
+  {
+   "kod": "18301",
+   "sort": "Besöksparkering",
+   "namn": "Fyrisgatan",
+   "avgiftstext": "8-18 (8-18) 15 kr/tim; 18-24 (18-24) 5 kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18503",
+   "sort": "Besöksparkering",
+   "namn": "Fyrishov",
+   "avgiftstext": "8-18 15kr/tim; 18-8 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182197",
+   "sort": null,
+   "namn": "Område E",
+   "avgiftstext": "7-16 Tillstånd erfordras; 16-24 (8-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182297",
+   "sort": null,
+   "namn": "Omr E- Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter 8-18 (8-18) 5 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "Kommande områdeskod",
+   "sort": null,
+   "namn": "Granitvägen",
+   "avgiftstext": "5 kr/timme",
+   "restriktioner": null
+  },
+  {
+   "kod": "182196",
+   "sort": null,
+   "namn": "Område E",
+   "avgiftstext": "7-16 Tillstånd erfordras; 16-24 (8-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182296",
+   "sort": null,
+   "namn": "Omr E- Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter 8-18 (8-18) 5 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18515",
+   "sort": "Besöksparkering",
+   "namn": "Källparkens förskola",
+   "avgiftstext": "8-24 (8-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18555",
+   "sort": "Rörelsehindrad",
+   "namn": "Källparkens förskola",
+   "avgiftstext": "3 timmar 0kr; Därefter ordinarie taxa; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18519",
+   "sort": null,
+   "namn": "Besökare - Brantingsbiblioteket",
+   "avgiftstext": "8-24 (8-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182198",
+   "sort": null,
+   "namn": "Område E",
+   "avgiftstext": "7-16 Tillstånd erfordras; 16-24 (8-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182298",
+   "sort": null,
+   "namn": "Omr E- Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter 8-18 (8-18) 5 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18514",
+   "sort": "Besöksparkering",
+   "namn": "Flöjtens förskola",
+   "avgiftstext": "8-24 (8-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182199",
+   "sort": null,
+   "namn": "Område E",
+   "avgiftstext": "7-16 Tillstånd erfordras; 16-24 (8-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18505",
+   "sort": "Besöksparkering",
+   "namn": "Silikatets förskola",
+   "avgiftstext": "8-24 (8-24) 5kr/tim; Max-P 24tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "182299",
+   "sort": null,
+   "namn": "Omr E- Rörelsehindrad",
+   "avgiftstext": "3 timmar 0kr; Därefter 8-18 (8-18) 5 kr/tim; 18-24 (18-24) 5kr/tim",
+   "restriktioner": null
+  },
+  {
+   "kod": "18152",
+   "sort": "Rörelsehindrad",
+   "namn": "Kvarnengaraget",
+   "avgiftstext": "3 timmar 0kr därefter ordinarie taxa: Alla dagar 00-24 30kr/tim; 220kr/dygn; Max-P 3 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18523",
+   "sort": "Besöksparkering",
+   "namn": "Ulleråker 43",
+   "avgiftstext": "Alla dagar 00-24 5kr/tim; 20kr/dygn; 100kr/7 dygn; Max-P 7 dygn",
+   "restriktioner": null
+  },
+  {
+   "kod": "18118",
+   "sort": null,
+   "namn": "Fyristorg",
+   "avgiftstext": "(06-16)",
+   "restriktioner": "Avgift bara på vardag före söndag/helgdag"
+  }
+ ],
+ "garage": [
+  {
+   "namn": "Kvarnengaraget",
+   "namnKalla": "omradeslagret",
+   "regler": "Område 18112: Alla dagar 0-24 30kr/tim; 220kr/dygn; Max-P 3 dygn , Område 18152: 3 timmar 0kr därefter ordinarie taxa: Alla dagar 00-24 30kr/tim; 220kr/dygn; Max-P 3 dygn , Område 2511:",
+   "platser": "34",
+   "rh": "2",
+   "ladd": "9",
+   "maxtid": "3 dygn",
+   "hojd": "1,9 m"
+  },
+  {
+   "namn": "Centralgaraget",
+   "namnKalla": "omradeslagret",
+   "regler": "Område 18111: Alla dagar 5-19 36kr/tim; 19-5 9kr/tim; 220kr/dygn; Max-P 14 dygn , Område 18151: 3 timmar 0kr därefter ordinarie taxa: Alla dagar 05-19 36kr/tim; 19-05 9kr/tim; 220kr/dygn; Max-P 14 dyg",
+   "platser": "149",
+   "rh": "3",
+   "ladd": "21",
+   "maxtid": "14 dygn",
+   "hojd": "1,9 m"
+  },
+  {
+   "namn": "Dansmästaren",
+   "namnKalla": "omradeslagret",
+   "regler": "Område 18511: 8-18 15kr/tim; 18-8 5kr/tim; Max-P 7 dygn , Område 18551: 3 timmar 0kr därefter ordinarie taxa; , Område 3252:",
+   "platser": "65",
+   "rh": "3",
+   "ladd": "60",
+   "maxtid": "7 dygn",
+   "hojd": "2,1 m"
+  },
+  {
+   "namn": "Brandmästaren",
+   "namnKalla": "kommunens webbadress",
+   "regler": "Område 18512:  , Område 18559:  , Område 5010:",
+   "platser": "119",
+   "rh": "2",
+   "ladd": "34",
+   "maxtid": null,
+   "hojd": "2,1 m"
+  }
+ ]
+}

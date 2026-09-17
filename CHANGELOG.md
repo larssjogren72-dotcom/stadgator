@@ -14,6 +14,43 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.33.0 – 2026-09-17
+**SEO för Uppsala: 29 nya sidor, alla byggda på mätt data.**
+
+Uppsala hade en enda sida medan Göteborg har fjorton. Nu finns fyra guider och en sida per
+stadsdel – 255 sidor totalt (från 226).
+
+**Underlaget räknas av ett eget verktyg** (`verktyg/bygg-uppsala-seo.js` → `seo/uppsala.json`),
+samma mönster som Göteborgs: sidorna räknar aldrig själva vid byggtid, för ett nätfel skulle
+då bli en sida med nollor i drift. Uppmätt 2026-09-17: **1 888 parkeringssträckor**,
+**15 328 platser**, 95 avgiftsområden med prislista, 4 garage, 55 stadsdelar (26 stora nog
+för egen sida).
+
+- **`/parkeringsavgifter-uppsala`** – att priset hänger på områdeskoden och inte på gatan,
+  zonerna (A–K) och de 33 besöksparkeringarna med egen taxa, med kommunens avgiftstexter
+  ordagrant. Att skriva om «20kr/tim i 2 timmar därefter 35kr/tim» till egna ord vore att tolka.
+- **`/parkering-over-natten-uppsala`** – de tre sakerna som avgör om bilen kan stå kvar:
+  gränsens längd, gränsens klockslag (den som vaknar 07) och avgiften. 139 sträckor har en
+  gräns på ett dygn eller mer, 215 har några timmar eller mindre.
+- **`/parkeringshus-uppsala`** – de fyra garagen med platser, laddplatser, takhöjd, maxtid
+  och pris ur områdestexterna.
+- **26 stadsdelssidor** (`/parkering-uppsala/luthagen` m.fl.) med sträckor, platser, avgift
+  mot avgiftsfritt och vilka tidsgränser som förekommer. Luthagen är störst: 210 sträckor,
+  1 586 platser.
+- Uppsalas sidfot länkar nu stadsdelarna och de fyra guiderna; `llms.txt` uppdaterad.
+
+**Två fel fångade under bygget:**
+- **Verktyget tappade en tredjedel av datan i tysthet.** ArcGIS svarar HTTP 200 *med* ett
+  felobjekt när ett fältnamn inte finns, så avgiftsfri-lagret gav noll poster och skriptet
+  rapporterade 1 563 av 1 888 sträckor som om allt gått bra. Nu kastar hämtningen på
+  felobjektet **och** jämför antalet mot lagrets eget `returnCountOnly` – ett underlag som
+  tappar poster ska inte kunna se lyckat ut.
+- **Garagepriserna var avrundade till «från 15 till 36 kr».** Nu står de per garage, och det
+  fjärde garaget – som saknar områdespost och därmed prisuppgift – får ingen prissiffra alls.
+  Dess namn (Brandmästaren) kommer ur kommunens webbadress, och sidan säger det rakt ut.
+
+Stockholms och Göteborgs sidor är oförändrade: 254 av 255 sidor behöll sitt `lastmod`.
+
 ## v1.32.2 – 2026-09-17
 **Nedräkningen flimrade på hel timme. Nu räknar gränsen och texten samma tal.**
 

@@ -576,12 +576,25 @@ const SEO_FOTER = {
     + '<a href="/parkeringsanlaggningar-goteborg">Parkeringsanläggningar</a>'
     + '<a href="/om-parkspot">Om ParkSpot</a>'
     + '</div></footer>',
-  uppsala:
-    '<footer id="seo-links" aria-label="Parkering i Uppsala">'
-    + '<div class="seo-h">Guider</div><div class="seo-grid">'
-    + '<a href="/parkering-uppsala">Parkering i Uppsala</a>'
-    + '<a href="/om-parkspot">Om ParkSpot</a>'
-    + '</div></footer>',
+  uppsala: (() => {
+    let sd = [];
+    try {
+      sd = JSON.parse(fs.readFileSync(path.join(__dirname, 'seo', 'uppsala.json'), 'utf8')).stadsdelar || [];
+    } catch (e) {}
+    return '<footer id="seo-links" aria-label="Parkering i Uppsala">'
+      + (sd.length
+          ? '<div class="seo-h">Parkering i Uppsalas stadsdelar</div><div class="seo-grid">'
+            + sd.map(s => `<a href="/parkering-uppsala/${s.slug}">${s.namn}</a>`).join('')
+            + '</div>'
+          : '')
+      + '<div class="seo-h">Guider</div><div class="seo-grid">'
+      + '<a href="/parkering-uppsala">Parkering i Uppsala</a>'
+      + '<a href="/parkeringsavgifter-uppsala">Parkeringsavgifter</a>'
+      + '<a href="/parkering-over-natten-uppsala">Parkera över natten</a>'
+      + '<a href="/parkeringshus-uppsala">Parkeringsgarage</a>'
+      + '<a href="/om-parkspot">Om ParkSpot</a>'
+      + '</div></footer>';
+  })(),
   // Malmö och Sundbyberg har inga egna sidor än – tom sidfot tills de får det.
   malmo: '',
   sundbyberg: ''
@@ -775,7 +788,7 @@ http.createServer((req, res) => {
     const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n${seoXml}\n</urlset>`;
     finish(req, res, 200, Buffer.from(xmlBody));
 
-  } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|om-parkspot|en|parkering-goteborg|stadgator-goteborg|boendeparkering-goteborg|parkeringsanlaggningar-goteborg|parkering-uppsala)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
+  } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|om-parkspot|en|parkering-goteborg|stadgator-goteborg|boendeparkering-goteborg|parkeringsanlaggningar-goteborg|parkering-uppsala|parkeringsavgifter-uppsala|parkering-over-natten-uppsala|parkeringshus-uppsala)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
     // SEO-sidor (statiska, genererade i seo/site/) – egna URL:er, rör ej appen.
     const rel = reqUrl.pathname.replace(/\/+$/, '');
     const seoFile = path.join(__dirname, 'seo', 'site', rel + '.html');

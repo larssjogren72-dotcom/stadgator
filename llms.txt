@@ -28,7 +28,10 @@ Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehin
 - [Städgator Stockholm](https://parkspot.se/stadgator-stockholm): Hur städdagar/servicedagar fungerar, säsongsregler.
 - [Parkera över natten](https://parkspot.se/parkering-over-natten-stockholm): Hur man hittar en trygg nattplats.
 - [Parkering i Stockholm – alla stadsdelar](https://parkspot.se/parkering): Ingång stadsdel för stadsdel.
-- [Parkering i Uppsala](https://parkspot.se/parkering-uppsala): Tidsgränser, skyltens klockslag och lastplatser i Uppsala.
+- [Parkering i Uppsala](https://parkspot.se/parkering-uppsala): Tidsgränser, skyltens klockslag och lastplatser i Uppsala, plus en sida per stadsdel.
+- [Parkeringsavgifter i Uppsala](https://parkspot.se/parkeringsavgifter-uppsala): Områdeskoden på skylten styr priset; zonerna och besöksparkeringarnas taxor.
+- [Parkera över natten i Uppsala](https://parkspot.se/parkering-over-natten-uppsala): Tidsgränsen, gränsens klockslag och avgiften – ingen städnatt att undvika.
+- [Parkeringsgarage i Uppsala](https://parkspot.se/parkeringshus-uppsala): Fyra kommunala garage med platser, laddplatser, takhöjd och maxtid.
 
 ## English
 - [Parking in Stockholm — visitor's guide](https://parkspot.se/parking-in-stockholm): Prices, rules and the map, in English.
