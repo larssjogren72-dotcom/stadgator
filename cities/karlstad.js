@@ -67,15 +67,24 @@
 // kl. 05-07»). I 3 av 49 säger den texten något ANNAT än städlinjen 1–6 m bort
 // (t.ex. «måndagar jämna veckor kl. 10-12» mot städlinjens «Måndag jämna 8-10»).
 // Vi vet inte vilken som gäller, och appen väljer därför INTE: båda fönstren visas.
+// SKYLTRUNDAN 2026-09-18 (Lars, Street View): på BÅDA konfliktgatorna säger skylten
+// samma sak som avgiftslagret – Vikengatan «Måndag jämn vecka 10–12» (juni 2022),
+// Drottninggatan «Måndag jämn vecka 05–07» (maj 2024) – medan kommunens lista från
+// sept 2026 säger som städlagret. Bilderna är äldre än listan, så frågan är öppen, men
+// den visar att regeln behövs: med bara städlagret hade appen varnat fel dag.
 // Kostnaden för att visa ett för mycket är en onödig flytt; kostnaden för att dölja
 // ett riktigt är en bot. Samma avvägning som weekParityMatches gör i index.html.
 //
 // ═══ VAD KARLSTAD INTE PUBLICERAR (kontrollerat 2026-09-17) ══════════════════
 //   · PARKERINGSFÖRBUD som eget lager, utanför servicedagarna. Samma lucka som i
 //     alla städer utom Stockholm. En gata utan färg betyder «ingen uppgift».
-//   · TIDSGRÄNS på 178 av 381 avgiftssträckor (47 %). Utan den får sträckan inget
-//     grönt – den blir blå «kontrollera tidsgräns». Det är inte ett fel i appen
-//     utan en lucka hos kommunen, och den står i KARLSTAD_BREV.md.
+//   · TIDSGRÄNS på 178 av 381 avgiftssträckor (47 %) – nästan bara gatuzonerna
+//     (Grön, Gul, Blå), medan namngivna parkeringsområden har «1 vecka» och Röd zon
+//     «120 min». Appen gör som i Stockholm: tystnad = ingen skyltad gräns, och
+//     sträckan kan bli grön «Trygg över natten». ⚠ Rättat 2026-09-18: jag skrev först
+//     att de blev blå – det gjorde de aldrig. Skyltrundan stöder det gröna: Vikengatan
+//     och Trädgårdsgatan (båda Grön zon, tomt fält) har INGEN tidsgräns på skylten
+//     (Street View juni 2022). Då gäller trafikförordningens allmänna regel.
 //   · AVGIFTSFRI GATUPARKERING. Lagret finns bara i den inloggningsskyddade
 //     `webbkartan_edit`-arbetsytan (HTTP 401). ⚠ Inventeringen 2026-09-15 skrev
 //     «avgiftsfria lagret (401)» som om 401 vore ett ANTAL poster – det var
@@ -409,9 +418,9 @@ module.exports = function skapaKarlstad(delade) {
     return zon ? (txt ? zon + ': ' + txt : zon) : txt;
   }
   // «1 vecka» | «120 min» | «1 dygn» | «Ej tillämpligt» | tomt
-  // 178 av 381 är tomma. Tomt = ingen publicerad gräns → sträckan får INGET grönt,
-  // den faller till blått «kontrollera tidsgräns». Det är den delade kodens egen
-  // regel (saknas MAX_* fälls grönt), inte något den här filen hittar på.
+  // 178 av 381 är tomma. Tomt ger inga MAX_*-fält, och den delade koden behandlar det
+  // som i Stockholm: ingen skyltad gräns, grönt är möjligt. Två skyltar i Grön zon med
+  // tomt fält (Vikengatan, Trädgårdsgatan) saknar mycket riktigt gräns. Se toppen av filen.
   function tolkaMaxtid(s) {
     const v = String(s || '').trim().toLowerCase();
     if (!v || v === 'ej tillämpligt') return null;

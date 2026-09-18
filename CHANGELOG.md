@@ -46,7 +46,7 @@ glöd när städningen slutat. Allt är samlat i `KARLSTAD.md`.
   för dag, ordagrant ur kommunens lista) och `/parkering-over-natten-karlstad`.
   Underlaget kommer ur `verktyg/bygg-karlstad-seo.js` och går genom adaptern. Om-sidan,
   sidfoten, `llms.txt` och arkitektursidan är uppdaterade.
-- **Ärligt om luckorna:** 178 av 381 sträckor saknar tidsgräns och blir därför blå.
+- **Ärligt om luckorna:** 178 av 381 sträckor saknar tidsgräns i datan (nästan bara gatuzonerna). De behandlas som i Stockholm: ingen skyltad gräns, grönt möjligt. Två skyltar bekräftar att det inte står någon gräns.
   Kommunen publicerar inga andra parkeringsförbud, och inga RH- eller MC-platser som
   sträckor. Lagren ligger i kommunens `webbkartan`, inte i `oppnadata`, så appen skriver
   «webbkarta», aldrig «öppna data». Frågorna står i `KARLSTAD_BREV.md` (ej skickat).

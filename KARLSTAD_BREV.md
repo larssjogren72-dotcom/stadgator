@@ -46,14 +46,18 @@ Parkeringslagren ligger i arbetsytan `webbkartan`, inte i `oppnadata` där ni pu
 nej stänger vi av Karlstad samma dag.
 
 **2. Tidsgräns saknas på nästan hälften av avgiftssträckorna.**
-Fältet `max_ptid` är tomt på 178 av 381 sträckor. Där kan appen inte säga om bilen får
-stå kvar över natten, och den visar därför «kontrollera tidsgränsen». Går det att fylla i
-fältet, eller betyder tomt något bestämt, till exempel att ingen gräns finns?
+Fältet `max_ptid` är tomt på 178 av 381 sträckor, nästan bara i Grön, Gul och Blå zon.
+Skyltarna vi har tittat på där (Vikengatan, Trädgårdsgatan) har ingen tidsgräns, så vi
+läser tomt som «ingen skyltad gräns» och låter trafikförordningens allmänna regel gälla.
+Stämmer det för hela zonerna, eller finns det sträckor med en gräns som inte står i datan?
 
-**3. Två källor säger olika saker på två gator.**
+**3. Två källor säger olika saker på två gator – och skylten håller med den ena.**
 Avgiftslagrets fält `parkeringsforbud` och servicedagslagret är oense på Vikengatan
-(«10–12» mot «08–10») och på ett avsnitt av Drottninggatan («måndagar» mot «onsdag»).
-Vilken gäller? Tills vi vet visar appen båda.
+(«10–12» mot «08–10») och på Drottninggatan mellan Östra Torggatan och Södra Kyrkogatan
+(«måndagar» mot «onsdag»). Skyltarna på plats säger **måndag** respektive **10–12**, alltså
+samma som avgiftslagret, men listan på er webbplats (uppdaterad 4 september) säger som
+servicedagslagret. Våra foton är från 2022 och 2024. Har tiderna ändrats sedan dess, och
+är skyltarna i så fall kvar? Tills vi vet visar appen båda.
 
 **4. Röda dagar: räknas aftnarna?**
 Er sida säger att förbudet inte gäller på röda dagar. Vi räknar söndagar och helgdagar
@@ -63,6 +67,10 @@ förbudet. Stämmer det med hur ni ser på saken?
 **5. Avgiftsfri gatuparkering.**
 Lagret `parkab_tff_parkeringsplatser_avgiftsfria` kräver inloggning. Kan det publiceras
 som avgiftslagret? I dag syns bara avgiftsbelagda platser i appen.
+
+Samma fråga gäller **lastplatserna** (lagret `tff_mark_projekt_sophantering_lastplats` är
+också spärrat) och korttidsfickor som «P 30 min» på Drottninggatan. Nu syns de inte alls i
+appen.
 
 **6. Platser för rörelsehindrade och MC som linjer.**
 De finns som punkter. Appen ritar sträckor och kan inte göra en linje av en punkt utan

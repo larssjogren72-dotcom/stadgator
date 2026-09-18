@@ -1631,8 +1631,10 @@ STADER_CFG.karlstad =
       phusRubrik:'Parkeringsanläggningar nära', phusEtikett:'Parkeringsanläggning',
       taxaZon:null,
       // SANT: Karlstad pekar ut hur länge man får stå på 203 av 381 sträckor
-      // («1 vecka», «120 min», «1 dygn»). Sträckor utan gräns faller till blått
-      // «kontrollera tidsgräns» av den delade kodens egen regel – 47 % av staden.
+      // («1 vecka», «120 min», «1 dygn») – och Röd zon, den enda korta, blir blå.
+      // De 47 % utan gräns är nästan bara gatuzonerna (Grön/Gul/Blå) och behandlas som i
+      // Stockholm: ingen skyltad gräns, grönt möjligt. Skyltrundan 2026-09-18 stöder det:
+      // Vikengatan och Trädgårdsgatan har ingen tidsgräns på skylten.
       skiljerKorttid:true,
       // ⚠ STADENS EGEN REGEL, INGEN ANNAN STAD HAR DEN: servicedagen gäller inte på
       // röd dag. Kommunens egna ord på sidan om servicedagar. Flaggan läses av

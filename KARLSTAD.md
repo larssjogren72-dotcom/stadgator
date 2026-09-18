@@ -40,7 +40,9 @@ Tre svar är möjliga (`NY_STAD.md` steg 2): **Alltid**, **Vet inte** eller
 | Städlagret: dag, tid och vecka | 16 av 200 rader helt tomma | **Vet inte.** 9 ligger ovanpå en rad med schema, 7 (på 4 linjer) har inget schema någonstans | Ritas inte. Aldrig «inget förbud» | Mätt 2026-09-17. De 21 grupperna i kommunens lista finns alla i datan (21/21) |
 | Städlagret: säsong | Fältet finns inte | **Finns inte, gäller året runt** | `START_MONTH` = null | Kommunens sida nämner både sopning och plogning. Ingen säsong står någonstans |
 | Gatunamn (båda lagren) | Fältet finns inte | **Finns inte** | Härlett ur adresslagret. 97 % träff mot kommunens lista (77/79) | `verktyg/bygg-karlstad-gatunamn.js` |
-| `max_ptid` (tidsgräns) | 178 av 381 | **Vet inte** | Blått «kontrollera tidsgräns», aldrig grönt över natten | Står i brevet. Ingen föreskrift läst ännu |
+| `max_ptid` (tidsgräns) | 178 av 381, nästan bara Grön/Gul/Blå zon (138) och Solstadens sportcenter (33). Namngivna områden har «1 vecka», Röd zon «120 min» | **Ingen skyltad gräns**, trolig: 2 av 2 skyltar (Vikengatan, Trädgårdsgatan, Grön zon) har ingen gräns. Då gäller TrF:s 24 timmar på vardagar | Som i Stockholm: grönt möjligt, «Trygg över natten». ⚠ Jag skrev först «blått» – det var fel om appen | Skyltrundan 2026-09-18 (Street View juni 2022). Solstadens sportcenter ej kontrollerat |
+| Lastplatser | Lagret spärrat (`webbkartan_edit`) | **Finns inte för oss** | Ritas inte. Två lastplatser på Drottninggatan (skyltrundan) saknas i datan | Skyltrundan 2026-09-18 |
+| Korttidsfickor utan avgift (t.ex. «P 30 min») | Inte i avgiftslagret | **Finns inte för oss**, troligen i det spärrade avgiftsfria lagret | Ritas inte – ingen färg, «ingen uppgift» | Drottninggatan vid Södra Kyrkogatan, skylt från nov 2025 |
 | `parkeringstyp` | 381 av 381 | **Finns inte** | Alla blir «P Avgift» | Mätt |
 | `parkeringsforbud` (fritext på sträckan) | 332 av 381 | **Vet inte**, fältet är ofullständigt: 71 sträckor utan text ligger på en städlinje | Städlagret är grunden. Texten läggs till där den är oense | Mätt |
 | `timtaxa_natt` | 123 av 381 | **Vet inte** | Ingen «fritt övrig tid» skrivs ut | Mätt |
@@ -82,9 +84,29 @@ bevisa om sig själv.
 | 2 | **Drottninggatan** vid Grevgatan/Fredsgatan, 59.37913, 13.50522 | **Måndag** eller **onsdag**? Här möts två avsnitt med olika dag |
 | 3 | **Tingbergsgatan**, båda sidor, 59.37525, 13.48896 | Östra sidan måndag 08–10, västra tisdag 13–15. Stämmer **sidorna**? |
 | 4 | **Hagaborgsgatan**, södra sidan, 59.38795, 13.51733 | Den enda gatan med **udda** vecka en tisdag. Står «udda» eller «ojämna» på skylten? Och nämns röda dagar på någon skylt? |
-| 5 | **Trädgårdsgatan**, Grön zon, 59.37720, 13.50197 | Datan har **ingen tidsgräns**, så appen visar blått. Står en gräns på skylten? Och vad kostar det efter 18? |
+| 5 | **Trädgårdsgatan**, Grön zon, 59.37720, 13.50197 | Datan har **ingen tidsgräns**, och appen visar grönt. Står en gräns på skylten? Och vad kostar det efter 18? |
 
 Punkt 5 prövar den största luckan: 47 % av sträckorna saknar tidsgräns.
+
+### Resultat — Lars, 2026-09-18 (Street View)
+
+| # | Skylten säger | Datan säger | Slutsats |
+|---|---|---|---|
+| 1 | Vikengatan: P · Avgift 9–18 Grön zon · **Måndag jämn vecka 10–12**. Ingen tidsgräns. *(juni 2022)* | Avgiftslagret 10–12, städlagret och kommunens lista 08–10 | **Konflikten är verklig.** Skylten ger avgiftslagret rätt – men bilden är fyra år äldre än kommunens lista (sept 2026). Appen visar båda: rätt beslut. Frågan till kommunen har nu ett foto |
+| 2 | Drottninggatan öster om Södra Kyrkogatan: **Måndag jämn vecka 05–07** *(maj 2024)*. Längre in: «P 30 min»-fickor *(nov 2025)*, två lastplatser, gågatan börjar vid Östra Torggatan | Kommunens lista: måndag Grevgatan–Fredsgatan, **onsdag** Östra Torggatan–Södra Kyrkogatan. Avgiftslagrets egen text: måndag | **Konflikten är verklig**, och skylten ger avgiftslagret rätt också här. Appen visar båda på den sträcka den ritar. Fickorna, lastplatserna och gågatan finns inte i datan och ritas inte alls – ingen falsk färg |
+| 3 | Tingbergsgatan: **inga skyltar syns** *(juni 2022)* | Kommunens lista 2026: östra sidan måndag, västra tisdag | **Oavgjort.** Bilden är fyra år gammal; servicedagen kan ha tillkommit efter 2022 |
+| 4 | Hagaborgsgatan: **inga skyltar syns** | Kommunens lista 2026: södra sidan, tisdag udda vecka | **Oavgjort**, samma skäl |
+| 5 | Trädgårdsgatan södra sidan: P · Avgift 9–18 Grön zon · **Måndag jämn vecka 05–07** · pil åt båda håll. **Ingen tidsgräns.** *(juni 2022)* | Grön zon 8 kr/tim 09–18, måndag jämn 05–07, ingen tidsgräns | **Exakt rätt** på alla tre punkter |
+
+**Vad rundan avgjorde:**
+- **Tomt tidsgränsfält = ingen gräns på skylten**, 2 av 2 i Grön zon. Det gröna appen visar där är rätt.
+  Mina texter sa «blått» – de är rättade.
+- **Konfliktregeln behövdes.** I båda konflikterna säger skylten samma sak som avgiftslagret,
+  inte som kommunens lista. Hade appen bara läst städlagret (som kommunens egen lista bygger på)
+  hade Vikengatan och Drottninggatan varnat fel dag. Nu varnar den för båda.
+- **Kommunens lista kan inte ensam vara facit.** Den är facit för *vilka gator* som har
+  servicedag, men i två av två konflikter stämde skylten med den andra källan. Kommunen
+  behöver svara på vilken som gäller i dag.
 
 ---
 

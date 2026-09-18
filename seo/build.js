@@ -1132,7 +1132,7 @@ function ksdPillar() {
     '<li><b>Inte på röda dagar.</b> Infaller servicedagen på en helgdag gäller inte förbudet. Det är en skillnad mot Stockholm, där städförbudet gäller även på helgdagar.</li></ul>' +
     '<p><a href="/servicedagar-karlstad">Se alla gator med servicedag, dag för dag →</a></p></section>' +
     '<section class="card"><h2>Hur länge får du stå?</h2>' +
-    `<p>Karlstad anger tidsgränsen på en stor del av avgiftssträckorna: <b>${KSD_GRANS['Högst 1 vecka']}</b> sträckor har en vecka, <b>${KSD_GRANS['Högst 1 dygn']}</b> ett dygn och <b>${KSD_GRANS['Högst 120 minuter']}</b> högst 120 minuter. På <b>${KSD_GRANS['Ingen gräns i datan']}</b> sträckor saknas gränsen i datan – där visar ParkSpot blått «kontrollera tidsgräns» i stället för grönt, eftersom vi inte vet hur länge bilen får stå.</p></section>` +
+    `<p>Karlstad anger tidsgränsen på en stor del av avgiftssträckorna: <b>${KSD_GRANS['Högst 1 vecka']}</b> sträckor har en vecka, <b>${KSD_GRANS['Högst 1 dygn']}</b> ett dygn och <b>${KSD_GRANS['Högst 120 minuter']}</b> högst 120 minuter. På <b>${KSD_GRANS['Ingen gräns i datan']}</b> sträckor, nästan alla i Grön, Gul och Blå zon, står ingen tidsgräns i datan. Skyltarna vi har kontrollerat där visar heller ingen gräns, och då gäller trafikförordningens allmänna regel: högst 24 timmar i följd på vardagar. Står det något annat på skylten gäller skylten.</p></section>` +
     '<section class="card"><h2>Zoner och avgifter</h2><p>Priset följer zonen eller parkeringsområdet. Så här skriver kommunen det, per område (klockslag inom parentes gäller dag före sön- och helgdag, oftast lördag):</p><ul>' +
     zoner.slice(0, 16).map(z => `<li><b>${esc(z.zon)}</b> – ${z.priser.length ? esc(z.priser[0]) : 'pris saknas i datan'} · ${z.stracker} sträckor, ${ksdTal(z.platser)} platser</li>`).join('') +
     '</ul></section>' +
@@ -1173,7 +1173,11 @@ function ksdServicedagar() {
     '<li><b>Olika tider på gatans två sidor.</b> Många gator sopas på olika dagar på östra och västra sidan. Zooma in i appen så ser du båda.</li>' +
     '<li><b>Inte på röda dagar.</b> Infaller servicedagen på en helgdag gäller inte förbudet.</li>' +
     '<li><b>Året runt.</b> Samma dagar sommar som vinter.</li></ul>' +
-    `<p>Listan nedan är kommunens egen, uppdaterad ${esc(SD.sidanUppdaterad)}. Står din gata inte med sopas den enligt det vanliga schemat, utan parkeringsförbud.</p></section>` +
+    `<p>Listan nedan är kommunens egen, uppdaterad ${esc(SD.sidanUppdaterad)}. Står din gata inte med sopas den enligt det vanliga schemat, utan parkeringsförbud.</p>` +
+    // Skyltrundan 2026-09-18: på två gator säger skylten något annat än listan, och
+    // kommunens eget avgiftslager håller med skylten. Sidan får inte framställa listan
+    // som säkrare än skylten – det är skylten som gäller juridiskt.
+    '<p><b>Skylten gäller.</b> På två ställen har vi sett skyltar som säger något annat än listan: Vikengatan (skylten: måndag 10–12, listan: 08–10) och Drottninggatan mellan Östra Torggatan och Södra Kyrkogatan (skylten: måndag, listan: onsdag). I appen visas båda tiderna där.</p></section>' +
     block +
     '<section class="card"><h2>Källa</h2><p>Karlstads kommun, <a href="' + esc(SD.kalla) + '" rel="nofollow">Schema för servicedagar och parkeringsförbud</a>. ' + KSD_FORBEHALL + '</p></section>';
   const faq = [
@@ -1198,7 +1202,7 @@ function ksdNatt() {
     '<section class="card"><h2>Tre saker avgör om bilen kan stå kvar till morgonen</h2><ul>' +
     `<li><b>Servicedagen i morgon bitti.</b> ${tidiga} gatuavsnitt har servicedag redan klockan <b>05–07</b>. Då hinner du inte flytta bilen på morgonen, och ParkSpot visar gatan som olämplig kvällen före. Börjar förbudet 08 eller senare står det när du måste flytta.</li>` +
     `<li><b>Tidsgränsen.</b> ${KSD_GRANS['Högst 1 vecka']} sträckor tillåter en vecka och ${KSD_GRANS['Högst 1 dygn']} ett dygn. ${KSD_GRANS['Högst 120 minuter']} har högst 120 minuter och räcker inte för en natt.</li>` +
-    `<li><b>Uppgift som saknas.</b> På ${KSD_GRANS['Ingen gräns i datan']} sträckor finns ingen tidsgräns i kommunens data. Där säger ParkSpot aldrig «trygg över natten» – vi vet inte.</li>` +
+    `<li><b>Ingen gräns på skylten.</b> På ${KSD_GRANS['Ingen gräns i datan']} sträckor, mest i Grön, Gul och Blå zon, finns ingen tidsgräns i kommunens data, och skyltarna vi kontrollerat där har ingen heller. Då gäller trafikförordningens regel om högst 24 timmar i följd på vardagar, vilket räcker för en natt. Läs ändå skylten.</li>` +
     '</ul></section>' +
     '<section class="card"><h2>Helgdagar</h2><p>Infaller servicedagen på en röd dag gäller inte förbudet. Kvällen före en helgdag kan alltså en gata med servicedag vara trygg. ParkSpot räknar med det, men bara för de dagar som är helgdagar enligt lag – inte julafton, midsommarafton eller nyårsafton.</p>' +
     '<p>' + KSD_FORBEHALL + '</p></section>';

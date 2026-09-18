@@ -24,7 +24,7 @@ Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehin
 ### Karlstad — [parkspot.se/?stad=karlstad](https://parkspot.se/?stad=karlstad)
 Servicedagar (städdagar) på drygt 90 gatuavsnitt i centrala Karlstad, avgiftszoner och parkeringsområden med kommunens egna prisuppgifter, tidsgränser (en vecka, ett dygn eller 120 minuter där de finns) och 37 parkeringsanläggningar – ur Karlstads kommuns webbkarta.
 
-**Viktigt om Karlstad:** servicedagen är ett **skyltat parkeringsförbud några timmar varannan vecka** (jämna eller udda veckor, året runt) och gäller **inte på röda dagar** – till skillnad från Stockholm, där städförbudet gäller även på helgdagar. Kommunen publicerar **inga andra parkeringsförbud** och inga MC- eller rörelsehindradeplatser som sträckor. Nära hälften av avgiftssträckorna saknar tidsgräns i datan; där säger appen «kontrollera tidsgräns» i stället för «trygg över natten».
+**Viktigt om Karlstad:** servicedagen är ett **skyltat parkeringsförbud några timmar varannan vecka** (jämna eller udda veckor, året runt) och gäller **inte på röda dagar** – till skillnad från Stockholm, där städförbudet gäller även på helgdagar. Kommunen publicerar **inga andra parkeringsförbud** och inga MC- eller rörelsehindradeplatser som sträckor. Nära hälften av avgiftssträckorna, nästan bara gatuzonerna (Grön, Gul, Blå), saknar tidsgräns i datan; kontrollerade skyltar där har ingen gräns heller, så trafikförordningens allmänna regel gäller (högst 24 timmar i följd på vardagar).
 
 ## Huvudsidor
 - [ParkSpot – live-kartan](https://parkspot.se/): Själva appen.
