@@ -1608,6 +1608,45 @@ STADER_CFG.uppsala =
         + '«ingen uppgift», inte «fritt». Kontrollera alltid skylten på plats.</span>',
       schemaUrl:'' };
 
+STADER_CFG.karlstad =
+    { id:'karlstad', namn:'Karlstad', geokodSuffix:', Karlstad',
+      adressExempel:'Drottninggatan 10',
+      // Kommungränsen, inte tätorten: Molkom i norr och Väse i öster hör till
+      // kommunen. Klipps rutan snävare tystnar sökförslagen för folk som bor där
+      // (samma lärdom som Göteborgs skärgård och Uppsalas Storvreta).
+      sokRuta:[13.0500, 59.2000, 14.1500, 59.8500], sokOrter:['Karlstad'],
+      center:[59.3793, 13.5036], zoom:15,
+      // Karlstad publicerar inget förbudslager utanför servicedagarna. Kontrollerat
+      // 2026-09-17 mot hela GeoServer-katalogen (623 lager). Ordet «parkeringsförbud»
+      // finns på städlagret och som fritext på 49 parkeringssträckor – ingen
+      // annanstans. En gata utan färg betyder «ingen uppgift», inte «fritt».
+      harForbud:false,
+      servicedagarUrl:'/karlstad/servicedagar-bbox',
+      heltStadenUrl:'',              // ingen hela-staden-källa utanför Stockholm
+      tillatenUrl:'/karlstad/wfs-tillaten',
+      // 37 anläggningar ur kommunens punktlager: sex parkeringshus och 31
+      // parkeringsområden. Kapacitet publiceras inte, så ingen platssiffra visas,
+      // och priset står i fritext («Se taxa») – ingen prisrad hellre än en gissad.
+      phusUrl:'/karlstad/phus', phusTyp:null,
+      phusRubrik:'Parkeringsanläggningar nära', phusEtikett:'Parkeringsanläggning',
+      taxaZon:null,
+      // SANT: Karlstad pekar ut hur länge man får stå på 203 av 381 sträckor
+      // («1 vecka», «120 min», «1 dygn»). Sträckor utan gräns faller till blått
+      // «kontrollera tidsgräns» av den delade kodens egen regel – 47 % av staden.
+      skiljerKorttid:true,
+      // ⚠ STADENS EGEN REGEL, INGEN ANNAN STAD HAR DEN: servicedagen gäller inte på
+      // röd dag. Kommunens egna ord på sidan om servicedagar. Flaggan läses av
+      // cleaningActiveOn, som är den enda grinden för hela städflödet.
+      stadUndantagRodaDagar:true,
+      visaIVal:true, valUnder:'Servicedagar varannan vecka – men inga förbud i datan',
+      pilot:false,
+      disclaimer:'<span class="hint-disclaimer">Baseras på Karlstads kommuns webbkarta. '
+        + 'Servicedagarna är ett skyltat parkeringsförbud och gäller varannan vecka – de gäller '
+        + 'inte på röda dagar. Kommunen publicerar inga andra parkeringsförbud, och inga '
+        + 'MC- eller rörelsehindradeplatser som sträckor, så en gata utan färg betyder '
+        + '«ingen uppgift», inte «fritt». Kontrollera alltid skylten på plats.</span>',
+      schemaUrl:'/karlstad/schedule' };
+
 STADER_CFG.goteborg =
     { id:'goteborg', namn:'Göteborg', geokodSuffix:', Göteborg',
       adressExempel:'Kungsportsavenyen 10',
@@ -1835,6 +1874,69 @@ function weekParityMatches(p, date) {
   if (!udda && !jamna) return true;                  // okänt mönster → visa (se ovan)
   return (isoWeek(date) % 2 === 1) ? !!udda : !!jamna;
 }
+// ── RÖDA DAGAR ───────────────────────────────────────────────────────────────
+// ⚠ EN STADSSKILLNAD, ALDRIG EN GENERELL REGEL. Karlstad skriver rakt ut på sin
+// sida om servicedagar: «Om servicedagen infaller på en röd dag gäller inte det
+// tillfälliga parkeringsförbudet.» Stockholm har INGET sådant undantag – sju av sju
+// lästa föreskrifter saknar det, och en kalender här hade gjort Stockholms
+// varningar fel (se projektminnet reference_stadning_roda_dagar). Undantaget slås
+// därför på per stad med `stadUndantagRodaDagar` och är av för alla andra.
+//
+// RÖD DAG = söndag och allmän helgdag enligt lagen (1989:253). Julafton,
+// midsommarafton och nyårsafton är INTE röda dagar i lagens mening, och räknas
+// därför inte här. Den avgränsningen är medvetet den försiktiga: på en dag vi inte
+// räknar som röd visar appen städningen, och kostnaden är i värsta fall en onödig
+// flytt. Räknade vi den som röd och hade fel blev kostnaden en bot. Frågan om hur
+// kommunen själv ser på aftnarna står i KARLSTAD_BREV.md.
+//
+// Påskdagen och pingstdagen är alltid söndagar och midsommardagen alltid en lördag;
+// de tas ändå med, så att listan är den lagen säger och inte en delmängd som råkar
+// fungera för städning måndag–fredag.
+function paskdagen(ar) {                                  // Gauss/Meeus, gregoriansk
+  const a = ar % 19, b = Math.floor(ar / 100), c = ar % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const manad = Math.floor((h + l - 7 * m + 114) / 31);    // 3 = mars, 4 = april
+  const dag = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(ar, manad - 1, dag);
+}
+let RODA_DAGAR_CACHE = { ar: null, dagar: null };
+function rodaDagar(ar) {
+  if (RODA_DAGAR_CACHE.ar === ar) return RODA_DAGAR_CACHE.dagar;
+  const nyckel = d => d.getMonth() * 100 + d.getDate();
+  const flytta = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const pask = paskdagen(ar);
+  const midsommar = (() => {                              // lördagen 20–26 juni
+    const d = new Date(ar, 5, 20);
+    while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
+    return d;
+  })();
+  const dagar = new Set([
+    nyckel(new Date(ar, 0, 1)),        // nyårsdagen
+    nyckel(new Date(ar, 0, 6)),        // trettondedag jul
+    nyckel(flytta(pask, -2)),          // långfredagen
+    nyckel(pask),                      // påskdagen
+    nyckel(flytta(pask, 1)),           // annandag påsk
+    nyckel(new Date(ar, 4, 1)),        // första maj
+    nyckel(flytta(pask, 39)),          // Kristi himmelsfärds dag
+    nyckel(flytta(pask, 49)),          // pingstdagen
+    nyckel(new Date(ar, 5, 6)),        // nationaldagen
+    nyckel(midsommar),                 // midsommardagen
+    nyckel(new Date(ar, 11, 25)),      // juldagen
+    nyckel(new Date(ar, 11, 26))       // annandag jul
+  ]);
+  RODA_DAGAR_CACHE = { ar, dagar };
+  return dagar;
+}
+function arRodDag(d) {
+  if (d.getDay() === 0) return true;                      // söndag
+  return rodaDagar(d.getFullYear()).has(d.getMonth() * 100 + d.getDate());
+}
+
 // Säsong/datumintervall för städning – null = året runt
 function seasonText(p) { if (p.START_MONTH == null) return null; const sd = p.START_DAY||1, ed = p.END_DAY||1; return `${sd} ${SV_MONTHS[p.START_MONTH-1]}–${ed} ${SV_MONTHS[p.END_MONTH-1]}`; }
 
@@ -6426,6 +6528,12 @@ function cleaningActiveOn(p, date) {
   // aldrig facket – den som någon gång filtrerar per veckodag längre upp i kedjan
   // måste veta det.
   if (p.MONTH_DAY != null && date.getDate() !== +p.MONTH_DAY) return false;
+  // ── RÖD DAG (Karlstad) ─────────────────────────────────────────────────────
+  // Grinden ligger här av samma skäl som datumregeln ovan: alla tre konsumenterna
+  // (idag, imorgon, veckan framåt) frågar den här funktionen med ett konkret datum,
+  // så ETT test räcker för hela städflödet. Städer utan flaggan är helt opåverkade –
+  // villkoret är falskt innan arRodDag ens anropas.
+  if (STAD.stadUndantagRodaDagar && arRodDag(date)) return false;
   // Veckoparitet FÖRE säsongen, med flit: 1 527 av Göteborgs 2 002 städposter saknar
   // säsong men HAR jämn/udda-vecka. Låg testet efter raden nedan skulle de returnera
   // true direkt och paritetsvillkoret aldrig prövas – tyst fel varannan vecka.

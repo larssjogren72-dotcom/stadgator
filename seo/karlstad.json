@@ -1,0 +1,539 @@
+{
+ "_kommentar": "Uppmätt underlag för Karlstads SEO-sidor. Byggt av verktyg/bygg-karlstad-seo.js genom adaptern. Redigera inte för hand.",
+ "matt": "2026-09-18",
+ "strackorTotalt": 376,
+ "platserTotalt": 4136,
+ "granser": [
+  {
+   "namn": "Högst 120 minuter",
+   "antal": 27
+  },
+  {
+   "namn": "Högst 1 dygn",
+   "antal": 25
+  },
+  {
+   "namn": "Högst 1 vecka",
+   "antal": 147
+  },
+  {
+   "namn": "Ingen gräns i datan",
+   "antal": 177
+  }
+ ],
+ "zoner": [
+  {
+   "zon": "Grön zon",
+   "stracker": 92,
+   "platser": 866,
+   "priser": [
+    "8 kr/tim 09–18",
+    "8 kr/tim 09–18 · fritt övrig tid"
+   ]
+  },
+  {
+   "zon": "Gul zon",
+   "stracker": 53,
+   "platser": 383,
+   "priser": [
+    "16 kr/tim 09–18 (09–15) · fritt övrig tid",
+    "16 kr/tim 09–18 (09–15)"
+   ]
+  },
+  {
+   "zon": "Solstadens sportcenter",
+   "stracker": 33,
+   "platser": 462,
+   "priser": [
+    "5–7 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 140 kr/vecka",
+    "5–7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka",
+    "4–6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Röd zon",
+   "stracker": 27,
+   "platser": 192,
+   "priser": [
+    "18 kr/tim 09–18 (09–15) · fritt övrig tid",
+    "18 kr/tim 09–18 (09–15)"
+   ]
+  },
+  {
+   "zon": "Sundstabadet",
+   "stracker": 19,
+   "platser": 295,
+   "priser": [
+    "4–6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Sandgrund",
+   "stracker": 18,
+   "platser": 210,
+   "priser": [
+    "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
+   ]
+  },
+  {
+   "zon": "Blå zon",
+   "stracker": 16,
+   "platser": 219,
+   "priser": [
+    "4 kr/tim 09–18",
+    "4 kr/tim 09–18 · fritt övrig tid"
+   ]
+  },
+  {
+   "zon": "Karolinen",
+   "stracker": 15,
+   "platser": 146,
+   "priser": [
+    "13 kr/tim · 2 kr/tim övrig tid · 78 kr/dygn · 312 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Universalen",
+   "stracker": 11,
+   "platser": 153,
+   "priser": [
+    "6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Älgen",
+   "stracker": 10,
+   "platser": 90,
+   "priser": [
+    "15 kr/tim · 2 kr/tim övrig tid · 105 kr/dygn"
+   ]
+  },
+  {
+   "zon": "Landgången",
+   "stracker": 8,
+   "platser": 53,
+   "priser": [
+    "9 kr/tim · 2 kr/tim övrig tid · 45 kr/dygn · 180 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Konstapeln",
+   "stracker": 8,
+   "platser": 160,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Slussvakten",
+   "stracker": 7,
+   "platser": 40,
+   "priser": [
+    "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
+   ]
+  },
+  {
+   "zon": "Gruvlyckan",
+   "stracker": 7,
+   "platser": 104,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Klaraborg",
+   "stracker": 6,
+   "platser": 58,
+   "priser": [
+    "11 kr/tim · 2 kr/tim övrig tid · 66 kr/dygn · 264 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Gamla badhuset",
+   "stracker": 6,
+   "platser": 81,
+   "priser": [
+    "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
+   ]
+  },
+  {
+   "zon": "Härolden",
+   "stracker": 5,
+   "platser": 124,
+   "priser": [
+    "11 kr/tim · 2 kr/tim övrig tid · 66 kr/dygn · 264 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Gustaf Anders gata",
+   "stracker": 4,
+   "platser": 67,
+   "priser": [
+    "11 kr/tim · 2 kr/tim övrig tid · 66 kr/dygn · 264 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Bilan",
+   "stracker": 4,
+   "platser": 82,
+   "priser": [
+    "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
+   ]
+  },
+  {
+   "zon": "Orrholmsplan",
+   "stracker": 3,
+   "platser": 57,
+   "priser": [
+    "9 kr/tim · 2 kr/tim övrig tid · 45 kr/dygn · 180 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Rosenbad",
+   "stracker": 3,
+   "platser": 20,
+   "priser": [
+    "13 kr/tim · 2 kr/tim övrig tid · 78 kr/dygn"
+   ]
+  },
+  {
+   "zon": "Posthornsgatan",
+   "stracker": 3,
+   "platser": 45,
+   "priser": [
+    "6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka",
+    "6 kr/tim 09–18 (09–15) · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Nya Depåvägen",
+   "stracker": 3,
+   "platser": 56,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Kronjuvelen",
+   "stracker": 3,
+   "platser": 25,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Vattenhästen",
+   "stracker": 2,
+   "platser": 14,
+   "priser": [
+    "8 kr/tim · 2 kr/tim övrig tid · 48 kr/dygn · 192 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Godsmagasinet",
+   "stracker": 2,
+   "platser": 63,
+   "priser": [
+    "13 kr/tim · 2 kr/tim övrig tid"
+   ]
+  },
+  {
+   "zon": "Okänt område",
+   "stracker": 2,
+   "platser": 0,
+   "priser": []
+  },
+  {
+   "zon": "Karmen",
+   "stracker": 2,
+   "platser": 39,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Café August",
+   "stracker": 2,
+   "platser": 0,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Oxen",
+   "stracker": 1,
+   "platser": 24,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  },
+  {
+   "zon": "Tusenskönan",
+   "stracker": 1,
+   "platser": 8,
+   "priser": [
+    "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
+   ]
+  }
+ ],
+ "servicedagar": {
+  "segment": 184,
+  "km": 20.8,
+  "grupper": [
+   {
+    "veckodag": "Måndag",
+    "vecka": "jämna",
+    "klockslag": "05-07",
+    "gator": [
+     "Drottninggatan, mellan Grevgatan och Fredsgatan",
+     "Västra Kyrkogatan",
+     "Trädgårdsgatan",
+     "Konduktörsgatan",
+     "Vänernsgatan",
+     "Stinsgatan",
+     "Rosenbadsgatan"
+    ]
+   },
+   {
+    "veckodag": "Måndag",
+    "vecka": "jämna",
+    "klockslag": "08-10",
+    "gator": [
+     "Båtsmansgatan",
+     "Tingbergsgatan, östra sidan mellan Hööksgatan och Styrmansgatan",
+     "Styrmansgatan, södra sidan",
+     "Sundbergsgatan",
+     "Vasagatan, södra sidan",
+     "Sveagatan mellan Herrhagsgatan och John Ericssonsgatan",
+     "Vikengatan",
+     "Värmlandsgatan mellan Herrhagsgatan och John Ericssonsgatan",
+     "Wennbergsgatan"
+    ]
+   },
+   {
+    "veckodag": "Måndag",
+    "vecka": "jämna",
+    "klockslag": "10-12",
+    "gator": [
+     "Karlagatan",
+     "Kvarnbergsgatan",
+     "Verkstadsgatan",
+     "Olovsgatan",
+     "John Ericssonsgatan, östra sidan",
+     "Muraregatan, västra sidan",
+     "Ölmegatan"
+    ]
+   },
+   {
+    "veckodag": "Tisdag",
+    "vecka": "jämna",
+    "klockslag": "05-07",
+    "gator": [
+     "Norra Strandgatan",
+     "Norra Kyrkogatan",
+     "Pihlgrensgatan, mellan Drottninggatan och Älvgatan",
+     "Östra Kyrkogatan"
+    ]
+   },
+   {
+    "veckodag": "Tisdag",
+    "vecka": "jämna",
+    "klockslag": "08-10",
+    "gator": [
+     "Fahlgrensgatan, östra sidan, söder om Mellqvistgatan",
+     "Filaregatan, södra sidan",
+     "John Ericssonsgatan, västra sidan",
+     "Norra infarten, sydvästra sidan mellan Färjestadsvägen och Slättgatan",
+     "Stenhagsgatan"
+    ]
+   },
+   {
+    "veckodag": "Tisdag",
+    "vecka": "jämna",
+    "klockslag": "10-12",
+    "gator": [
+     "Bellevuegatan, norra sidan",
+     "Bergkantsgatan, södra sidan",
+     "Gruvplan, södra sidan",
+     "Gruvlyckevägen, östra sidan",
+     "Herrhagsgatan, Östra sidan",
+     "Smedjegatan"
+    ]
+   },
+   {
+    "veckodag": "Tisdag",
+    "vecka": "jämna",
+    "klockslag": "12-14",
+    "gator": [
+     "Örsholmsgatan mellan Pumpgatan och Föreningsgatan"
+    ]
+   },
+   {
+    "veckodag": "Tisdag",
+    "vecka": "jämna",
+    "klockslag": "13-15",
+    "gator": [
+     "Styrmansgatan, norra sidan",
+     "Tingbergsgatan, västra"
+    ]
+   },
+   {
+    "veckodag": "Tisdag",
+    "vecka": "ojämna",
+    "klockslag": "08-10",
+    "gator": [
+     "Hagaborgsgatans södra sida"
+    ]
+   },
+   {
+    "veckodag": "Onsdag",
+    "vecka": "jämna",
+    "klockslag": "05-07",
+    "gator": [
+     "Drottninggatan, mellan Östra Torggatan och Södra Kyrkogatan",
+     "Grevgatan",
+     "Herrgårdsgatan, norra sidan",
+     "Karlbergsgatan",
+     "Södra Kyrkogatan"
+    ]
+   },
+   {
+    "veckodag": "Onsdag",
+    "vecka": "jämna",
+    "klockslag": "08-10",
+    "gator": [
+     "Bergslagsgatan",
+     "Sveagatan, mellan John Ericssonsgatan och Parkgatan",
+     "Värmlandsgatan, mellan John Ericssonsgatan och Parkgatan"
+    ]
+   },
+   {
+    "veckodag": "Onsdag",
+    "vecka": "jämna",
+    "klockslag": "10-12",
+    "gator": [
+     "Geijersgatan",
+     "Herrhagsgatan, västra sidan",
+     "Mellqvistgatan"
+    ]
+   },
+   {
+    "veckodag": "Onsdag",
+    "vecka": "ojämna",
+    "klockslag": "05-07",
+    "gator": [
+     "Sandbäcksgatan"
+    ]
+   },
+   {
+    "veckodag": "Onsdag",
+    "vecka": "ojämna",
+    "klockslag": "08-10",
+    "gator": [
+     "Bryggaregatan",
+     "Del av Regementsgatan",
+     "Hybelejens gata",
+     "Malmtorgsgatan",
+     "Odengatan"
+    ]
+   },
+   {
+    "veckodag": "Onsdag",
+    "vecka": "ojämna",
+    "klockslag": "10-12",
+    "gator": [
+     "Norra Klaragatan",
+     "Regementsgatan",
+     "Södra Klaragatan",
+     "Våxnäsgatan"
+    ]
+   },
+   {
+    "veckodag": "Torsdag",
+    "vecka": "jämna",
+    "klockslag": "05-07",
+    "gator": [
+     "Guldlistgatan",
+     "Herrgårdsgatan",
+     "Kungsgatan, mellan Eneströmsgatan och Östra Torggatan",
+     "Mariedalsgatan",
+     "Tage Erlandergatan",
+     "Trekantsgatan",
+     "Åttkantsgatan",
+     "Östra Kanalgatan"
+    ]
+   },
+   {
+    "veckodag": "Torsdag",
+    "vecka": "jämna",
+    "klockslag": "08-10",
+    "gator": [
+     "Fabriksgatan",
+     "Filaregatan, norra sidan",
+     "Fryxellsgatan",
+     "Garvaregatan",
+     "Götgatan",
+     "Hagagatan",
+     "Hagaleden",
+     "Munkforsgatan",
+     "Stagnellsgatan",
+     "Tegnérsgatan",
+     "Östra Stationsgatan"
+    ]
+   },
+   {
+    "veckodag": "Torsdag",
+    "vecka": "jämna",
+    "klockslag": "10-12",
+    "gator": [
+     "Fahlgrensgatan",
+     "Långgatan"
+    ]
+   },
+   {
+    "veckodag": "Fredag",
+    "vecka": "jämna",
+    "klockslag": "05-07",
+    "gator": [
+     "Tingvallagatan, mellan Eneströmsgatan och Östra Torggatan",
+     "Västra Torggatan, mellan Herrgårdsgatan och Norra Strandgatan"
+    ]
+   },
+   {
+    "veckodag": "Fredag",
+    "vecka": "jämna",
+    "klockslag": "08-10",
+    "gator": [
+     "Geijersgatan, södra sidan, mellan Långgatan och John Ericssonsgatan",
+     "Kanikenäsgatan",
+     "Vasagatan, norra sidan",
+     "Västra Kanalgatan"
+    ]
+   },
+   {
+    "veckodag": "Fredag",
+    "vecka": "jämna",
+    "klockslag": "10-12",
+    "gator": [
+     "Parkgatan",
+     "Strandvägen"
+    ]
+   }
+  ],
+  "gator": 92,
+  "kalla": "https://karlstad.se/trafik-och-gator/renhallning-och-snorojning/sopning-av-gator-och-vagar/schema-for-servicedagar",
+  "sidanUppdaterad": "2026-09-04"
+ },
+ "anlaggningar": {
+  "totalt": 37,
+  "garage": [
+   "Ahlmarks Parkeringshus",
+   "Gripens parkeringshus",
+   "Kanikenäsbanken",
+   "Löfbergs parkeringshus",
+   "Mitt i citys parkeringsgarage",
+   "Södertull"
+  ],
+  "ytor": 31
+ }
+}

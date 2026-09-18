@@ -1,0 +1,247 @@
+{
+ "_kommentar": "Kommunens egen lista över servicedagar, ordagrant av sidan nedan. Facit för verktyg/bygg-karlstad-gatunamn.js. Uppdatera när kommunen uppdaterar sidan.",
+ "kalla": "https://karlstad.se/trafik-och-gator/renhallning-och-snorojning/sopning-av-gator-och-vagar/schema-for-servicedagar",
+ "sidanUppdaterad": "2026-09-04",
+ "hamtad": "2026-09-17",
+ "rader": [
+  {
+   "veckodag": "Måndag",
+   "vecka": "jämna",
+   "klockslag": "05-07",
+   "gator": [
+    "Drottninggatan, mellan Grevgatan och Fredsgatan",
+    "Västra Kyrkogatan",
+    "Trädgårdsgatan",
+    "Konduktörsgatan",
+    "Vänernsgatan",
+    "Stinsgatan",
+    "Rosenbadsgatan"
+   ]
+  },
+  {
+   "veckodag": "Måndag",
+   "vecka": "jämna",
+   "klockslag": "08-10",
+   "gator": [
+    "Båtsmansgatan",
+    "Tingbergsgatan, östra sidan mellan Hööksgatan och Styrmansgatan",
+    "Styrmansgatan, södra sidan",
+    "Sundbergsgatan",
+    "Vasagatan, södra sidan",
+    "Sveagatan mellan Herrhagsgatan och John Ericssonsgatan",
+    "Vikengatan",
+    "Värmlandsgatan mellan Herrhagsgatan och John Ericssonsgatan",
+    "Wennbergsgatan"
+   ]
+  },
+  {
+   "veckodag": "Måndag",
+   "vecka": "jämna",
+   "klockslag": "10-12",
+   "gator": [
+    "Karlagatan",
+    "Kvarnbergsgatan",
+    "Verkstadsgatan",
+    "Olovsgatan",
+    "John Ericssonsgatan, östra sidan",
+    "Muraregatan, västra sidan",
+    "Ölmegatan"
+   ]
+  },
+  {
+   "veckodag": "Tisdag",
+   "vecka": "jämna",
+   "klockslag": "05-07",
+   "gator": [
+    "Norra Strandgatan",
+    "Norra Kyrkogatan",
+    "Pihlgrensgatan, mellan Drottninggatan och Älvgatan",
+    "Östra Kyrkogatan"
+   ]
+  },
+  {
+   "veckodag": "Tisdag",
+   "vecka": "jämna",
+   "klockslag": "08-10",
+   "gator": [
+    "Fahlgrensgatan, östra sidan, söder om Mellqvistgatan",
+    "Filaregatan, södra sidan",
+    "John Ericssonsgatan, västra sidan",
+    "Norra infarten, sydvästra sidan mellan Färjestadsvägen och Slättgatan",
+    "Stenhagsgatan"
+   ]
+  },
+  {
+   "veckodag": "Tisdag",
+   "vecka": "jämna",
+   "klockslag": "10-12",
+   "gator": [
+    "Bellevuegatan, norra sidan",
+    "Bergkantsgatan, södra sidan",
+    "Gruvplan, södra sidan",
+    "Gruvlyckevägen, östra sidan",
+    "Herrhagsgatan, Östra sidan",
+    "Smedjegatan"
+   ]
+  },
+  {
+   "veckodag": "Tisdag",
+   "vecka": "jämna",
+   "klockslag": "12-14",
+   "gator": [
+    "Örsholmsgatan mellan Pumpgatan och Föreningsgatan"
+   ]
+  },
+  {
+   "veckodag": "Tisdag",
+   "vecka": "jämna",
+   "klockslag": "13-15",
+   "gator": [
+    "Styrmansgatan, norra sidan",
+    "Tingbergsgatan, västra"
+   ]
+  },
+  {
+   "veckodag": "Tisdag",
+   "vecka": "ojämna",
+   "klockslag": "08-10",
+   "gator": [
+    "Hagaborgsgatans södra sida"
+   ]
+  },
+  {
+   "veckodag": "Onsdag",
+   "vecka": "jämna",
+   "klockslag": "05-07",
+   "gator": [
+    "Drottninggatan, mellan Östra Torggatan och Södra Kyrkogatan",
+    "Grevgatan",
+    "Herrgårdsgatan, norra sidan",
+    "Karlbergsgatan",
+    "Södra Kyrkogatan"
+   ]
+  },
+  {
+   "veckodag": "Onsdag",
+   "vecka": "jämna",
+   "klockslag": "08-10",
+   "gator": [
+    "Bergslagsgatan",
+    "Sveagatan, mellan John Ericssonsgatan och Parkgatan",
+    "Värmlandsgatan, mellan John Ericssonsgatan och Parkgatan"
+   ]
+  },
+  {
+   "veckodag": "Onsdag",
+   "vecka": "jämna",
+   "klockslag": "10-12",
+   "gator": [
+    "Geijersgatan",
+    "Herrhagsgatan, västra sidan",
+    "Mellqvistgatan"
+   ]
+  },
+  {
+   "veckodag": "Onsdag",
+   "vecka": "ojämna",
+   "klockslag": "05-07",
+   "gator": [
+    "Sandbäcksgatan"
+   ]
+  },
+  {
+   "veckodag": "Onsdag",
+   "vecka": "ojämna",
+   "klockslag": "08-10",
+   "gator": [
+    "Bryggaregatan",
+    "Del av Regementsgatan",
+    "Hybelejens gata",
+    "Malmtorgsgatan",
+    "Odengatan"
+   ]
+  },
+  {
+   "veckodag": "Onsdag",
+   "vecka": "ojämna",
+   "klockslag": "10-12",
+   "gator": [
+    "Norra Klaragatan",
+    "Regementsgatan",
+    "Södra Klaragatan",
+    "Våxnäsgatan"
+   ]
+  },
+  {
+   "veckodag": "Torsdag",
+   "vecka": "jämna",
+   "klockslag": "05-07",
+   "gator": [
+    "Guldlistgatan",
+    "Herrgårdsgatan",
+    "Kungsgatan, mellan Eneströmsgatan och Östra Torggatan",
+    "Mariedalsgatan",
+    "Tage Erlandergatan",
+    "Trekantsgatan",
+    "Åttkantsgatan",
+    "Östra Kanalgatan"
+   ]
+  },
+  {
+   "veckodag": "Torsdag",
+   "vecka": "jämna",
+   "klockslag": "08-10",
+   "gator": [
+    "Fabriksgatan",
+    "Filaregatan, norra sidan",
+    "Fryxellsgatan",
+    "Garvaregatan",
+    "Götgatan",
+    "Hagagatan",
+    "Hagaleden",
+    "Munkforsgatan",
+    "Stagnellsgatan",
+    "Tegnérsgatan",
+    "Östra Stationsgatan"
+   ]
+  },
+  {
+   "veckodag": "Torsdag",
+   "vecka": "jämna",
+   "klockslag": "10-12",
+   "gator": [
+    "Fahlgrensgatan",
+    "Långgatan"
+   ]
+  },
+  {
+   "veckodag": "Fredag",
+   "vecka": "jämna",
+   "klockslag": "05-07",
+   "gator": [
+    "Tingvallagatan, mellan Eneströmsgatan och Östra Torggatan",
+    "Västra Torggatan, mellan Herrgårdsgatan och Norra Strandgatan"
+   ]
+  },
+  {
+   "veckodag": "Fredag",
+   "vecka": "jämna",
+   "klockslag": "08-10",
+   "gator": [
+    "Geijersgatan, södra sidan, mellan Långgatan och John Ericssonsgatan",
+    "Kanikenäsgatan",
+    "Vasagatan, norra sidan",
+    "Västra Kanalgatan"
+   ]
+  },
+  {
+   "veckodag": "Fredag",
+   "vecka": "jämna",
+   "klockslag": "10-12",
+   "gator": [
+    "Parkgatan",
+    "Strandvägen"
+   ]
+  }
+ ]
+}

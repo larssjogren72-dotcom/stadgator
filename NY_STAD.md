@@ -398,10 +398,57 @@ Göteborg och Sundbyberg inskrivna för hand; när Uppsala kom räknades dess ko
 inte dess adapter, och arkitektursidan publicerade en summa som inte gick ihop. Nu läses
 städerna ur `STADSNAMN` och en saknad markering underkänner kontrollen.
 
+## 8c. Lärdomar från Karlstad (stad sex, byggd 2026-09-17–18)
+
+Karlstad tog från «finns det städgator?» till testad och committad stad på två
+arbetsdagar. De sju sakerna nedan var nya.
+
+**1. Städmodellen kan skilja sig i en detalj som vänder på en regel.** Karlstads
+servicedag gäller **inte på röda dagar**. Stockholms städförbud gör det. Svaret stod i en
+enda mening på kommunens sida, inte i datan. Läs alltid kommunens egen sida om städningen,
+från början till slut, innan städlagret tolkas. Undantaget blev en **stadsflagga**, aldrig
+en generell regel.
+
+**2. Kommunens publicerade lista är ett facit utifrån, så använd den.** Karlstad listar
+varje gata med servicedag per dag, vecka och klockslag. Listan prövade datan (21 av 21
+grupper), rättade de härledda gatunamnen (95 → 97 %) och blev SEO-sidan ordagrant. Leta
+efter en sådan lista i varje stad. Den är det närmaste en skyltrunda man kommer vid
+skrivbordet.
+
+**3. Två lager ger två gissningar, och en join på namn går sönder tyst.** Namnen
+härleddes var för sig i parkerings- och städlagret. Där gissningarna landade olika
+tappade en sträcka 1 m från sin städlinje hela varningen. Mätt: 8 av 136. Regeln: ligger
+linjerna på varandra (täckningsgrad ≥ 50 % inom 5 m) ärver parkeringen städlinjens namn.
+**Mät alltid joinen i appens riktiga kod** (`nearCleaning`), inte bara namnens träff mot
+facit. Facit-träffen steg när joinen blev sämre.
+
+**4. En kommentar som lovar ett beteende är ett påstående och ska ha ett prov.**
+Adaptern skrev «båda fönstren visas», men koden som gjorde det fanns inte. Det hittades
+först när skyltrundan skulle specas. Varje «appen gör X» i en kommentar behöver ett prov
+som faller om X slutar gälla.
+
+**5. Ett prov som kan lyckas med tomt svar provar inget.** Första schemaprovet frågade
+bara «är svaret en lista?» med en handplockad koordinat som låg 310 m fel, och det gick
+igenom. Provpunkter ska tas **ur datan**, och provet ska kräva ett icke-tomt, rätt svar.
+
+**6. Kontrollera var lagret bor, inte bara att det svarar.** GeoServer har arbetsytor.
+`oppnadata:` är det kommunen publicerar, `webbkartan:` är dess egen karta. Karlstads
+parkering ligger i den senare, precis som Uppsalas i en kartportal. Åtkomligt ≠
+licensierat, och texten ska säga «webbkarta». Och **HTTP 401 är inte ett antal poster**:
+inventeringen skrev «avgiftsfria lagret (401)» om ett spärrat lager.
+
+**7. Egen projektionsmatte är okej om den prövas mot facit.** Karlstad avrundar grader
+till 1 km, och servern har ingen proj4. Gauss–Krüger i adaptern, prövad mot proj4 i
+testet (under 1 mm), höll projektet fritt från beroenden. Samma teknik fungerar för nästa
+stad med samma serverfel.
+
 ## 9. Snabbchecklista
 
 ```
 [ ] STÄDMODELLEN utredd och sagd till Lars   — fasta dagar? paritet? datum? eller bara tillfälliga skyltar?
+[ ] Kommunens sida om städning läst HELT      — undantag (röda dagar!) står sällan i datan
+[ ] Kommunens egen gatulista hittad?          — facit utifrån, för data, namn och SEO
+[ ] Lagrets arbetsyta/portal kontrollerad     — öppna data eller bara kommunens karta?
 [ ] node verktyg/stadskoll.js <stad>          — finns datan?
 [ ] Frånvarotabell ifylld, med källa per rad  — MÄNSKLIGT, hoppa aldrig över
 [ ] cities/<stad>.js — fem fällorna avbockade

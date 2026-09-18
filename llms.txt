@@ -1,6 +1,6 @@
 # ParkSpot
 
-> Gratis webb-app som visar var det är lagligt att parkera på gatan – just nu eller över natten. Täcker **Stockholm**, **Göteborg** och **Uppsala**. Visar städdagar per gata, tidsgränser, boendezoner och parkeringsanläggningar, med egna lägen för bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd. Bygger på kommunernas egna parkeringsdata. Helt gratis, inget konto, ingen inloggning.
+> Gratis webb-app som visar var det är lagligt att parkera på gatan – just nu eller över natten. Täcker **Stockholm**, **Göteborg**, **Uppsala** och **Karlstad**. Visar städdagar per gata, tidsgränser, boendezoner och parkeringsanläggningar, med egna lägen för bil, motorcykel, cykel/moped klass 2 och rörelsehindrade med parkeringstillstånd. Bygger på kommunernas egna parkeringsdata. Helt gratis, inget konto, ingen inloggning.
 
 ParkSpot har inga sensorer för lediga parkeringsplatser i realtid. Appen visar var det ÄR LAGLIGT att parkera, aktuellt pris och nästa städdag – inte beläggning på enskilda p-rutor. Kontrollera alltid skylten på plats; data kan vara inaktuell.
 
@@ -21,6 +21,11 @@ Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehin
 
 **Viktigt om Uppsala:** Uppsala har **inga fasta städdagar** – vårens sandupptagning skyltas tillfälligt 24 timmar före – och kommunen publicerar **inga parkeringsförbud** utanför parkeringsplatserna. Appen säger ingenting om städning i Uppsala. En tid på skylten utan parentes («4 tim 8-18») gäller vardagar utom dag före sön- och helgdag. Lastplatser utan tid gäller dygnet runt.
 
+### Karlstad — [parkspot.se/?stad=karlstad](https://parkspot.se/?stad=karlstad)
+Servicedagar (städdagar) på drygt 90 gatuavsnitt i centrala Karlstad, avgiftszoner och parkeringsområden med kommunens egna prisuppgifter, tidsgränser (en vecka, ett dygn eller 120 minuter där de finns) och 37 parkeringsanläggningar – ur Karlstads kommuns webbkarta.
+
+**Viktigt om Karlstad:** servicedagen är ett **skyltat parkeringsförbud några timmar varannan vecka** (jämna eller udda veckor, året runt) och gäller **inte på röda dagar** – till skillnad från Stockholm, där städförbudet gäller även på helgdagar. Kommunen publicerar **inga andra parkeringsförbud** och inga MC- eller rörelsehindradeplatser som sträckor. Nära hälften av avgiftssträckorna saknar tidsgräns i datan; där säger appen «kontrollera tidsgräns» i stället för «trygg över natten».
+
 ## Huvudsidor
 - [ParkSpot – live-kartan](https://parkspot.se/): Själva appen.
 - [Om ParkSpot](https://parkspot.se/om-parkspot): Vad tjänsten är, vad den bygger på, vad den inte gör, vanliga frågor.
@@ -32,6 +37,9 @@ Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehin
 - [Parkeringsavgifter i Uppsala](https://parkspot.se/parkeringsavgifter-uppsala): Områdeskoden på skylten styr priset; zonerna och besöksparkeringarnas taxor.
 - [Parkera över natten i Uppsala](https://parkspot.se/parkering-over-natten-uppsala): Tidsgränsen, gränsens klockslag och avgiften – ingen städnatt att undvika.
 - [Parkeringsgarage i Uppsala](https://parkspot.se/parkeringshus-uppsala): Fyra kommunala garage med platser, laddplatser, takhöjd och maxtid.
+- [Parkering i Karlstad](https://parkspot.se/parkering-karlstad): Servicedagar, zoner och avgifter, tidsgränser och parkeringsanläggningar i Karlstad.
+- [Servicedagar i Karlstad](https://parkspot.se/servicedagar-karlstad): Varje gata med servicedag, dag för dag, jämna och udda veckor – som kommunen själv listar dem.
+- [Parkera över natten i Karlstad](https://parkspot.se/parkering-over-natten-karlstad): Servicedagar klockan 05–07, tidsgränser och helgdagar.
 
 ## English
 - [Parking in Stockholm — visitor's guide](https://parkspot.se/parking-in-stockholm): Prices, rules and the map, in English.

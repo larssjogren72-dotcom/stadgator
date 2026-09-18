@@ -405,7 +405,7 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
 //
 // Fallerar en stad loggas det och servern startar ändå: en trasig pilotstad ska
 // aldrig kunna ta ner Stockholm.
-const STADSNAMN = ['sundbyberg', 'goteborg', 'malmo', 'uppsala'];
+const STADSNAMN = ['sundbyberg', 'goteborg', 'malmo', 'uppsala', 'karlstad'];
 
 // ── AV I DRIFT, PÅ LOKALT ────────────────────────────────────────────────────
 // Koden bor i huvudversionen så att den ALDRIG halkar efter Stockholm-fixarna –
@@ -532,6 +532,16 @@ const SEO_STADER = {
     nyckelord: 'parkering uppsala, gratis parkering uppsala, nattparkering uppsala, parkeringszoner uppsala, parkeringshus uppsala, tidsbegränsad parkering uppsala',
     kanonisk: 'https://parkspot.se/?stad=uppsala'
   },
+  // Karlstad: staden HAR servicedagar med skyltat parkeringsförbud, och det är det
+  // enda appen kan lova utöver avgifter och tidsgränser. Texten nämner därför
+  // städdagarna först – de är stadens starka sida – men lovar inga förbud.
+  karlstad: {
+    namn: 'ParkSpot Karlstad',
+    titel: 'ParkSpot Karlstad – var får du parkera?',
+    beskrivning: 'Se på karta var du får parkera i Karlstad – just nu eller över natten. Servicedagar med jämna och udda veckor, avgiftszoner, tidsgränser och parkeringsanläggningar.',
+    nyckelord: 'parkering karlstad, servicedagar karlstad, städdagar karlstad, nattparkering karlstad, parkeringszoner karlstad, gratis parkering karlstad, parkeringshus karlstad',
+    kanonisk: 'https://parkspot.se/?stad=karlstad'
+  },
   // Malmö saknades här tills 2026-09-17: en delad ?stad=malmo-länk förhandsvisades
   // som "ParkSpot Stockholm", och sidfoten blev Stockholms av samma skäl (stadIdFor
   // faller tillbaka på Stockholm för en stad som inte står i den här tabellen).
@@ -595,6 +605,14 @@ const SEO_FOTER = {
       + '<a href="/om-parkspot">Om ParkSpot</a>'
       + '</div></footer>';
   })(),
+  karlstad:
+    '<footer id="seo-links" aria-label="Parkering i Karlstad">'
+    + '<div class="seo-h">Guider</div><div class="seo-grid">'
+    + '<a href="/parkering-karlstad">Parkering i Karlstad</a>'
+    + '<a href="/servicedagar-karlstad">Servicedagar</a>'
+    + '<a href="/parkering-over-natten-karlstad">Parkera över natten</a>'
+    + '<a href="/om-parkspot">Om ParkSpot</a>'
+    + '</div></footer>',
   // Malmö och Sundbyberg har inga egna sidor än – tom sidfot tills de får det.
   malmo: '',
   sundbyberg: ''
@@ -788,7 +806,7 @@ http.createServer((req, res) => {
     const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n${seoXml}\n</urlset>`;
     finish(req, res, 200, Buffer.from(xmlBody));
 
-  } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|om-parkspot|en|parkering-goteborg|stadgator-goteborg|boendeparkering-goteborg|parkeringsanlaggningar-goteborg|parkering-uppsala|parkeringsavgifter-uppsala|parkering-over-natten-uppsala|parkeringshus-uppsala)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
+  } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|om-parkspot|en|parkering-goteborg|stadgator-goteborg|boendeparkering-goteborg|parkeringsanlaggningar-goteborg|parkering-uppsala|parkeringsavgifter-uppsala|parkering-over-natten-uppsala|parkeringshus-uppsala|parkering-karlstad|servicedagar-karlstad|parkering-over-natten-karlstad)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
     // SEO-sidor (statiska, genererade i seo/site/) – egna URL:er, rör ej appen.
     const rel = reqUrl.pathname.replace(/\/+$/, '');
     const seoFile = path.join(__dirname, 'seo', 'site', rel + '.html');

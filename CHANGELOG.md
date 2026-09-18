@@ -14,6 +14,45 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.0 – 2026-09-18
+**Karlstad, stad sex: servicedagar varannan vecka, och ett undantag på röda dagar som ingen annan stad har.**
+
+Karlstad har riktiga städgator. Kommunen kallar dem **servicedagar**, och de är ett
+skyltat parkeringsförbud några timmar varannan vecka, året runt, i centrala Karlstad.
+Det gör staden till en fullvärdig ParkSpot-stad: städvarning, «trygg över natten» och
+glöd när städningen slutat. Allt är samlat i `KARLSTAD.md`.
+
+- **Ny adapter `cities/karlstad.js`**, som läser kommunens GeoServer utan nyckel.
+  Avgiftssträckorna, servicedagarna och 37 parkeringsanläggningar följer samma kontrakt
+  som övriga städer.
+- **Röda dagar, en stadsflagga (`stadUndantagRodaDagar`).** Karlstads förbud gäller inte
+  på helgdagar, men Stockholms gör det. Därför är undantaget en flagga i
+  `STADER_CFG` och ingen generell regel. Helgdagarna räknas enligt lag (påsken med
+  Gauss formel), med en enda grind i `cleaningActiveOn`. Bevisat i appens ritkod:
+  Kristi himmelsfärd 2027 (torsdag i jämn vecka) ger 0 röda sträckor i Karlstad, och en
+  vanlig torsdag två veckor senare ger 21. Stockholm ritar städningen röd samma
+  helgdag, eftersom flaggan är av där.
+- **Koordinaterna räknas själva.** Karlstads server avrundar grader till två decimaler,
+  ungefär 1 km. Allt hämtas därför i meter, och Gauss–Krüger ligger i adaptern. Mot
+  proj4 är avvikelsen under 1 mm. Projektet har fortfarande noll beroenden.
+- **Gatunamn härleds, eftersom kommunen inte publicerar dem.** Namnen tas ur kommunens
+  adresslager (`verktyg/bygg-karlstad-gatunamn.js`). Kommunens egen lista över
+  servicedagar är facit och filter: 77 av 79 gator stämmer. En parkeringssträcka som
+  ligger på sin städlinje får städlinjens namn, så att städvarningen inte tappas. Före
+  den regeln tappade sträckor på Hagagatan och Sandbäcksgatan sin varning.
+- **Konfliktregeln.** På Vikengatan och Drottninggatan säger kommunens två källor olika
+  saker. Appen väljer inte mellan dem, utan båda fönstren visas.
+- **Tre SEO-sidor:** `/parkering-karlstad`, `/servicedagar-karlstad` (varje gata, dag
+  för dag, ordagrant ur kommunens lista) och `/parkering-over-natten-karlstad`.
+  Underlaget kommer ur `verktyg/bygg-karlstad-seo.js` och går genom adaptern. Om-sidan,
+  sidfoten, `llms.txt` och arkitektursidan är uppdaterade.
+- **Ärligt om luckorna:** 178 av 381 sträckor saknar tidsgräns och blir därför blå.
+  Kommunen publicerar inga andra parkeringsförbud, och inga RH- eller MC-platser som
+  sträckor. Lagren ligger i kommunens `webbkartan`, inte i `oppnadata`, så appen skriver
+  «webbkarta», aldrig «öppna data». Frågorna står i `KARLSTAD_BREV.md` (ej skickat).
+- **Prov:** `node test/karlstad-prov.js`, 33 prov mot riktig data, bland annat en
+  kontroll att alla 21 grupperna i kommunens lista finns i datan.
+
 ## v1.33.0 – 2026-09-17
 **SEO för Uppsala: 29 nya sidor, alla byggda på mätt data.**
 

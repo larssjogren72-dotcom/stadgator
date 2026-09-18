@@ -1072,6 +1072,7 @@ function aboutPage() {
     // Om-sidan är rätt ställe – det är där tjänsten beskrivs som helhet.
     { href:'parkering-goteborg', text:'Parkering i Göteborg' },
     { href:'parkering-uppsala', text:'Parkering i Uppsala' },
+    { href:'parkering-karlstad', text:'Parkering i Karlstad' },
   ];
   const extraLd = { '@context':'https://schema.org', '@graph':[
     // SYSKONMODELLEN (Lars beslut 2026-08-28): 'ParkSpot' är moderorganisationen och
@@ -1079,20 +1080,139 @@ function aboutPage() {
     // identiteterna, alltså syskon – inte två organisationer. Ett nationellt varumärke
     // valdes bort för att 212 sidor redan rankar på det gamla namnet; additivt före
     // omskrivning. Ändra inte det här utan att fråga.
-    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:['ParkSpot Stockholm','ParkSpot Göteborg','ParkSpot Uppsala'], url:SITE, logo:`${SITE}/og-image-v2.png`,
+    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:['ParkSpot Stockholm','ParkSpot Göteborg','ParkSpot Uppsala','ParkSpot Karlstad'], url:SITE, logo:`${SITE}/og-image-v2.png`,
       description:'ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.',
       areaServed:[{ '@type':'City', name:'Stockholm', sameAs:'https://sv.wikipedia.org/wiki/Stockholm' },
                   { '@type':'City', name:'Göteborg', sameAs:'https://sv.wikipedia.org/wiki/G%C3%B6teborg' },
-                  { '@type':'City', name:'Uppsala', sameAs:'https://sv.wikipedia.org/wiki/Uppsala' }] },
+                  { '@type':'City', name:'Uppsala', sameAs:'https://sv.wikipedia.org/wiki/Uppsala' },
+                  { '@type':'City', name:'Karlstad', sameAs:'https://sv.wikipedia.org/wiki/Karlstad' }] },
     { '@type':'WebApplication', '@id':`${SITE}/#app`, name:'ParkSpot Stockholm', alternateName:'ParkSpot', url:SITE,
       applicationCategory:'TravelApplication', applicationSubCategory:'Parking', operatingSystem:'Web', inLanguage:'sv', isAccessibleForFree:true,
-      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:[{ '@type':'City', name:'Stockholm' },{ '@type':'City', name:'Göteborg' },{ '@type':'City', name:'Uppsala' }], publisher:{ '@id':`${SITE}/#organization` },
+      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:[{ '@type':'City', name:'Stockholm' },{ '@type':'City', name:'Göteborg' },{ '@type':'City', name:'Uppsala' },{ '@type':'City', name:'Karlstad' }], publisher:{ '@id':`${SITE}/#organization` },
       description:'Visar var du får parkera lagligt just nu i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per zon, städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning.' } ] };
   emit('om-parkspot', layout({
     slug:'om-parkspot', title:'Om ParkSpot – gratis parkeringsapp för Stockholm | ParkSpot',
     desc:'Vad är ParkSpot? Gratis app som visar var du får parkera lagligt i Stockholm – bil, MC, moped, rörelsehindrade. Pris, städdagar och nattparkering.',
     h1:'Om ParkSpot', lead:'ParkSpot är en gratis app som visar var du får parkera lagligt i Stockholm – för bil, MC, cykel/moped och rörelsehindrade, nu eller över natten. Här förklarar vi vad appen gör och varför.',
     sections, faq, related, lat:null, lng:null, match:null, extraLd }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KARLSTAD
+// ═══════════════════════════════════════════════════════════════════════════
+// Tre sidor, additiva som Uppsalas. Siffrorna ur seo/karlstad.json, uppmätt genom
+// cities/karlstad.js av verktyg/bygg-karlstad-seo.js. ⚠ TRE SAKER SOM MÅSTE STÅ:
+//   1. Servicedagarna ÄR ett skyltat parkeringsförbud – Karlstads starkaste sida.
+//   2. De gäller INTE på röda dagar (kommunens egna ord). Stockholms gör det.
+//   3. Inga andra parkeringsförbud i datan, och ingen tidsgräns på nära hälften.
+const KSD = { namn: 'ParkSpot Karlstad', relText: 'Mer om parkering i Karlstad', karta: '/?stad=karlstad' };
+const KSD_DATA = JSON.parse(fs.readFileSync(path.join(__dirname, 'karlstad.json'), 'utf8'));
+const KSD_FORBEHALL = 'Karlstads kommun publicerar inga parkeringsförbud utöver servicedagarna, och inga platser för motorcykel eller rörelsehindrade som sträckor. En gata utan färg i ParkSpot betyder därför «ingen uppgift», inte «fritt». Kontrollera alltid skylten.';
+const ksdTal = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const KSD_GRANS = Object.fromEntries(KSD_DATA.granser.map(g => [g.namn, g.antal]));
+
+function ksdRelated(utom) {
+  return [
+    { href:'parkering-karlstad', text:'Parkering i Karlstad – översikt' },
+    { href:'servicedagar-karlstad', text:'Servicedagar i Karlstad – gata för gata' },
+    { href:'parkering-over-natten-karlstad', text:'Parkera över natten i Karlstad' },
+  ].filter(r => r.href !== utom);
+}
+
+function ksdPillar() {
+  const zoner = KSD_DATA.zoner.filter(z => z.zon && z.zon !== 'Okänt område');
+  const sections =
+    '<section class="card"><h2>Parkering i Karlstad på karta</h2>' +
+    `<p>ParkSpot visar var det är lagligt att parkera på gatan i Karlstad – <b>just nu</b> eller <b>över natten</b>. Underlaget är Karlstads kommuns webbkarta: <b>${ksdTal(KSD_DATA.strackorTotalt)} avgiftssträckor</b> med tillsammans <b>${ksdTal(KSD_DATA.platserTotalt)} platser</b>, servicedagarna gata för gata och ${KSD_DATA.anlaggningar.totalt} parkeringsanläggningar.</p>` +
+    '<p>' + KSD_FORBEHALL + '</p></section>' +
+    '<section class="card"><h2>Servicedagar – varannan vecka, inte på röda dagar</h2>' +
+    `<p>På ${KSD_DATA.servicedagar.gator} gator i centrala Karlstad är det <b>parkeringsförbud några timmar varannan vecka</b> så att kommunen kan sopa eller ploga. Kommunen kallar det servicedagar (förr städdagar), och förbudet står på skylten vid varje berörd gata.</p>` +
+    '<ul><li><b>Jämna eller udda veckor.</b> De flesta gator städas jämna veckor, några udda. ParkSpot räknar veckonumret åt dig.</li>' +
+    '<li><b>Ingen säsong.</b> Samma dagar hela året – sopning på sommaren, plogning på vintern.</li>' +
+    '<li><b>Inte på röda dagar.</b> Infaller servicedagen på en helgdag gäller inte förbudet. Det är en skillnad mot Stockholm, där städförbudet gäller även på helgdagar.</li></ul>' +
+    '<p><a href="/servicedagar-karlstad">Se alla gator med servicedag, dag för dag →</a></p></section>' +
+    '<section class="card"><h2>Hur länge får du stå?</h2>' +
+    `<p>Karlstad anger tidsgränsen på en stor del av avgiftssträckorna: <b>${KSD_GRANS['Högst 1 vecka']}</b> sträckor har en vecka, <b>${KSD_GRANS['Högst 1 dygn']}</b> ett dygn och <b>${KSD_GRANS['Högst 120 minuter']}</b> högst 120 minuter. På <b>${KSD_GRANS['Ingen gräns i datan']}</b> sträckor saknas gränsen i datan – där visar ParkSpot blått «kontrollera tidsgräns» i stället för grönt, eftersom vi inte vet hur länge bilen får stå.</p></section>` +
+    '<section class="card"><h2>Zoner och avgifter</h2><p>Priset följer zonen eller parkeringsområdet. Så här skriver kommunen det, per område (klockslag inom parentes gäller dag före sön- och helgdag, oftast lördag):</p><ul>' +
+    zoner.slice(0, 16).map(z => `<li><b>${esc(z.zon)}</b> – ${z.priser.length ? esc(z.priser[0]) : 'pris saknas i datan'} · ${z.stracker} sträckor, ${ksdTal(z.platser)} platser</li>`).join('') +
+    '</ul></section>' +
+    '<section class="card"><h2>Parkeringsanläggningar</h2>' +
+    `<p>Är gatan full visar ParkSpot närmaste anläggning: ${KSD_DATA.anlaggningar.garage.length} parkeringshus (${KSD_DATA.anlaggningar.garage.map(esc).join(', ')}) och ${KSD_DATA.anlaggningar.ytor} parkeringsområden. Kommunen publicerar inte hur många platser de har, så appen skriver inte ut någon siffra.</p></section>`;
+  const faq = [
+    { q:'Har Karlstad städdagar?', a:'Ja. De heter servicedagar och är ett skyltat parkeringsförbud några timmar varannan vecka på ungefär 90 gator i centrala Karlstad. ParkSpot visar dem på kartan och räknar ut om det är jämn eller udda vecka.' },
+    { q:'Gäller servicedagen på helgdagar?', a:'Nej. Enligt Karlstads kommun gäller inte parkeringsförbudet om servicedagen infaller på en röd dag. ParkSpot tar hänsyn till det. Julafton, midsommarafton och nyårsafton är inte röda dagar i lagens mening, och där visar appen förbudet.' },
+    { q:'Kan ParkSpot visa var jag inte får parkera i Karlstad?', a:'Bara under servicedagarna. Kommunen publicerar inga andra parkeringsförbud, så en gata utan färg betyder att uppgift saknas – inte att det är fritt.' },
+    { q:'Kostar ParkSpot något?', a:'Nej, gratis och utan inloggning. Karlstad bygger på kommunens webbkarta.' },
+  ];
+  emit('parkering-karlstad', layout({
+    slug:'parkering-karlstad', title:'Parkering i Karlstad – var får du parkera? | ParkSpot',
+    desc:'Se på karta var du får parkera i Karlstad – nu eller över natten. Servicedagar med jämna och udda veckor, zoner, avgifter, tidsgränser och parkeringshus.',
+    h1:'Parkering i Karlstad',
+    lead:'Var får du stå, hur länge, och när är det servicedag? ParkSpot visar det på karta – byggt på Karlstads kommuns webbkarta.',
+    sections, faq, related: ksdRelated('parkering-karlstad'), lat:null, lng:null, match:null, stad:KSD }));
+}
+
+// ── Servicedagarna, dag för dag ─────────────────────────────────────────────
+// Gatorna skrivs ut ORDAGRANT ur kommunens egen lista – inklusive «östra sidan»
+// och «mellan X och Y». Det är den avgränsning skylten har; våra härledda namn i
+// appen bär bara gatan och får aldrig ersätta kommunens formulering här.
+function ksdServicedagar() {
+  const SD = KSD_DATA.servicedagar;
+  const DAGAR = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag'];
+  const block = DAGAR.map(dag => {
+    const rader = SD.grupper.filter(g => g.veckodag === dag);
+    if (!rader.length) return '';
+    return `<section class="card"><h2>${dag}</h2>` + rader.map(g =>
+      `<h3>${g.vecka === 'jämna' ? 'Jämna' : 'Udda'} veckor, klockan ${esc(g.klockslag.replace('-', '–'))}</h3><ul>` +
+      g.gator.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>').join('') + '</section>';
+  }).join('');
+  const sections =
+    '<section class="card"><h2>Så fungerar servicedagarna</h2>' +
+    `<p>På gator där kommunens sopmaskiner och plogar har svårt att komma fram är det <b>parkeringsförbud några timmar varannan vecka</b>. Förbudet står på vägmärket vid varje berörd gata. I dag gäller det ${SD.gator} gatuavsnitt, ${String(SD.km).replace('.', ',')} km gata i centrala Karlstad.</p>` +
+    '<ul><li><b>Varannan vecka.</b> Titta på veckonumret: jämn eller udda. ParkSpot räknar det åt dig.</li>' +
+    '<li><b>Olika tider på gatans två sidor.</b> Många gator sopas på olika dagar på östra och västra sidan. Zooma in i appen så ser du båda.</li>' +
+    '<li><b>Inte på röda dagar.</b> Infaller servicedagen på en helgdag gäller inte förbudet.</li>' +
+    '<li><b>Året runt.</b> Samma dagar sommar som vinter.</li></ul>' +
+    `<p>Listan nedan är kommunens egen, uppdaterad ${esc(SD.sidanUppdaterad)}. Står din gata inte med sopas den enligt det vanliga schemat, utan parkeringsförbud.</p></section>` +
+    block +
+    '<section class="card"><h2>Källa</h2><p>Karlstads kommun, <a href="' + esc(SD.kalla) + '" rel="nofollow">Schema för servicedagar och parkeringsförbud</a>. ' + KSD_FORBEHALL + '</p></section>';
+  const faq = [
+    { q:'Vad är en servicedag i Karlstad?', a:'Ett tillfälligt parkeringsförbud några timmar varannan vecka på gator där kommunen behöver sopa eller ploga. Det hette tidigare städdag, och det står på skylten vid gatan.' },
+    { q:'Är det jämn eller udda vecka nu?', a:'Det avgör veckonumret. ParkSpot räknar ut det och visar bara servicedagar som faktiskt gäller den här veckan.' },
+    { q:'Gäller servicedagen på röda dagar?', a:'Nej, enligt kommunen gäller inte förbudet om servicedagen infaller på en röd dag.' },
+    { q:'Min gata finns inte i listan – vad gäller?', a:'Då sopas den enligt kommunens vanliga schema för underhållssopning, utan parkeringsförbud. Andra skyltar på gatan gäller förstås som vanligt.' },
+  ];
+  emit('servicedagar-karlstad', layout({
+    slug:'servicedagar-karlstad', title:'Servicedagar i Karlstad – städdagar gata för gata | ParkSpot',
+    desc:'Alla gator med servicedag i Karlstad, dag för dag: jämna och udda veckor, klockslag och vad som gäller på röda dagar. Se dem på karta.',
+    h1:'Servicedagar i Karlstad',
+    lead:'Parkeringsförbud några timmar varannan vecka – här är varje gata, dag för dag, som kommunen själv listar dem.',
+    sections, faq, related: ksdRelated('servicedagar-karlstad'), lat:null, lng:null, match:null, stad:KSD }));
+}
+
+// ── Över natten ──────────────────────────────────────────────────────────────
+function ksdNatt() {
+  const tidiga = KSD_DATA.servicedagar.grupper.filter(g => g.klockslag.startsWith('05'))
+    .reduce((s, g) => s + g.gator.length, 0);
+  const sections =
+    '<section class="card"><h2>Tre saker avgör om bilen kan stå kvar till morgonen</h2><ul>' +
+    `<li><b>Servicedagen i morgon bitti.</b> ${tidiga} gatuavsnitt har servicedag redan klockan <b>05–07</b>. Då hinner du inte flytta bilen på morgonen, och ParkSpot visar gatan som olämplig kvällen före. Börjar förbudet 08 eller senare står det när du måste flytta.</li>` +
+    `<li><b>Tidsgränsen.</b> ${KSD_GRANS['Högst 1 vecka']} sträckor tillåter en vecka och ${KSD_GRANS['Högst 1 dygn']} ett dygn. ${KSD_GRANS['Högst 120 minuter']} har högst 120 minuter och räcker inte för en natt.</li>` +
+    `<li><b>Uppgift som saknas.</b> På ${KSD_GRANS['Ingen gräns i datan']} sträckor finns ingen tidsgräns i kommunens data. Där säger ParkSpot aldrig «trygg över natten» – vi vet inte.</li>` +
+    '</ul></section>' +
+    '<section class="card"><h2>Helgdagar</h2><p>Infaller servicedagen på en röd dag gäller inte förbudet. Kvällen före en helgdag kan alltså en gata med servicedag vara trygg. ParkSpot räknar med det, men bara för de dagar som är helgdagar enligt lag – inte julafton, midsommarafton eller nyårsafton.</p>' +
+    '<p>' + KSD_FORBEHALL + '</p></section>';
+  const faq = [
+    { q:'Får jag stå kvar över natten i Karlstad?', a:'Ofta, men kontrollera två saker: att det inte är servicedag tidigt nästa morgon, och att tidsgränsen räcker. Natt-läget i ParkSpot väger in båda.' },
+    { q:'Vad händer om servicedagen är klockan 05–07?', a:'Då måste bilen vara borta innan fem på morgonen. ParkSpot visar gatan som olämplig för natten kvällen före.' },
+    { q:'Är parkeringen gratis på natten?', a:'I flera zoner tar avgiften slut klockan 18, i några parkeringsområden kostar natten 2 kr i timmen. Priset per område står på översiktssidan.' },
+  ];
+  emit('parkering-over-natten-karlstad', layout({
+    slug:'parkering-over-natten-karlstad', title:'Parkera över natten i Karlstad – servicedagar och tidsgränser | ParkSpot',
+    desc:'Kan bilen stå kvar till morgonen i Karlstad? Servicedagar klockan 05–07, tidsgränser och avgifter avgör. Se lagliga nattplatser på karta.',
+    h1:'Parkera över natten i Karlstad',
+    lead:'Servicedagen tidigt nästa morgon och tidsgränsen – det är de två sakerna som avgör.',
+    sections, faq, related: ksdRelated('parkering-over-natten-karlstad'), lat:null, lng:null, match:null, stad:KSD }));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1460,6 +1580,7 @@ gbgPillar(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
 GBG_OMR.forEach(gbgOmrade);
 upsPillar(); upsAvgifter(); upsNatt(); upsGarage();
 UPS_DATA.stadsdelar.forEach(upsStadsdel);
+ksdPillar(); ksdServicedagar(); ksdNatt();
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);

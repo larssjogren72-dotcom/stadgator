@@ -4,7 +4,7 @@
 > Senast uppdaterad: 2026-06-01
 
 > ⚠️ **Det här dokumentet beskriver Stockholm ensamt och är från juni 2026.** Det var
-> sant då, men sedan dess har Göteborg, Sundbyberg, Malmö och Uppsala tillkommit och delningen mellan
+> sant då, men sedan dess har Göteborg, Sundbyberg, Malmö, Uppsala och Karlstad tillkommit och delningen mellan
 > delad grund och stadsspecifik kod har byggts. **Aktuell översikt:**
 > [`docs/arkitektur.html`](docs/arkitektur.html) — dataflödet, integrationerna och de
 > två fickor där stadsspecifik kod får finnas, med diagram.
