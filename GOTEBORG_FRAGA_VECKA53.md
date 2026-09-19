@@ -4,7 +4,7 @@
 Stadsmiljöförvaltningens kontakt för öppna data). Be att frågan går vidare till den som
 planerar gatusopningen om de inte kan svara själva.
 
-**EJ SKICKAT.** Skickas av Lars. Kort och fristående med flit, så att det kan gå iväg oavsett
+**SKICKAT 2026-09-19** av Lars (manuellt). Kort och fristående med flit, så att det kan gå iväg oavsett
 om det stora brevet har skickats. Kommer svar: för in det i minnet
 (`project_stadgator_testrunda_2026_09_19`, punkt 13) innan appen ändras.
 

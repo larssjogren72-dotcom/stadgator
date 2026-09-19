@@ -10,7 +10,7 @@ fastighetsförvaltningens** (`tg_tg_…`). Be att frågan skickas vidare till de
 
 Bilaga att skicka med: `KOMMUNBREV.md` (hela listan över vad appen behöver).
 
-**EJ SKICKAT.** Skickas av Lars. Kommer svar: för in det som `KARLSTAD_SVAR.md` och rätta
+**SKICKAT 2026-09-19** av Lars (manuellt, med fråga 8 om vecka 53). Kommer svar: för in det som `KARLSTAD_SVAR.md` och rätta
 det appen påstår innan något byggs vidare.
 
 ⚠ Brevet säger att staden är **i drift**. Stämmer det inte när brevet skickas (Lars har
