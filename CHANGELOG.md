@@ -14,6 +14,27 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.2 – 2026-09-19
+**Natt-läget varnar för städning i Göteborg och Karlstad, och en gatusida färgas inte längre av den andra sidans städdag.**
+
+Båda felen hittades i en testrunda mot parkspot.se samma dag.
+
+- **Natt-läget i Göteborg och Karlstad visade «Trygg över natten» på gator som städas
+  samma natt.** Morgondagens städning hämtades vid appstart från en källa som bara finns
+  i Stockholm, och i andra städer blev listan tom. Karlstad söndag 22:00: Trädgårdsgatan
+  grön, städas måndag 05–07. Göteborg tisdag 22:00: Linnégatan grön, städas onsdag 02–07.
+  Nu-läget varnade samtidigt för samma gator. Felet fanns sedan v1.25.0. Nu hämtas
+  städningen för sökområdet, och misslyckas det visas ett fel i stället för en grön
+  karta. Stockholm hämtar som förut.
+- **Sidolåset gäller nu även gatans färg, inte bara texten.** Städlinjer matchas på
+  gatunamn och 25 m, vilket räcker över de flesta gator. Texten «Nästa städning» fick
+  ett sidolås i augusti, men färgen fick det inte. Därför kunde kortet säga «Städas nu»
+  och «Nästa städning i morgon» om samma sträcka (Linnégatans torsdagssida röd på
+  onsdagen, Dannemoragatans onsdagssida röd på tisdagen). Färg och text delar nu en
+  funktion, med marginalen 6 m (var 3). Mätningen i 19 områden visar att andra sidan
+  normalt ligger 6,6–25 m bort. De få fall under 6 m där datan inte kan avgöra sida
+  räknas som egen sida, så ändringen gör appen försiktigare, aldrig generösare.
+
 ## v1.34.0 – 2026-09-18
 **Karlstad, stad sex: servicedagar varannan vecka, och ett undantag på röda dagar som ingen annan stad har.**
 
