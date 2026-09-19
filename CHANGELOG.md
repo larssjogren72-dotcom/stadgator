@@ -14,6 +14,20 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.9 – 2026-09-19
+**Vid gathörn avgör mitten av sträckan vilken sida den hör till, inte första punkten.**
+
+Städmatchningen mätte från sträckans första punkt. Vid ett gathörn kan den ligga nära
+båda sidornas städlinjer, och då fick sträckan även andra sidans städdag. Nu avgör
+mitten av sträckan när den ligger nära en linje. Annars avgör den ände som ligger
+närmast en linje, och ligger ingen punkt nära någon linje väljer appen det strängaste.
+«Nyss städad»-glöden och «avslutad»-texten utgår alltid från mitten.
+
+Provet mot live (hela kartan, sju scenarier i tre städer) gav två ändringar, båda
+falska röda som försvinner: Dannemoragatans tisdagssida på onsdagen, och
+Herrgårdsgatans onsdagssida i Karlstad på torsdagen. Tre tidigare varianter av regeln
+föll i provet, varav en hade gjort en sträcka grön där live visar rött.
+
 ## v1.34.8 – 2026-09-19
 **Priset syns på kortet i Göteborg, Uppsala och Karlstad, och inte längre där man inte får stå.**
 
