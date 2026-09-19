@@ -1427,11 +1427,32 @@ const STADER_PA = (function (v) { return /^__/.test(v) ? true : v === '1'; })('_
 // ORDNINGEN: adressraden vinner över det sparade valet. Att följa en delad länk är
 // en avsiktlig handling, och då ska den också SPARAS (Lars beslut 2026-08-27) –
 // annars hoppar appen tillbaka nästa gång och länken känns trasig.
+// ── Lagring som aldrig kan fälla appen ──────────────────────────────────────
+// Blockerar webbläsaren lagring (Safari med «Blockera alla kakor», vissa inbyggda
+// webbläsare i andra appar) KASTAR redan läsningen av `localStorage` ett fel. Sju ställen
+// läste utan skydd, tre av dem direkt vid start – och då stannade hela skriptet: en helt
+// vit sida (bevisat i testrundan 2026-09-19 med en sandlådad ram, fel på rad 7513).
+// Alla läsningar och skrivningar går därför via LAGRING/SESSIONSLAGRING. Fungerar den
+// riktiga lagringen används den som förut; annars sparas valen i minnet så länge sidan
+// är öppen, och varje besök beter sig som det första – aldrig en krasch.
+function sakerLagring(typ) {
+  const minne = new Map();
+  let s = null;
+  try { s = window[typ]; s.getItem('__ps'); } catch (e) { s = null; }
+  return {
+    getItem(k)    { try { if (s) return s.getItem(k); } catch (e) {} return minne.has(k) ? minne.get(k) : null; },
+    setItem(k, v) { minne.set(k, String(v)); try { if (s) s.setItem(k, v); } catch (e) {} },
+    removeItem(k) { minne.delete(k); try { if (s) s.removeItem(k); } catch (e) {} },
+  };
+}
+const LAGRING = sakerLagring('localStorage');
+const SESSIONSLAGRING = sakerLagring('sessionStorage');
+
 const STAD_LAGRAD = 'parkspot_stad';
 function lasSparadStad() {
-  try { return (localStorage.getItem(STAD_LAGRAD) || '').toLowerCase(); } catch (e) { return ''; }
+  try { return (LAGRING.getItem(STAD_LAGRAD) || '').toLowerCase(); } catch (e) { return ''; }
 }
-function sparaStad(id) { try { localStorage.setItem(STAD_LAGRAD, id); } catch (e) {} }
+function sparaStad(id) { try { LAGRING.setItem(STAD_LAGRAD, id); } catch (e) {} }
 
 const STAD_UR_URL = ((location.search.match(/[?&]stad=([a-zåäö]+)/i) || [])[1] || '').toLowerCase();
 const VALD_STAD = STADER_PA ? (STAD_UR_URL || lasSparadStad()) : '';
@@ -1760,7 +1781,7 @@ const STAD = STADER_CFG[VALD_STAD] || STADER_CFG.stockholm;
 if (VALD_STAD && !STADER_CFG[VALD_STAD]) {
   console.warn(`[ParkSpot] Okänd stad "${VALD_STAD}" – visar Stockholm.`);
   // Ett felstavat ?stad= ska inte fastna i webbläsaren och följa med för evigt.
-  try { localStorage.removeItem(STAD_LAGRAD); } catch (e) {}
+  try { LAGRING.removeItem(STAD_LAGRAD); } catch (e) {}
 } else if (STAD_UR_URL && STADER_CFG[STAD_UR_URL]) {
   sparaStad(STAD_UR_URL);          // delad länk → kom ihåg (se kommentaren ovan)
 }
@@ -1981,14 +2002,14 @@ var NAV_APPS = {
 function navAppAvailable(id) { return !!NAV_APPS[id]; }
 function getNavApp() {
   var id;
-  try { id = localStorage.getItem('nav_app'); } catch (e) { id = null; }
+  try { id = LAGRING.getItem('nav_app'); } catch (e) { id = null; }
   // Sparat val som inte går att använda på den här enheten (Apple Kartor på Android)
   // faller tillbaka till Google – aldrig en knapp som leder till en tom sida.
   return navAppAvailable(id) ? id : 'google';
 }
 function setNavApp(id) {
   if (!navAppAvailable(id)) id = 'google';
-  try { localStorage.setItem('nav_app', id); } catch (e) {}
+  try { LAGRING.setItem('nav_app', id); } catch (e) {}
   try { if (window.gtag) gtag('event', 'nav_app_val', { event_category: 'navigering', event_label: id, stad: STAD.id }); } catch (e) {}
   navRefreshAll();
 }
@@ -2082,7 +2103,7 @@ function navPickerPick(id) {
   if (btn && navDest) window.open(btn.href, '_blank', 'noopener');
 }
 
-function getKey() { return localStorage.getItem('sthlm_key') || 'server'; }
+function getKey() { return LAGRING.getItem('sthlm_key') || 'server'; }
 
 // ── Cookie-samtycke (GDPR) ───────────────────────────────────────────────────
 function loadGA() {
@@ -2103,7 +2124,7 @@ function loadGA() {
   gtag('config', 'G-KMG3XTNPPN', { anonymize_ip: true, stad: STAD.id });
 }
 function cookieConsent(accept) {
-  localStorage.setItem('cookie_consent', accept ? 'accepted' : 'declined');
+  LAGRING.setItem('cookie_consent', accept ? 'accepted' : 'declined');
   document.getElementById('cookie-banner').style.display = 'none';
   if (accept) loadGA();
 }
@@ -2125,7 +2146,7 @@ function pingaRaknare() {
   } catch (e) {}
 }
 function initCookieConsent() {
-  const c = localStorage.getItem('cookie_consent');
+  const c = LAGRING.getItem('cookie_consent');
   if (c === 'accepted') loadGA();
   else if (c !== 'declined') document.getElementById('cookie-banner').style.display = 'flex';
 }
@@ -2152,8 +2173,8 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   };
 
   var KEY = 'ps_rev', shownThisSession = false;
-  function get() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
-  function set(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+  function get() { try { return JSON.parse(LAGRING.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function set(s) { try { LAGRING.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
   function track(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review', stad: STAD.id }); } catch (e) {} }  // GA-händelse (bara om cookies accepterats)
   function sendForm(msg) {   // logga reaktion/kommentar till Google-formuläret → räknebart i arket
     if (!FEEDBACK.action || !FEEDBACK.entryMsg || !msg) return;
@@ -7599,8 +7620,8 @@ let currentMode = 'now';
 // får inte stå där, så de ska inte visas/räknas som "MC-ruta").
 // Läs tillbaka sparat fordonsval. OBS: måste känna igen ALLA lägen – låg 'rh' kvar utanför
 // listan föll ett sparat rörelsehindrad-läge tillbaka till bil vid varje omladdning.
-let vehicleMode = ['mc', 'rh', 'cykel'].includes(localStorage.getItem('vehicle_mode'))
-  ? localStorage.getItem('vehicle_mode') : 'bil';
+let vehicleMode = ['mc', 'rh', 'cykel'].includes(LAGRING.getItem('vehicle_mode'))
+  ? LAGRING.getItem('vehicle_mode') : 'bil';
 // ── Dämpa gator man inte får stå på ──────────────────────────────────────────
 // Ersätter de två separata switcharna för gågata/förbud (som dessutom inte täckte
 // lila "ej för bil"). Mätt i en Vasastan-vy 2026-07-27: 188 av 255 ritade linjer
@@ -7618,7 +7639,7 @@ let vehicleMode = ['mc', 'rh', 'cykel'].includes(localStorage.getItem('vehicle_m
 const DIM_BIL = new Set(['#ef4444', '#ec4899', '#9333ea']);   // förbud, gågata, ej för bil
 const DIM_MC  = new Set(['#ef4444', '#ec4899', '#c3ccd6']);   // förbud, gågata, ej för MC (grå)
 const DIM_OPACITY = 0.16, DIM_WEIGHT = 3;
-let dimBlocked = localStorage.getItem('dim_blocked') === '1';
+let dimBlocked = LAGRING.getItem('dim_blocked') === '1';
 function isBlockedColor(c) { return (vehicleMode === 'mc' ? DIM_MC : DIM_BIL).has(c); }
 function applyDim(grp) {
   if (!grp || !grp.eachLayer) return;
@@ -7637,7 +7658,7 @@ function applyDim(grp) {
 function applyDimAll() { streetGroupLayers.forEach(applyDim); }
 function toggleDim() {
   dimBlocked = !dimBlocked;
-  try { localStorage.setItem('dim_blocked', dimBlocked ? '1' : '0'); } catch (e) {}
+  try { LAGRING.setItem('dim_blocked', dimBlocked ? '1' : '0'); } catch (e) {}
   applyDimAll();              // stilar om på plats – de gamla switcharna körde om HELA flödet
   updateLegend(currentMode);
 }
@@ -7808,8 +7829,8 @@ function sheetMinimize() { if (!sheetEl || sheetDragging) return; sheetCompute()
 // Minns om användaren själv dragit ner lådan → lägesförklaringen glider då inte upp av sig själv.
 // Minns EXAKT vilket läge användaren senast drog/snäppte lådan till (upp som ner) →
 // lägesförklaringen återställer det i stället för att alltid hoppa till peek. Default = peek (visa text).
-function getSheetPref() { const p = localStorage.getItem('sheet_pref'); return ['full','half','peek','min'].includes(p) ? p : 'peek'; }
-function setSheetPref(state) { try { localStorage.setItem('sheet_pref', state); } catch {} }
+function getSheetPref() { const p = LAGRING.getItem('sheet_pref'); return ['full','half','peek','min'].includes(p) ? p : 'peek'; }
+function setSheetPref(state) { try { LAGRING.setItem('sheet_pref', state); } catch {} }
 // Resultatvyn efter sökning/valt mål: lådan åker upp första gången, men har användaren
 // minimerat den (kryss eller dra ner) stannar den nere – också vid nästa besök (Lars 2026-09-14).
 // Ett tryck på en gata går INTE hit utan via showPlaceCardV2 → sheetSnapTo('peek'), alltid upp.
@@ -8012,7 +8033,7 @@ let kartloggCache = null;
 
 function kartloggLas() {
   if (kartloggCache) return kartloggCache;
-  try { kartloggCache = JSON.parse(localStorage.getItem('ps_kartlogg') || '[]'); }
+  try { kartloggCache = JSON.parse(LAGRING.getItem('ps_kartlogg') || '[]'); }
   catch (e) { kartloggCache = []; }
   return kartloggCache;
 }
@@ -8020,11 +8041,11 @@ function kartloggSkriv(post) {
   const logg = kartloggLas();
   logg.push(post);
   while (logg.length > KARTLOGG_MAX) logg.shift();
-  try { localStorage.setItem('ps_kartlogg', JSON.stringify(logg)); } catch (e) {}
+  try { LAGRING.setItem('ps_kartlogg', JSON.stringify(logg)); } catch (e) {}
 }
 function rensaKartlogg() {
   kartloggCache = [];
-  try { localStorage.removeItem('ps_kartlogg'); } catch (e) {}
+  try { LAGRING.removeItem('ps_kartlogg'); } catch (e) {}
 }
 
 function kartMatt() {
@@ -8374,9 +8395,9 @@ function hideStreetPanel() {
 }
 
 // ── Hemadress ────────────────────────────────────────────────────────────────
-function getHome()              { const h = localStorage.getItem('sthlm_home'); return h ? JSON.parse(h) : null; }
-function saveHome(addr, lat, lng){ localStorage.setItem('sthlm_home', JSON.stringify({ addr, lat, lng })); }
-function clearHome()            { localStorage.removeItem('sthlm_home'); }
+function getHome()              { const h = LAGRING.getItem('sthlm_home'); return h ? JSON.parse(h) : null; }
+function saveHome(addr, lat, lng){ LAGRING.setItem('sthlm_home', JSON.stringify({ addr, lat, lng })); }
+function clearHome()            { LAGRING.removeItem('sthlm_home'); }
 
 function updateHomeBtnStyle() {
   const btn  = document.getElementById('home-btn');
@@ -8474,15 +8495,15 @@ function vaktRedanGodkand(lat, lng) {
 // och i varje länk man delar vidare.
 const VAKT_MAL = 'parkspot_vakt_mal';
 function bytStadTillPunkt(id, lat, lng) {
-  try { sessionStorage.setItem(VAKT_MAL, JSON.stringify({ lat, lng, stad:id })); } catch (e) {}
+  try { SESSIONSLAGRING.setItem(VAKT_MAL, JSON.stringify({ lat, lng, stad:id })); } catch (e) {}
   sparaStad(id);
   location.href = location.pathname + '?stad=' + encodeURIComponent(id);
 }
 // Plockas upp efter omladdningen (se initMap). Engångs: läses och raderas.
 function hamtaVaktMal() {
   try {
-    const rawa = sessionStorage.getItem(VAKT_MAL);
-    sessionStorage.removeItem(VAKT_MAL);
+    const rawa = SESSIONSLAGRING.getItem(VAKT_MAL);
+    SESSIONSLAGRING.removeItem(VAKT_MAL);
     if (!rawa) return null;
     const m = JSON.parse(rawa);
     // Bara om vi faktiskt hamnade i staden som bytet gällde – annars kan en gammal
@@ -8881,7 +8902,7 @@ function setVehicle(v) {
   v = (v === 'mc' || v === 'rh' || v === 'cykel') ? v : 'bil';
   if (v === vehicleMode) return;
   vehicleMode = v;
-  try { localStorage.setItem('vehicle_mode', v); } catch (e) {}
+  try { LAGRING.setItem('vehicle_mode', v); } catch (e) {}
   renderVehicleToggle();
   updateLegend(currentMode);
   updateWhenChip(currentMode);   // "Natt"-chippens why-text nämner fordonet (bilen/MC:n)

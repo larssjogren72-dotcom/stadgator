@@ -908,6 +908,9 @@ http.createServer((req, res) => {
 
   } else {
     // Servera statiska filer (index.html)
+    // Bara filer på vitlistan (se STATISKA_FILER). Allt annat svarar exakt som en fil som
+    // inte finns, så svaret avslöjar inte vilka filer som ligger i projektet.
+    if (!statiskTillaten(reqUrl.pathname)) { res.writeHead(404); res.end('Not found'); return; }
     const filePath = path.join(
       __dirname,
       reqUrl.pathname === '/' ? 'index.html' : reqUrl.pathname
@@ -1002,6 +1005,24 @@ function send(req, res, status, type, body, cacheState) {
   res.setHeader('Content-Type', type);
   res.setHeader('X-Cache', cacheState);
   finish(req, res, status, body);
+}
+
+// ── Vilka filer i projektmappen får lämnas ut? ─────────────────────────────
+// Tidigare lämnades VARJE fil i mappen ut: kommunbreven, CLAUDE.md, server.js, verktyg/,
+// test/ – och MALMO_SVAR.md med en namngiven tjänstepersons e-postadress (upptäckt i
+// testrundan 2026-09-19). Vitlistan bygger på vad sidorna faktiskt hänvisar till,
+// uppmätt samma dag i index.html, alla 259 SEO-sidor, llms.txt och docs/:
+//   index.html · vendor/ (Leaflet, proj4, Inter) · og-image-v2.png (258 sidor)
+//   llms.txt (läses av AI-tjänster) · docs/arkitektur.html (olänkad, men delad avsiktligt)
+//   og-image.png – ingen sida pekar dit längre, men gamla delningar kan ha den cachad
+// Vägar som /phus, /r, SEO-sidorna, robots.txt och sitemap.xml är egna rutter ovanför och
+// berörs inte. En ny fil som ska vara publik måste läggas till här – det är meningen.
+const STATISKA_FILER = new Set(['/', '/index.html', '/llms.txt', '/og-image.png', '/og-image-v2.png',
+                                '/docs/arkitektur.html']);
+function statiskTillaten(p) {
+  if (STATISKA_FILER.has(p)) return true;
+  // vendor/<bibliotek-version>/<fil> – ingen '..', bara vanliga filnamnstecken.
+  return !p.includes('..') && /^\/vendor\/[A-Za-z0-9._-]+\/[A-Za-z0-9._\/-]+$/.test(p);
 }
 
 // Nyckelskyddets vitlistor (se NYCKELSKYDD i http.createServer). Parameternamn och
