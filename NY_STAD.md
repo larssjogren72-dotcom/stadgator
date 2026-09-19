@@ -190,6 +190,65 @@ Två prov, som svarar på olika frågor:
 
 Sundbybergs enda foto hittade en bugg direkt. Det är ingen slump.
 
+### Steg 5b. Testrundan *(en dag — OBLIGATORISK före live, Lars krav 2026-09-19)*
+
+En senior-testrunda mot parkspot.se den 19 september hittade **fjorton fel som varken
+Lars eller skyltrundorna hade sett**, bland dem två allvarliga: natt-läget visade
+«Trygg över natten» på gator som städades samma natt i Göteborg och Karlstad, och
+Stockholms API-nyckel gick att läsa ut via sajten. Rättningarna blev nio versioner
+(v1.34.2–v1.34.9). Allt nedan ska köras för den nya staden **och** som regressionsprov
+för de städer som redan är live. Testklockan `?debugtid=ÅÅÅÅ-MM-DDTHH:MM` gör de flesta
+proven möjliga utan att vänta på rätt dag.
+
+**Kärnfrågan – kan appen visa grönt där det är förbjudet?**
+1. **Natt-läget kvällen före en städnatt.** Kl 22 dagen före – gatan som städas ska vara
+   orange, aldrig «Trygg över natten». Jämför med Nu-läget samma stund: de får inte säga
+   emot varandra. *(Fångade v1.34.2: städdatan hämtades aldrig utanför Stockholm.)*
+2. **Båda sidor av en gata med olika städdag**, på båda dagarna. Den sida som inte städas
+   ska vara laglig, den som städas röd – och kortets «Nästa städning» ska stämma med
+   färgen. *(v1.34.2 sidolåset, v1.34.9 gathörnen.)*
+3. **Stadens särregler på rätt dag:** röda dagar, jämna/udda veckor, datum i månaden,
+   årsskiftet med vecka 53. Kolla både färg och kortets förklaring.
+4. **Svep över månader** för «nästa städning»: varje gata med schema ska få ett datum,
+   aldrig «ingen städning» – särskilt runt jul och nyår. *(v1.34.5: 7 dygn räckte inte
+   för varannan vecka.)*
+
+**Kortet – säger det emot sig självt?**
+5. Klicka kort under pågående städning, på en röd dag, på en sträcka utan gatunamn, på
+   förbud, lastplats, hållplats och lila (ej för ditt fordon). Varje rad ska stämma med
+   färgen. Inget pris där man inte får stå. Ingen rad får bygga på en rubrik som
+   slagits upp som gatunamn. *(v1.34.5, v1.34.6, v1.34.8.)*
+6. **Alla distinkta pristexter** i staden körs genom prisraden: inget belopp eller
+   klockslag får försvinna, inget får delas fel. *(v1.34.8.)*
+
+**Säkerhet – vad lämnar sajten ut?**
+7. Fråga via proxyn efter sådant appen aldrig frågar (GetCapabilities, WMS, fel sökväg,
+   dubbla parametrar) – svaret ska vara 403 och **nyckeln får inte finnas i något svar**.
+   Nya proxyvägar för staden måste in på vitlistan. *(v1.34.3.)*
+8. Nya publika filer måste in i `STATISKA_FILER` i `server.js`; allt annat ska svara 404.
+   Brev och svar från kommunen får aldrig bli nåbara. *(v1.34.4.)*
+
+**Robusthet och helhet**
+9. **Blockerad lagring** (sandlådad ram, biblioteken inbäddade): appen ska starta.
+   Gör alltid ett kontrollprov där skyddet är bortkopplat – kraschar det inte då,
+   provar provet ingenting. *(v1.34.4.)*
+10. **Förklaringen per stad** visar bara färger som kan förekomma, och appen anropar inga
+    andra städers tjänster. *(v1.34.6.)*
+11. **Mobil (375 px):** sökförslagen syns över kartans knappar, menyerna hamnar rätt.
+
+**Regressionsprovet – det som skyddar det som fungerar**
+12. Jämför **hela kartan** lokalt mot live i minst sju scenarier (olika städer, dagar,
+    klockslag, Nu och Natt) och **granska varje ändrad sträcka mot datan** – avstånd till
+    städlinjerna, vilken sida. Riktningen räcker inte: «kan bara lägga till varningar» är
+    inget godkännande, en falsk varning är också ett fel. *(Gathörnen tog fyra försök;
+    tre föll här, ett hade gjort en gata grön där live visar rött.)*
+
+**Testfällor (kostade tid 19/9):** en dold webbläsarpanel pausar kartans animation – ta
+en skärmbild efter `flyToAndShow` innan du läser av kartan. En flik kan ha fönsterstorlek
+0×0 och ge `NaN`-fel som inte är appens. En sandlådad ram kan inte hämta från
+`localhost`. Servern på 3456 kan tillhöra en annan chatt och köra gammal `server.js` –
+starta en egen på annan port när serverkoden ändrats.
+
 ### Steg 6. Sekundärtexten *(en halvdag — glöms alltid)*
 
 Ingenting av det här uppdateras av sig självt när koden ändras:
@@ -455,6 +514,18 @@ stad med samma serverfel.
 [ ] STADER_CFG-block — adresser, inte ja/nej
 [ ] Dygnssvep: nya staden OCH Stockholm
 [ ] Skyltrunda: minst fem platser, foto med datum
+[ ] TESTRUNDAN (steg 5b) – alla tolv punkter, OBLIGATORISK före live:
+[ ]   natt-läget kvällen före städnatt: aldrig "Trygg" på gatan som städas
+[ ]   gata med olika städdag per sida: båda sidor, båda dagarna, även i hörnen
+[ ]   särregler på rätt dag: röda dagar, jämna/udda veckor, vecka 53, årsskiftet
+[ ]   svep över månader: "nästa städning" får aldrig säga "ingen" för en gata med schema
+[ ]   kortet: städning pågår, röd dag, utan gatunamn, förbud, lastplats, lila – inga motsägelser
+[ ]   alla distinkta pristexter genom prisraden: 0 tappade tal
+[ ]   proxyn: okända frågor → 403, nyckeln i INGET svar; nya filer på STATISKA_FILER
+[ ]   blockerad lagring startar (med kontrollprov utan skydd)
+[ ]   förklaringen visar bara stadens färger; inga anrop till andra städers tjänster
+[ ]   mobil 375 px: sökförslag och menyer syns
+[ ]   hela kartan lokalt mot live i ≥7 scenarier – VARJE ändrad sträcka förklarad mot datan
 [ ] Tomma fält: vad BETYDER tomrummet? (föreskrift/telefon, aldrig gissning)
 [ ] Läs vad adaptern redan skickar som klienten inte visar (t.ex. VF_PLATSER)
 [ ] Testa den nya stadens STARKASTE dimension hårt – där sitter de delade buggarna
