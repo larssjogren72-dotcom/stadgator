@@ -3293,8 +3293,12 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
         const now2 = new Date();
         forbudIgen = nastaForbudTxt(s, nastaAndamalFonster(s, now2), now2) || null;
       }
+      // doljTaxa: aktiv ändamålsplats (röd) ELLER lila = inte för ditt fordon (reserverad
+      // plats, buss, MC-ruta i bil-läget). Där får du inte stå, och ett pris läses som att du
+      // kan betala dig till platsen – samma princip som förbudskortet (Lars beslut 2026-09-19,
+      // gäller alla städer; Stockholm visade förut taxan på 40 av 40 lila kort).
       showPlaceCardV2(utanNamn ? UTAN_GATUNAMN : s.street, txt, color, dest, infoRow,
-                      color === '#ef4444' && !!s.andamal, false, nasta, forbudIgen, s.platser,
+                      (color === '#ef4444' && !!s.andamal) || color === '#9333ea', false, nasta, forbudIgen, s.platser,
                       utanNamn ? stadRadUtanNamn(dest) : null, s.rate && s.rate.raw); });
   });
 }
