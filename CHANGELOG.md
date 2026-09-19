@@ -14,6 +14,21 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.8 – 2026-09-19
+**Priset syns på kortet i Göteborg, Uppsala och Karlstad, och inte längre där man inte får stå.**
+
+- **Pris utanför Stockholm.** Kortet hämtade priset bara ur Stockholms taxezoner, så i
+  övriga städer syntes inget pris. Varje sträcka hade ändå sitt eget pris i datan:
+  Göteborg 90 %, Uppsala 94 % och Karlstad 98 %. Nu visas det, till exempel «Röd zon ·
+  18 kr/tim 09–18 (09–15) · fritt övrig tid» och «Avgiftsfri». Texten städas, med
+  tankstreck, «kr/tim», mellanslag och «·» mellan delarna, men tolkas inte om. Alla
+  belopp och klockslag står kvar som kommunen skrev dem. Tider inom parentes förklaras
+  med en rad: «gäller lör/helgafton», som på skyltarna. Göteborgs boendesträckor säger
+  rakt ut att besökspriset inte finns i stadens data.
+- **Inget pris på lila kort.** Reserverade platser och platser för andra fordon visade
+  taxan, även i Stockholm. Där får du inte stå, så nu visas inget pris, på samma sätt
+  som på förbudskortet.
+
 ## v1.34.7 – 2026-09-19
 **Förklaringen öppnas av sig själv bara första gången.**
 
