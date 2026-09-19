@@ -1661,6 +1661,14 @@ STADER_CFG.karlstad =
       // röd dag. Kommunens egna ord på sidan om servicedagar. Flaggan läses av
       // cleaningActiveOn, som är den enda grinden för hela städflödet.
       stadUndantagRodaDagar:true,
+      // Varannan vecka → sju dygns horisont räcker inte: kortet sa «Ingen städning de
+      // närmaste 8 dygnen» samtidigt som det städades (testrunda 2026-09-19). Minst 35, inte
+      // 14: 2026 har vecka 53, så både v53 och v1 är udda – och röd dag-undantaget kan
+      // dessutom hoppa över ett tillfälle. Värsta fallet uppmätt: fredagsgata städad 11 dec,
+      // juldagen (v52) hoppas över, nästa 15 jan = 35 dygn. Med 21 sa kortet på julafton
+      // «Ingen städning de närmaste 22 dygnen» fast städningen var 22 dygn bort. Svep
+      // nov 2026–mars 2027 (6 191 prov): längsta lucka 34,4 dygn – 42 ger en veckas marginal.
+      stadHorisontDagar:42,
       visaIVal:true, valUnder:'Servicedagar varannan vecka – men inga förbud i datan',
       pilot:false,
       disclaimer:'<span class="hint-disclaimer">Baseras på Karlstads kommuns webbkarta. '
@@ -1673,6 +1681,10 @@ STADER_CFG.karlstad =
 STADER_CFG.goteborg =
     { id:'goteborg', namn:'Göteborg', geokodSuffix:', Göteborg',
       adressExempel:'Kungsportsavenyen 10',
+      // Städningen är till stor del varannan vecka (jämna/udda) – samma horisont som
+      // Karlstad, av samma skäl (se där; Göteborg har inget röd dag-undantag, men vecka 53
+      // gör luckan tre veckor även här).
+      stadHorisontDagar:42,
       // Västgränsen 11.23 ser vid för en stadskarta men är rätt: Styrsö, Vrångö och
       // de södra skärgårdsöarna hör till kommunen. Att klippa rutan snävare hade
       // tystat sökförslag för folk som faktiskt bor i Göteborg.
@@ -1938,19 +1950,21 @@ function rodaDagar(ar) {
     while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
     return d;
   })();
-  const dagar = new Set([
-    nyckel(new Date(ar, 0, 1)),        // nyårsdagen
-    nyckel(new Date(ar, 0, 6)),        // trettondedag jul
-    nyckel(flytta(pask, -2)),          // långfredagen
-    nyckel(pask),                      // påskdagen
-    nyckel(flytta(pask, 1)),           // annandag påsk
-    nyckel(new Date(ar, 4, 1)),        // första maj
-    nyckel(flytta(pask, 39)),          // Kristi himmelsfärds dag
-    nyckel(flytta(pask, 49)),          // pingstdagen
-    nyckel(new Date(ar, 5, 6)),        // nationaldagen
-    nyckel(midsommar),                 // midsommardagen
-    nyckel(new Date(ar, 11, 25)),      // juldagen
-    nyckel(new Date(ar, 11, 26))       // annandag jul
+  // Map (nyckel → namn) i stället för Set: kortet i Karlstad säger «juldagen är röd dag»,
+  // inte bara «röd dag». arRodDag frågar fortfarande bara .has().
+  const dagar = new Map([
+    [nyckel(new Date(ar, 0, 1)),   'nyårsdagen'],
+    [nyckel(new Date(ar, 0, 6)),   'trettondedag jul'],
+    [nyckel(flytta(pask, -2)),     'långfredagen'],
+    [nyckel(pask),                 'påskdagen'],
+    [nyckel(flytta(pask, 1)),      'annandag påsk'],
+    [nyckel(new Date(ar, 4, 1)),   'första maj'],
+    [nyckel(flytta(pask, 39)),     'Kristi himmelsfärds dag'],
+    [nyckel(flytta(pask, 49)),     'pingstdagen'],
+    [nyckel(new Date(ar, 5, 6)),   'nationaldagen'],
+    [nyckel(midsommar),            'midsommardagen'],
+    [nyckel(new Date(ar, 11, 25)), 'juldagen'],
+    [nyckel(new Date(ar, 11, 26)), 'annandag jul']
   ]);
   RODA_DAGAR_CACHE = { ar, dagar };
   return dagar;
@@ -1958,6 +1972,11 @@ function rodaDagar(ar) {
 function arRodDag(d) {
   if (d.getDay() === 0) return true;                      // söndag
   return rodaDagar(d.getFullYear()).has(d.getMonth() * 100 + d.getDate());
+}
+// Helgdagens namn («juldagen»), 'söndag' för en vanlig söndag, annars null.
+function rodDagNamn(d) {
+  const namn = rodaDagar(d.getFullYear()).get(d.getMonth() * 100 + d.getDate());
+  return namn || (d.getDay() === 0 ? 'söndag' : null);
 }
 
 // Säsong/datumintervall för städning – null = året runt
@@ -3188,13 +3207,26 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
       if (s.visaNastaStad && nastaStadUppslag && dest) {
         const namn = (s.street || '').toLowerCase().trim();
         const now  = new Date();
-        const kommande = nastaStadTxt(nastaStadUppslag(dest, namn, now), now);
+        let kommande = nastaStadTxt(nastaStadUppslag(dest, namn, now), now);
+        // Pågår städningen står «Städas nu» redan i chipet. Raden under handlar då om NÄSTA
+        // tillfälle, och får inte kunna läsas som att det inte städas alls (Karlstad sa
+        // «Städas nu» + «Ingen städning de närmaste 8 dygnen», testrunda 2026-09-19).
+        if (/^Städas nu/.test(txt)) kommande = kommande
+          .replace(/^Nästa städning/, 'Nästa gång')
+          .replace(/^Ingen städning/, 'Ingen ytterligare städning');
         const senast   = nastaStadUppslag.senaste(dest, namn, now);
         // Avslutad städning nämns bara nyligen – annars säger den inget om nu.
         const avslutad = (senast && (now - senast.when) / 3600000 <= SENASTE_H)
           ? senasteStadTxt(senast, now) + ' · ' : '';
         nasta = avslutad + kommande;
       }
+      // Röd dag (bara Karlstad): städningen hoppas över i dag/i natt. Egen rad överst,
+      // eftersom den förklarar varför skylten inte gäller – det viktigaste på kortet då.
+      const rod = rodDagTxt(s, dest);
+      if (rod) nasta = nasta ? rod + '\n' + nasta : rod;
+      // Sträcka utan gatunamn: rubriken säger det rakt ut, och städraden får inte slå upp
+      // ett schema på ett namn som inte finns. Se stadRadUtanNamn.
+      const utanNamn = !(s.street || '').trim();
       // "Nästa förbud" bara när man FÅR stå nu: är sträckan röd står fönstret redan i chipet,
       // och då vore raden en upprepning. Uppslaget är lat, precis som städningens.
       let forbudIgen = null;
@@ -3202,8 +3234,9 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
         const now2 = new Date();
         forbudIgen = nastaForbudTxt(s, nastaAndamalFonster(s, now2), now2) || null;
       }
-      showPlaceCardV2(s.street || 'Parkering', txt, color, dest, infoRow,
-                      color === '#ef4444' && !!s.andamal, false, nasta, forbudIgen, s.platser); });
+      showPlaceCardV2(utanNamn ? UTAN_GATUNAMN : s.street, txt, color, dest, infoRow,
+                      color === '#ef4444' && !!s.andamal, false, nasta, forbudIgen, s.platser,
+                      utanNamn ? stadRadUtanNamn(dest) : null); });
   });
 }
 
@@ -3664,7 +3697,7 @@ async function busHallplatserOverlay(lat, lng) {
 // ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
 // skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
 // visaRattigheter: sant för en reserverad plats i rörelsehindrad-läget → visa rättighetsrutan.
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser) {
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser, stadRad = null) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -3754,6 +3787,9 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   };
   if (isSpecial || !dest || !name) {
     cleanRow.style.display = 'none';
+  } else if (stadRad != null) {
+    // Given text (sträcka utan gatunamn) – inget uppslag på ett namn som inte finns.
+    setClean(stadRad);
   } else {
     setClean('Hämtar städtider…');
     cleanRow.style.display = 'flex';
@@ -3764,7 +3800,8 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
 // Nästa städning – sakuppgift, bara där den är relevant (platser man får använda).
   const ncr = document.getElementById('next-clean-row');
   if (ncr) {
-    if (nastaStad) { ncr.innerHTML = svgIcon('clock') + '<span>' + escHtml(nastaStad) + '</span>';
+    // '\n' skiljer röd dag-raden från nästa städning (se rodDagTxt) – två rader, en ikon.
+    if (nastaStad) { ncr.innerHTML = svgIcon('clock') + '<span>' + escHtml(nastaStad).replace(/\n/g, '<br>') + '</span>';
                      ncr.style.display = 'flex'; }
     else ncr.style.display = 'none';
   }
@@ -6299,7 +6336,10 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     // (namn-match hindrar att granngata vid korsning "läcker" gult). Returnerar fönstret för kortet.
     // Indexerat på gatunamn – räckvidden ovan är större än förr (se near() i buildCleaningMatcher).
     // Sidolåset: samma funktion som Nu-lägets färg och kortets text.
-    const sidolas = byggSidolas(await veckoP, lat, lng);
+    const vecka = await veckoP;
+    const sidolas = byggSidolas(vecka, lat, lng);
+    // Samma veckoindex ger kortet röd dag-raden och städraden för namnlösa sträckor.
+    rodDagUppslag = vecka ? buildNextCleaningWeek(vecka, lat, lng, sidolas) : null;
     const nearCleaning = (ll, name) => {
       if (!name) return null;
       const kand = cleaningByName.get(name); if (!kand) return null;
@@ -6568,7 +6608,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
 
 // Säsongskoll per gata: är städposten aktiv på datumet? (58% av datan är säsong,
 // mest vinter 1/11–15/5 i ytterstaden.) Saknar START_MONTH → året runt → alltid aktiv.
-function cleaningActiveOn(p, date) {
+function cleaningActiveOn(p, date, ignoreraRodDag = false) {
   // ── DATUM I MÅNADEN (Malmö) ────────────────────────────────────────────────
   // Malmö städar inte på veckodag utan på datum: «Parkering förbjuden klockan
   // 18.00–22.00 den 23:e i månaden». Kommunen kallar det miljöparkering, och
@@ -6592,7 +6632,9 @@ function cleaningActiveOn(p, date) {
   // (idag, imorgon, veckan framåt) frågar den här funktionen med ett konkret datum,
   // så ETT test räcker för hela städflödet. Städer utan flaggan är helt opåverkade –
   // villkoret är falskt innan arRodDag ens anropas.
-  if (STAD.stadUndantagRodaDagar && arRodDag(date)) return false;
+  // ignoreraRodDag: bara för frågan «hade det städats här i dag om det inte vore röd
+  // dag?» – kortet förklarar då varför skylten inte gäller (se hoppadRodDag).
+  if (STAD.stadUndantagRodaDagar && !ignoreraRodDag && arRodDag(date)) return false;
   // Veckoparitet FÖRE säsongen, med flit: 1 527 av Göteborgs 2 002 städposter saknar
   // säsong men HAR jämn/udda-vecka. Låg testet efter raden nedan skulle de returnera
   // true direkt och paritetsvillkoret aldrig prövas – tyst fel varannan vecka.
@@ -6943,6 +6985,39 @@ function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH, sido
 
 // Sätts av Nu-flödet, läses av platskortet vid klick. Null = raden visas inte.
 let nastaStadUppslag = null;
+// Veckoindexet för röd dag-raden och namnlösa sträckor. Sätts av BÅDE Nu- och natt-flödet
+// (nastaStadUppslag sätts bara av Nu), så att kortet säger samma sak i båda lägena.
+let rodDagUppslag = null;
+
+// ── Sträckor utan gatunamn (77 av 381 i Karlstad, 2026-09-19) ─────────────────
+// Rubriken var «Parkering», och kortet sa både «Ingen städning de närmaste 8 dygnen» och
+// «Ingen registrerad servicedag». Det första var ett påstående utan grund: uppslaget
+// matchar på gatunamn, och utan namn hittar det ingenting – det bevisar inte att inget finns.
+const UTAN_GATUNAMN = 'Parkering utan gatunamn';
+// Städraden för en namnlös sträcka. «Ingen servicedag i kommunens data» bara när veckans
+// städlinjer faktiskt är kända OCH ingen ligger inom 25 m (uppmätt 2026-09-19: alla 77 i
+// Karlstad ligger >25 m från närmaste). Annars vet vi inte, och då står det så.
+// '' = staden har inga städdagar alls (Uppsala) → raden döljs, som för namngivna gator.
+function stadRadUtanNamn(dest) {
+  if (!STAD.schemaUrl) return '';
+  if (rodDagUppslag && rodDagUppslag.naraStadlinje && !rodDagUppslag.naraStadlinje(dest))
+    return 'Ingen servicedag i kommunens data – kontrollera skylt';
+  return 'Städdag okänd – gatunamn saknas, kontrollera skylt';
+}
+// «Ingen städning i dag – juldagen är röd dag». Nu-läget frågar om i dag och i morgon,
+// natt-läget bara om i morgon – det är natten det lovar något om.
+function rodDagTxt(s, dest) {
+  if (!STAD.stadUndantagRodaDagar || !rodDagUppslag || !rodDagUppslag.hoppadRodDag || !dest) return null;
+  const namn = (s.street || '').toLowerCase().trim();
+  if (!namn) return null;
+  const dagar = currentMode === 'uc2' ? [[tomorrow(), 'i morgon']]
+                                      : [[new Date(), 'i dag'], [tomorrow(), 'i morgon']];
+  for (const [datum, ord] of dagar) {
+    const h = rodDagUppslag.hoppadRodDag(dest, namn, datum);
+    if (h) return `Ingen städning ${ord} – ` + (h.namn === 'söndag' ? 'söndagar undantas' : `${h.namn} är röd dag`);
+  }
+  return null;
+}
 
 // ── Nästa städning inom en vecka ────────────────────────────────────────────
 // Hela veckans städdata i ETT bbox-anrop (sju separata vore sju rundturer).
@@ -7050,6 +7125,29 @@ function buildNextCleaningWeek(veckoData, lat, lng, sidolas = byggSidolas(veckoD
   };
   const f = (ll, name, now) => sok(ll, name, now, false);
   f.senaste = (ll, name, now) => sok(ll, name, now, true);
+  // Städas den EGNA sidan ordinarie på `datum`, men hoppas över för att det är röd dag?
+  // Bara i städer med undantaget (Karlstad). → { namn, start, end } eller null.
+  // Utan det här sa kortet på juldagen bara «Servas fredagar 05–07» – och skylten säger
+  // samma sak – utan ett ord om varför bilen ändå får stå.
+  f.hoppadRodDag = (ll, name, datum) => {
+    if (!STAD.stadUndantagRodaDagar || !ll || !name || !arRodDag(datum)) return null;
+    const tak = sidolas(ll, name);
+    if (tak == null) return null;
+    for (const s of perDag[datum.getDay()].get(name) || []) {
+      if (distPointToSegmentLL(ll, s.a, s.b) > tak) continue;
+      if (cleaningActiveOn(s.p, datum, true)) return { namn: rodDagNamn(datum), start: s.start, end: s.end };
+    }
+    return null;
+  };
+  // Finns NÅGON städlinje inom 25 m, oavsett gatunamn? För sträckor utan namn, där
+  // namnmatchningen inte kan svara: då vet vi inte, och kortet får inte säga «ingen».
+  f.naraStadlinje = (ll) => {
+    if (!ll) return false;
+    for (const byName of perDag)
+      for (const segs of byName.values())
+        for (const s of segs) if (distPointToSegmentLL(ll, s.a, s.b) <= 25) return true;
+    return false;
+  };
   return f;
 }
 
@@ -7221,6 +7319,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     // 8 dygnen», ett påstående vi inte har grund för (och `.senaste` saknades, så
     // klicket kastade fel). null döljer raden, vilket är det enda ärliga.
     nastaStadUppslag = veckoData ? buildNextCleaningWeek(veckoData, lat, lng, sidolas) : null;
+    rodDagUppslag = nastaStadUppslag;
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
     const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H, sidolas);
     // HIDDEN_GEM_MIN_H/MAX_H: global const (se SENASTE_H ovan) – bara Nu-läget använder den här,
@@ -7499,7 +7598,9 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       // Flagga bara – uppslaget görs LAT vid klick. Att beräkna text för alla segment i förväg
       // kostade uppmätt 2 354 ms i Vasastan (mot 320 ms) för en text som visas på ETT kort.
       // "Nästa städning" är dessutom irrelevant på platser man inte får använda.
-      s.visaNastaStad = !anda && !ejForDig && !isRhPlats(s) && !s.gagata;
+      // Utan gatunamn kan uppslaget inte hitta något – och «Ingen städning de närmaste N
+      // dygnen» vore då en gissning förklädd till sakuppgift. Raden döljs (se UTAN_GATUNAMN).
+      s.visaNastaStad = !anda && !ejForDig && !isRhPlats(s) && !s.gagata && !!(s.street || '').trim();
       // "Nyss städad" som en LJUSARE nyans av samma gröna – inte en ny färgkategori (`color`,
       // dimning och kortets hero-färg är opåverkade, bara linjens ritade kulör ändras). Bara
       // det enkla "Får stå nu"-fallet, inte besöksplats/MC-ruta/etc – annars blandas för många
