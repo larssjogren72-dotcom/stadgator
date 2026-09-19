@@ -14,6 +14,20 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.6 – 2026-09-19
+**Småfel från testrundan: förklaringen följer staden, sökförslagen syns, och kort utan gata påstår inget om städning.**
+
+- **Förklaringen per stad.** Gågata och Uteservering visades i förklaringen i alla
+  städer, men ritas bara i Stockholm. Appen frågade dessutom Stockholms
+  uteserveringslager om rutor i Göteborg, Uppsala och Karlstad. Båda är nu bara i
+  Stockholm.
+- **Sökförslagen överst.** På mobil låg kartans zoomknappar och Förklaring-knappen
+  ovanpå förslagslistan och dolde texten.
+- **Förbudskortet utan pris.** Ett kort för en sträcka där man inte får parkera visade
+  taxan, vilket kunde läsas som att man kan betala sig till en plats. Det och kortet för
+  SL-hållplatser slog också upp städschemat med sin rubrik som gatunamn och sa «Ingen
+  registrerad servicedag» om en gata som inte finns. Raden döljs nu.
+
 ## v1.34.5 – 2026-09-19
 **Platskortet säger inte längre emot sig självt i Karlstad och Göteborg, förklarar röda dagar och är ärligt om sträckor utan gatunamn.**
 
