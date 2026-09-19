@@ -14,6 +14,22 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.7 – 2026-09-19
+**Förklaringen öppnas av sig själv bara första gången.**
+
+Förut fälldes färgförklaringen ut vid varje besök och skymde kartan i åtta sekunder. På
+mobil täckte den tillsammans med introtexten ungefär 80 % av kartan. Nu visas den
+automatiskt bara vid första besöket, och fälls ihop efter åtta sekunder som förut.
+Därefter startar den ihopfälld, och man öppnar den med «Förklaring» när man behöver den.
+Gäller alla städer.
+
+Webbläsaren kommer ihåg att förklaringen har visats (`parkspot_forklaring_sedd`). Går
+det inte att spara, till exempel i privat läge, räknas varje besök som det första:
+hellre en förklaring för mycket än en ny användare som aldrig ser den.
+
+Byggd 2026-09-18 som v1.34.1 men aldrig släppt. Testrundan kom emellan, och numret
+gick till andra rättningar.
+
 ## v1.34.6 – 2026-09-19
 **Småfel från testrundan: förklaringen följer staden, sökförslagen syns, och kort utan gata påstår inget om städning.**
 
