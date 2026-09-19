@@ -649,6 +649,24 @@ http.createServer((req, res) => {
     return res.end();
   }
 
+  // ── NYCKELSKYDD: släpp bara igenom det appen själv frågar efter ───────────
+  // Servern lägger på Stockholms API-nyckel i anropen nedan. Tidigare släpptes VAD SOM
+  // HELST igenom, och en GetCapabilities-fråga via /wfs/ fick Stockholms GeoServer att
+  // svara med sina egna adresser – med nyckeln i klartext (upptäckt i testrundan
+  // 2026-09-19: 1 träff i WFS-svaret, 151 i WMS-svaret). Appen och SEO-sidorna gör
+  // bara två sorters anrop, uppmätt i koden samma dag:
+  //   /wfs/<x>/wfs?service=WFS&request=GetFeature&…      (index.html, sex ställen)
+  //   /proxy/servicedagar/weekday/<dag>?outputFormat=json (index.html + seo/build.js)
+  // Allt annat nekas. Nyckeln tvättas dessutom ur varje svar i forward() (andra lagret).
+  if ((reqUrl.pathname.startsWith('/proxy/') && !proxyTillaten(reqUrl)) ||
+      (reqUrl.pathname.startsWith('/wfs/')   && !wfsTillaten(reqUrl))) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(403);
+    res.end(JSON.stringify({ fel: 'anropet är inte tillåtet via ParkSpot' }));
+    return;
+  }
+
   if (reqUrl.pathname.startsWith('/proxy/')) {
     // Proxy → openparking.stockholm.se (parkeringsregler). Nyckel = apiKey-param.
     const apiPath = reqUrl.pathname.replace('/proxy/', '/LTF-Tolken/v1/');
@@ -986,6 +1004,32 @@ function send(req, res, status, type, body, cacheState) {
   finish(req, res, status, body);
 }
 
+// Nyckelskyddets vitlistor (se NYCKELSKYDD i http.createServer). Parameternamn och
+// värden jämförs utan skiftläge – GeoServer bryr sig inte om det, alltså får inte vi heller.
+function wfsTillaten(reqUrl) {
+  if (!/^\/wfs\/[^/]+\/wfs$/.test(reqUrl.pathname)) return false;
+  const p = {};
+  for (const [k, v] of reqUrl.searchParams) {
+    const namn = k.toLowerCase();
+    // Dubbla namn nekas: ?request=GetCapabilities&request=GetFeature hade passerat en
+    // kontroll som läser det sista värdet, medan GeoServer kan välja det första.
+    // Appen skickar aldrig samma parameter två gånger.
+    if (namn in p) return false;
+    p[namn] = String(v).toLowerCase();
+  }
+  return p.service === 'wfs' && p.request === 'getfeature';
+}
+function proxyTillaten(reqUrl) {
+  return /^\/proxy\/servicedagar\/weekday\/[^/]+$/.test(reqUrl.pathname);
+}
+// Andra lagret: skulle nyckeln ändå finnas i ett svar (en ny tjänst, en felrapport som
+// upprepar adressen) byts den ut INNAN svaret skickas eller cachas. Kostar ingenting i
+// normalfallet – texten avkodas bara om nyckelns bytes faktiskt finns i svaret.
+function tvattaNyckel(body) {
+  if (!API_KEY || !body || !body.includes(API_KEY)) return body;
+  return Buffer.from(body.toString('utf8').split(API_KEY).join('NYCKEL-DOLD'), 'utf8');
+}
+
 function forward(hostname, upstreamPath, req, res, port = 443) {
   const key = hostname + ':' + port + upstreamPath;
 
@@ -1010,7 +1054,7 @@ function forward(hostname, upstreamPath, req, res, port = 443) {
     const chunks = [], type = proxyRes.headers['content-type'] || 'application/json';
     proxyRes.on('data', c => chunks.push(c));
     proxyRes.on('end', () => {
-      const body = Buffer.concat(chunks);
+      const body = tvattaNyckel(Buffer.concat(chunks));
       if (proxyRes.statusCode === 200) cacheSet(key, body, type);
       flush(proxyRes.statusCode, type, body, 'MISS');
     });
