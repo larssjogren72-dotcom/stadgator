@@ -14,6 +14,23 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.5 – 2026-09-19
+**Platskortet säger inte längre emot sig självt i Karlstad och Göteborg, förklarar röda dagar och är ärligt om sträckor utan gatunamn.**
+
+- **Ingen motsägelse under städning.** Kortet kunde säga «Städas nu» och «Ingen städning
+  de närmaste 8 dygnen» samtidigt. Sökningen efter nästa städning gick bara 7 dygn
+  framåt, och i städer som städar varannan vecka hittade den därför ofta ingenting. Nu
+  söker Karlstad och Göteborg 42 dygn framåt och visar datumet («Nästa städning den 28
+  sep 05:00»). Så långt behövs: vecka 53 gör både v53 och v1 udda, och en röd dag kan
+  hoppa över ytterligare ett tillfälle. Värsta fallet är 35 dygn. Pågår städningen står
+  det «Nästa gång» i stället för «Nästa städning».
+- **Röda dagar förklaras (Karlstad).** När gatans ordinarie städdag infaller på en röd
+  dag säger kortet «Ingen städning i dag – juldagen är röd dag». I natt-läget står det
+  «i morgon».
+- **Sträckor utan gatunamn** (77 av 381 i Karlstad) heter nu «Parkering utan gatunamn».
+  Kortet påstår inte längre att det inte städas där, eftersom uppslaget bygger på
+  gatunamnet och inte kan veta det. Ingen av sträckorna ligger nära en städlinje.
+
 ## v1.34.4 – 2026-09-19
 **Sajten lämnar bara ut de filer sidorna behöver, och appen startar även när webbläsaren blockerar lagring.**
 
