@@ -1,7 +1,10 @@
 # ParkSpot Stockholm — projektregler
 
 Parkeringskarta för Stockholm (live på **parkspot.se** via Railway). Visar var man får parkera
-lagligt i tre lägen: **Nu / I kväll / Över natten**, + parkeringshus som sista utväg.
+lagligt i två lägen: **Nu** (med Framåt-steget +30/+60 min) och **Natt** (tryggt till i morgon),
++ parkeringshus som sista utväg. (Det gamla «I kväll»-läget finns inte längre – UX_DESIGN.md
+beskriver det som historik.) Städer live: Stockholm, Göteborg, Uppsala, Karlstad; Malmö och
+Sundbyberg finns i koden men är dolda.
 (Globala arbetssättet gäller utöver detta — se ~/.claude/CLAUDE.md.)
 
 ## Struktur
