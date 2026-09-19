@@ -14,6 +14,20 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.4 – 2026-09-19
+**Sajten lämnar bara ut de filer sidorna behöver, och appen startar även när webbläsaren blockerar lagring.**
+
+- **Vitlista för filer.** Servern lämnade ut varje fil i projektmappen: kommunbreven,
+  interna dokument, serverkoden, verktygen och ett svar från Malmö med en namngiven
+  tjänstepersons e-postadress. Nu lämnas bara appen, kartbiblioteken, delningsbilderna,
+  `llms.txt` och arkitektursidan ut. Listan bygger på vad sidorna faktiskt hänvisar
+  till. Allt annat svarar som en fil som inte finns. SEO-sidorna och datatjänsterna
+  påverkas inte.
+- **Ingen vit sida när lagring är blockerad.** Blockerar webbläsaren lagring (t.ex.
+  Safari med «Blockera alla kakor») stannade hela appen redan vid start, eftersom sju
+  ställen läste lagringen utan skydd. Nu går allt via en säker funktion. Appen fungerar
+  som vid ett första besök och minns valen så länge sidan är öppen.
+
 ## v1.34.3 – 2026-09-19
 **Servern skickar bara vidare appens egna frågor till Stockholm, och Stockholms API-nyckel kan inte längre läsas ut.**
 
