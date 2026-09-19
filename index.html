@@ -6196,6 +6196,35 @@ function distPointToSegmentLL(p, a, b) {
   return distPointToSegment(px, py, 0, 0, bx, by);
 }
 
+// Morgondagens städning till natt-läget.
+// Tidigare läste natt-läget streetDataPromise, som hämtas vid appstart UTAN sökruta och
+// därför bara kan fyllas från Stockholms hela-staden-källa. I Göteborg och Karlstad blev
+// listan tom, och natt-läget ritade «Trygg över natten» på gator som städas samma natt
+// (testrunda 2026-09-19: Karlstad Trädgårdsgatan sön 22:00, städas mån 05–07; Göteborg
+// Linnégatan tis 22:00, städas ons 02–07). Nu-läget varnade samtidigt för samma gator.
+// Stockholm behåller sin beprövade väg (hela staden, förhämtad vid appstart) – oförändrat
+// per konstruktion. Övriga städer frågar efter sökområdet, som Nu-läget.
+// Tom lista får bara betyda «staden har inga städdagar» (Uppsala) – aldrig «hämtningen
+// misslyckades». Går hämtningen inte att göra kastas ett fel, så flödet visar ett
+// felmeddelande i stället för en karta där allt ser tryggt ut.
+async function morgondagensStadning(lat, lng) {
+  if (STAD.heltStadenUrl) return streetDataPromise;
+  if (!STAD.servicedagarUrl) return { features: [] };
+  const dag = apiDay(tomorrow());
+  const url = `${STAD.servicedagarUrl}?dag=${encodeURIComponent(dag)}&bbox=${servicedagarBbox(lat, lng).join(',')}`;
+  for (let forsok = 1; forsok <= 2; forsok++) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } catch (e) {
+      console.warn(`[Städgator] morgondagens städning, försök ${forsok}: ${e.message}`);
+      if (forsok < 2) await new Promise(res => setTimeout(res, 800));
+    }
+  }
+  throw new Error('kunde inte hämta städdagarna – försök igen');
+}
+
 // v2-vyn integrerad i UC2-flödet – rensar lager, badge, zoner som gamla UC2.
 async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
   clearStreetsFromMap();
@@ -6205,10 +6234,10 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
        <span style="color:var(--text);font-size:14px">Hämtar parkering…</span>
      </div>`;
   try {
-    // Parkering (v2-grunden) + morgondagens städning (befintlig servicedagar-data) parallellt
+    // Parkering (v2-grunden) + morgondagens städning i sökområdet parallellt
     const [{ allowed, forbiddenLines, gagataLines }, cleaningData] = await Promise.all([
       parkPromise ? parkPromise : loadParkingV2(lat, lng),
-      streetDataPromise,
+      morgondagensStadning(lat, lng),
     ]);
     const grp = L.layerGroup();
 
