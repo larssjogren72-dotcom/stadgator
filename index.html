@@ -7879,7 +7879,18 @@ function updateWhenChip(mode) {
     el.classList.toggle('active-when', el.dataset.mode === mode));
 }
 let legendDiv = null;
-let legendCollapsed = false;
+// ── Förklaringen visas av sig själv BARA första gången ───────────────────────
+// Lars 2026-09-18: den som redan använt appen vet vad färgerna betyder, och en ruta som
+// fälls ut vid varje besök skymmer kartan i åtta sekunder i onödan (testrundan 2026-09-19:
+// förklaringen och introtexten täckte ~80 % av kartan på mobil). Första besöket visas den
+// som förut och fälls ihop efter 8 s; därefter startar den ihopfälld, och en tryckning på
+// «Förklaring» öppnar den.
+// Går lagringen inte att använda (privat läge, blockerad lagring) minns LAGRING bara i
+// minnet – varje besök blir då det första. Hellre en förklaring för mycket än en ny
+// användare som aldrig ser den.
+const FORKLARING_SEDD = 'parkspot_forklaring_sedd';
+const forklaringSeddForut = LAGRING.getItem(FORKLARING_SEDD) === '1';
+let legendCollapsed = forklaringSeddForut;
 let sgTimer = null, sgIndex = -1;
 
 // ── Bottensheet (draggbar: peek / halv / full) ───────────────────────────────
@@ -8350,8 +8361,12 @@ function initMap() {
     return legendDiv;
   };
   legend.addTo(map);
-  // Auto-kollaps efter 8 sekunder
-  setTimeout(() => { if (!legendCollapsed) { legendCollapsed = true; applyLegendState(); } }, 8000);
+  // Första besöket: visa förklaringen, fäll ihop den efter 8 sekunder och kom ihåg att den
+  // setts. Senare besök startar ihopfällda (se FORKLARING_SEDD) och behöver ingen timer.
+  if (!forklaringSeddForut) {
+    LAGRING.setItem(FORKLARING_SEDD, '1');
+    setTimeout(() => { if (!legendCollapsed) { legendCollapsed = true; applyLegendState(); } }, 8000);
+  }
   map.on('click', e => {
     // Är "när"-menyn öppen? → stäng bara den, sök inte
     if (document.getElementById('mode-row').classList.contains('open')) { closeWhenMenu(); return; }
