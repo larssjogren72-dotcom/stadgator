@@ -2962,6 +2962,55 @@ function clarifyTaxa(t, zoneName) {
   return s;
 }
 
+// ── Prisraden utanför Stockholm ─────────────────────────────────────────────
+// Stockholm får priset ur sina taxezoner (taxaZoneAt). Övriga städer har ingen zonkarta,
+// men PRIS PER STRÄCKA i PARKING_RATE – uppmätt 2026-09-19: Göteborg 90 %, Uppsala 94 %,
+// Karlstad 98 % av sträckorna. Kortet läste det aldrig, så priset syntes inte alls.
+//
+// Texten STÄDAS men TOLKAS INTE. Uppsala har 50 handskrivna varianter; en översättning
+// till Stockholms stil («10 kr/tim vardagar och lör/helgafton 8–18») vore ett ställe där
+// appen kan läsa fel och visa ett felaktigt pris. Kommunens ord står kvar, bara med
+// tankstreck, «kr/tim», mellanslag och «·» mellan delarna (Lars godkände skissen 19/9).
+//
+// Parentesen följer skyltkonventionen (se cities/uppsala.js och cities/karlstad.js):
+// tid inom parentes = dag före sön- och helgdag, i praktiken lördag. Den förklaras med en
+// egen rad, i samma ord som Stockholms kort redan använder («lör/helgafton»).
+// Göteborgs «boende» är adapterns etikett för en sträcka i boendelagret utan eget pris
+// (cities/goteborg.js) – besökspriset finns alltså inte i datan, och det sägs rakt ut.
+// → { etikett, text, parentes } eller null (inget pris i datan → ingen rad).
+function prisRadUrData(raw) {
+  let t = String(raw || '').trim();
+  if (!t) return null;
+  const lc = t.toLowerCase();
+  if (lc === 'avgiftsfri') return { etikett: 'Avgiftsfri', text: '', parentes: false };
+  if (lc === 'boende') return { etikett: 'Boendeparkering',
+    text: 'besökspriset står inte i stadens data – kontrollera skylten', parentes: false };
+  // «Grön zon: 8 kr/tim 09–18» / «Sundstabadet: 4–6 kr/tim · …» (Karlstads adapter)
+  let etikett = 'Avgift';
+  const m = t.match(/^([^:\d][^:]{1,40}):\s*(.+)$/);
+  if (m) { etikett = m[1].trim(); t = m[2].trim(); }
+  t = t.replace(/^avgift\s+/i, '')                                   // «Avgift 8-24 (8-24)»
+       .replace(/\.\s*Övrig tid:\s*([^.]+?)\.?(?=\.|$)/gi, ' · $1 övrig tid')   // Göteborg
+       .replace(/tillstånd\s+erfo?r?d?ras/gi, 'tillstånd krävs')       // även «erfodras»
+       .replace(/Max-P\s*(\d+)\s*tim\.?/gi, 'max $1 tim')
+       .replace(/Max-P\s*(\d+)\s*dygn/gi, 'max $1 dygn')
+       .replace(/kr\s*\/\s*timme/gi, 'kr/tim')
+       .replace(/(\d)\s*kr\b/g, '$1 kr')
+       .replace(/(\d)(dygn|tim)\b/g, '$1 $2')                          // «100 kr/7dygn»
+       .replace(/(\d{1,2})\s*-\s*(\d{1,2})/g, '$1–$2')
+       .replace(/\b(måndag|tisdag|onsdag|torsdag|fredag|lördag|söndag)-(?=måndag|tisdag|onsdag|torsdag|fredag|lördag|söndag)/gi, '$1–')
+       .replace(/\s*[;.]\s+(?=\S)/g, ' · ')
+       .replace(/·\s*Maxtaxa/g, '· maxtaxa')
+       .replace(/[\s;.·,]+$/, '')
+       .replace(/\s{2,}/g, ' ').trim();
+  // Uppsala skriver TID FÖRE PRIS («8–18 (8–18) 10 kr/tim 18–24 …») och ibland utan «;»
+  // mellan delarna. Bara i den formen är en ny tid efter «kr/tim» början på nästa del.
+  // Göteborg och Karlstad skriver PRIS FÖRE TID («8 kr/tim 8–22 alla dagar») – där hör
+  // tiden till priset framför, och en avgränsare där hade ändrat vad texten betyder.
+  if (/^\d{1,2}–/.test(t)) t = t.replace(/(kr\/tim)\s+(?=\d{1,2}–)/g, '$1 · ');
+  return { etikett, text: t, parentes: /\(\d/.test(t) };
+}
+
 // Visa platskort i nedre lådan för Nu/Över natten – pris + status utan att öppna popup.
 // Veckoschema i kortet: hämtar gatans faktiska städtider (per-segment) från servern
 // och formaterar "Servas onsdagar 09–14" / "… & lördagar 09–14" / flera fönster.
@@ -3246,7 +3295,7 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
       }
       showPlaceCardV2(utanNamn ? UTAN_GATUNAMN : s.street, txt, color, dest, infoRow,
                       color === '#ef4444' && !!s.andamal, false, nasta, forbudIgen, s.platser,
-                      utanNamn ? stadRadUtanNamn(dest) : null); });
+                      utanNamn ? stadRadUtanNamn(dest) : null, s.rate && s.rate.raw); });
   });
 }
 
@@ -3710,7 +3759,7 @@ async function busHallplatserOverlay(lat, lng) {
 // ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
 // skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
 // visaRattigheter: sant för en reserverad plats i rörelsehindrad-läget → visa rättighetsrutan.
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser, stadRad = null) {
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser, stadRad = null, prisRaw = null) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -3742,6 +3791,15 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
     // Vanlig gata = zonens (bil-)taxa. En MC som ställer sig här betalar bil-taxan, inte mc-taxan.
     const mcNote = vehicleMode === 'mc' ? ` <span style="color:rgba(15,23,42,.5)">· på vanlig gata betalar MC bil-taxan</span>` : '';
     taxaRow.innerHTML = svgIcon('cash') + `<span><b>${z.name}</b> · ${clarifyTaxa(z.taxa, z.name)}${mcNote}</span>`;
+    taxaRow.style.display = 'flex';
+  } else if (!STAD.taxaZon && prisRadUrData(prisRaw)) {
+    // Städer utan zonkarta: sträckans eget pris (se prisRadUrData). Stockholm går aldrig
+    // hit – där står taxezonen ovan, oförändrad.
+    const p = prisRadUrData(prisRaw);
+    taxaRow.innerHTML = svgIcon('cash') + '<span><b>' + escHtml(p.etikett) + '</b>'
+      + (p.text ? ' · ' + escHtml(p.text) : '')
+      + (p.parentes ? '<br><span style="color:var(--muted);font-size:12px">Tider inom parentes gäller lör/helgafton.</span>' : '')
+      + '</span>';
     taxaRow.style.display = 'flex';
   } else { taxaRow.style.display = 'none'; }
 
