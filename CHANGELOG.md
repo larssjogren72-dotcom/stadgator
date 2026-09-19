@@ -14,6 +14,22 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.34.3 – 2026-09-19
+**Servern skickar bara vidare appens egna frågor till Stockholm, och Stockholms API-nyckel kan inte längre läsas ut.**
+
+Servern lägger på Stockholms API-nyckel när den skickar vidare frågor till stadens
+tjänster. Sedan juni skickade den vidare vilka frågor som helst. En fråga om vilka
+tjänster som finns fick Stockholms server att svara med sina egna adresser, och där
+stod nyckeln i klartext. Appens egna frågor läckte aldrig nyckeln, men den gick att
+få ut för den som frågade medvetet. Felet hittades i testrundan samma dag.
+
+- **Vitlista.** Bara de två sorters frågor som appen och SEO-sidorna faktiskt ställer
+  släpps igenom: kartdata (`GetFeature`) och städdagar per veckodag. Allt annat nekas
+  med 403, även försök att smyga in en annan fråga som en dubbel parameter.
+- **Tvätt.** Skulle nyckeln ändå finnas i ett svar byts den ut innan svaret skickas
+  eller sparas i cachen.
+- Nyckeln byts dessutom ut mot en ny, eftersom den gamla har varit läsbar sedan juni.
+
 ## v1.34.2 – 2026-09-19
 **Natt-läget varnar för städning i Göteborg och Karlstad, och en gatusida färgas inte längre av den andra sidans städdag.**
 
