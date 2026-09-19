@@ -3231,8 +3231,9 @@ async function fetchStadContext(lat, lng) {
   const today = new Date();
   const cleaningToday = veckoData[today.getDay()] || veckoData[String(today.getDay())] || null;
   const dummyGrp = L.layerGroup();   // matcharen ritar annars gula streckade linjer – vi vill bara ha .near()
-  return { clean: buildCleaningMatcher(cleaningToday, lat, lng, dummyGrp),
-           nastaStadUppslag: buildNextCleaningWeek(veckoData, lat, lng) };
+  const sidolas = byggSidolas(veckoData, lat, lng);
+  return { clean: buildCleaningMatcher(cleaningToday, lat, lng, dummyGrp, sidolas),
+           nastaStadUppslag: buildNextCleaningWeek(veckoData, lat, lng, sidolas) };
 }
 // { tier:'aktiv', end } | { tier:'nyss', info } | { tier:'snart', info } | null
 function stadTierFor(dest, name, ctx, now) {
@@ -6227,6 +6228,9 @@ async function morgondagensStadning(lat, lng) {
 
 // v2-vyn integrerad i UC2-flödet – rensar lager, badge, zoner som gamla UC2.
 async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
+  // Veckan behövs bara för sidolåset (vilken sida en städlinje tillhör – se byggSidolas).
+  // Startas först så den går parallellt med resten; misslyckas den blir gränsen 25 m som förut.
+  const veckoP = vehicleMode !== 'cykel' ? fetchServicedaysWeek(lat, lng) : Promise.resolve(null);
   clearStreetsFromMap();
   document.getElementById('hint').innerHTML =
     `<div style="display:flex;align-items:center;gap:12px">
@@ -6273,10 +6277,13 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
     // Tillåten plats städas imorgon = samma gatunamn OCH ≤25 m från städgatans geometri (lat/lng)
     // (namn-match hindrar att granngata vid korsning "läcker" gult). Returnerar fönstret för kortet.
     // Indexerat på gatunamn – räckvidden ovan är större än förr (se near() i buildCleaningMatcher).
+    // Sidolåset: samma funktion som Nu-lägets färg och kortets text.
+    const sidolas = byggSidolas(await veckoP, lat, lng);
     const nearCleaning = (ll, name) => {
       if (!name) return null;
       const kand = cleaningByName.get(name); if (!kand) return null;
-      const s = kand.find(s => distPointToSegmentLL(ll, s.a, s.b) <= 25);
+      const tak = sidolas(ll, name) ?? 25;
+      const s = kand.find(s => distPointToSegmentLL(ll, s.a, s.b) <= tak);
       return s ? { start: s.start, end: s.end } : null;
     };
 
@@ -6782,7 +6789,62 @@ function cleaningFeatureInReach(f, lat, lng) {
   return false;
 }
 
-function buildCleaningMatcher(cleaningData, lat, lng, grp) {
+// ── SIDOLÅSET – vilken sida av gatan tillhör en städlinje? ──────────────────
+// R1 i PARKERINGSREGLER-SKYLTAR.md: en reglering gäller bara den sida av gatan där skylten
+// står. Städlinjerna matchas på gatunamn + 25 m, och 25 m spänner över de flesta gator –
+// utan lås färgas en sida av den ANDRA sidans städdag.
+// Låset: ta kortaste avståndet till någon städlinje på gatan OAVSETT veckodag (= den egna
+// sidan), och godta sedan bara linjer inom det + SIDO_MARGINAL_M.
+//
+// Texten "Nästa städning" fick låset 2026-08-25 (buildNextCleaningWeek). Färgen fick det
+// inte, så kortet kunde säga "Städas nu" och "Nästa städning i morgon" om samma sträcka
+// (testrunda 2026-09-19: Göteborg Linnégatans torsdagssida röd på onsdagen, Stockholm
+// Dannemoragatans onsdagssida röd på tisdagen). Nu delar färg och text EN funktion.
+//
+// Marginalen 6 m (texten hade 3). Uppmätt 2026-09-19 i 19 områden i Stockholm, Göteborg och
+// Karlstad (2 607 sträckor med städlinje inom 25 m): 3 m-låset uteslöt 85 linjer, och andra
+// sidan ligger normalt 6,6–25 m längre bort (Karlstads smala gator ≈8 m). Under ≈6 m finns
+// ett fåtal (högst 8) där datan inte kan avgöra sida – t.ex. Viktor Rydbergsgatan, tis- och
+// onsdagslinjen 5 m isär. Där räknas linjen som EGEN sida: hellre en varning för mycket
+// än "Trygg över natten" natten den egna sidan städas. Samma riktning för texten (tidigare
+// varning), så höjningen från 3 m kan bara göra appen försiktigare, aldrig generösare.
+//
+// Utan veckodata (anropet misslyckades) finns ingen sida att låsa till → den gamla gränsen
+// 25 m, alltså exakt det tidigare, försiktiga beteendet.
+const SIDO_MARGINAL_M = 6;
+function byggSidolas(veckoData, lat, lng) {
+  if (!veckoData) return () => 25;
+  const byName = new Map();
+  for (let d = 0; d < 7; d++) {
+    const fc = veckoData[d] || veckoData[String(d)];
+    ((fc && fc.features) || []).forEach(f => {
+      const p = f.properties || {};
+      if (p.START_TIME == null) return;
+      if (!cleaningFeatureInReach(f, lat, lng)) return;
+      const name = (p.STREET_NAME || '').toLowerCase().trim();
+      featureLines(f).forEach(line => {
+        for (let i = 0; i < line.length - 1; i++) {
+          if (!byName.has(name)) byName.set(name, []);
+          byName.get(name).push({ a: toLatLng(line[i][0], line[i][1]), b: toLatLng(line[i+1][0], line[i+1][1]) });
+        }
+      });
+    });
+  }
+  // → största godtagbara avstånd (m) för en städlinje på gatan, eller null om gatan inte
+  //   har någon städlinje inom 25 m i veckodatan.
+  return (ll, name) => {
+    let narmast = Infinity;
+    for (const s of byName.get(name) || []) {
+      const dist = distPointToSegmentLL(ll, s.a, s.b);
+      if (dist < narmast) narmast = dist;
+    }
+    if (!isFinite(narmast) || narmast > 25) return null;
+    return Math.min(25, narmast + SIDO_MARGINAL_M);   // aldrig lösare än den gamla gränsen
+  };
+}
+
+// sidolas: se byggSidolas. Utelämnad = 25 m, det gamla beteendet.
+function buildCleaningMatcher(cleaningData, lat, lng, grp, sidolas = () => 25) {
   // UC3 "Nu" → städning gäller IDAG, och nu även KLOCKSLAG. Filtrera bort poster ur säsong.
   const today = new Date();
   const nowHM = today.getHours() * 100 + today.getMinutes();
@@ -6813,7 +6875,8 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp) {
   return { count: segs.length, near: (ll, name) => {
     if (!name) return null;
     const kand = byName.get(name); if (!kand) return null;
-    const ms = kand.filter(s => distPointToSegmentLL(ll, s.a, s.b) <= 25);
+    const tak = sidolas(ll, name) ?? 25;
+    const ms = kand.filter(s => distPointToSegmentLL(ll, s.a, s.b) <= tak);
     if (!ms.length) return null;
     const act = ms.find(s => s.state === 'active');
     if (act) return { state: 'active', start: act.start, end: act.end };
@@ -6827,7 +6890,7 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp) {
 // natt-städning 00–06 på kvällen). Annars skulle en plats som städats idag (passerat)
 // visas grön på kvällen fast den städas igen i natt → bogseringsrisk. Returnerar
 // near(ll,name) → { start, end } för imminent städning, annars null. Ritar inget.
-function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH) {
+function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH, sidolas = () => 25) {
   const nowH = nowDate.getHours() + nowDate.getMinutes() / 60;
   const feats = (Array.isArray(cleaningData) ? cleaningData : (cleaningData?.features || []))
     .filter(f => cleaningActiveOn(f.properties || {}, tomorrow()));
@@ -6851,7 +6914,8 @@ function buildNextCleaningLookup(cleaningData, lat, lng, nowDate, horizonH) {
   return (ll, name) => {
     if (!name) return null;
     const kand = byName.get(name); if (!kand) return null;
-    const s = kand.find(s => distPointToSegmentLL(ll, s.a, s.b) <= 25);
+    const tak = sidolas(ll, name) ?? 25;
+    const s = kand.find(s => distPointToSegmentLL(ll, s.a, s.b) <= tak);
     return s ? { start: s.start, end: s.end } : null;
   };
 }
@@ -6885,7 +6949,7 @@ async function fetchServicedaysWeek(lat, lng) {
 // över ett dygnsskifte – bara indatan får cachas.
 // ⚠️ Uppslaget är PER SEGMENT, inte per gatunamn: uppmätt har 22 av 612 gator flera städfönster
 // samma dag, och 13 av dem ligger på olika sträckor (Dalagatan: 32 m isär).
-function buildNextCleaningWeek(veckoData, lat, lng) {
+function buildNextCleaningWeek(veckoData, lat, lng, sidolas = byggSidolas(veckoData, lat, lng)) {
   if (!veckoData) return () => null;
   const perDag = [];
   for (let d = 0; d < 7; d++) {
@@ -6926,19 +6990,12 @@ function buildNextCleaningWeek(veckoData, lat, lng) {
   // och godta sedan bara kandidater inom den + SIDO_MARGINAL_M. Marginalen rymmer normal
   // ritnoggrannhet inom samma parkeringsfält (89 % av alla matchningar ligger inom 2 m) utan
   // att släppa in andra sidan (som ligger en gatubredd bort, uppmätt 8-25 m).
-  const SIDO_MARGINAL_M = 3;
+  // Sedan 2026-09-19 delas låset med gatufärgen via byggSidolas (marginal 3 → 6 m, se där).
   const sok = (ll, name, now, bakat) => {
     if (!name || !ll) return null;
-    // Steg 1: hur nära ligger den närmaste städlinjen på gatan, oavsett veckodag?
-    let narmast = Infinity;
-    for (let d = 0; d < 7; d++) {
-      for (const s of perDag[d].get(name) || []) {
-        const dist = distPointToSegmentLL(ll, s.a, s.b);
-        if (dist < narmast) narmast = dist;
-      }
-    }
-    if (!isFinite(narmast) || narmast > 25) return null;
-    const tak = Math.min(25, narmast + SIDO_MARGINAL_M);   // aldrig lösare än den gamla gränsen
+    // Steg 1: den egna sidan – närmaste städlinjen på gatan, oavsett veckodag.
+    const tak = sidolas(ll, name);
+    if (tak == null) return null;
     // Steg 2: samma dagsloop som förr, men bara bland linjer på den egna sidan.
     // i går till 7, inte 6 (bakåt: 0 till -7). Annars får en gata som städas EN gång i veckan
     // fel svar exakt på sin egen städdag: onsdag 09:10 har onsdagsfönstret 00–06 passerat, och
@@ -7133,15 +7190,18 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     const cleaningToday    = dagUr(new Date())  || await fetchServicedays(getKey(), apiDay(new Date()), servicedagarBbox(lat, lng));
     const cleaningTomorrow = dagUr(tomorrow())  || await fetchServicedays(getKey(), apiDay(tomorrow()), servicedagarBbox(lat, lng));
     const grp = L.layerGroup();
-    const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp);
+    // Sidolåset byggs EN gång ur veckan och delas av färg (clean, nextClean) och text
+    // (nastaStadUppslag) – så kortet och gatans färg aldrig kan tala om olika sidor.
+    const sidolas = byggSidolas(veckoData, lat, lng);
+    const clean = buildCleaningMatcher(cleaningToday, lat, lng, grp, sidolas);
     // Indexet byggs en gång; själva uppslaget sker vid klick (se s.visaNastaStad).
     // Utan veckodata finns inget att slå upp. buildNextCleaningWeek svarar då med en
     // funktion som alltid säger null – och kortet skrev «Ingen städning de närmaste
     // 8 dygnen», ett påstående vi inte har grund för (och `.senaste` saknades, så
     // klicket kastade fel). null döljer raden, vilket är det enda ärliga.
-    nastaStadUppslag = veckoData ? buildNextCleaningWeek(veckoData, lat, lng) : null;
+    nastaStadUppslag = veckoData ? buildNextCleaningWeek(veckoData, lat, lng, sidolas) : null;
     const NU_HORIZON_H = 10;                              // varna för imorgon-städning ≤10h bort (kväll)
-    const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H);
+    const nextClean = buildNextCleaningLookup(cleaningTomorrow, lat, lng, new Date(), NU_HORIZON_H, sidolas);
     // HIDDEN_GEM_MIN_H/MAX_H: global const (se SENASTE_H ovan) – bara Nu-läget använder den här,
     // i Natt-läget kan samma klockslag betyda att bilen INTE får lämnas över natten (tier==='natt').
 
