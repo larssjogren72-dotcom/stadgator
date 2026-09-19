@@ -37,7 +37,7 @@ förbud per gata och sida, och datan stämmer med listan på karlstad.se i alla 
 av veckodag, vecka och klockslag. Det gör att appen kan varna för servicedagen kvällen
 före, också jämna och udda veckor och röda dagar.
 
-Jag har sju frågor. Den första är viktigast.
+Jag har åtta frågor. Den första är viktigast.
 
 **1. Får vi använda lagren?**
 Parkeringslagren ligger i arbetsytan `webbkartan`, inte i `oppnadata` där ni publicerar
@@ -80,6 +80,13 @@ att hitta på längden. Finns de som linjer någonstans?
 Varken avgiftslagret eller servicedagslagret har gatunamn. Vi härleder dem ur ert
 adresslager, och det stämmer för 97 % av gatorna i er lista, men ett eget fält vore
 säkrare.
+
+**8. Jämna veckor vid årsskiftet – vecka 53.**
+2026 har en vecka 53, så både vecka 53 och vecka 1 (4–10 januari 2027) är udda. Vi läser
+«jämna veckor» bokstavligt efter veckonumret, som skylten skriver det. Då blir det
+ingen servicedag på jämna-gatorna förrän vecka 2. Stämmer det, eller fortsätter ni i
+stället varannan vecka rakt igenom, så att jämna-gatorna servas vecka 1? Svaret avgör
+vad appen visar den veckan. Tills vi vet är vi osäkra där.
 
 Tack för en ovanligt välskött karta.
 
