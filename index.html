@@ -3266,14 +3266,15 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
       if (s.visaNastaStad && nastaStadUppslag && dest) {
         const namn = (s.street || '').toLowerCase().trim();
         const now  = new Date();
-        let kommande = nastaStadTxt(nastaStadUppslag(dest, namn, now), now);
+        const punkter = stadProvpunkter(s, nastaStadUppslag.sidolas, namn);          // se GATHÖRN
+        let kommande = nastaStadTxt(nastaFranPunkter(nastaStadUppslag, punkter, namn, now), now);
         // Pågår städningen står «Städas nu» redan i chipet. Raden under handlar då om NÄSTA
         // tillfälle, och får inte kunna läsas som att det inte städas alls (Karlstad sa
         // «Städas nu» + «Ingen städning de närmaste 8 dygnen», testrunda 2026-09-19).
         if (/^Städas nu/.test(txt)) kommande = kommande
           .replace(/^Nästa städning/, 'Nästa gång')
           .replace(/^Ingen städning/, 'Ingen ytterligare städning');
-        const senast   = nastaStadUppslag.senaste(dest, namn, now);
+        const senast   = nastaStadUppslag.senaste(stadMittpunkt(s) || dest, namn, now);  // god nyhet: bara mitten
         // Avslutad städning nämns bara nyligen – annars säger den inget om nu.
         const avslutad = (senast && (now - senast.when) / 3600000 <= SENASTE_H)
           ? senasteStadTxt(senast, now) + ' · ' : '';
@@ -6443,7 +6444,7 @@ async function showSafeStreetsV2Flow(lat, lng, parkPromise = null) {
       if (vehicleMode === 'cykel') return;   // cykel-läget målar inga gator, bara nålar (se cykelPlatserOverlay)
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
-      const cl = dest && nearCleaning(dest, (s.street || '').toLowerCase().trim());   // null | {start,end}
+      const cl = dest && strangastFranPunkter(nearCleaning, stadProvpunkter(s, sidolas, (s.street || '').toLowerCase().trim()), (s.street || '').toLowerCase().trim());   // null | {start,end}, se GATHÖRN
       // TVÅ slags morgonhinder, inte ett: städningen kommer från GATAN, ändamålsplatsen
       // (lastplats/taxi/på-avstigning) från SEGMENTET självt. Det som öppnar FÖRST binder –
       // bilen måste vara borta innan det första fönstret börjar. Tidigare frågades bara om
@@ -6954,7 +6955,7 @@ function cleaningFeatureInReach(f, lat, lng) {
 // 25 m, alltså exakt det tidigare, försiktiga beteendet.
 const SIDO_MARGINAL_M = 6;
 function byggSidolas(veckoData, lat, lng) {
-  if (!veckoData) return () => 25;
+  if (!veckoData) return Object.assign(() => 25, { narmast: () => Infinity });   // okänd sida
   const byName = new Map();
   for (let d = 0; d < 7; d++) {
     const fc = veckoData[d] || veckoData[String(d)];
@@ -6971,17 +6972,24 @@ function byggSidolas(veckoData, lat, lng) {
       });
     });
   }
-  // → största godtagbara avstånd (m) för en städlinje på gatan, eller null om gatan inte
-  //   har någon städlinje inom 25 m i veckodatan.
-  return (ll, name) => {
+  // Avstånd (m) till närmaste städlinje på gatan, oavsett veckodag. Infinity = ingen.
+  const narmastAv = (ll, name) => {
     let narmast = Infinity;
     for (const s of byName.get(name) || []) {
       const dist = distPointToSegmentLL(ll, s.a, s.b);
       if (dist < narmast) narmast = dist;
     }
+    return narmast;
+  };
+  // → största godtagbara avstånd (m) för en städlinje på gatan, eller null om gatan inte
+  //   har någon städlinje inom 25 m i veckodatan.
+  const tak = (ll, name) => {
+    const narmast = narmastAv(ll, name);
     if (!isFinite(narmast) || narmast > 25) return null;
     return Math.min(25, narmast + SIDO_MARGINAL_M);   // aldrig lösare än den gamla gränsen
   };
+  tak.narmast = narmastAv;   // för GATHÖRN: ligger sträckans mitt PÅ en städlinje?
+  return tak;
 }
 
 // sidolas: se byggSidolas. Utelämnad = 25 m, det gamla beteendet.
@@ -7082,6 +7090,84 @@ function stadRadUtanNamn(dest) {
     return 'Ingen servicedag i kommunens data – kontrollera skylt';
   return 'Städdag okänd – gatunamn saknas, kontrollera skylt';
 }
+// ── GATHÖRN: tre provpunkter per sträcka, inte en ──────────────────────────
+// Städuppslagen mätte förut bara från sträckans FÖRSTA punkt. Vid ett gathörn kan den
+// ligga nära båda sidornas städlinjer – eller närmare fel sida. Uppmätt live 2026-09-19:
+// Stockholm 2 av 1 756 sträckor (Dannemoragatan, Västeråsgatan), Karlstad 1 av 93
+// (Herrgårdsgatan), Göteborg 1 av 424 (Linnégatan 57.69562,11.95181: startpunkten såg
+// bara torsdagslinjen, mitten bara onsdagslinjen – den enda som inte var försiktig).
+//
+// Första försöket frågade alltid alla tre punkterna och tog den strängaste. Provet mot
+// live visade att det var för grovt: två sträckor på Dannemoragatan ligger 0 m från
+// onsdagslinjen hela vägen, men slutpunkten sitter i hörnet 1,1 m från tisdagslinjen –
+// och blev därmed röda på tisdagen. Andra försöket lät mitten avgöra när den låg på en
+// linje, annars alla tre – men två snedfickor på Linnégatan (mitten 11 m från båda
+// linjerna, starten 3,2 och 5,5 m från torsdagslinjen) blev då röda på onsdagen.
+// Regeln (fjärde versionen, se nedan) är därför:
+//   • Ligger MITTEN inom SIDO_MARGINAL_M från en städlinje avgör den sidan ensam.
+//   • Annars avgör den ÄNDE som ligger närmast en linje – sträckans förankring i trottoaren.
+//   • Ligger INGEN av dem inom SIDO_MARGINAL_M från någon linje vet vi inte vilken sida
+//     det är – då frågar alla tre, och den strängaste vinner. Försiktigt när vi är osäkra.
+// GODA NYHETER («nyss städad»-glöden och «avslutad»-texten) frågar alltid bara mitten,
+// så att andra sidans städning i ett hörn aldrig får sträckan att lysa som nyss städad.
+function stadMittpunkt(s) {
+  const line = s && s.linesSweref && s.linesSweref[0];
+  if (!line || !line.length) return null;
+  const p = i => toLatLng(line[i][0], line[i][1]);
+  // Två punkter (vanligast) har ingen mittpunkt i datan – ta mitten av linjen.
+  if (line.length > 2) return p(Math.floor(line.length / 2));
+  const a = p(0), b = p(line.length - 1);
+  return L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2);
+}
+function stadProvpunkter(s, sidolas, namn) {
+  const line = s && s.linesSweref && s.linesSweref[0];
+  if (!line || !line.length) return [];
+  const p = i => toLatLng(line[i][0], line[i][1]);
+  const mitt = stadMittpunkt(s), start = p(0), slut = p(line.length - 1);
+  if (!sidolas || !sidolas.narmast) return [mitt, start, slut];
+  // Mitten först, alltid. Ett tredje försök lät den NÄRMASTE punkten vinna – men när alla
+  // tre låg 0 m från samma linje avgjorde avrundningen, slutpunkten vann, och en onsdags-
+  // linje 3,7 m från mitten (7,7 m från slutet) föll bort: Västeråsgatan blev grön på
+  // onsdagen där live visar rött. Mitten är sträckans mest representativa punkt.
+  if (sidolas.narmast(mitt, namn) <= SIDO_MARGINAL_M) return [mitt];
+  // Mitten ligger mellan linjerna: den ände som ligger närmast en linje förankrar sidan.
+  const dS = sidolas.narmast(start, namn), dE = sidolas.narmast(slut, namn);
+  const ankare = dS <= dE ? start : slut;
+  return Math.min(dS, dE) <= SIDO_MARGINAL_M ? [ankare] : [mitt, start, slut];
+}
+// clean.near över flera punkter: pågår > kommande (tidigast) > passerad > ingen.
+function naraFranPunkter(near, punkter, namn) {
+  let bast = null;
+  for (const pt of punkter) {
+    const r = near(pt, namn);
+    if (!r) continue;
+    if (r.state === 'active') return r;
+    if (r.state === 'upcoming') { if (!bast || bast.state !== 'upcoming' || (r.start || 0) < (bast.start || 0)) bast = r; }
+    else if (!bast) bast = r;
+  }
+  return bast;
+}
+// { start, end }-uppslag över flera punkter: det strängaste fönstret vinner – natt före
+// morgon före sen (overnightCleaningTier), därefter tidigast start.
+function strangastFranPunkter(fn, punkter, namn) {
+  const rang = r => ({ natt: 0, morgon: 1, sen: 2 }[overnightCleaningTier(r.start, r.end)] * 10000 + (r.start || 0));
+  let bast = null;
+  for (const pt of punkter) {
+    const r = fn(pt, namn);
+    if (r && (!bast || rang(r) < rang(bast))) bast = r;
+  }
+  return bast;
+}
+// nastaStadUppslag (framåt) över flera punkter: tidigaste tillfället vinner.
+function nastaFranPunkter(uppslag, punkter, namn, nu) {
+  let bast = null;
+  for (const pt of punkter) {
+    const r = uppslag(pt, namn, nu);
+    if (r && (!bast || r.when < bast.when)) bast = r;
+  }
+  return bast;
+}
+
 // «Ingen städning i dag – juldagen är röd dag». Nu-läget frågar om i dag och i morgon,
 // natt-läget bara om i morgon – det är natten det lovar något om.
 function rodDagTxt(s, dest) {
@@ -7090,9 +7176,12 @@ function rodDagTxt(s, dest) {
   if (!namn) return null;
   const dagar = currentMode === 'uc2' ? [[tomorrow(), 'i morgon']]
                                       : [[new Date(), 'i dag'], [tomorrow(), 'i morgon']];
+  const punkter = stadProvpunkter(s, rodDagUppslag.sidolas, namn);
   for (const [datum, ord] of dagar) {
-    const h = rodDagUppslag.hoppadRodDag(dest, namn, datum);
-    if (h) return `Ingen städning ${ord} – ` + (h.namn === 'söndag' ? 'söndagar undantas' : `${h.namn} är röd dag`);
+    for (const pt of (punkter.length ? punkter : [dest])) {
+      const h = rodDagUppslag.hoppadRodDag(pt, namn, datum);
+      if (h) return `Ingen städning ${ord} – ` + (h.namn === 'söndag' ? 'söndagar undantas' : `${h.namn} är röd dag`);
+    }
   }
   return null;
 }
@@ -7219,6 +7308,7 @@ function buildNextCleaningWeek(veckoData, lat, lng, sidolas = byggSidolas(veckoD
   };
   // Finns NÅGON städlinje inom 25 m, oavsett gatunamn? För sträckor utan namn, där
   // namnmatchningen inte kan svara: då vet vi inte, och kortet får inte säga «ingen».
+  f.sidolas = sidolas;   // kortet och röd dag-raden behöver samma sidolås (se GATHÖRN)
   f.naraStadlinje = (ll) => {
     if (!ll) return false;
     for (const byName of perDag)
@@ -7425,9 +7515,10 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       const first = s.linesSweref[0] && s.linesSweref[0][0];
       const dest  = first && toLatLng(first[0], first[1]);
       const name = (s.street || '').toLowerCase().trim();
-      const cs = dest && clean.near(dest, name);                                     // dagens: null | {state,start,end}
+      const punkter = stadProvpunkter(s, sidolas, name);                            // se GATHÖRN
+      const cs = dest && naraFranPunkter(clean.near, punkter, name);                 // dagens: null | {state,start,end}
       // Imminent natt-/morgonstädning imorgon (bara relevant om dagens ej aktiv/kommande):
-      const nx = dest && (!cs || cs.state === 'passed') ? nextClean(dest, name) : null;
+      const nx = dest && (!cs || cs.state === 'passed') ? strangastFranPunkter(nextClean, punkter, name) : null;
       // Ändamålsplats aktiv just nu = inte parkering (röd, som förbud). Måste ligga FÖRE
       // städgrenarna, annars räknas den som "får stå" i badgen. Utanför fönstret faller
       // den igenom till vanlig logik – "övrig tid får fordon parkeras" (föreskrifterna).
@@ -7687,7 +7778,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
       let nyssStadad = false;
       if (color === '#16a34a' && s.visaNastaStad && nastaStadUppslag && dest) {
         nyssRaknade++;
-        const sen = nastaStadUppslag.senaste(dest, name, now);
+        const sen = nastaStadUppslag.senaste(stadMittpunkt(s) || dest, name, now);   // god nyhet: bara mitten
         nyssStadad = !!sen && (now - sen.when) / 3600000 <= SENASTE_H;
       }
       // ── Förbudet tog nyss slut (Lars idé 2026-08-29) ──────────────────────────
