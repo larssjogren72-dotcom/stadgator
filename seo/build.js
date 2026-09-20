@@ -196,6 +196,14 @@ const STADSNAMN_DEF = { namn: 'ParkSpot Stockholm', relText: 'Mer om parkering i
 // och i appens egen ansvarstext. Marknadsföringen lovade alltså något produkten
 // förnekar, vilket är det snabbaste sättet att förlora förtroende för allt annat.
 // Knappens länk följer dessutom staden: en Göteborgssida ska inte leda till Stockholm.
+// Google kapar titeln vid ungefär 60 tecken på mobil, och 82 % av klicken är mobila
+// (uppmätt i Search Console 2026-09-20). Mallar med ett namn i sig – gatunamn plus
+// stadsdel – spränger gränsen för de längsta namnen men inte för de korta. Ta därför
+// den fylliga varianten när den ryms och den korta annars, i stället för att låta alla
+// sidor betala för de längsta namnen.
+const TITEL_MAX = 60;
+function kortTitel(lang, kort) { return lang.length <= TITEL_MAX ? lang : kort; }
+
 function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [], extraLd = null, stad = STADSNAMN_DEF }) {
   const hreflang = alts.length
     ? alts.map(a => `<link rel="alternate" hreflang="${a.lang}" href="${SITE}/${a.slug}">`).join('')
@@ -469,7 +477,7 @@ function billigare(d) {
   ];
   emit(`billigare-parkering/${d.slug}`, layout({
     slug:`billigare-parkering/${d.slug}`, title:`Billigast parkering på ${d.name} – från ${pris} kr/tim`,
-    desc:`Hitta billigast parkering i ${d.name}. Jämför taxezoner (från ${pris} kr/tim)${hasFreeZone(d.taxa) ? ' och se när det är avgiftsfritt (kvällar, nätter, söndagar)' : ''}. Kör lugnt, betala mindre.`,
+    desc:`Jämför taxezonerna i ${d.name}, från ${pris} kr/tim${hasFreeZone(d.taxa) ? ', och se när det är avgiftsfritt (kvällar, nätter och söndagar)' : ''}. Betala mindre för samma gata.`,
     h1:`Billigare parkering i ${d.name}`, lead:`Betala mindre i ${esc(d.name)}. Se vilka zoner som är billigast${hasFreeZone(d.taxa) ? ' och när det är avgiftsfritt' : ''} — direkt på kartan.`,
     sections, faq, related, lat:d.lat, lng:d.lng, match:d.match }));
 }
@@ -492,7 +500,7 @@ function overNatten(d) {
     { href:`parkering-over-natten-stockholm`, text:`Parkera över natten i Stockholm (guide)` },
   ];
   emit(`parkering-over-natten/${d.slug}`, layout({
-    slug:`parkering-over-natten/${d.slug}`, title:`Parkering över natten i ${d.name} – tryggt & lagligt | ParkSpot`,
+    slug:`parkering-over-natten/${d.slug}`, title:`Parkera över natten i ${d.name} – vad som gäller`,
     desc:`Var får du stå över natten i ${d.name} utan städgata, förbud eller böter? ParkSpot visar trygga nattgator nära dig. Sov lugnt.`,
     h1:`Parkering över natten i ${d.name}`, lead:`Sov lugnt — bilen står rätt. Se trygga nattgator i ${esc(d.name)} utan städning eller förbud imorgon bitti.`,
     sections, faq, related, lat:d.lat, lng:d.lng, match:d.match }));
@@ -550,7 +558,8 @@ function destination(x) {
     { href:`parkeringshus-stockholm`, text:`Parkeringshus i Stockholm` },
   ].filter(r => r.href !== `parkering-nara/${x.slug}`);
   emit(`parkering-nara/${x.slug}`, layout({
-    slug:`parkering-nara/${x.slug}`, title:`Parkering vid ${x.name} – pris, platser och garage`,
+    slug:`parkering-nara/${x.slug}`, title:kortTitel(`Parkering vid ${x.name} – pris, platser och garage`,
+                    `Parkering vid ${x.name} – pris och garage`),
     desc:`Var du får stå närmast ${x.name}, vad timmen kostar och vilket garage som ligger närmast. Se lediga gator på kartan innan du åker.`,
     h1:`Parkering nära ${x.name}`, lead:`Ska du till ${esc(x.name)}? Hitta lagliga platser och närmaste garage — utan att cirkla.`,
     sections, faq, related, lat:x.lat, lng:x.lng, match:null,
@@ -584,7 +593,8 @@ function destinationEN(x) {
   ].filter(r => r.href !== `en/parking-near-${x.slug}`);
   emit(`en/parking-near-${x.slug}`, layout({
     slug:`en/parking-near-${x.slug}`, en:true,
-    title:`Parking near ${x.name}, Stockholm — spots & garages | ParkSpot`,
+    title:kortTitel(`Parking near ${x.name}, Stockholm: spots and garages`,
+                    `Parking near ${x.name}: spots and garages`),
     desc:`Where to park near ${x.name} in Stockholm? See legal street spots, the price and the nearest parking garage. Drive calm — free live map.`,
     h1:`Parking near ${x.name}`, lead:`Driving to ${esc(x.name)}? Find legal spots and the nearest garage — without circling.`,
     sections, faq, related, lat:x.lat, lng:x.lng, match:null,
@@ -605,7 +615,7 @@ function englishHub() {
   ];
   emit('en', layout({
     slug:'en', en:true,
-    title:'Parking in Stockholm for visitors — sights, prices & map | ParkSpot',
+    title:'Parking in Stockholm: sights, prices and a free map',
     desc:'Visiting Stockholm by car? Find parking near Gröna Lund, Skansen, Djurgården and more — legal spots, prices (zones 1–5) and the nearest garage. Free live map.',
     h1:'Parking in Stockholm — for visitors', lead:'Stop circling. Find parking near the sights, prices and a live map of free legal spots.',
     sections, faq, related:null, lat:59.328, lng:18.09, match:['Norra Djurgården','Östermalm','Norrmalm'] }));
@@ -633,7 +643,7 @@ function pillarSummer() {
   ];
   const related = DISTRICTS.slice(0, 6).map(d => ({ href:`parkering/${d.slug}`, text:`Parkering i ${d.name}` }));
   emit('sommar-parkering-stockholm', layout({
-    slug:'sommar-parkering-stockholm', title:'Parkering i Stockholm i sommar – billigare & fler platser | ParkSpot',
+    slug:'sommar-parkering-stockholm', title:'Parkering i Stockholm i sommar – billigare zoner',
     desc:`Sommarparkering i Stockholm: vintergator (${SEASON}) städas inte på sommaren – fler lediga platser. Se var du parkerar billigast och nära sommarmålen.`,
     h1:'Parkering i Stockholm i sommar', lead:`${TAGLINE} På sommaren vilar vintergatorna och stan är ledigare — ParkSpot visar var du får stå, billigast och utan böter.`,
     sections, faq, related, lat:59.331, lng:18.064, match:['Södermalm','Östermalm','Kungsholmen','Vasastaden','Norrmalm'] }));
@@ -770,7 +780,7 @@ function pillarOverNatten() {
     { href:`sommar-parkering-stockholm`, text:`Sommarparkering` },
   ];
   emit('parkering-over-natten-stockholm', layout({
-    slug:'parkering-over-natten-stockholm', title:'Parkera över natten i Stockholm – tryggt & lagligt | ParkSpot',
+    slug:'parkering-over-natten-stockholm', title:'Parkera över natten i Stockholm – vad som gäller',
     desc:'Var får du stå över natten i Stockholm utan städgata, förbud eller böter? ParkSpot visar trygga nattgator nära dig. Sov lugnt.',
     h1:'Parkera över natten i Stockholm', lead:'Sov lugnt — bilen står rätt. Hitta trygga nattgator utan städning eller förbud imorgon bitti.',
     sections, faq, related, lat:59.331, lng:18.064, match:['Södermalm','Östermalm','Kungsholmen','Vasastaden','Norrmalm'] }));
@@ -899,7 +909,7 @@ function pillarHubs() {
   // 2) Billigare parkering
   categoryHub({
     slug:'billigare-parkering',
-    title:'Billigare parkering i Stockholm – pris per zon & gratis-tider | ParkSpot',
+    title:'Billigast parkering i Stockholm – zon för zon',
     desc:'Betala mindre för parkering i Stockholm. Jämför taxezoner (från 5 kr/tim) och se när det är avgiftsfritt – kvällar, nätter och söndagar. Stadsdel för stadsdel.',
     h1:'Billigare parkering i Stockholm',
     lead:'Betala mindre. Se vilka zoner som är billigast och när parkering är avgiftsfri — i din stadsdel.',
@@ -1022,7 +1032,8 @@ function streetPage(s) {
   ].concat(siblings.map(x => ({ href:`parkering/${x.slug}`, text:`Parkering på ${x.name}` })));
   emit(`parkering/${s.slug}`, layout({
     slug:`parkering/${s.slug}`,
-    title:`Parkering på ${s.name}, ${s.districtName} – pris & städdag | ParkSpot`,
+    title:kortTitel(`Parkering på ${s.name}, ${s.districtName} – pris och städdag`,
+                    `Parkering på ${s.name} – pris och städdag`),
     desc:`Var får du parkera på ${s.name} i ${s.districtName}? Se pris (Taxa ${s.taxa.join('/')}), vilken dag gatan städas och om du får stå över natten. Gratis live-karta.`,
     h1:`Parkering på ${s.name}`,
     lead:`Ska du parkera på ${esc(s.name)} i ${esc(s.districtName)}? Se pris, städdag och nattparkering — plus en live-karta som visar lediga platser.`,
@@ -1262,7 +1273,7 @@ function ksdNatt() {
     { q:'Är parkeringen gratis på natten?', a:'I flera zoner tar avgiften slut klockan 18, i några parkeringsområden kostar natten 2 kr i timmen. Priset per område står på översiktssidan.' },
   ];
   emit('parkering-over-natten-karlstad', layout({
-    slug:'parkering-over-natten-karlstad', title:'Parkera över natten i Karlstad – servicedagar och tidsgränser | ParkSpot',
+    slug:'parkering-over-natten-karlstad', title:'Parkera över natten i Karlstad – vad som gäller',
     desc:'Kan bilen stå kvar till morgonen i Karlstad? Servicedagar klockan 05–07, tidsgränser och avgifter avgör. Se lagliga nattplatser på karta.',
     h1:'Parkera över natten i Karlstad',
     lead:'Servicedagen tidigt nästa morgon och tidsgränsen – det är de två sakerna som avgör.',
@@ -1383,7 +1394,7 @@ function upsAvgifter() {
     { q:'Är kvällen billigare?', a:'Ofta. Många områden har ett lägre pris mellan 18 och 24 – till exempel 20 kr i timmen dagtid och 5 kr på kvällen. Kontrollera skylten, priserna skiljer sig mellan områden.' },
   ];
   emit('parkeringsavgifter-uppsala', layout({
-    slug:'parkeringsavgifter-uppsala', title:'Parkeringsavgifter i Uppsala – zoner, priser och Max-P | ParkSpot',
+    slug:'parkeringsavgifter-uppsala', title:'Vad kostar parkering i Uppsala? Område A–E',
     desc:'Så fungerar parkeringsavgifterna i Uppsala: områdeskoden på skylten avgör priset. Se zonerna, timpriserna och tidsgränserna – och vad klockslagen betyder.',
     h1:'Parkeringsavgifter i Uppsala',
     lead:'Priset hänger på området, inte på gatan. Koden står på skylten – här är vad den betyder.',
@@ -1451,7 +1462,7 @@ function upsGarage() {
     { q:'Finns laddplatser?', a:'Ja, i alla fyra garagen – flest i Dansmästaren med 60 platser.' },
   ];
   emit('parkeringshus-uppsala', layout({
-    slug:'parkeringshus-uppsala', title:'Parkeringsgarage i Uppsala – platser, pris och takhöjd | ParkSpot',
+    slug:'parkeringshus-uppsala', title:'Parkeringsgarage i Uppsala – pris och takhöjd',
     desc:'Uppsalas fyra kommunala parkeringsgarage: antal platser, laddplatser, takhöjd och maxtid. Se dem på karta när gatan är full.',
     h1:'Parkeringsgarage i Uppsala',
     lead:'Fyra garage, deras storlek, takhöjd och vad de kostar.',
@@ -1480,7 +1491,8 @@ function upsStadsdel(s) {
   ];
   emit('parkering-uppsala/' + s.slug, layout({
     slug:'parkering-uppsala/' + s.slug,
-    title:`Parkering i ${s.namn}, Uppsala – avgifter och tidsgränser | ParkSpot`,
+    title:kortTitel(`Parkering i ${s.namn} – avgifter och tidsgränser`,
+                    `Parkering i ${s.namn} – avgifter`),
     desc:`Parkering i ${s.namn}: ${s.stracker} sträckor med ${upsTal(s.platser)} platser, avgifter och tidsgränser ur kommunens parkeringskarta.`,
     h1:`Parkering i ${s.namn}`,
     lead:`${s.stracker} parkeringssträckor och ${upsTal(s.platser)} platser enligt kommunens karta – och vad som gäller på dem.`,
@@ -1573,7 +1585,7 @@ function gbgNatt() {
   ];
   emit('parkering-over-natten-goteborg', layout({
     slug:'parkering-over-natten-goteborg',
-    title:'Parkera över natten i Göteborg – var står bilen tryggt? | ParkSpot',
+    title:'Parkera över natten i Göteborg – städning och tider',
     desc:'Kan bilen stå kvar till i morgon? Se vilka gator i Göteborg som städas på natten, hur jämna och udda veckor fungerar och var tidsgränsen tar slut.',
     h1:'Parkera över natten i Göteborg',
     lead:'Städningen och tidsgränsen avgör – här är siffrorna, och hur du hittar en gata som håller hela natten.',
@@ -1675,7 +1687,7 @@ function gbgAnlaggningar() {
     { q:'Varför skiljer sig priset mot skylten?', a:'Priset som visas gäller den aktuella timmen. De flesta anläggningar har ett högre dagpris 08–22 och ett lägre pris övrig tid.' },
   ];
   emit('parkeringsanlaggningar-goteborg', layout({
-    slug:'parkeringsanlaggningar-goteborg', title:'Parkeringsanläggningar i Göteborg – pris och kapacitet | ParkSpot',
+    slug:'parkeringsanlaggningar-goteborg', title:'Parkering i garage i Göteborg – pris och platser',
     desc:'Drygt 900 avgiftsparkeringar i Göteborg med kapacitet, operatör och aktuellt timpris. Se dem på karta när gatan är full.',
     h1:'Parkeringsanläggningar i Göteborg',
     lead:'När gatan är full. Kapacitet, operatör och vad det kostar just nu.',
@@ -1707,7 +1719,7 @@ function gbgOmrade(o) {
   ];
   emit('parkering-goteborg/' + o.slug, layout({
     slug:'parkering-goteborg/' + o.slug,
-    title:'Parkering i ' + o.namn + ', Göteborg – zoner och städdagar | ParkSpot',
+    title:'Parkering i ' + o.namn + ' – zoner och städdagar',
     desc:'Parkering i ' + o.namn + ': boendezoner ' + o.zoner.join(', ') + ', ' + o.gator + ' gator med registrerad parkering och ' + o.medStadning + ' med städdagar. Se på karta.',
     h1:'Parkering i ' + o.namn,
     lead:'Boendezoner, städdagar och tidsgränser i ' + o.namn + ' – på karta.',

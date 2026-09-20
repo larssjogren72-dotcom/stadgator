@@ -14,6 +14,25 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.39.1 – 2026-09-20
+**Andra omgången: resterande 164 för långa titlar, inklusive de 109 gatusidorna.**
+
+v1.39.0 tog de mest exponerade sidorna. Kvar låg 164 titlar över 60 tecken – gatusidorna,
+de engelska «parking near»-sidorna, Uppsalas stadsdelar, Göteborgs områden och
+över natten-mallen. Nu är **0 av 260 titlar över 60 tecken** (median 52, längst 60).
+
+- Varumärket ur titeln även här. Kvar har det 15 korta sidor där det ryms.
+- Ny hjälpfunktion `kortTitel(lång, kort)` i generatorn: den fylliga titeln används när
+  den ryms, annars den korta. Gatusidorna behåller alltså stadsdelen – «Parkering på
+  Narvavägen, Östermalm» – medan «Hammarby Fabriksväg» tappar den i titeln men har kvar
+  den i rubriken och beskrivningen. Tidigare fick alla sidor betala för de längsta namnen.
+- «Parkering över natten i X – tryggt & lagligt» → «Parkera över natten i X – vad som
+  gäller». «Tryggt och lagligt» var ett löfte vi inte kan hålla i städer utan förbudsdata.
+- Billigare-sidornas beskrivning kortades från 165 till under 160 tecken.
+
+Provat: 260 av 260 svarar 200 lokalt · 0 titlar över 60 tecken · 0 identiska titlar ·
+0 beskrivningar över 160 · H1 orörda · stadsdelen kvar i beskrivningen där titeln tappat den.
+
 ## v1.39.0 – 2026-09-20
 **Omskrivna titlar och beskrivningar på de mest exponerade sidorna.**
 
