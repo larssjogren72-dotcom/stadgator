@@ -14,6 +14,30 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.35.0 – 2026-09-20
+**Uppsalas avgiftsområden A–E ritas som färglagda zoner, som Stockholms taxezoner.**
+
+Uppsala publicerar fem stadstäckande områden (A dyrast till E billigast) i samma lager
+som appen redan läser. De ritas nu med appens egen prisskala: rött dyrast, blått billigast.
+Uppsalas EGEN karttjänst färglägger tvärtom (grönt = billigast) – den följs inte, eftersom
+grönt betyder «får stå nu» i appen och E täcker hela staden. Kommunen använder heller inga
+färgnamn mot invånarna («Avgiftsområde A – kod 18100»), så inget inarbetat språk bryts.
+
+Priset på kortet ändras inte: utanför Stockholm kommer det fortfarande från gatan själv.
+Det är viktigt, för 79 av 470 avgiftssträckor i centrum ligger i ett HÅL i zonerna – egna
+p-områden med annat pris, t.ex. Stadshusgatan 36 kr/tim mitt i A–B. Där zonen gäller stämde
+den med gatans pris på 380 av 382 sträckor (de två avvikande ligger vid en zongräns).
+
+- `cities/uppsala.js`: ny väg `/uppsala/zoner` (kartportalen skickar ingen CORS-header, så
+  klienten kan inte hämta själv). Cache 6 h. Får vi färre än fem zoner ritas inga alls –
+  en stad där B saknas ser ut som att B är gratis.
+- `index.html`: ny stadsruta `zonLager` (bara ritning) vid sidan av Stockholms `taxaZon`
+  (som också sätter priset). Förklaringen visar stadens egna beteckningar: 1–5 i Stockholm,
+  A–E i Uppsala.
+- Zonerna ritas nu som fyllning UTAN kant plus kant på bara yttre ringen. Hål är enskilda
+  p-områden med eget pris; med kant blev Uppsalas E-zon full av mörka fläckar (112 hål).
+  Stockholm har 22 hål och ser i praktiken oförändrat ut – kontrollerat i bild, samma vy.
+
 ## v1.34.9 – 2026-09-19
 **Vid gathörn avgör mitten av sträckan vilken sida den hör till, inte första punkten.**
 

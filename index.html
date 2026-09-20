@@ -1610,7 +1610,18 @@ STADER_CFG.uppsala =
       tillatenUrl:'/uppsala/wfs-tillaten',
       // Fyra kommunala garage. Priset står i fritext per område och räknas inte ut.
       phusUrl:'/uppsala/phus', phusTyp:null, phusRubrik:'Parkeringshus nära', phusEtikett:'Garage',
+      // taxaZon är Stockholms zonkarta, som också SÄTTER PRISET på kortet (taxaZoneAt).
+      // Uppsalas zoner får bara RITAS: priset står per sträcka i PARKING_RATE och är
+      // sannare än zonen, eftersom 79 av 470 centrumsträckor ligger i ett hål med eget
+      // pris (mätt 2026-09-19). Därför en egen ruta, inte taxaZon.
       taxaZon:null,
+      zonLager:{ url:'/uppsala/zoner', rubrik:'Avgiftsområde · dyrast → billigast',
+                 // Uppsalas EGEN karttjänst färgar zonerna tvärtom (grönt = billigast,
+                 // blått = D). Vi följer inte den: grönt betyder «får stå nu» i appen, och
+                 // E täcker hela staden – hela Uppsala hade skimrat grönt. Kommunen
+                 // använder heller inga färgnamn mot invånarna (uppsalaparkering.se säger
+                 // «Avgiftsområde A – kod 18100»), så inget inarbetat språk bryts.
+                 etiketter:['A', 'B', 'C', 'D', 'E'] },
       // SANT: Uppsala pekar ut hur länge på sträckan (`Tidsbegransning`, kodad) och i
       // områdets avgiftstext («Max-P 4tim»). Mätt 2026-09-15 på hela kommunen: av 325
       // avgiftsfria sträckor bär 301 en tidsgräns. Avgiftssträckor utan egen gräns
@@ -2525,16 +2536,23 @@ function clearZonesFromMap() {
 // Zonerna ändras inte med vyn och taxor ändras högst någon gång per år.
 let zonData = null, zonHamtning = null;              // rådata + single-flight
 
+// Staden ritar zoner om den har ANTINGEN Stockholms taxaZon (som också sätter priset
+// på kortet) ELLER ett zonLager (bara ritning – priset står per sträcka). Skillnaden
+// finns förklarad vid Uppsalas zonLager; resten av zon-koden behandlar dem lika.
+const HAR_ZONER = !!(STAD.taxaZon || STAD.zonLager);
+
 async function loadZonesForViewport(apiKey) {        // (bounds behövs inte längre)
   // Taxa-zonerna är Stockholms egna polygoner, och BBOX:en nedan är Stockholms.
-  // Lager och bbox bor därför i stadskonfigurationen: null = staden har inga zoner
-  // att rita (Sundbybergs pris ligger per gatusegment, Göteborgs likaså).
-  if (!STAD.taxaZon) return;
+  // Lager och bbox bor därför i stadskonfigurationen: saknas båda har staden inga
+  // zoner att rita (Sundbybergs pris ligger per gatusegment, Göteborgs likaså).
+  if (!HAR_ZONER) return;
   try {
     if (!zonData) {
       // single-flight: flera flöden startar samtidigt vid sidladdning → ett enda anrop
       if (!zonHamtning) {
-        zonHamtning = fetch(`/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${STAD.taxaZon.layer}&outputFormat=application/json&BBOX=${STAD.taxaZon.bbox}`)
+        const url = STAD.zonLager ? STAD.zonLager.url
+          : `/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${STAD.taxaZon.layer}&outputFormat=application/json&BBOX=${STAD.taxaZon.bbox}`;
+        zonHamtning = fetch(url)
           .then(r => r.ok ? r.json() : null).catch(() => null);
       }
       zonData = await zonHamtning;
@@ -2548,21 +2566,35 @@ function ritaZoner(data) {
   // ANTI-BLINK: bygg nya lager först, ta bort gamla EFTER (swap) → zonerna blinkar aldrig till tomt.
   const oldLayers = zoneGroupLayers;
   zoneGroupLayers = []; taxaZones = [];
+  const stilar = Object.values(ZONE_STYLES);     // ordnade dyrast → billigast
   (data.features||[]).forEach(feat => {
-      const name = feat.properties?.DISTRICT_NAME || '';
-      const taxa = feat.properties?.TAXA || '';
+      const p    = feat.properties || {};
+      const name = p.DISTRICT_NAME || '';
+      const taxa = p.TAXA || '';
+      // Stockholm numrerar zonerna i namnet ("Taxa 3"), adapterstäder skickar ORDNING.
       // Taxa 11–15 = mc/reducerad ovanpå bil-zonerna 1–5 → hoppa (annars fel pris + grå zoner).
-      const num = +((name.match(/\d+/) || [])[0]);
-      if (num > 5) return;
-      const s    = ZONE_STYLES[name] || { color:'#555', fill:'#999', label:name };
-      if (feat.geometry) taxaZones.push({ name, taxa, geometry: feat.geometry });
-      const lg = L.geoJSON(feat, {
+      const num = STAD.zonLager ? +p.ORDNING : +((name.match(/\d+/) || [])[0]);
+      if (!(num >= 1 && num <= 5)) return;
+      const s = stilar[num - 1] || { color:'#555', fill:'#999' };
+      // Prisuppslaget (taxaZoneAt) är Stockholms: bara zoner som BÄR priset får fylla
+      // listan. Uppsalas zon vet inte vad sträckan kostar – den ligger ofta i ett hål.
+      if (feat.geometry && STAD.taxaZon) taxaZones.push({ name, taxa, geometry: feat.geometry });
+      // TVÅ lager per zon: fyllning utan kant + kant på BARA den yttre ringen.
+      // Skälet är hålen (enskilda p-områden med eget pris). Ritas de med kant blir
+      // Uppsalas E-zon full av mörka fläckar – 112 hål – och Stockholms Taxa 5 har 16.
+      // Hålen ska synas som hål, inte som ett eget streckat mönster.
+      const fyll = L.geoJSON(feat, {
         pane: 'zonesPane',
         interactive: false,            // klick går till kartan (= sätt destination); pris visas i platspopup/kort
-        style: { color:s.color, weight:2, fillColor:s.fill, fillOpacity:0.30 },
+        style: { stroke:false, fillColor:s.fill, fillOpacity:0.30 },
         coordsToLatLng: c => toLatLng(c[0],c[1])
       }).addTo(map);
-    zoneGroupLayers.push(lg);
+      const g = feat.geometry || {};
+      const ytor = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      const kant = L.polyline(ytor.map(yta => (yta[0] || []).map(c => toLatLng(c[0], c[1]))), {
+        pane: 'zonesPane', interactive: false, color:s.color, weight:2, fill:false
+      }).addTo(map);
+    zoneGroupLayers.push(fyll, kant);
   });
   oldLayers.forEach(lg => lg.remove());              // SWAP: ta bort gamla nu
 }
@@ -8178,10 +8210,15 @@ function updateLegend(mode) {
   // Bara städer där zonerna faktiskt RITAS (se STAD.taxaZon, som redan avbryter
   // refreshZones). Förklaringen visade annars Stockholms prisstege i Sundbyberg, där
   // ingen zon finns – en färgskala som förklarar något kartan aldrig visar.
-  const taxaScale = !STAD.taxaZon ? '' :
-    `<div class="lgnd-taxa-label">Taxa · dyrast → billigast</div>
+  // Stadens eget ord och egna beteckningar: Stockholm säger "Taxa 1–5", Uppsala
+  // "Avgiftsområde A–E" (uppsalaparkering.se). Färgordningen är däremot appens egen
+  // och densamma i båda städerna – se Uppsalas zonLager om varför.
+  const taxaEtiketter = STAD.zonLager ? STAD.zonLager.etiketter : ['1', '2', '3', '4', '5'];
+  const taxaRubrik    = STAD.zonLager ? STAD.zonLager.rubrik    : 'Taxa · dyrast → billigast';
+  const taxaScale = !HAR_ZONER ? '' :
+    `<div class="lgnd-taxa-label">${taxaRubrik}</div>
      <div class="lgnd-taxa-bar">${Object.values(ZONE_STYLES).map((s, i) =>
-       `<div class="lgnd-taxa-seg" style="background:${s.fill};color:${s.color}">${i + 1}</div>`
+       `<div class="lgnd-taxa-seg" style="background:${s.fill};color:${s.color}">${taxaEtiketter[i] || (i + 1)}</div>`
      ).join('')}</div>`;
   // EN switch i stället för de gamla två (gågata/förbud). De täckte inte lila "ej för bil",
   // och mängden "får ej stå" är fordonsberoende → en switch som följer vehicleMode är korrektare.

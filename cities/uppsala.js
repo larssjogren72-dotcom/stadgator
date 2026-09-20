@@ -82,6 +82,17 @@ module.exports = function skapaUppsala(delade) {
     lastplats:  'GOT_Lastplats/FeatureServer/406'               //   121 ytor
   };
   const OMRADE_LAGER = 'GOT_Omradeskoder/FeatureServer/415';     //    95 områden
+  // Fem av de 95 områdena är STADSZONER (A–E, dyrast→billigast) och täcker hela staden.
+  // De övriga 90 är enskilda p-områden med eget pris – de ligger som HÅL i zonerna och
+  // ska förbli hål (uppmätt 2026-09-19: 79 av 470 avgiftssträckor i centrum låg i ett hål,
+  // t.ex. Stadshusgatan 36 kr/tim mitt i A–B). Fyller man hålen ljuger kartan om priset.
+  const ZONKODER = [
+    { kod: 18100, zon: 'A', ordning: 1 },
+    { kod: 18200, zon: 'B', ordning: 2 },
+    { kod: 18300, zon: 'C', ordning: 3 },
+    { kod: 18400, zon: 'D', ordning: 4 },
+    { kod: 18500, zon: 'E', ordning: 5 },
+  ];
   const PHUS_LAGER   = 'GOT_Parkeringshus/FeatureServer/397';    //     4 garage
 
   // ── HTTP ───────────────────────────────────────────────────────────────────
@@ -664,6 +675,40 @@ module.exports = function skapaUppsala(delade) {
     return phusInflight;
   }
 
+  // ── Zoner (cachas) ─────────────────────────────────────────────────────────
+  // Klienten kan inte hämta kartportalen själv: den skickar ingen CORS-header, så
+  // webbläsaren blockerar svaret (prövat 2026-09-19). Därför denna väg.
+  // outSR 4326: zonerna används bara för att RITA, aldrig för prisuppslag – Uppsalas
+  // pris kommer per sträcka (PARKING_RATE). Klientens toLatLng klarar båda systemen.
+  let zonCache = null, zonTs = 0, zonInflight = null;
+  function byggZoner() {
+    if (zonCache && Date.now() - zonTs < TTL) return Promise.resolve({ zoner: zonCache, varm: true });
+    if (zonInflight) return zonInflight;
+    const koder = ZONKODER.map(z => z.kod).join(',');
+    zonInflight = hamtaJson(`${BAS}/${OMRADE_LAGER}/query?f=geojson&where=`
+        + encodeURIComponent(`Omradeskod IN (${koder})`)
+        + '&outFields=Omradeskod,Omradesnamn,Avgiftstext&outSR=4326&returnGeometry=true')
+      .then(d => {
+        const ut = [];
+        for (const f of (d && d.features) || []) {
+          const rad = ZONKODER.find(z => z.kod === +(f.properties || {}).Omradeskod);
+          if (!rad || !f.geometry) continue;
+          ut.push({ type: 'Feature', geometry: f.geometry,
+                    properties: { ZON: rad.zon, ORDNING: rad.ordning, PRIS: norm(f.properties.Avgiftstext) } });
+        }
+        // Saknas en zon ritar vi hellre inga alls än fyra av fem: en stad där B saknas
+        // ser ut som att B är gratis. Tomt svar = appen ritar bara gatorna, som förut.
+        if (ut.length !== ZONKODER.length) {
+          console.warn(`[Uppsala] zoner: fick ${ut.length} av ${ZONKODER.length} – ritar inga`);
+          return { zoner: [], varm: false };
+        }
+        console.log(`[Uppsala] zoner: ${ut.length} inlästa`);
+        zonCache = ut; zonTs = Date.now();
+        return { zoner: ut, varm: false };
+      }).finally(() => { zonInflight = null; });
+    return zonInflight;
+  }
+
   // ── Vägar ──────────────────────────────────────────────────────────────────
   const fel = (res, kod, txt) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -683,6 +728,13 @@ module.exports = function skapaUppsala(delade) {
         send(req, res, 200, 'application/json; charset=utf-8',
              Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), varm ? 'HIT' : 'MISS');
       }).catch(e => { console.warn('[Uppsala] tillåten:', e.message); fel(res, 502, 'Uppsalas parkeringsdata otillgänglig'); });
+      return true;
+    }
+    if (reqUrl.pathname === '/uppsala/zoner') {
+      byggZoner().then(({ zoner, varm }) => {
+        send(req, res, 200, 'application/json; charset=utf-8',
+             Buffer.from(JSON.stringify({ type: 'FeatureCollection', features: zoner })), varm ? 'HIT' : 'MISS');
+      }).catch(e => { console.warn('[Uppsala] zoner:', e.message); fel(res, 502, 'Uppsalas avgiftsområden otillgängliga'); });
       return true;
     }
     if (reqUrl.pathname === '/uppsala/phus') {
