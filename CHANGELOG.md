@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.41.4 – 2026-09-20
+**iOS förstorade halva förklaringsrutan – och raderna var för luftiga.**
+
+Lars fotograferade rutan på iPhone: «Avgiftszoner · dyrast → billigast» ritades **större** än
+«Tidsgräns – var uppmärksam på tiden» och radbröts, trots att etiketten är 11 px och raden
+12 px, och trots att den längre raden fick plats på en rad. Det syns inte i en emulerad
+mobil, bara på riktig iOS.
+
+**Orsaken:** Safaris egen textförstoring (text autosizing) skalar upp text i vanliga block
+efter blockets bredd – men rör inte flex-behållare. Färgraderna är flex och förblev 12 px;
+zonetiketten, prisfotnoten och feedback-länken är vanliga block och blåstes upp. Viewport-
+taggen stänger **inte** av det; bara `text-size-adjust` gör det. Satt på `.legend`, inte på
+body: övrig text i appen är inställd som den ser ut **med** uppblåsningen, och att stänga av
+den överallt hade krympt texter ingen klagat på.
+
+**Och luften:** radhöjd 1.9 gav 27 px höga rader för 12 px text. Raderna är inte tryckytor
+(bara reglaget är det), så höjden behövde inte hållas uppe. Nu 1.5 → **22 px per rad**, och
+färgrutans centrering räknas ur radhöjden i stället för att vara en handräknad siffra som
+tyst blir fel nästa gång någon rör värdet.
+
+Provat i fem städer × två lägen × fyra fordon: indrag 22 px, färgrutans mitt 11 px och
+radhöjd 22 px överallt (40 px bara för den röda Nu-raden som wrappar med flit), två
+textstorlekar, två radhöjder. Inga konsolfel. **Att iOS-förstoringen är borta går inte att
+mäta i en emulator – det kräver en riktig iPhone.**
+
 ## v1.41.3 – 2026-09-20
 **Typografin i förklaringsrutan – en textkolumn, två storlekar, en rytm.**
 

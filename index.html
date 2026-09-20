@@ -712,7 +712,21 @@
          12 px som förut till textens högerkant, men de 8 är nu innanför skrollisten så den
          inte målas över innehållet. Toggeln kompenseras med egen marginal. */
       border-radius: 12px; padding: 8px 4px 8px 12px;
-      font-size: 12px; color: var(--text); line-height: 1.9;
+      /* ⚠ iOS BLÅSER UPP TEXT I VANLIGA BLOCK, MEN INTE I FLEX-RADER. Lars fotograferade
+         2026-09-20 på iPhone: «Avgiftszoner · dyrast → billigast» (11 px, vanlig div) ritades
+         STÖRRE än «Tidsgräns – var uppmärksam på tiden» (12 px, .lgnd-row = flex) och radbröts,
+         medan den längre 12 px-raden fick plats på en rad. Safaris egen textförstoring
+         (text autosizing) skalar upp blocktext efter blockets bredd – den stängs INTE av av
+         viewport-taggen, bara av den här raden. Skälet att den sitter på .legend och inte på
+         body: övrig text i appen är inställd som den är MED uppblåsningen, och att stänga av
+         den överallt hade krympt texter ingen klagat på.
+         line-height 1.5, inte 1.9: 1.9 gav 27 px höga rader för 12 px text – uppmätt onödigt
+         luftigt på mobil. Raderna är inte tryckytor (bara reglaget är det), så höjden behöver
+         inte hållas uppe. Färgrutans centrering RÄKNAS ur värdet (se .lgnd-sw) i stället för
+         att vara en siffra som blir fel nästa gång någon rör radhöjden. */
+      -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+      --lgnd-lh: 1.5;
+      font-size: 12px; color: var(--text); line-height: var(--lgnd-lh);
       box-shadow: 0 4px 18px rgba(0,0,0,0.5);
       backdrop-filter: blur(12px);
       position: relative;
@@ -723,14 +737,16 @@
     /* Färgrutans bredd och luften efter den är EN sanning: allt som ska stå i samma
        textkolumn som färgraderna räknar sin indragning ur dem (se .lgnd-steg). */
     .legend { --lgnd-sw: 14px; --lgnd-gap: 8px; }
-    /* flex-start + 4 px nudge, INTE align-items:center. På en enradig rad hamnar rutan på
-       exakt samma pixel som förut ((27-14)/2 = 6,5 mot 2 px padding + 4 px = 6) – men på en
-       rad som wrappar (Stockholms «Får inte stå – förbud, lastplats eller städning pågår»
-       tar två rader vid 231 px) centrerades rutan mot HELA den 50 px höga raden och tappade
-       den vänsterkolumnens rytm. Nu ligger den mot första raden, som i alla andra rader. */
+    /* flex-start, INTE align-items:center. På en enradig rad hamnar rutan på exakt samma
+       pixel som en centrering hade gett – men på en rad som wrappar (Stockholms «Får inte
+       stå – förbud, lastplats eller städning pågår» tar två rader) centrerades rutan mot
+       HELA den dubbelt så höga raden och tappade vänsterkolumnens rytm. Nu ligger den mot
+       första raden, som i alla andra rader.
+       Marginalen RÄKNAS ur radhöjden: (radhöjd − rutans höjd) / 2. Ändras --lgnd-lh följer
+       centreringen med av sig själv, i stället för att en handräknad siffra tyst blir fel. */
     .lgnd-row { display: flex; align-items: flex-start; gap: var(--lgnd-gap); padding: 2px 0; }
     .lgnd-sw  { width: var(--lgnd-sw); height: var(--lgnd-sw); border-radius: 3px; flex-shrink: 0;
-                margin-top: 4px; }
+                margin-top: calc((1em * var(--lgnd-lh) - var(--lgnd-sw)) / 2); }
     .lgnd-sep { border: none; border-top: 1px solid var(--glass-border); margin: 6px 0; }
     /* Etiketten ska sitta TÄTT över det den beskriver. Utan egen radhöjd ärvde den lådans
        1.9 och blev 21 px hög – lika hög som en hel färgrad, fast den bara är en rubrik. */
