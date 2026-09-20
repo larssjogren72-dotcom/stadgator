@@ -1,0 +1,86 @@
+{
+ "_kommentar": "Genererad av verktyg/bygg-gbg-taxa.js – skriv inte för hand.",
+ "matt": "2026-09-20",
+ "strackorTotalt": 1426,
+ "lagerTotalt": 14,
+ "nivaer": [
+  {
+   "pris": "23 kr/30 min 8-22 alla dagar. Övrig tid: 2 kr/tim",
+   "krPerTim": 46,
+   "strackor": 59,
+   "platser": 1224,
+   "lager": [
+    "taxa_a"
+   ]
+  },
+  {
+   "pris": "34 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+   "krPerTim": 34,
+   "strackor": 511,
+   "platser": 10126,
+   "lager": [
+    "Taxa_12",
+    "taxa_1",
+    "taxa_2",
+    "taxa_22",
+    "taxa_24"
+   ]
+  },
+  {
+   "pris": "24 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+   "krPerTim": 24,
+   "strackor": 88,
+   "platser": 1140,
+   "lager": [
+    "taxa_3",
+    "taxa_4"
+   ]
+  },
+  {
+   "pris": "18 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+   "krPerTim": 18,
+   "strackor": 176,
+   "platser": 3803,
+   "lager": [
+    "taxa_5"
+   ]
+  },
+  {
+   "pris": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+   "krPerTim": 12,
+   "strackor": 203,
+   "platser": 5386,
+   "lager": [
+    "Taxa_62",
+    "taxa_6"
+   ]
+  },
+  {
+   "pris": "8 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim. Maxtaxa 50 kr/dag.",
+   "krPerTim": 8,
+   "strackor": 58,
+   "platser": 7105,
+   "lager": [
+    "Taxa_9"
+   ]
+  },
+  {
+   "pris": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+   "krPerTim": 7,
+   "strackor": 313,
+   "platser": 5783,
+   "lager": [
+    "taxa_7"
+   ]
+  },
+  {
+   "pris": "6 kr/tim 8-22 alla dagar, maxtaxa 30 kr/dag",
+   "krPerTim": 6,
+   "strackor": 18,
+   "platser": 1179,
+   "lager": [
+    "taxa_8"
+   ]
+  }
+ ]
+}

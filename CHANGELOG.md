@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.40.0 – 2026-09-20
+**Göteborg får sin prissida – och taxenumret som lurar reds ut.**
+
+«Vad kostar parkering i X» är den mest sökta frågan om en stads parkering (Stockholms
+taxesida ensam: 43 492 exponeringar på tre månader). Göteborg saknade en sådan sida.
+
+Ny sida **/parkeringsavgifter-goteborg** med hela pristrappan, mätt ur Trafikkontorets WFS:
+**8 priser från 46 till 6 kr/tim**, fördelade på 1 426 gatusträckor och ~35 700 platser.
+Dyrast tas ut per påbörjad halvtimme (23 kr), billigast är 6 kr/tim med tak på 30 kr/dag.
+Mellan 22 och 8 kostar det 2 kr/tim på i stort sett varje gata.
+
+**Två saker sidan reder ut, som är lätta att gå fel på:**
+- **Avgift även söndag.** Göteborgs avgiftstid är 8–22 *alla dagar*, till skillnad från
+  Stockholm där söndagen ofta är fri.
+- **Taxenumret är ett id, inte en rangordning.** Göteborgs taxa 1 kostar 34 kr/tim och
+  taxa 7 kostar 7 kr/tim – tvärtemot Stockholm. Därför visar appen kommunens pristext.
+
+- `verktyg/bygg-gbg-taxa.js`: nytt skript som läser de 14 taxelagren (skiftläget varierar:
+  `taxa_1` men `Taxa_9` – bara gemener tappar 77 sträckor tyst), räknar om halvtimmespriset
+  till kr/tim så att stadens dyraste nivå inte hamnar näst sist, och slår ihop nivåer med
+  identiskt pris. Resultatet i `seo/goteborg-taxa.json`. Inga handskrivna tal i generatorn.
+
+Provat: 261 av 261 sidor svarar 200 lokalt · sidan ligger i sitemap och länkas från alla
+Göteborgssidor · 0 titlar över 60 tecken · texten säger samma antal priser som tabellen.
+
 ## v1.39.1 – 2026-09-20
 **Andra omgången: resterande 164 för långa titlar, inklusive de 109 gatusidorna.**
 

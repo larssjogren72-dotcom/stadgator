@@ -1517,6 +1517,7 @@ const GBG_FORBEHALL = 'Göteborg publicerar inga parkeringsförbud i sin öppna 
 function gbgRelated(utom) {
   return [
     { href:'parkering-goteborg', text:'Parkering i Göteborg – översikt' },
+    { href:'parkeringsavgifter-goteborg', text:'Vad kostar parkering i Göteborg?' },
     { href:'parkering-over-natten-goteborg', text:'Parkera över natten i Göteborg' },
     { href:'stadgator-goteborg', text:'Städdagar i Göteborg – jämna och udda veckor' },
     { href:'boendeparkering-goteborg', text:'Boendeparkering i Göteborg – zoner och regler' },
@@ -1645,6 +1646,70 @@ function gbgStadgator() {
     sections, faq, related: gbgRelated('stadgator-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
 }
 
+// ── Vad kostar det? ─────────────────────────────────────────────────────────
+// Samma fråga som gav Karlstad och Uppsala varsin sida, och den mest sökta av alla
+// (taxesidan för Stockholm ensam: 43 492 exponeringar på tre månader). Siffrorna
+// kommer ur seo/goteborg-taxa.json, som verktyg/bygg-gbg-taxa.js räknar fram – se
+// skriptets huvud för de två fällorna (taxenumret är inget pris, skiftläget varierar).
+const GBG_TAXA = JSON.parse(fs.readFileSync(path.join(__dirname, 'goteborg-taxa.json'), 'utf8'));
+function gbgAvgifter() {
+  const T = GBG_TAXA;
+  const gTal = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const niv = T.nivaer.filter(n => n.krPerTim);
+  const dyrast = niv[0], billigast = niv[niv.length - 1];
+  const strackor = niv.reduce((s, n) => s + n.strackor, 0);
+  const platser = niv.reduce((s, n) => s + n.platser, 0);
+  // Vanligast = flest sträckor, inte «den i innerstan». Datan säger vad priset är,
+  // aldrig var gatan ligger – det får sidan inte påstå.
+  const vanligast = niv.reduce((a, b) => (b.strackor > a.strackor ? b : a));
+  // Extratexten (maxtaxa) skrivs ut ordagrant där den finns – den är hela skillnaden
+  // mellan 8 kr/tim och 8 kr/tim med tak på 50 kr per dygn.
+  const rad = n => {
+    const extra = /maxtaxa\s*(\d+)\s*kr\s*\/?\s*(dag|dygn)?/i.exec(n.pris);
+    return `<tr><td><b>${n.krPerTim} kr/tim</b></td><td>${gTal(n.strackor)}</td><td>${gTal(n.platser)}</td>`
+         + `<td>${extra ? 'maxtaxa ' + esc(extra[1]) + ' kr/' + esc(extra[2] || 'dag') : (n.krPerTim === 46 ? '23 kr per påbörjad halvtimme' : '–')}</td></tr>`;
+  };
+  const sections =
+    '<section class="card"><h2>Åtta prisnivåer, 6 till 46 kronor i timmen</h2>' +
+    `<p>Göteborg har inga taxezoner som täcker hela stadsdelar. Priset sitter på <b>gatan</b>. ` +
+    `Kommunen har ${T.lagerTotalt} numrerade taxor, men flera av dem kostar lika mycket – i praktiken ` +
+    `är det <b>${niv.length} priser</b>, fördelade på <b>${gTal(strackor)} gatusträckor</b> ` +
+    `med omkring <b>${gTal(platser)} platser</b>. Så här ser trappan ut:</p>` +
+    '<table><tr><th>Pris dagtid</th><th>Sträckor</th><th>Platser</th><th>Särskilt</th></tr>' +
+    niv.map(rad).join('') + '</table>' +
+    `<p>Den dyraste nivån tas ut per påbörjad halvtimme: 23 kr, alltså <b>${dyrast.krPerTim} kr i timmen</b>, ` +
+    `och den billigaste ligger på <b>${billigast.krPerTim} kr</b>. Mellan den dyraste och den billigaste gatan ` +
+    'skiljer det nästan åtta gånger priset – det lönar sig att titta på kartan innan du ställer bilen.</p>' +
+    '<p>' + GBG_FORBEHALL + '</p></section>' +
+    '<section class="card"><h2>Natten kostar nästan ingenting</h2>' +
+    '<p>Avgiften gäller <b>klockan 8–22, alla dagar</b> – även lördag och söndag, till skillnad från Stockholm ' +
+    'där söndagen ofta är fri. Mellan 22 och 8 kostar det i stället <b>2 kr i timmen</b> på nästan varje gata, ' +
+    'oavsett hur dyr den är på dagen. En natt kostar alltså ungefär tjugo kronor även mitt i centrum.</p>' +
+    '<p>Ska bilen stå länge är det värt att läsa skylten: några nivåer har ett <b>tak per dygn</b>, ' +
+    'till exempel 50 kr där timpriset är 8 kr.</p>' +
+    '<p><a href="/parkering-over-natten-goteborg">Mer om att parkera över natten i Göteborg →</a></p></section>' +
+    '<section class="card"><h2>Taxenumret säger ingenting om priset</h2>' +
+    '<p>Göteborgs taxor är numrerade 1 till 62 plus ett A, men <b>numret är ett id, inte en rangordning</b>. ' +
+    'Taxa 1 kostar 34 kr i timmen medan taxa 7 kostar 7 kr. Det är tvärtemot Stockholm, där Taxa 1 är dyrast ' +
+    'och Taxa 5 billigast. Därför visar ParkSpot kommunens egen pristext på platskortet och aldrig taxenumret.</p>' +
+    `<p>Tryck på en gata i <a href="https://parkspot.se/?stad=goteborg">ParkSpot Göteborg</a> så står priset, ` +
+    'tidsgränsen och nästa städdag på kortet. Gatans färg visar om du får stå – inte vad det kostar.</p></section>';
+  const faq = [
+    { q:'Vad kostar det att parkera i centrala Göteborg?', a:`Dyrast är 23 kr per påbörjad halvtimme, alltså ${dyrast.krPerTim} kr i timmen, på ${gTal(dyrast.strackor)} sträckor. Den vanligaste nivån är ${vanligast.krPerTim} kr i timmen och gäller ${gTal(vanligast.strackor)} sträckor. Avgiften tas ut 8–22 alla dagar.` },
+    { q:'Är det gratis att parkera på natten i Göteborg?', a:'Nej, men nästan. Mellan 22 och 8 kostar det 2 kr i timmen på i stort sett alla avgiftsbelagda gator, oavsett dagtaxa. Kontrollera skylten – några platser har egna villkor.' },
+    { q:'Kostar det avgift på söndagar?', a:'Ja. Göteborgs avgiftstid är 8–22 alla dagar, även lördag och söndag. Det skiljer sig från Stockholm, där söndagen ofta är avgiftsfri.' },
+    { q:'Vad betyder taxa 1 i Göteborg?', a:'Att gatan kostar 34 kr i timmen. Numret är bara ett id: taxa 7 kostar 7 kr i timmen och taxa 62 kostar 12 kr. Numret går alltså inte att jämföra med Stockholms Taxa 1–5.' },
+    { q:'Finns det ett tak per dygn?', a:'På några nivåer, ja. Där timpriset är 8 kr finns en maxtaxa på 50 kr per dygn, och 6 kr-nivån har ett tak på 30 kr. På övriga gator fortsätter avgiften löpa under hela avgiftstiden.' },
+  ];
+  emit('parkeringsavgifter-goteborg', layout({
+    slug:'parkeringsavgifter-goteborg',
+    title:'Vad kostar parkering i Göteborg? 6–46 kr/tim',
+    desc:'Priset sitter på gatan, inte på zonen: 6 till 46 kr/tim dagtid och 2 kr/tim mellan 22 och 8. Se hela pristrappan, maxtaxorna och varför taxenumret lurar.',
+    h1:'Parkeringsavgifter i Göteborg',
+    lead:'Åtta prisnivåer, från 6 till 46 kronor i timmen – och 2 kronor på natten. Här är hela trappan.',
+    sections, faq, related: gbgRelated('parkeringsavgifter-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
+}
+
 function gbgBoende() {
   const omrLista = GBG_OMR.map(o =>
     '<li><a href="/parkering-goteborg/' + o.slug + '">' + esc(o.namn) + '</a> – ' + esc(o.zoner.join(', ')) + '</li>').join('');
@@ -1734,7 +1799,7 @@ DESTINATIONS.forEach(destination);
 DESTINATIONS.forEach(destinationEN);
 STREETS.forEach(streetPage);
 
-gbgPillar(); gbgNatt(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
+gbgPillar(); gbgAvgifter(); gbgNatt(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
 GBG_OMR.forEach(gbgOmrade);
 upsPillar(); upsAvgifter(); upsNatt(); upsGarage();
 UPS_DATA.stadsdelar.forEach(upsStadsdel);
