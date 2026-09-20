@@ -14,6 +14,37 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.41.3 – 2026-09-20
+**Typografin i förklaringsrutan – en textkolumn, två storlekar, en rytm.**
+
+När Karlstads prisstege flyttades ner (v1.41.0) syntes det som alltid hade varit fel i
+rutan, bara inte lika tydligt. Uppmätt på 375×812:
+
+- **Två textkolumner.** Prisraderna har med flit ingen färgruta (en färgruta hade lovat att
+  kartan färgas så), men utan indragning började de vid lådans kant medan färgradernas text
+  börjar 22 px in. Stegraderna räknar nu sin indragning **ur färgrutan + luften**, så de inte
+  kan glida isär från dem.
+- **Tre textstorlekar och två radhöjder.** 10 px noter, 11 px etiketter, 12 px rader – och
+  1.4 mot 1.9 i radhöjd. Nu **två storlekar** (12 för raderna, 11 för allt sekundärt) och
+  **två radhöjder** (färgradernas 1.9 är tryckytehöjd, sekundärtextens 1.5 är typografi).
+  Zonetiketten ärvde dessutom 1.9 och blev 21 px hög – lika hög som en hel färgrad, fast den
+  bara är en rubrik.
+- **Skrollisten låg ovanpå priserna.** Systemets list är överlagrad: den tar 0 px i layouten
+  men målas över innehållet, och det enda högerställda i rutan är Karlstads priser. Lådans
+  högermarginal ligger nu innanför skrollytan i stället – textens högerkant står på exakt
+  samma pixel som förut, men listen har egen plats. Priserna hamnar därmed i linje med
+  stängningskrysset.
+- **Färgrutan mot första raden.** Stockholms «Får inte stå – förbud, lastplats eller städning
+  pågår» tar två rader; rutan centrerades då mot hela den 50 px höga raden och tappade
+  vänsterkolumnens rytm. Den ligger nu mot första raden, på exakt samma pixel som i enradiga
+  rader. Reglaget är undantaget och sitter kvar mitt i sin rad – det är en kontroll, inte en
+  färgruta.
+
+Provat i fem städer × två lägen × fyra fordon, med rutan **uppfälld**: en enda textkolumn,
+två textstorlekar, två radhöjder, och färgrutan på samma höjd i varje rad. Inga konsolfel.
+Radbrytningen i den röda Nu-raden är kvar med flit – den är rutans mest informationstäta
+rad, och att korta den hade kostat antingen ett skäl eller läsbar text.
+
 ## v1.41.2 – 2026-09-20
 **Cykelvalet följer inte längre med till en stad som saknar cykelplatser.**
 

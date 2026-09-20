@@ -708,7 +708,10 @@
     /* Legend */
     .legend {
       background: rgba(255,255,255,0.92); border: 1px solid var(--glass-border);
-      border-radius: 12px; padding: 8px 12px;
+      /* Höger padding ligger INNE i skrollytan i stället (se #legend-content): 4 + 8 = samma
+         12 px som förut till textens högerkant, men de 8 är nu innanför skrollisten så den
+         inte målas över innehållet. Toggeln kompenseras med egen marginal. */
+      border-radius: 12px; padding: 8px 4px 8px 12px;
       font-size: 12px; color: var(--text); line-height: 1.9;
       box-shadow: 0 4px 18px rgba(0,0,0,0.5);
       backdrop-filter: blur(12px);
@@ -717,15 +720,28 @@
       max-width: min(78vw, 256px);
       transition: padding .5s ease, background .5s ease, border-color .5s ease;
     }
-    .lgnd-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
-    .lgnd-sw  { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    /* Färgrutans bredd och luften efter den är EN sanning: allt som ska stå i samma
+       textkolumn som färgraderna räknar sin indragning ur dem (se .lgnd-steg). */
+    .legend { --lgnd-sw: 14px; --lgnd-gap: 8px; }
+    /* flex-start + 4 px nudge, INTE align-items:center. På en enradig rad hamnar rutan på
+       exakt samma pixel som förut ((27-14)/2 = 6,5 mot 2 px padding + 4 px = 6) – men på en
+       rad som wrappar (Stockholms «Får inte stå – förbud, lastplats eller städning pågår»
+       tar två rader vid 231 px) centrerades rutan mot HELA den 50 px höga raden och tappade
+       den vänsterkolumnens rytm. Nu ligger den mot första raden, som i alla andra rader. */
+    .lgnd-row { display: flex; align-items: flex-start; gap: var(--lgnd-gap); padding: 2px 0; }
+    .lgnd-sw  { width: var(--lgnd-sw); height: var(--lgnd-sw); border-radius: 3px; flex-shrink: 0;
+                margin-top: 4px; }
     .lgnd-sep { border: none; border-top: 1px solid var(--glass-border); margin: 6px 0; }
-    .lgnd-taxa-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    /* Etiketten ska sitta TÄTT över det den beskriver. Utan egen radhöjd ärvde den lådans
+       1.9 och blev 21 px hög – lika hög som en hel färgrad, fast den bara är en rubrik. */
+    .lgnd-taxa-label { font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 3px; }
     .lgnd-taxa-bar   { display: flex; height: 16px; border-radius: 4px; overflow: hidden;
       border: 1px solid var(--glass-border); margin-bottom: 4px; }
     .lgnd-taxa-seg   { flex: 1; display: flex; align-items: center; justify-content: center;
       font-size: 9px; font-weight: 600; }
-    .lgnd-switch       { position: relative; display: inline-block; width: 30px; height: 17px; flex-shrink: 0; }
+    /* Reglaget är ingen färgruta utan en kontroll – det ska fortsatt sitta mitt i sin rad
+       trots att raden nu toppjusterar (se .lgnd-row). */
+    .lgnd-switch       { position: relative; display: inline-block; width: 30px; height: 17px; flex-shrink: 0; align-self: center; }
     .lgnd-switch input { opacity: 0; width: 0; height: 0; position: absolute; margin: 0; }
     .lgnd-switch-track { position: absolute; inset: 0; background: rgba(15,23,42,0.18);
       border-radius: 17px; transition: background .15s; pointer-events: none; }
@@ -733,16 +749,25 @@
     .lgnd-switch-thumb { position: absolute; width: 13px; height: 13px; left: 2px; top: 2px;
       background: #fff; border-radius: 50%; transition: left .15s; pointer-events: none; }
     .lgnd-switch input:checked ~ .lgnd-switch-thumb { left: 15px; }
-    .lgnd-hidden-note { font-size: 10px; color: var(--muted); line-height: 1.4; margin-top: 4px; }
-    /* Prisstege utan zonkarta: samma radhöjd som övriga legendrader, priset högerställt. */
-    .lgnd-steg       { gap: 8px; }
+    /* 11 px, inte 10: rutan hade tre textstorlekar (10/11/12) och två radhöjder (1.4/1.9),
+       vilket är vad som fick Karlstads ruta att se hoprafsad ut. Nu två storlekar – 12 för
+       raderna, 11 för allt sekundärt (etikett, not, feedback) – och 1.5 för båda notsorterna. */
+    .lgnd-hidden-note { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
+    /* Prisstege utan zonkarta: samma radhöjd som övriga legendrader, priset högerställt.
+       INDRAGNINGEN är poängen: stegraderna har ingen färgruta (med flit – en färgruta hade
+       lovat att kartan färgas så), men utan indragning började de vid lådans kant medan
+       färgradernas text börjar 22 px in. Två textkolumner i samma ruta, och det syntes.
+       Räknas ur färgrutan + luften, så den inte kan glida isär från dem. */
+    .lgnd-steg       { padding-left: calc(var(--lgnd-sw) + var(--lgnd-gap)); }
     .lgnd-steg b     { font-variant-numeric: tabular-nums; }
-    .lgnd-feedback { font-size: 11px; margin-top: 6px; text-align: center; }
+    /* Samma radhöjd som noterna: sekundär text har EN rytm, färgraderna en annan
+       (deras 1.9 är tryckytehöjd, inte typografi). */
+    .lgnd-feedback { font-size: 11px; line-height: 1.5; margin-top: 8px; text-align: center; }
     .lgnd-feedback a { color: var(--accent); }
 
     /* Toggle: ✕ när öppen, tydlig pill "🗺 Förklaring" när minimerad */
     .lgnd-toggle {
-      display: block; margin: 0 0 4px auto; background: none; border: none;
+      display: block; margin: 0 8px 4px auto; background: none; border: none;
       color: var(--muted); font-size: 13px; line-height: 1; cursor: pointer;
       padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent;
       transition: color .3s ease;
@@ -750,9 +775,22 @@
     .lgnd-toggle .lt-label { display: none; }
     /* Mjuk uttoning av innehållet vid kollaps */
     #legend-content {
-      overflow: hidden; max-height: 420px; opacity: 1;
+      overflow: hidden; max-height: 420px; opacity: 1; padding-right: 8px;
       transition: opacity .7s ease, max-height .6s ease .05s;
     }
+    /* Rutan skrollar när den är högre än utrymmet ner till menyn (se fitLegendHeight).
+       Systemets skrollist är ÖVERLAGRAD: den tar 0 px i layouten men målas ovanpå
+       innehållet, och det enda högerställda i rutan är Karlstads priser – «18 kr/tim»
+       låg därför under listen. LÖSNINGEN är padding-right ovan (8 px innanför skrollytan,
+       borttagna från .legend så textkolumnen är exakt lika bred som förut) – provat
+       2026-09-20: att bara styla listen räcker INTE, den förblir överlagrad och tar
+       fortfarande 0 px. Stylingen här gör den bara smalare och mindre påträngande. */
+    #legend-content::-webkit-scrollbar { width: 6px; }
+    #legend-content::-webkit-scrollbar-track { background: transparent; }
+    #legend-content::-webkit-scrollbar-thumb {
+      background: rgba(15,23,42,0.22); border-radius: 3px;
+    }
+    #legend-content { scrollbar-width: thin; scrollbar-color: rgba(15,23,42,0.22) transparent; }
     .legend.collapsed { padding: 3px 8px; border-radius: 999px; background: var(--accent-dim); border-color: var(--accent); }
     /* Ur flödet när minimerad → pillen blir bara så bred som texten */
     .legend.collapsed #legend-content {
