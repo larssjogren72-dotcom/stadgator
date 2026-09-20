@@ -2552,11 +2552,16 @@ async function loadZonesForViewport(apiKey) {        // (bounds behövs inte lä
       if (!zonHamtning) {
         const url = STAD.zonLager ? STAD.zonLager.url
           : `/wfs/${apiKey}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${STAD.taxaZon.layer}&outputFormat=application/json&BBOX=${STAD.taxaZon.bbox}`;
+        // Säg ALLTID till i konsolen när hämtningen faller. Tyst tomt fick zonerna att
+        // se obyggda ut 2026-09-20: servern var startad före zonvägen och svarade 404,
+        // och appen ritade helt enkelt inget utan ett ord om varför.
         zonHamtning = fetch(url)
-          .then(r => r.ok ? r.json() : null).catch(() => null);
+          .then(r => r.ok ? r.json() : (console.warn(`[Zoner] ${url} svarade ${r.status} – inga zoner ritas`), null))
+          .catch(e => (console.warn(`[Zoner] ${url} gick inte att hämta: ${e.message} – inga zoner ritas`), null));
       }
       zonData = await zonHamtning;
       if (!zonData) { zonHamtning = null; return; }  // misslyckades → låt nästa försök prova igen
+      if (!(zonData.features || []).length) console.warn('[Zoner] svaret innehöll noll zoner – inga zoner ritas');
     }
     ritaZoner(zonData);
   } catch (e) { console.warn('Zoner:', e.message); }
