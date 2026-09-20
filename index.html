@@ -1423,7 +1423,12 @@ const KLOCKA = (function () {
     // Samma, MINUS Framåt-steget: appens "nu" som användaren upplever det. Behövs för att
     // avgöra om framtidsvyn bytt dygn – en jämförelse mot den riktiga systemklockan hade
     // gett fel svar så fort ?debugtid= är på, vilket är precis när man testar det.
-    nuUtanFramat() { return new RealDate(riktigNu() + bas); }
+    nuUtanFramat() { return new RealDate(riktigNu() + bas); },
+    // Är klockan flyttad med ?debugtid=? Bara bas räknas, INTE framat: Framåt-steget är en
+    // funktion användaren själv slog på och som redan har ett eget band över kartan. Frågan
+    // den här svarar på är «visar appen en påhittad tidpunkt», och den måste ha ett svar på
+    // ETT ställe – annars börjar rubriken och kartan svara olika om samma sak.
+    simulerad() { return bas !== 0; }
   };
 })();
 
@@ -1971,6 +1976,26 @@ const SV_MONTHS = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','
 function tomorrow() { const d = new Date(); d.setDate(d.getDate()+1); return d; }
 function apiDay(d)  { return API_DAYS[d.getDay()]; }
 function fmtDate(d) { return `${SV_DAYS[d.getDay()]} ${d.getDate()} ${SV_MONTHS[d.getMonth()]}`; }
+// Texten under appnamnet. Normalt bara datumet – men är klockan flyttad med ?debugtid=
+// står klockslaget med: «Onsdag 23 sep · 14:30».
+//
+// VARFÖR: debugtid ligger i drift på parkspot.se (ren webbläsarkod, ingen serverdel) och
+// används för att göra innehåll. Rubriken bar redan den simulerade DAGEN, så en skärmbild
+// märkte sig själv med rätt veckodag – men inte med tiden. En delad länk med
+// «debugtid=2026-09-23 03:00» visade därför «Onsdag 23 sep» medan kartan lydde nattens
+// regler, och det är precis den falska tryggheten appen finns för att undvika.
+//
+// Klockslaget tas ur KLOCKA.nu(), alltså INKLUSIVE Framåt-steget: rubriken ska säga samma
+// tidpunkt som kartan svarar på, inte utgångsläget. Står Framåt-bandet uppe säger de två
+// samma klockslag – det är avsiktligt, en upprepning är billigare än en motsägelse.
+//
+// EN funktion och inte tre: rubriken sattes på tre ställen (start, loadData,
+// ritaFramatChrome). Tre kopior av samma formatering är tre chanser att glida isär.
+function headerDatumText() {
+  const d = KLOCKA.nu();
+  if (!KLOCKA.simulerad()) return fmtDate(d);
+  return `${fmtDate(d)} · ${d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+}
 // Klockslag: 800 → "08", 1630 → "16:30"
 function fmtClock(n) { if (n == null || n === '') return ''; const h = Math.floor(n/100), m = n%100; return m ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` : String(h).padStart(2,'0'); }
 // ── Bakgrundskarta ───────────────────────────────────────────────────────────
@@ -2559,7 +2584,7 @@ function launchApp() {
   framatSynlighet(currentMode);  // Framåt-kontrollen finns bara i Nu-läget
   ritaFramatChrome();
   renderVehicleToggle();         // visa Bil/MC-väljaren (sparat val)
-  document.getElementById('header-date').textContent = fmtDate(new Date());   // dagens datum direkt
+  document.getElementById('header-date').textContent = headerDatumText();   // dagens datum direkt
   // rAF pausas av webbläsaren om fliken inte är synlig (bakgrund, low-power-läge, vissa
   // webviews) – utan skydd fastnar "Hämtar servicegator…" för evigt (upptäckt 2026-07-30).
   // setTimeout-fallbacken garanterar att kartan/datan alltid startar, även om rAF aldrig triggar.
@@ -8955,7 +8980,7 @@ function locateMe() {
 // ── Data ─────────────────────────────────────────────────────────────────────
 function loadData() {
   const tom = tomorrow();
-  document.getElementById('header-date').textContent = fmtDate(new Date());
+  document.getElementById('header-date').textContent = headerDatumText();
   const key = getKey();
 
   // Starta alla hämtningar i bakgrunden — ingen blockering
@@ -9598,7 +9623,7 @@ function ritaFramatChrome() {
   // Datumet måste följa den tid kartan visar – annars motsäger appen sig själv på skärmen,
   // vilket är exakt det bandet finns för att förhindra.
   const dat = document.getElementById('header-date');
-  if (dat) dat.textContent = fmtDate(KLOCKA.nu());
+  if (dat) dat.textContent = headerDatumText();
   if (min > 0) {
     const nu = KLOCKA.nu();
     const kl = nu.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });

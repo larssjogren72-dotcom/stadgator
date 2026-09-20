@@ -14,6 +14,33 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.41.5 – 2026-09-20
+**Rubriken bär klockslaget när `?debugtid=` är på.**
+
+Rubriken under appnamnet visade den simulerade **dagen** men inte tiden: «Onsdag 23 sep».
+Nu står hela tidpunkten där – **«Onsdag 23 sep · 14:30»** – och bara när klockan faktiskt är
+flyttad. Utan `?debugtid=` är rubriken oförändrad.
+
+**Rättelse till det jag sa när ändringen föreslogs:** jag beskrev det som att en simulerad
+tid annars kunde misstas för den riktiga. Det stämde inte – den röda badgen «⏱ SIMULERAD
+TID · ons 23 sep. 14:30» finns sedan tidigare och bär redan både dag och klockslag. Den
+verkliga nyttan är en annan: badgen sitter längst ned och faller lätt bort när en skärmbild
+beskärs, medan rubriken ligger i toppen. Tidpunkten följer alltså med bilden.
+
+- Klockslaget tas ur `KLOCKA.nu()`, alltså **inklusive Framåt-steget**: rubriken säger samma
+  tidpunkt som kartan svarar på. Med `debugtid=23:45` och +60 blir rubriken «Måndag 21 sep ·
+  00:45» – både datum och klocka rullar över midnatt.
+- Ny `KLOCKA.simulerad()` svarar på frågan «visar appen en påhittad tidpunkt», på ett ställe.
+  Den räknar bara `?debugtid=`, inte Framåt – Framåt är användarens eget val och har redan
+  ett eget band över kartan.
+- Rubriken sattes på **tre** ställen med var sin formatering. Nu en funktion,
+  `headerDatumText()`, som alla tre använder.
+
+Provat: utan debugtid oförändrad rubrik, även med +30 · med debugtid «Onsdag 23 sep · 14:30»
+medan riktig tid är söndag 19:14 · +30 ger «· 15:00» och bandet säger samma sak · kort form
+`?debugtid=23:45` fungerar och +60 rullar över till «Måndag 21 sep · 00:45» · ogiltigt värde
+(`?debugtid=struntprat`) faller tillbaka på riktig tid utan klockslag i rubriken.
+
 ## v1.41.4 – 2026-09-20
 **iOS förstorade halva förklaringsrutan – och raderna var för luftiga.**
 
