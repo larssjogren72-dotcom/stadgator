@@ -14,6 +14,43 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.42.0 – 2026-09-20
+**Zonkartans vita fläckar var äkta hål – nu grå, med en rad som säger varför.**
+
+Lars fotograferade Uppsala: zonkartan full av vita fläckar som såg ut som trasig rendering.
+De är äkta hål i **kommunens egna** zonpolygoner, och de betyder något. Uppmätt samma dag:
+**288 parkeringssträckor börjar inuti ett sådant hål**, och den vanligaste taxan där är
+«7–16 Tillstånd erfordras» (130 sträckor), följt av «3 timmar 0 kr» och skolparkering.
+Utanför hålen är det tvärtom bara de vanliga zonpriserna. Uppsala har alltså stansat ut
+ytorna med flit – att fylla igen dem med zonfärgen hade lovat «5 kr/tim» där man behöver
+tillstånd.
+
+Hålen får därför en **dämpad grå ton** i stället för att lämnas vita, plus en rad i
+förklaringsrutan: **«Egna regler – zonens pris gäller inte»**. Grått läses som «något annat
+gäller här», vitt som «trasigt».
+
+**Två sorters hål, och skillnaden är semantisk – inte en storleksgräns:**
+- **Munkhål** – zon E omger D som omger C, så varje yttre zon har ett hål där den inre
+  ligger. De ska inte bli grå; den inre zonen fyller dem redan.
+- **Egna regler** – resten.
+
+Ett hål räknas som munkhål om en **annan zon täcker det**. En ytgräns hade varit en gissning
+som tyst blir fel när kommunen ritar om – och den var mätbart fel: den klassade Stockholm som
+9 munkhål / 13 egna, medan den rätta regeln ger **6 / 16**. Uppsala: 161 hål = **51 munkhål +
+110 med egna regler**.
+
+Detaljer: ingen kant runt fläckarna (en kant runt 110 hål gjorde E-zonen prickig när det
+provades tidigare) · grå `#a1a1aa` på 0,40 – inte 0,28, eftersom bakgrundskartan är nästan
+vit och en svagare ton fortfarande lästs som ett hål · färgen är oanvänd i appen sedan
+tidigare (MC-lägets «ej för MC» är blågrått **och en linje**, inte en yta) · zonfärgerna
+själva är orörda · förklaringsraden visas bara i en stad som faktiskt fick grå fläckar
+ritade, så Karlstad och Göteborg är oförändrade.
+
+Provat mot riktig data: Uppsala 110 grå hål ritade, Stockholm 16, Karlstad 0 och ingen rad ·
+alla med rätt färg, rätt opacitet och utan kant · inga konsolfel. **Bilden är inte
+ögongranskad** – förhandsvisningens skärmbilder av kartan gick inte att få fram i den här
+sessionen, så tonen kan behöva justeras efter en titt på riktig skärm. Den sitter i ett tal.
+
 ## v1.41.5 – 2026-09-20
 **Rubriken bär klockslaget när `?debugtid=` är på.**
 

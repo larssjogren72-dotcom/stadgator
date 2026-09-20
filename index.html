@@ -2704,11 +2704,69 @@ async function loadZonesForViewport(apiKey) {        // (bounds behövs inte lä
   } catch (e) { console.warn('Zoner:', e.message); }
 }
 
+// ── Hålen i zonpolygonerna ───────────────────────────────────────────────────
+// Kommunernas zoner har hål, och de är av TVÅ slag som ser likadana ut i datan:
+//
+//   1. MUNKHÅL. Zon E omger D som omger C – varje yttre zon har ett hål där den
+//      inre ligger. De syns aldrig, för den inre zonen ritas ovanpå.
+//   2. EGNA REGLER. Ytor kommunen stansat ut med flit, där zonens pris inte gäller.
+//
+// Lars fotograferade Uppsala 2026-09-20: slag 2 ritades som VITA fläckar, vilket läses
+// som «trasig karta» i stället för «annat gäller här». De är dock äkta och betyder något
+// – uppmätt samma dag: 288 p-sträckor börjar i ett sådant hål, och 150 av dem kräver
+// TILLSTÅND dagtid («7-16 Tillstånd erfordras») medan resten är tidsbegränsat fria eller
+// skolparkering. Utanför hålen är det tvärtom bara de vanliga zonpriserna. Att fylla igen
+// dem med zonfärgen hade alltså lovat «5 kr/tim» där man behöver tillstånd.
+//
+// SKILJANDET ÄR SEMANTISKT, INTE EN STORLEKSGRÄNS: ett hål är ett munkhål om en ANNAN zon
+// täcker det. En tröskel på ytan hade varit en gissning som tyst blir fel när kommunen
+// ritar om – och den hade missat 26 av 51 munkhål i Uppsala, som är små.
+// Uppmätt 2026-09-20 med regeln nedan, i appen: Uppsala 161 hål = 51 munkhål + 110 med egna
+// regler. Stockholm 22 hål = 6 munkhål + 16 med egna regler. (En tidigare räkning med en
+// ytgräns gav 9/13 för Stockholm – den siffran var fel, och är just därför tröskeln ströks.)
+function punktInutiRing(ring) {
+  let sx = 0, sy = 0;
+  ring.forEach(c => { sx += c[0]; sy += c[1]; });
+  const mitt = [sx / ring.length, sy / ring.length];
+  if (punktIPolygon(mitt, ring)) return mitt;
+  // Konkav ring – tyngdpunkten kan hamna utanför. Krypa in från en kantmittpunkt.
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length];
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    for (const f of [0.01, 0.05, 0.1]) {
+      const q = [m[0] + (mitt[0] - m[0]) * f, m[1] + (mitt[1] - m[1]) * f];
+      if (punktIPolygon(q, ring)) return q;
+    }
+  }
+  return mitt;
+}
+function punktIPolygon(pt, ring) {
+  let inne = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)) inne = !inne;
+  }
+  return inne;
+}
+const ZON_HAL_FYLL = '#a1a1aa';    // neutralt grått – oanvänt i appen (MC-lägets "ej för MC"
+                                   // är blågrått #c3ccd6/#94a3b8, och det är LINJER, inte ytor)
+// Sant först när minst ett "egna regler"-hål faktiskt ritats. Styr förklaringsradens
+// existens – rutan ska inte beskriva en grå fläck i en stad som inte har några.
+let zonHalRitade = false;
+
 function ritaZoner(data) {
   // ANTI-BLINK: bygg nya lager först, ta bort gamla EFTER (swap) → zonerna blinkar aldrig till tomt.
   const oldLayers = zoneGroupLayers;
   zoneGroupLayers = []; taxaZones = [];
   const stilar = Object.values(ZONE_STYLES);     // ordnade dyrast → billigast
+  // Alla zoners YTTRE ringar först – klassningen ovan behöver se de andra zonerna.
+  const yttreRingar = [];
+  (data.features || []).forEach(feat => {
+    const g = feat.geometry || {}, id = feat.properties && (feat.properties.ZON || feat.properties.DISTRICT_NAME);
+    const ytor = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+    ytor.forEach(yta => { if (yta[0]) yttreRingar.push({ id, ring: yta[0] }); });
+  });
+  let halRitade = 0;
   (data.features||[]).forEach(feat => {
       const p    = feat.properties || {};
       const name = p.DISTRICT_NAME || '';
@@ -2737,8 +2795,37 @@ function ritaZoner(data) {
         pane: 'zonesPane', interactive: false, color:s.color, weight:2, fill:false
       }).addTo(map);
     zoneGroupLayers.push(fyll, kant);
+    // Hålen med EGNA REGLER får en dämpad grå ton (se kommentaren vid punktInutiRing).
+    // Munkhålen hoppas över – där ligger en inre zon och grått hade lagt sig under den
+    // i bästa fall, över den i värsta. INGEN KANT: en kant runt 110 fläckar gjorde
+    // Uppsalas E-zon prickig när det provades förra gången, och det är inte gränsen
+    // som är budskapet utan att ytan hör till något annat.
+    const zonId = p.ZON || name;
+    ytor.forEach(yta => {
+      for (let i = 1; i < yta.length; i++) {
+        const hal = yta[i];
+        const punkt = punktInutiRing(hal);
+        if (yttreRingar.some(y => y.id !== zonId && punktIPolygon(punkt, y.ring))) continue;  // munkhål
+        // 0.40 och inte 0.28: bakgrundskartan är nästan vit, och ett grått raster på 0.28
+        // hamnar bara ~20 nivåer från den – då hade fläcken fortfarande lästs som ett hål.
+        // Grått är dessutom mindre framträdande än zonernas mättade färger på samma
+        // opacitet, så det behöver lite mer för att väga lika tungt. Zonfärgerna rör vi
+        // inte: de ligger kvar på 0.30, och hålen ligger bredvid dem, aldrig ovanpå.
+        const grå = L.polygon(hal.map(c => toLatLng(c[0], c[1])), {
+          pane: 'zonesPane', interactive: false, stroke: false,
+          fillColor: ZON_HAL_FYLL, fillOpacity: 0.40
+        }).addTo(map);
+        zoneGroupLayers.push(grå);
+        halRitade++;
+      }
+    });
   });
   oldLayers.forEach(lg => lg.remove());              // SWAP: ta bort gamla nu
+  // Förklaringsraden ska bara finnas där en grå fläck kan förekomma. Zonerna hämtas
+  // asynkront, så rutan kan redan vara ritad – då måste den ritas om (samma skäl som
+  // prisstegen i laddaPrisstege).
+  const nyttVarde = halRitade > 0;
+  if (nyttVarde !== zonHalRitade) { zonHalRitade = nyttVarde; updateLegend(currentMode); }
 }
 
 // Zonerna beror INTE på vyn (fem stadstäckande polygoner) → panorering behöver
@@ -8446,11 +8533,16 @@ function updateLegend(mode) {
   // och densamma i båda städerna – se Uppsalas zonLager om varför.
   const taxaEtiketter = STAD.zonLager ? STAD.zonLager.etiketter : ['1', '2', '3', '4', '5'];
   const taxaRubrik    = STAD.zonLager ? STAD.zonLager.rubrik    : 'Taxa · dyrast → billigast';
+  // Grå fläckar inuti zonerna = ytor kommunen stansat ut, där zonens pris INTE gäller
+  // (se kommentaren vid punktInutiRing). Raden visas bara i en stad som faktiskt har
+  // sådana ytor ritade – zonHalRitade sätts av ritaZoner när de ritats.
+  const halRad = zonHalRitade
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ZON_HAL_FYLL};opacity:.45"></div>Egna regler – zonens pris gäller inte</div>` : '';
   const taxaScale = !HAR_ZONER ? '' :
     `<div class="lgnd-taxa-label">${taxaRubrik}</div>
      <div class="lgnd-taxa-bar">${Object.values(ZONE_STYLES).map((s, i) =>
        `<div class="lgnd-taxa-seg" style="background:${s.fill};color:${s.color}">${taxaEtiketter[i] || (i + 1)}</div>`
-     ).join('')}</div>`;
+     ).join('')}</div>${halRad}`;
   // Städer UTAN zonkarta kan ändå ha en prisstege. Karlstads fyra gatuzoner heter
   // färger (Röd, Gul, Grön, Blå) och ligger i prisordning, men här visas de som TEXT:
   // en färgruta hade lovat att kartan färgas så, och grönt/blått betyder redan
