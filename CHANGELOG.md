@@ -14,6 +14,33 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.41.2 – 2026-09-20
+**Cykelvalet följer inte längre med till en stad som saknar cykelplatser.**
+
+Fordonsvalet sparas globalt, inte per stad, och det är rätt – byter man stad kör man oftast
+samma fordon. Men cykelläget målar **medvetet inga gator**; det visar bara nålar. Den som
+valde cykel i Stockholm och bytte till Karlstad möttes därför av en alldeles tom karta utan
+att ha gjort något. Uppmätt 2026-09-20: **0 cykelplatser av 381 sträckor i Karlstad och 0 av
+2 272 i Uppsala**.
+
+- **Bara cykel faller tillbaka**, till bil. MC och rörelsehindrad har inte problemet – de
+  målar gatorna precis som bil-läget och svarar fortfarande på «får jag stå här», bara utan
+  egna nålar.
+- **Valet raderas inte.** Fallbacken sparas inte, så cykeln är tillbaka så fort man är i en
+  stad som har platserna. Ett stadsbyte ska inte kasta bort det man valt.
+- **Väljer man cykel aktivt ändå** säger lägestexten varför kartan är tom: «Karlstad
+  publicerar inga dedikerade cykel- eller mopedplatser». Tidigare lovade den «visar
+  dedikerade cykel- och mopedplatser i närheten» i en stad som inte har några.
+
+Fordonsfakta per stad bor nu på **ett** ställe (`stadHarFordon` + `HAR_MC_PLATSER` /
+`HAR_RH_PLATSER` / `HAR_CYKELPLATSER`) i stället för att räknas om inne i `updateLegend` –
+förklaringsrutan, fordonsväljaren och lägesintrot måste svara likadant.
+
+Provat: cykel valt i Stockholm → Karlstad startar som bil med valet kvar i lagringen →
+tillbaka i Stockholm är cykeln vald igen · startläget kontrollerat i alla sex städer
+(behålls i Stockholm/Göteborg/Sundbyberg/Malmö, faller i Uppsala/Karlstad) · Stockholms
+förklaringsruta oförändrad i alla åtta kombinationer · inga konsolfel.
+
 ## v1.41.1 – 2026-09-20
 **Förklaringsrutan ligger still när man byter läge.**
 

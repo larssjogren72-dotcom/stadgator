@@ -8054,6 +8054,30 @@ const RH_VEHICLES  = new Set(['rörelsehindrade', 'rörelsehindrad']);
 const CYKEL_VEHICLES = new Set(['cykel', 'moped-klass2']);
 function isCykelPlats(v) { return CYKEL_VEHICLES.has((v || 'fordon').toLowerCase()); }
 
+// ── Vilka fordon har staden egna platser för? ───────────────────────────────
+// Uppmätt lista per stad i STAD.fordonIData (se Karlstads stadsblock för mätningen).
+// Saknas listan är staden inte mätt → anta att allt finns, som före 2026-09-20.
+// Bor HÄR och inte i updateLegend, eftersom både förklaringsrutan, fordonsväljaren
+// och lägesintrot måste svara likadant – tre kopior av samma fråga glider isär.
+const stadHarFordon = mangd => !STAD.fordonIData || STAD.fordonIData.some(v => mangd.has(v));
+const HAR_MC_PLATSER    = stadHarFordon(MC_VEHICLES);
+const HAR_RH_PLATSER    = stadHarFordon(RH_VEHICLES);
+const HAR_CYKELPLATSER  = stadHarFordon(CYKEL_VEHICLES);
+
+// ── Fordonsvalet följer med mellan städer – men bara dit det betyder något ──
+// Valet sparas globalt, inte per stad, och det är rätt: byter man stad kör man oftast
+// samma fordon. Men cykelläget målar MEDVETET inga gator (se cykelPlatserOverlay) – det
+// visar bara nålar. I en stad utan cykelplatser blir kartan då alldeles tom, och den som
+// valde cykel i Stockholm och bytte till Karlstad möttes av en blank karta utan att ha
+// gjort något. Uppmätt 2026-09-20: 0 av 381 sträckor i Karlstad och 0 av 2 272 i Uppsala.
+// MC och rörelsehindrad har INTE samma problem – de målar gatorna precis som bil-läget
+// och svarar fortfarande på «får jag stå här», bara utan egna nålar. Därför faller bara
+// cykel tillbaka.
+//
+// Sparas INTE. Valet ligger kvar i lagringen, så cykeln är tillbaka så fort man är i en
+// stad som har platserna – ett stadsbyte ska inte radera det man valt.
+if (vehicleMode === 'cykel' && !HAR_CYKELPLATSER) vehicleMode = 'bil';
+
 // ── Reserverad plats för rörelsehindrade ────────────────────────────────────
 // MÄTT 2026-07-28: 8 av 675 platser (1,2 %) bär VEHICLE = "fordon" i stället för
 // "rörelsehindrade" (Vasastan 3, Östermalm 3, Södermalm 1, Kungsholmen 1). De passerade
@@ -8287,16 +8311,16 @@ function updateLegend(mode) {
   // Listorna är uppmätta över hela kommunen (se STAD.fordonIData i stadsblocken).
   // Saknas de är staden inte mätt → anta att allt förekommer, precis som förr.
   // Det är därför Stockholms ruta är byte-identisk efter den här ändringen.
-  const fordonIData = STAD.fordonIData || null;
   const andamalIData = STAD.andamalIData || null;
-  const finnsFordon = pred => !fordonIData || fordonIData.some(pred);
   const harKod = k => !andamalIData || andamalIData.includes(k);
-  const harMcPlatser    = finnsFordon(v => MC_VEHICLES.has(v));
-  const harRhPlatser    = finnsFordon(v => RH_VEHICLES.has(v));
-  const harCykelPlatser = finnsFordon(v => CYKEL_VEHICLES.has(v));
+  // Fordonsfakta läses från de delade konstanterna (se stadHarFordon) – samma svar som
+  // fordonsväljaren och lägesintrot får, i stället för tre egna uträkningar.
+  const harMcPlatser    = HAR_MC_PLATSER;
+  const harRhPlatser    = HAR_RH_PLATSER;
+  const harCykelPlatser = HAR_CYKELPLATSER;
   // Lila "ej för dig" beror på VALT fordon lika mycket som på datan – därför den
   // riktiga vehicleAllowed(), inte en parallell regel som kan glida isär från den.
-  const harAnnatFordon  = finnsFordon(v => !vehicleAllowed(v));
+  const harAnnatFordon  = !STAD.fordonIData || STAD.fordonIData.some(v => !vehicleAllowed(v));
   const harStadning     = !!STAD.servicedagarUrl;
   const harLastplats    = harKod('7') || harKod('18');
   const harForbudsorsak = !!STAD.harForbud || harKod('901');
@@ -9452,7 +9476,14 @@ function renderModeIntro() {
   // Cykel + moped klass 2 får normalt parkera var som helst (ingen förbudszon finns i registret,
   // se project-minnet 2026-08-18) – appen målar därför inga gator i det här läget, bara nålar
   // för stadens dedikerade platser. Samma text oavsett Nu/Natt eftersom regeln inte skiljer.
-  const cykelIntro = `<b>Cykel &amp; moped klass 2</b> visar dedikerade cykel- och mopedplatser i närheten. Du får normalt ställa cykeln/mopeden var som helst annars, så länge den inte är i vägen – kartan visar inga förbudsgator för cykel. Tryck på ${tapTargetPhraseAny()} för detaljer.`;
+  // Saknar staden cykelplatser lovar den första meningen något kartan inte kan hålla, och
+  // det finns heller inget att trycka på. Introt måste följa datan av samma skäl som
+  // förklaringsrutans rader gör det – sekundär text synkas inte av sig själv.
+  // Hit kommer man bara genom att AKTIVT välja cykel: ett val som följt med från en annan
+  // stad faller tillbaka till bil (se HAR_CYKELPLATSER), så kartan blir aldrig tom av sig själv.
+  const cykelIntro = HAR_CYKELPLATSER
+    ? `<b>Cykel &amp; moped klass 2</b> visar dedikerade cykel- och mopedplatser i närheten. Du får normalt ställa cykeln/mopeden var som helst annars, så länge den inte är i vägen – kartan visar inga förbudsgator för cykel. Tryck på ${tapTargetPhraseAny()} för detaljer.`
+    : `<b>Cykel &amp; moped klass 2</b> – ${STAD.namn} publicerar inga dedikerade cykel- eller mopedplatser, så kartan har inga att visa här. Du får normalt ställa cykeln/mopeden var som helst, så länge den inte är i vägen, men kontrollera skylt på plats.`;
   // MC-läget delar sin färgförklaring med bilen (samma gatufärger) – därför ingen egen
   // intro-text som cykelns, bara en kort tillagd mening om att moped klass 1 räknas hit med
   // (Stockholms trafikföreskrifter, verifierat 2026-08-22 mot 7 RDT-originalbeslut).
