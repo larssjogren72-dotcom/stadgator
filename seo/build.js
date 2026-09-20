@@ -442,8 +442,8 @@ function districtHub(d) {
     { href:`parkeringstaxor-stockholm`, text:`Stockholms parkeringstaxor (Taxa 1–5)` },
   ];
   emit(`parkering/${d.slug}`, layout({
-    slug:`parkering/${d.slug}`, title:`Parkering i ${d.name} – pris, städgator & över natten | ParkSpot`,
-    desc:`Var får du parkera i ${d.name}? Se pris (zon), städgator imorgon och var du står lagligt över natten. Kör lugnt, slipp böter.`,
+    slug:`parkering/${d.slug}`, title:`Parkering på ${d.name} – pris, städgator och natten`,
+    desc:`Var får du stå på ${d.name}? Se pris per zon, morgondagens städgator och vilka gator som håller hela natten.`,
     h1:`Parkering i ${d.name}`, lead:`${TAGLINE} Här hittar du pris, städgator och nattparkering i ${esc(d.name)} — och en live-karta som visar var du får stå just nu.`,
     sections, faq, related, lat:d.lat, lng:d.lng, match:d.match }));
 }
@@ -468,7 +468,7 @@ function billigare(d) {
     { href:`parkeringstaxor-stockholm`, text:`Alla taxor 1–5 förklarade` },
   ];
   emit(`billigare-parkering/${d.slug}`, layout({
-    slug:`billigare-parkering/${d.slug}`, title:`Billigare parkering i ${d.name} – pris per zon | ParkSpot`,
+    slug:`billigare-parkering/${d.slug}`, title:`Billigast parkering på ${d.name} – från ${pris} kr/tim`,
     desc:`Hitta billigast parkering i ${d.name}. Jämför taxezoner (från ${pris} kr/tim)${hasFreeZone(d.taxa) ? ' och se när det är avgiftsfritt (kvällar, nätter, söndagar)' : ''}. Kör lugnt, betala mindre.`,
     h1:`Billigare parkering i ${d.name}`, lead:`Betala mindre i ${esc(d.name)}. Se vilka zoner som är billigast${hasFreeZone(d.taxa) ? ' och när det är avgiftsfritt' : ''} — direkt på kartan.`,
     sections, faq, related, lat:d.lat, lng:d.lng, match:d.match }));
@@ -516,8 +516,8 @@ function stadgator(d) {
     { href:`stadgator-stockholm`, text:`Städgator i Stockholm (guide + säsong)` },
   ];
   emit(`stadgator/${d.slug}`, layout({
-    slug:`stadgator/${d.slug}`, title:`Städgator i ${d.name} – när städas gatorna? | ParkSpot`,
-    desc:`Vilka gator städas i ${d.name} och när? Se morgondagens städgator live${d.seasonal ? ' (säsongsjusterat, vinter '+SEASON+')' : ''}. Undvik böter och bogsering.`,
+    slug:`stadgator/${d.slug}`, title:`Städgator på ${d.name} – vilka gator städas i morgon?`,
+    desc:`Se morgondagens städgator på ${d.name}, gata för gata${d.seasonal ? ' och med rätt säsong (vinter '+SEASON+')' : ''}. Flytta bilen i tid och slipp böter.`,
     h1:`Städgator i ${d.name}`, lead:`Slipp städbil och böter. Se vilka gator i ${esc(d.name)} som städas imorgon — säsongssmart och live.`,
     sections, faq, related, lat:d.lat, lng:d.lng, match:d.match }));
 }
@@ -550,8 +550,8 @@ function destination(x) {
     { href:`parkeringshus-stockholm`, text:`Parkeringshus i Stockholm` },
   ].filter(r => r.href !== `parkering-nara/${x.slug}`);
   emit(`parkering-nara/${x.slug}`, layout({
-    slug:`parkering-nara/${x.slug}`, title:`Parkering nära ${x.name} – platser & garage | ParkSpot`,
-    desc:`Var parkerar du nära ${x.name}? Se lagliga gatuplatser, pris och närmaste parkeringshus. Kör lugnt till ${x.name}.`,
+    slug:`parkering-nara/${x.slug}`, title:`Parkering vid ${x.name} – pris, platser och garage`,
+    desc:`Var du får stå närmast ${x.name}, vad timmen kostar och vilket garage som ligger närmast. Se lediga gator på kartan innan du åker.`,
     h1:`Parkering nära ${x.name}`, lead:`Ska du till ${esc(x.name)}? Hitta lagliga platser och närmaste garage — utan att cirkla.`,
     sections, faq, related, lat:x.lat, lng:x.lng, match:null,
     alts:[{lang:'sv',slug:`parkering-nara/${x.slug}`},{lang:'en',slug:`en/parking-near-${x.slug}`}] }));
@@ -668,8 +668,8 @@ function pillarTaxa() {
     { href:`parkering-over-natten`, text:`Parkera över natten` },
   ];
   emit('parkeringstaxor-stockholm', layout({
-    slug:'parkeringstaxor-stockholm', title:'Parkeringstaxor Stockholm – Taxa 1–5, pris 5–55 kr/tim | ParkSpot',
-    desc:'Vad kostar parkering i Stockholm? Taxa 1: 55 kr/tim · Taxa 2: 31 · Taxa 3: 20 · Taxa 4: 10 · Taxa 5: 5 kr/tim. Plus mc-taxa, när det är gratis och vilken zon som gäller på kartan.',
+    slug:'parkeringstaxor-stockholm', title:'Vad kostar parkering i Stockholm? 5–55 kr/tim per zon',
+    desc:'Taxa 1: 55 kr/tim · Taxa 2: 31 · Taxa 3: 20 · Taxa 4: 10 · Taxa 5: 5 kr/tim. Se vilken zon som gäller på din gata, när det är gratis och vad mc kostar.',
     h1:'Parkeringstaxor i Stockholm – Taxa 1–5 (pris per timme)', lead:'Vad kostar det egentligen? Här är alla zoner och priser per timme — och hur du hittar de billigaste gatorna.',
     sections, faq, related, lat:null, lng:null, match:null }));
 }
@@ -716,8 +716,8 @@ function taxaPage(n) {
   ];
   emit(`parkeringstaxor-stockholm/taxa-${n}`, layout({
     slug:`parkeringstaxor-stockholm/taxa-${n}`,
-    title:`Taxa ${n} Stockholm – ${t.pris} kr/tim (pris & tider) | ParkSpot`,
-    desc:`Vad kostar Taxa ${n} i Stockholm? ${t.txt}. Se var zonen gäller på kartan${free ? ' och när det är gratis' : ''}.`,
+    title:`Taxa ${n} Stockholm: ${t.pris} kr/tim – tider och karta | ParkSpot`,
+    desc:`${t.txt}. Se var Taxa ${n} gäller på kartan${free ? ' och när det är gratis' : ''}, och vad zonerna intill kostar.`,
     h1:`Taxa ${n} i Stockholm – ${t.pris} kr/tim`,
     lead:`Vad kostar Taxa ${n}? Här är priset, tiderna och var zonen gäller — plus en karta som visar den live.`,
     sections, faq, related, lat:null, lng:null, match:null }));
@@ -744,8 +744,8 @@ function pillarStadgator() {
     { href:`parkeringstaxor-stockholm`, text:`Taxor 1–5` },
   ];
   emit('stadgator-stockholm', layout({
-    slug:'stadgator-stockholm', title:'Städgator i Stockholm – vilka gator städas imorgon? | ParkSpot',
-    desc:`Komplett guide till städgator i Stockholm: se morgondagens städgator live och säsongssmart (vinter ${SEASON}). Undvik böter och bogsering.`,
+    slug:'stadgator-stockholm', title:'Städdagar i Stockholm – så funkar de, gata för gata',
+    desc:`Så fungerar städgatorna: tider, säsonger (vinter ${SEASON}) och vad som händer om bilen står kvar. Se morgondagens städning live på kartan.`,
     h1:'Städgator i Stockholm', lead:'Slipp städbil och böter. Se vilka gator som städas imorgon — säsongssmart, så du får rätt lista.',
     sections, faq, related, lat:59.331, lng:18.064, match:['Södermalm','Östermalm','Kungsholmen','Vasastaden','Norrmalm'] }));
 }
@@ -801,8 +801,8 @@ function pillarGarages() {
   // SLUGGEN RÖRS INTE. `parkeringshus-stockholm` är indexerad sedan juni och ligger
   // i sju interna länkar; rubriken får bli bredare, adressen får inte byta.
   emit('parkeringshus-stockholm', layout({
-    slug:'parkeringshus-stockholm', title:'Parkeringshus och parkeringsytor i Stockholm – med tidsgräns | ParkSpot',
-    desc:'Hitta parkeringshus och parkeringsytor i Stockholm när gatan är full. ParkSpot visar närmaste anläggning med kapacitet, pris och tidsgräns.',
+    slug:'parkeringshus-stockholm', title:'Parkeringshus i Stockholm – pris, platser och maxtid',
+    desc:'Närmaste garage eller parkeringsyta när gatan är full: antal platser, pris per timme och hur länge du får stå. Alla anläggningar på kartan.',
     h1:'Parkeringshus och parkeringsytor i Stockholm',
     lead:'Gatan full? Hitta närmaste anläggning — ParkSpot visar kapacitet, pris och tidsgräns.',
     sections, faq, related, lat:null, lng:null, match:null }));
@@ -847,8 +847,8 @@ function pillarEnglish() {
   ];
   emit('parking-in-stockholm', layout({
     slug:'parking-in-stockholm', en:true,
-    title:'Parking in Stockholm — a visitor’s guide (prices, rules, map) | ParkSpot',
-    desc:'Visiting Stockholm by car? Learn where to park, what it costs (tariff zones 1–5), how to avoid cleaning-day fines, and where to park near the sights. Free live map.',
+    title:'Parking in Stockholm: prices, rules and a free map',
+    desc:'What it costs (5–55 SEK/hour), how street cleaning works, and where to park near Gamla Stan, Skansen and Gröna Lund. Live map, no sign-up, no app.',
     h1:'Parking in Stockholm — a visitor’s guide',
     lead:'Stop circling. Know where you can park — before you drive. Prices, rules and a live map that shows free legal spots near you.',
     sections, faq, related, lat:59.331, lng:18.064, match:['Norrmalm','Östermalm','Södermalm','Vasastaden','Kungsholmen','Gamla Stan'] }));
@@ -869,8 +869,8 @@ function pillarHubs() {
   // 1) Parkering i Stockholm – bred ingångssida
   categoryHub({
     slug:'parkering',
-    title:'Parkering i Stockholm – karta, pris & städgator (alla stadsdelar) | ParkSpot',
-    desc:'Var får du parkera i Stockholm? Live-karta med lagliga platser, pris per zon (Taxa 1–5) och morgondagens städgator. Hitta parkering i din stadsdel.',
+    title:'Parkering i Stockholm – karta över var du får stå nu',
+    desc:'Live-karta med lagliga platser, pris per zon och morgondagens städgator. Välj din stadsdel och se var bilen står lagligt just nu.',
     h1:'Parkering i Stockholm',
     lead:`${TAGLINE} En live-karta som visar var du får stå just nu, vad det kostar och vilka gator som städas imorgon — i hela Stockholm.`,
     intro:`<section class="card"><h2>Hitta parkering i Stockholm – så funkar det</h2>
@@ -937,8 +937,8 @@ function pillarHubs() {
   // 4) Städgator (index per stadsdel) – väver in "servicedag"-synonymen
   categoryHub({
     slug:'stadgator',
-    title:'Städgator i Stockholm – stadsdel för stadsdel (servicedagar) | ParkSpot',
-    desc:'Vilka gator städas i Stockholm och när? Se morgondagens städgator (servicedagar) live, stadsdel för stadsdel. Säsongssmart – undvik böter och bogsering.',
+    title:'Städgator Stockholm – karta över morgondagens städning',
+    desc:'Vilka gator städas i morgon? Se morgondagens städgator stadsdel för stadsdel, med rätt säsong (vinter 1 nov–15 maj). Flytta bilen i tid.',
     h1:'Städgator i Stockholm – per stadsdel',
     lead:'Slipp städbil och böter. Se vilka gator som städas imorgon – välj din stadsdel.',
     intro:`<section class="card"><h2>Städgator &amp; servicedagar – så funkar det</h2><p>Varje gata har en <b>städdag</b> (kallas även <b>servicedag</b>) – en veckodag då parkering är förbjuden för gatustädning. Står du fel blir det böter och ibland bogsering. Många gator i ytterstaden gäller <b>bara vintertid (${SEASON})</b>. ParkSpot visar morgondagens städgator live och säsongssmart.</p>
@@ -1574,7 +1574,7 @@ function gbgNatt() {
   emit('parkering-over-natten-goteborg', layout({
     slug:'parkering-over-natten-goteborg',
     title:'Parkera över natten i Göteborg – var står bilen tryggt? | ParkSpot',
-    desc:'Kan bilen stå kvar till i morgon i Göteborg? Se vilka gator som städas på natten, hur jämna och udda veckor fungerar och var tidsgränsen tar slut medan du sover.',
+    desc:'Kan bilen stå kvar till i morgon? Se vilka gator i Göteborg som städas på natten, hur jämna och udda veckor fungerar och var tidsgränsen tar slut.',
     h1:'Parkera över natten i Göteborg',
     lead:'Städningen och tidsgränsen avgör – här är siffrorna, och hur du hittar en gata som håller hela natten.',
     sections, faq, related: gbgRelated('parkering-over-natten-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
@@ -1655,8 +1655,8 @@ function gbgBoende() {
     framatFaq('goteborg'),
   ];
   emit('boendeparkering-goteborg', layout({
-    slug:'boendeparkering-goteborg', title:'Boendeparkering i Göteborg – zoner, regler och n-suffixet | ParkSpot',
-    desc:'Så fungerar boendeparkering i Göteborg: zonkoder som Ö6 och V5n, vad som gäller utan tillstånd, och varför ett n betyder att tillståndet bara gäller på natten.',
+    slug:'boendeparkering-goteborg', title:'Boendeparkering Göteborg – zoner, pris och n-koden',
+    desc:'Zonkoder som Ö6 och V5n, vad som gäller utan tillstånd och varför n betyder kväll och natt. Med tillstånd får du stå upp till 14 dygn.',
     h1:'Boendeparkering i Göteborg',
     lead:'Ö6, M4n, V5 – vad betyder koderna på skylten, och vad gäller för dig som inte har tillstånd?',
     sections, faq, related: gbgRelated('boendeparkering-goteborg'), lat:null, lng:null, match:null, stad:GBG }));

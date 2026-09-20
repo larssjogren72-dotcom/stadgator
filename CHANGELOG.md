@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.39.0 – 2026-09-20
+**Omskrivna titlar och beskrivningar på de mest exponerade sidorna.**
+
+Search Console 19 juni–18 sep: **177 000 exponeringar, 2 430 klick, 1,4 % CTR, position 8,7.**
+Synligheten finns alltså redan – klicken saknas. Värst var taxesidan: **43 492 exponeringar
+och 0,4 % CTR**. 82 % av klicken är mobila, där Google kapar titeln vid ~55–60 tecken, och
+våra titlar låg på 59–83. Slutet – inklusive `| ParkSpot` – syntes aldrig.
+
+- **Varumärket bort ur titeln** på de omskrivna sidorna. Varumärkessökningar var 158 av
+  177 000 exponeringar; platsen gör mer nytta åt löftet. Taxa 1–5 är korta nog att behålla det.
+- **Frågan först, inte kategorin.** «Parkeringstaxor Stockholm – Taxa 1–5 …» →
+  «Vad kostar parkering i Stockholm? 5–55 kr/tim per zon». Samma grepp på p-hus, städgator
+  och den engelska pelarsidan (som är sajtens största klickkälla, 271 klick).
+- **Svaret först i beskrivningen.** Frågan står redan i titeln; beskrivningen ger priset.
+- **Två sidor som konkurrerade om samma ord delades:** `/stadgator` är kartan över i morgon,
+  `/stadgator-stockholm` förklarar hur städdagarna fungerar.
+- Mallarna ändrades, så syskonsidorna följer med: 17 stadsdelar, 17 billigare-sidor,
+  17 städgatusidor och 11 «nära»-sidor. 74 filer, inga nya sidor.
+
+Provat: 260 av 260 sidor svarar 200 lokalt · 0 tomma titlar · 0 identiska titlar ·
+H1, kanonisk tagg och og-taggar orörda.
+
+**Känt kvar:** 164 titlar är fortfarande över 60 tecken – främst de 109 gatusidorna och de
+engelska «parking near»-sidorna. Samma fel, ej åtgärdat i denna omgång.
+
 ## v1.38.0 – 2026-09-20
 **Göteborg får sin sida om att parkera över natten – den mest sökta frågan saknades.**
 
