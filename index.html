@@ -2748,12 +2748,27 @@ function punktIPolygon(pt, ring) {
   }
   return inne;
 }
-const ZON_HAL_FYLL = '#a1a1aa';    // neutralt grått – oanvänt i appen (MC-lägets "ej för MC"
-                                   // är blågrått #c3ccd6/#94a3b8, och det är LINJER, inte ytor)
+// Neutralt grått – oanvänt i appen i övrigt (MC-lägets "ej för MC" är blågrått
+// #c3ccd6/#94a3b8, och det är LINJER, inte ytor).
+//
+// ⚠ TONEN SITTER I BÅDA TALEN, och opaciteten ensam räcker inte. Blandningen mot
+// bakgrundskartan (≈ 242) är  a·färg + (1−a)·242 , så färgen sätter ett GOLV som ingen
+// opacitet kan gå under: med #a1a1aa (161) blir det mörkaste möjliga rgb(161) även vid
+// full opacitet. Därför mörknade vi färgen när Lars bad om mer – att bara höja 0,70→0,85
+// hade gett rgb(173), tolv nivåer, knappt en skillnad.
+//
+// Historik, så nästa steg inte blir en gissning:
+//   #a1a1aa @ 0,40 → rgb(210)  lästes som VITT (v1.42.0)
+//   #a1a1aa @ 0,70 → rgb(185)  syntes, men Lars ville ha mer (v1.42.1)
+//   #8b8b94 @ 0,85 → rgb(154)  nuvarande
+//   #71717a @ 0,85 → rgb(132)  nästa steg om det behövs
+// Zonernas egna fyllningar landar runt rgb(220–240), så 154 ligger klart under dem.
+// Byts bakgrundskartan (se CARTO-minnet) gäller inte 242 längre och allt måste räknas om.
+const ZON_HAL_FYLL = '#8b8b94';
 // EN opacitet för både kartan och förklaringsrutans färgruta. Låg de som två tal glider de
 // isär, och då visar rutan en ton kartan inte har – vilket är precis vad Lars såg när det
 // grå var för svagt på kartan men syntes i rutan.
-const ZON_HAL_OPACITET = 0.70;
+const ZON_HAL_OPACITET = 0.85;
 // Sant först när minst ett "egna regler"-hål faktiskt ritats. Styr förklaringsradens
 // existens – rutan ska inte beskriva en grå fläck i en stad som inte har några.
 let zonHalRitade = false;
@@ -2810,18 +2825,9 @@ function ritaZoner(data) {
         const hal = yta[i];
         const punkt = punktInutiRing(hal);
         if (yttreRingar.some(y => y.id !== zonId && punktIPolygon(punkt, y.ring))) continue;  // munkhål
-        // ⚠ OPACITETEN ÄR MÄTT MOT BAKGRUNDSKARTAN, inte vald på känsla. Den satt först på
-        // 0.40 och Lars rapporterade att fläckarna "fortfarande är vita på kartan" medan
-        // legendrutan syntes grå. Felsökt i drift 2026-09-20: geometrin stämmer (största
-        // hålet mäter 381×209 px), ritordningen stämmer (de grå ligger sist av 120 paths,
-        // alltså överst), och inget dämpar dem (beräknad fill-opacity 0.4, pane-opacity 1).
-        // Problemet var alltså rent perceptuellt:
-        //   bakgrundskartan ≈ 242 · #a1a1aa (161) på 0.40 → 0.4·161 + 0.6·242 ≈ rgb(209)
-        // och 209 mot 242 syns knappt, särskilt bredvid zonernas ljusa färger (den gula
-        // fyllningen landar på ≈ rgb(240,223,172)). 0.70 ger ≈ rgb(185) – ungefär 40 nivåer
-        // mörkare än zonerna, tydligt en yta och inte ett hål, men fortfarande genomskinlig
-        // nog att gatunamnen under syns i de fyra stora hålen (~11 ha).
-        // Ändras bakgrundskartan (se CARTO-minnet) måste talet räknas om mot den nya tonen.
+        // Tonen är räknad mot bakgrundskartan, inte vald på känsla – räkningen och hela
+        // historiken står vid ZON_HAL_FYLL. Felsökningen som visade att det var ett
+        // PERCEPTIONS-problem och inte ett ritfel står där också.
         const grå = L.polygon(hal.map(c => toLatLng(c[0], c[1])), {
           pane: 'zonesPane', interactive: false, stroke: false,
           fillColor: ZON_HAL_FYLL, fillOpacity: ZON_HAL_OPACITET

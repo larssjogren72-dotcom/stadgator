@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.42.2 – 2026-09-20
+**Starkare grå ton på zonhålen – och opaciteten räckte inte som reglage.**
+
+Lars: «ton upp». Att bara höja opaciteten hade knappt synts, och det går att visa varför:
+blandningen mot bakgrundskartan är `a·färg + (1−a)·242`, så **färgen sätter ett golv som
+ingen opacitet kan gå under**. Med `#a1a1aa` (161) är det mörkaste möjliga rgb(161) även vid
+full opacitet – steget 0,70→0,85 hade gett rgb(173), tolv nivåer. Därför mörknades färgen
+till `#8b8b94`, som på 0,85 ger **rgb(154)**: 31 nivåer mörkare än förut och klart under
+zonernas egna fyllningar (rgb 220–240).
+
+Hela skalan står nu i koden vid `ZON_HAL_FYLL`, så nästa justering inte blir en gissning:
+
+| Färg och opacitet | Blandad ton | Utfall |
+|---|---|---|
+| `#a1a1aa` @ 0,40 | rgb(210) | lästes som vitt (v1.42.0) |
+| `#a1a1aa` @ 0,70 | rgb(185) | syntes, men Lars ville ha mer (v1.42.1) |
+| `#8b8b94` @ 0,85 | **rgb(154)** | nuvarande |
+| `#71717a` @ 0,85 | rgb(132) | nästa steg om det behövs |
+
+Städat samtidigt: kommentaren vid själva ritningen upprepade historiken och angav dessutom
+fel aktuellt värde efter bytet. Den pekar nu på konstanten, där räkningen bor.
+
+Provat: 110 grå hål i Uppsala med färg rgb(139,139,148), kartan och förklaringsrutan på
+samma 0,85, inga konsolfel.
+
 ## v1.42.1 – 2026-09-20
 **Det grå syntes i förklaringen men inte på kartan – tonen var för svag.**
 
