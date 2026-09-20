@@ -2731,16 +2731,21 @@ function punktIPolygon(pt, ring) {
 //
 // Historik, så nästa steg inte blir en gissning:
 //   #a1a1aa @ 0,40 → rgb(210)  lästes som VITT (v1.42.0)
-//   #a1a1aa @ 0,70 → rgb(185)  syntes, men Lars ville ha mer (v1.42.1)
-//   #8b8b94 @ 0,85 → rgb(154)  nuvarande
-//   #71717a @ 0,85 → rgb(132)  nästa steg om det behövs
+//   #a1a1aa @ 0,70 → rgb(185)  för svagt (v1.42.1)
+//   #8b8b94 @ 0,85 → rgb(154)  för mörkt (v1.42.2–v1.42.4)
+//   #8b8b94 @ 0,65 → rgb(175)  nuvarande
+// ⚠ De tre första omdömena fälldes NÄR TÄCKNINGEN VAR TRASIG: fram till v1.42.4 ritades bara
+// en del av ytorna (110 av 159 i Uppsala, alla i zon E, och ingen av de stora ringarna mellan
+// zonerna). Små spridda fläckar tål en mörkare ton än stora sammanhängande ytor, så
+// «för svagt» vid 185 gällde en annan karta än den vi har nu. Därför gick vi TILLBAKA i
+// skalan när täckningen blev rätt – inte för att mätningen var fel.
 // Zonernas egna fyllningar landar runt rgb(220–240), så 154 ligger klart under dem.
 // Byts bakgrundskartan (se CARTO-minnet) gäller inte 242 längre och allt måste räknas om.
 const ZON_HAL_FYLL = '#8b8b94';
 // EN opacitet för både kartan och förklaringsrutans färgruta. Låg de som två tal glider de
 // isär, och då visar rutan en ton kartan inte har – vilket är precis vad Lars såg när det
 // grå var för svagt på kartan men syntes i rutan.
-const ZON_HAL_OPACITET = 0.85;
+const ZON_HAL_OPACITET = 0.65;
 // Sant först när minst ett "egna regler"-hål faktiskt ritats. Styr förklaringsradens
 // existens – rutan ska inte beskriva en grå fläck i en stad som inte har några.
 let zonHalRitade = false;

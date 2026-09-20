@@ -14,6 +14,21 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.42.5 – 2026-09-20
+**Ljusare grå ton, nu när täckningen är hel.**
+
+`#8b8b94` från 0,85 till **0,65** – blandad ton **rgb(154) → rgb(175)**. Ett tal, så både
+kartan och förklaringsrutans färgruta följer med.
+
+Värt att notera i koden, där hela skalan nu står: de tidigare omdömena «för svagt» (185) och
+«ton upp» fälldes **medan täckningen var trasig** – fram till v1.42.4 ritades bara 110 av
+159 ytor i Uppsala, alla i zon E, och ingen av de stora ringarna mellan zonerna. Små spridda
+fläckar tål en mörkare ton än stora sammanhängande ytor, så skalan gick medvetet **tillbaka**
+när kartan blev rätt – inte för att mätningen var fel, utan för att den gällde en annan karta.
+
+Provat: komplement-testet kört om efter tonändringen – 2 220 slumpade punkter, **0
+avvikelser** · kartan och rutan på samma 0,65 · inga konsolfel.
+
 ## v1.42.4 – 2026-09-20
 **Höganäsgatan vid Österplan var vit – och avslöjade att hål-för-hål inte går att klassa.**
 
