@@ -734,6 +734,9 @@
       background: #fff; border-radius: 50%; transition: left .15s; pointer-events: none; }
     .lgnd-switch input:checked ~ .lgnd-switch-thumb { left: 15px; }
     .lgnd-hidden-note { font-size: 10px; color: var(--muted); line-height: 1.4; margin-top: 4px; }
+    /* Prisstege utan zonkarta: samma radhöjd som övriga legendrader, priset högerställt. */
+    .lgnd-steg       { gap: 8px; }
+    .lgnd-steg b     { font-variant-numeric: tabular-nums; }
     .lgnd-feedback { font-size: 11px; margin-top: 6px; text-align: center; }
     .lgnd-feedback a { color: var(--accent); }
 
@@ -1665,7 +1668,20 @@ STADER_CFG.karlstad =
       // och priset står i fritext («Se taxa») – ingen prisrad hellre än en gissad.
       phusUrl:'/karlstad/phus', phusTyp:null,
       phusRubrik:'Parkeringsanläggningar nära', phusEtikett:'Parkeringsanläggning',
+      // Ingen zonkarta att rita: Karlstads «zoner» (vy_parkab_appzoner) ÄR
+      // parkeringsplatserna. Mätt 2026-09-20: 129 ytor, median 937 m², summa 0,18 km²,
+      // och 355 av 381 avgiftssträckor ligger INNE i en yta – alltså samma geometri
+      // appen redan ritar som linjer, inte en stadsdelskarta som Stockholms och
+      // Uppsalas. Ingen kommuntäckande zonkarta finns (623 lager genomsökta).
       taxaZon:null,
+      // Prisstegen finns däremot, och den är ren: Röd 18 · Gul 16 · Grön 8 · Blå 4 kr/tim.
+      // Den visas som TEXT i förklaringen – färgrutor hade lovat att kartan färgas så,
+      // och grönt/blått är redan upptaget av «får stå nu» och «kontrollera tiden».
+      // Kommunens egna zonnamn ÄR färger och råkar ligga i appens prisordning.
+      prisStege:{ url:'/karlstad/zontaxor', rubrik:'Avgiftszoner · dyrast → billigast',
+                  fotnot:'Kommunens egna zonnamn. Namngivna parkeringar (t.ex. Sundstabadet) '
+                       + 'har egna priser – de står på platskortet. Gatufärgen på kartan '
+                       + 'visar om du får stå, inte vad det kostar.' },
       // SANT: Karlstad pekar ut hur länge man får stå på 203 av 381 sträckor
       // («1 vecka», «120 min», «1 dygn») – och Röd zon, den enda korta, blir blå.
       // De 47 % utan gräns är nästan bara gatuzonerna (Grön/Gul/Blå) och behandlas som i
@@ -8187,6 +8203,24 @@ function initSheet() {
   handle.addEventListener('pointercancel', endDrag);
 }
 
+// ── Prisstege utan zonkarta (Karlstad) ──────────────────────────────────────
+// Hämtas EN gång per sidladdning; förklaringen ritas om när svaret kommer, så att
+// den som redan öppnat rutan ser stegen dyka upp i stället för att behöva stänga
+// och öppna igen. Misslyckas hämtningen syns ingen stege – och konsolen säger varför,
+// av samma skäl som zonerna fick sin varning (tyst tomt ser ut som obyggt).
+let prisStegData = [];
+function laddaPrisstege() {
+  if (!STAD.prisStege || prisStegData.length) return;
+  fetch(STAD.prisStege.url)
+    .then(r => r.ok ? r.json() : (console.warn(`[Prisstege] ${STAD.prisStege.url} svarade ${r.status} – ingen stege visas`), []))
+    .catch(e => (console.warn(`[Prisstege] ${STAD.prisStege.url} gick inte att hämta: ${e.message} – ingen stege visas`), []))
+    .then(steg => {
+      if (!Array.isArray(steg) || !steg.length) return;
+      prisStegData = steg;
+      updateLegend(currentMode);
+    });
+}
+
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
   if (!legendDiv) return;
@@ -8225,6 +8259,16 @@ function updateLegend(mode) {
      <div class="lgnd-taxa-bar">${Object.values(ZONE_STYLES).map((s, i) =>
        `<div class="lgnd-taxa-seg" style="background:${s.fill};color:${s.color}">${taxaEtiketter[i] || (i + 1)}</div>`
      ).join('')}</div>`;
+  // Städer UTAN zonkarta kan ändå ha en prisstege. Karlstads fyra gatuzoner heter
+  // färger (Röd, Gul, Grön, Blå) och ligger i prisordning, men här visas de som TEXT:
+  // en färgruta hade lovat att kartan färgas så, och grönt/blått betyder redan
+  // "får stå nu" respektive "kontrollera tiden". Priserna kommer från kommunens data
+  // via adaptern (se /karlstad/zontaxor) – aldrig inskrivna här, så en taxehöjning
+  // slår igenom av sig själv. Tom lista = ingen rubrik alls, aldrig en halv stege.
+  const stegRader = (!HAR_ZONER && STAD.prisStege && prisStegData.length)
+    ? `<div class="lgnd-taxa-label">${STAD.prisStege.rubrik}</div>
+       ${prisStegData.map(s => `<div class="lgnd-row lgnd-steg"><span style="flex:1">${escHtml(s.zon)}</span><b>${escHtml(s.pris)}</b></div>`).join('')}
+       <div class="lgnd-hidden-note">${STAD.prisStege.fotnot}</div>` : '';
   // EN switch i stället för de gamla två (gågata/förbud). De täckte inte lila "ej för bil",
   // och mängden "får ej stå" är fordonsberoende → en switch som följer vehicleMode är korrektare.
   // Färgerna förklaras redan en gång i modeRows ovan – därför inga färgrutor här, bara reglaget.
@@ -8302,7 +8346,7 @@ function updateLegend(mode) {
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${taxaScale}${modeRows}${layerToggles}</div>`;
+     <div id="legend-content">${taxaScale}${stegRader}${modeRows}${layerToggles}</div>`;
   applyLegendState();
 }
 
@@ -9361,6 +9405,7 @@ function setMode(mode) {
   // Användaren trycker själv i sökfältet när hen vill skriva.
   document.getElementById('phus-btn').style.display = 'none';   // p-hus-steget gäller först efter en sökning
   refreshZones();        // visa taxa-zonernas färger direkt (vid start + lägesbyte), ej bara efter klick
+  laddaPrisstege();      // städer utan zonkarta men med prisstege i förklaringen (Karlstad)
   // B: behåll destinationen vid lägesbyte → kör om för samma plats i det nya läget (linser på samma ankare)
   if (searchCenter) {
     flyToAndShow(searchCenter.lat, searchCenter.lng);   // resultatvy → flödet snäpper själv till peek

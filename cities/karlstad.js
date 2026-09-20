@@ -559,6 +559,56 @@ module.exports = function skapaKarlstad(delade) {
     return phusInflight;
   }
 
+  // ═══ PRISSTEGEN (gatuzonerna) ══════════════════════════════════════════════
+  // Karlstad har FYRA gatuzoner vars namn är färger, och de ligger i samma ordning
+  // som appens prisskala: Röd dyrast → Blå billigast. Mätt 2026-09-20 på alla 381
+  // avgiftssträckor: Röd 18, Gul 16, Grön 8, Blå 4 kr/tim.
+  //
+  // Priserna HÄRLEDS ur samma fält som platskortet läser – de skrivs aldrig in här.
+  // En taxehöjning slår därför igenom av sig själv, precis som på kortet. De ~27
+  // namngivna p-områdena (Sundstabadet, Karolinen …) hör inte hit: de är enskilda
+  // anläggningar med eget pris, inte ett stadsomfattande steg, och priset står redan
+  // på kortet. Zonytorna RITAS inte – de är parkeringsplatserna själva (355 av 381
+  // sträckor ligger inne i en yta), inte en stadsdelskarta. Se projektminnet.
+  const GATUZONER = ['Röd zon', 'Gul zon', 'Grön zon', 'Blå zon'];
+  let stegCache = null, stegTs = 0, stegInflight = null;
+  function byggPrissteg() {
+    if (stegCache && Date.now() - stegTs < TTL) return Promise.resolve({ steg: stegCache, varm: true });
+    if (stegInflight) return stegInflight;
+    stegInflight = fragaLager(LAGER.avgift, null).then(fs_ => {
+      const per = new Map(GATUZONER.map(z => [z, { zon: z, priser: new Map(), strackor: 0 }]));
+      for (const f of fs_) {
+        const p = f.properties || {};
+        const rad = per.get(String(p.parkeringsomrade || '').trim());
+        if (!rad) continue;
+        rad.strackor++;
+        const pris = taxaText(p.timtaxa_dag, 'kr/tim');
+        if (pris) rad.priser.set(pris, (rad.priser.get(pris) || 0) + 1);
+      }
+      const steg = [];
+      for (const rad of per.values()) {
+        if (!rad.strackor || !rad.priser.size) continue;
+        // Flera stavningar av samma pris ("8 kr/h" och "8") blir samma text via taxaText.
+        // Står det ändå OLIKA priser i en zon skriver vi ut alla – hellre "8 kr/tim,
+        // 10 kr/tim" än ett påhittat snitt.
+        const priser = [...rad.priser.keys()].sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0));
+        steg.push({ zon: rad.zon, pris: priser.join(', '), strackor: rad.strackor,
+                    sortering: parseFloat(priser[0]) || 0 });
+      }
+      steg.sort((a, b) => b.sortering - a.sortering);       // dyrast först
+      // Allt-eller-inget, av samma skäl som Uppsalas zoner: en stege där Gul saknas
+      // ser ut som att Gul zon vore gratis.
+      if (steg.length !== GATUZONER.length) {
+        console.warn(`[Karlstad] prissteg: fick ${steg.length} av ${GATUZONER.length} zoner – visar ingen stege`);
+        return { steg: [], varm: false };
+      }
+      console.log('[Karlstad] prissteg: ' + steg.map(s => `${s.zon} ${s.pris}`).join(' · '));
+      stegCache = steg; stegTs = Date.now();
+      return { steg, varm: false };
+    }).finally(() => { stegInflight = null; });
+    return stegInflight;
+  }
+
   // ═══ VÄGAR ═════════════════════════════════════════════════════════════════
   const fel = (res, kod, txt) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -628,6 +678,13 @@ module.exports = function skapaKarlstad(delade) {
       return true;
     }
 
+    if (reqUrl.pathname === '/karlstad/zontaxor') {
+      byggPrissteg().then(({ steg, varm }) => {
+        send(req, res, 200, 'application/json; charset=utf-8',
+             Buffer.from(JSON.stringify(steg)), varm ? 'HIT' : 'MISS');
+      }).catch(e => { console.warn('[Karlstad] prissteg:', e.message); fel(res, 502, 'Karlstads zontaxor otillgängliga'); });
+      return true;
+    }
     if (reqUrl.pathname === '/karlstad/phus') {
       const varm = !!phusCache;
       byggPhus().then(list => {

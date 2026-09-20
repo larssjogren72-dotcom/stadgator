@@ -14,6 +14,29 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.36.0 – 2026-09-20
+**Karlstads prisstege i förklaringen: Röd 18 · Gul 16 · Grön 8 · Blå 4 kr/tim.**
+
+Karlstad får ingen zonkarta, och det är ett medvetet nej. Stadens «zoner»
+(`vy_parkab_appzoner`) ÄR parkeringsplatserna: 129 ytor, median 937 m², tillsammans
+0,18 km² – och 355 av 381 avgiftssträckor ligger inne i en yta. Att rita dem hade bara
+gett en tjockare kopia av linjerna appen redan ritar, inte en översikt. Någon
+kommuntäckande zonkarta finns inte (623 lager i geoservern genomsökta).
+
+Prisstegen finns däremot, och den visas som TEXT i förklaringen. Färgrutor hade lovat
+att kartan färgas så, och grönt och blått betyder redan «får stå nu» och «kontrollera
+tiden». Kommunens egna zonnamn är färger och ligger i appens prisordning – men på
+kartan fortsätter färgen betyda laglighet, aldrig pris.
+
+- `cities/karlstad.js`: ny väg `/karlstad/zontaxor` som HÄRLEDER stegen ur samma fält
+  som platskortet läser. Priserna står aldrig i koden, så en taxehöjning slår igenom
+  av sig själv. Cache 6 h. Saknas någon av de fyra zonerna visas ingen stege alls.
+- `index.html`: ny stadsruta `prisStege` (stad utan zonkarta). Hämtas en gång per
+  sidladdning och ritar om förklaringen när svaret kommer. Faller hämtningen säger
+  konsolen varför, i stället för att stegen tyst uteblir.
+- De ~27 namngivna parkeringarna (Sundstabadet, Karolinen …) hör inte till stegen:
+  de har egna priser, som redan står på platskortet. Fotnoten säger det.
+
 ## v1.35.0 – 2026-09-20
 **Uppsalas avgiftsområden A–E ritas som färglagda zoner, som Stockholms taxezoner.**
 
