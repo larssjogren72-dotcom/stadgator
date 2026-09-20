@@ -14,6 +14,33 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.42.3 – 2026-09-20
+**Centrums hål blev aldrig grå – min urvalsregel räknade fel.**
+
+Lars efter tre justeringar av tonen: «nu börjar jag ledsna på dig», med en bild där
+förklaringsrutans ruta är tydligt grå medan kartans fläckar fortfarande är **vita**. Han hade
+rätt, och de tre tonjusteringarna var fel spår: fläckarna var inte för ljust färgade, de var
+**inte färgade alls**.
+
+**Felet:** regeln som skiljer munkhål (där en inre zon ligger) från hål med egna regler
+testade mot andra zoners **yttre ringar**. Uppsalas zon E omsluter hela staden, så varje hål
+i A, B, C och D såg ut att «täckas av E» och hoppades över. **50 av 161 hål, allihop i
+centrum** – precis där man tittar.
+
+Att det blev **110 grå hål** såg ut som en lyckad siffra i alla mina prov. Den fråga jag
+aldrig ställde var *vilka*: samtliga 110 låg i zon E.
+
+**Rättat:** en zons YTA är yttre ringen **minus dess egna hål**. En punkt i D ligger då inte
+längre «i E», eftersom D sitter i E:s stora hål. Resultat: **159 grå hål** (A 4, B 6, C 8,
+D 31, E 110) och 2 äkta munkhål.
+
+Samtidigt borttagen en ordningsberoende risk: de grå hålen ritades per zon, så en senare zons
+fyllning kunde lägga sig över en tidigare zons grå. De ritas nu i ett andra svep efter alla
+fyllningar – kontrollerat: de grå är lager 10–168 av 169.
+
+Provat: Uppsala 159 grå hål fördelade över alla fem zoner (inte bara E) · Stockholm oförändrat
+16 · Karlstad 0 och ingen rad · inga konsolfel.
+
 ## v1.42.2 – 2026-09-20
 **Starkare grå ton på zonhålen – och opaciteten räckte inte som reglage.**
 
