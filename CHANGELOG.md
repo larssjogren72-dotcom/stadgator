@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.42.1 – 2026-09-20
+**Det grå syntes i förklaringen men inte på kartan – tonen var för svag.**
+
+Lars efter v1.42.0: «de är fortfarande vita på kartan, förklaring visar grå». Felsökt i
+drift innan något ändrades, för att utesluta att ytorna inte ritades alls:
+
+- Geometrin stämmer – största hålet mäter **381×209 px** på skärmen.
+- Ritordningen stämmer – de grå ligger **sist av 120 paths**, alltså överst.
+- Inget dämpar dem – beräknad `fill-opacity` 0,4, pane-opacity 1, `visibility: visible`.
+
+Problemet var alltså rent perceptuellt, och det går att räkna på: bakgrundskartan ligger runt
+242, så `#a1a1aa` på 0,40 blandar till **rgb(210)** – drygt 30 nivåer från vitt, bredvid
+zonernas ljusa färger (den gula fyllningen landar på rgb(240,223,172)). Det läses som vitt.
+**0,70 ger rgb(185,185,192)**, ungefär 40 nivåer mörkare än zonerna – tydligt en yta, men
+fortfarande genomskinlig nog att gatunamnen syns i de fyra stora hålen (~11 ha).
+
+Opaciteten är nu **ett tal** (`ZON_HAL_OPACITET`) som både kartan och förklaringsrutans
+färgruta läser. Låg de som två tal kunde rutan visa en ton kartan inte har – vilket är exakt
+det Lars såg. Räkningen förutsätter den nuvarande bakgrundskartan; byts den måste talet
+räknas om, och det står i koden.
+
+Provat: 110 grå hål i Uppsala, kartan och rutan på samma 0,7, inga konsolfel. **Tonen är
+fortfarande inte ögongranskad av mig** – förhandsvisningen ritar kartan tom i den här
+sessionen, så värdet är räknat, inte sett.
+
 ## v1.42.0 – 2026-09-20
 **Zonkartans vita fläckar var äkta hål – nu grå, med en rad som säger varför.**
 

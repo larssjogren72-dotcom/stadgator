@@ -2750,6 +2750,10 @@ function punktIPolygon(pt, ring) {
 }
 const ZON_HAL_FYLL = '#a1a1aa';    // neutralt grått – oanvänt i appen (MC-lägets "ej för MC"
                                    // är blågrått #c3ccd6/#94a3b8, och det är LINJER, inte ytor)
+// EN opacitet för både kartan och förklaringsrutans färgruta. Låg de som två tal glider de
+// isär, och då visar rutan en ton kartan inte har – vilket är precis vad Lars såg när det
+// grå var för svagt på kartan men syntes i rutan.
+const ZON_HAL_OPACITET = 0.70;
 // Sant först när minst ett "egna regler"-hål faktiskt ritats. Styr förklaringsradens
 // existens – rutan ska inte beskriva en grå fläck i en stad som inte har några.
 let zonHalRitade = false;
@@ -2806,14 +2810,21 @@ function ritaZoner(data) {
         const hal = yta[i];
         const punkt = punktInutiRing(hal);
         if (yttreRingar.some(y => y.id !== zonId && punktIPolygon(punkt, y.ring))) continue;  // munkhål
-        // 0.40 och inte 0.28: bakgrundskartan är nästan vit, och ett grått raster på 0.28
-        // hamnar bara ~20 nivåer från den – då hade fläcken fortfarande lästs som ett hål.
-        // Grått är dessutom mindre framträdande än zonernas mättade färger på samma
-        // opacitet, så det behöver lite mer för att väga lika tungt. Zonfärgerna rör vi
-        // inte: de ligger kvar på 0.30, och hålen ligger bredvid dem, aldrig ovanpå.
+        // ⚠ OPACITETEN ÄR MÄTT MOT BAKGRUNDSKARTAN, inte vald på känsla. Den satt först på
+        // 0.40 och Lars rapporterade att fläckarna "fortfarande är vita på kartan" medan
+        // legendrutan syntes grå. Felsökt i drift 2026-09-20: geometrin stämmer (största
+        // hålet mäter 381×209 px), ritordningen stämmer (de grå ligger sist av 120 paths,
+        // alltså överst), och inget dämpar dem (beräknad fill-opacity 0.4, pane-opacity 1).
+        // Problemet var alltså rent perceptuellt:
+        //   bakgrundskartan ≈ 242 · #a1a1aa (161) på 0.40 → 0.4·161 + 0.6·242 ≈ rgb(209)
+        // och 209 mot 242 syns knappt, särskilt bredvid zonernas ljusa färger (den gula
+        // fyllningen landar på ≈ rgb(240,223,172)). 0.70 ger ≈ rgb(185) – ungefär 40 nivåer
+        // mörkare än zonerna, tydligt en yta och inte ett hål, men fortfarande genomskinlig
+        // nog att gatunamnen under syns i de fyra stora hålen (~11 ha).
+        // Ändras bakgrundskartan (se CARTO-minnet) måste talet räknas om mot den nya tonen.
         const grå = L.polygon(hal.map(c => toLatLng(c[0], c[1])), {
           pane: 'zonesPane', interactive: false, stroke: false,
-          fillColor: ZON_HAL_FYLL, fillOpacity: 0.40
+          fillColor: ZON_HAL_FYLL, fillOpacity: ZON_HAL_OPACITET
         }).addTo(map);
         zoneGroupLayers.push(grå);
         halRitade++;
@@ -8537,7 +8548,7 @@ function updateLegend(mode) {
   // (se kommentaren vid punktInutiRing). Raden visas bara i en stad som faktiskt har
   // sådana ytor ritade – zonHalRitade sätts av ritaZoner när de ritats.
   const halRad = zonHalRitade
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ZON_HAL_FYLL};opacity:.45"></div>Egna regler – zonens pris gäller inte</div>` : '';
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ZON_HAL_FYLL};opacity:${ZON_HAL_OPACITET}"></div>Egna regler – zonens pris gäller inte</div>` : '';
   const taxaScale = !HAR_ZONER ? '' :
     `<div class="lgnd-taxa-label">${taxaRubrik}</div>
      <div class="lgnd-taxa-bar">${Object.values(ZONE_STYLES).map((s, i) =>
