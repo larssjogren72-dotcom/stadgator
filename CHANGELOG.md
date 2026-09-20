@@ -14,6 +14,26 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.41.1 – 2026-09-20
+**Förklaringsrutan ligger still när man byter läge.**
+
+Raderna låg i olika ordning i Nu och Natt: fordonsblocket (MC-ruta / reserverad plats)
+näst **sist** i Nu men näst **först** i Natt, och orange före blått i Nu men efter gågatan
+i Natt. Rutan hoppade alltså när man bytte läge, trots att innehållet till stor del var
+detsamma – och lägena är tänkta som linser på samma karta, inte som två olika vyer.
+
+Ordningen är inte omskriven två gånger utan **byggd av samma funktion i båda lägena**
+(`legendOrdning`), så de inte kan glida isär igen. En kommentar som lovar «samma ordning»
+hade kunnat bli osann vid nästa ändring; det här kan inte det. Bäst utfall först, värst
+sist: grönt → orange → blått → fordonets egna platser → gågata/uteservering → lila → rött.
+Nu-läget behåller sin ordning; det är Natt som rättas in i ledet.
+
+Städat: `dimVilka` i `updateLegend` räknades ut vid varje omritning men skrevs aldrig ut.
+Två av dess tre grenar gav dessutom samma sträng. Borttagen.
+
+Provat: sekvensen utläst ur den renderade rutan i fem städer × två lägen × fyra fordon –
+**identisk radordning i Nu och Natt i alla fyrtio fallen** · inga konsolfel.
+
 ## v1.41.0 – 2026-09-20
 **Förklaringsrutan beskriver bara färger staden faktiskt kan rita.**
 

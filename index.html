@@ -8371,9 +8371,9 @@ function updateLegend(mode) {
   const dimEtikett = vehicleMode === 'mc' ? 'Tona ner där MC inte får stå'
                     : vehicleMode === 'cykel' ? 'Tona ner busshållplatser'
                                                : 'Tona ner där bilen inte får stå';
-  const dimVilka   = vehicleMode === 'mc' ? 'Förbud, gågator och platser för andra fordon'
-                   : vehicleMode === 'rh' ? 'Förbud, gågator och platser för mc/buss'
-                                          : 'Förbud, gågator och platser för mc/buss';
+  // (Här låg `dimVilka`, en uppräkning av VAD som tonas ner. Den räknades ut vid varje
+  // omritning men skrevs aldrig ut – borttagen 2026-09-20. Två av dess tre grenar gav
+  // dessutom samma sträng, så den hade heller inte sagt något om RH-läget.)
   const layerToggles =
     `<hr class="lgnd-sep">
      <div class="lgnd-row"><span style="flex:1">${dimEtikett}</span>
@@ -8411,15 +8411,27 @@ function updateLegend(mode) {
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`
     : harLastplats
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Lastplats – parkera ej</div>` : '';
-  const uc2LegendV2 =
-      `<hr class="lgnd-sep">
-       ${uc2TryggRad}
-       ${mcRow}
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>
-       ${gagataUteserveringRader}
-       ${uc2AmberRad}
-       ${harAnnatFordon ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>` : ''}
-       ${uc2RodRad}`;
+  // ── EN ordning, båda lägena ────────────────────────────────────────────────
+  // Raderna låg olika i Nu och Natt: fordonsblocket näst SIST i Nu men näst FÖRST i
+  // Natt, och orange före blått i Nu men efter gågatan i Natt. Rutan hoppade alltså
+  // när man bytte läge, fast innehållet till stor del var detsamma – och eftersom
+  // lägena är tänkta som linser på samma karta ska nyckeln ligga still under bytet.
+  //
+  // Ordningen är därför INTE skriven två gånger utan byggd av samma funktion i båda
+  // lägena. Det är poängen: en kommentar som lovar "samma ordning" hade kunnat bli
+  // osann vid nästa ändring, det här kan inte det. Bäst utfall först, värst sist:
+  //   1 grönt (får stå / trygg, med sin glöd)   2 orange (med sin glöd)
+  //   3 blått (tidsgräns)   4 fordonets egna platser   5 gågata/uteservering
+  //   6 lila (ej för ditt fordon)   7 rött (får inte stå)
+  const legendOrdning = d =>
+    '<hr class="lgnd-sep">' +
+    [d.gron, d.orange, d.bla, d.fordon, d.gagata, d.lila, d.rod].filter(Boolean).join('');
+  const blaRad = `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>`;
+  const lilaRad = harAnnatFordon
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>` : '';
+  const uc2LegendV2 = legendOrdning({
+    gron: uc2TryggRad, orange: uc2AmberRad, bla: blaRad, fordon: mcRow,
+    gagata: gagataUteserveringRader, lila: lilaRad, rod: uc2RodRad });
   const uc2LegendOld =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
@@ -8459,16 +8471,11 @@ function updateLegend(mode) {
     : rodaOrsaker.slice(0, -1).join(', ') + ' eller ' + rodaOrsaker[rodaOrsaker.length - 1];
   const nowRodRad = rodaOrsaker.length
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Får inte stå – ${rodEtikett}</div>` : '';
-  const nowLegend =
-      `<hr class="lgnd-sep">
-       ${nowStaRad}
-       ${nowAmberRad}
-       ${nowGemRad}
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>
-       ${mcRow}
-       ${gagataUteserveringRader}
-       ${harAnnatFordon ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>` : ''}
-       ${nowRodRad}`;
+  // Samma ordningsfunktion som Natt-läget – se legendOrdning ovan. Glöden hör ihop med
+  // sin basfärg och skickas därför i samma fack (grönt med grön glöd, orange med sin).
+  const nowLegend = legendOrdning({
+    gron: nowStaRad, orange: nowAmberRad + nowGemRad, bla: blaRad, fordon: mcRow,
+    gagata: gagataUteserveringRader, lila: lilaRad, rod: nowRodRad });
   // Cykel + moped klass 2 målar inga gator (registret har ingen förbudszon för dem, se
   // project-minnet 2026-08-18) – bara nålen för Stockholms dedikerade platser. Samma
   // taxa-steg som alla andra lägen (zonfärgen på kartan ritas oavsett fordon), men egna
