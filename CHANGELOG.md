@@ -14,6 +14,25 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.37.1 – 2026-09-20
+**Återställning: v1.37.0 hade en TOM package.json och slog ut servern.**
+
+Versionshöjningen skrevs med ett anrop som öppnade `package.json` för skrivning innan
+filen lästes. Innehållet nollställdes tyst och följde med i pushen. Railway byggde då
+inte längre en Node-tjänst: förstasidan svarade 200 medan `/version` och **alla 259
+SEO-sidor svarade 404** i drygt tjugo minuter. Filen är återställd från taggen v1.36.0.
+Efter återställningen: 259 av 259 sidor svarar 200 live.
+
+**Lärdom:** skriv aldrig en fil med ett uttryck som öppnar för skrivning och läser samma
+fil. Versionsbump görs med Edit-verktyget, och filen läses tillbaka med `node -e require`
+innan commit.
+
+Samtidigt, ur genomgången av Search Console: **robots.txt stänger appens data-adresser**
+(`/schedule`, `/servicedagar-bbox`, `/gbg/`, `/sbg/`, `/malmo/`, `/uppsala/`, `/karlstad/`,
+`/proxy/`, `/wfs/`, `/phus`, `/r`, `/statistik`). Google rapporterade åtta av dem som
+«blockerad av 4xx-problem» – de är inga sidor. Kontrollprov: ingen av de 259 SEO-adresserna
+och inget under `/vendor/` träffas av reglerna.
+
 ## v1.37.0 – 2026-09-20
 **Prissidor för Karlstad och Uppsala – och en 404 som dölde sig i sitemap.**
 
