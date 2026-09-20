@@ -14,6 +14,29 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.42.4 – 2026-09-20
+**Höganäsgatan vid Österplan var vit – och avslöjade att hål-för-hål inte går att klassa.**
+
+Lars pekade ut en kvarvarande vit fläck. Den låg i **D:s stora hål men utanför C** – alltså i
+ringen mellan två zoner, en yta ingen zon färgar. Inget hål-beslut kan fånga den: hålet är
+"täckt" på mitten (där C ligger) men inte i kanten. Och när zoner **delar gräns** ligger ett
+hörn på den ena exakt på den andras kant, så punkttester blir slantsingel.
+
+**Metoden bytt: ingenting klassas längre.** För ett nystat zonsystem ritas EN yta med
+jämn/udda-regeln av [yttersta ringen] + [alla yttre ringar] + [alla hål]. En punkt färgas när
+den korsas av ett udda antal ringar, och det ger exakt komplementet till zonfärgen – hål som
+gap, utan att någon punkt behöver bedömas.
+
+Stockholm har **inte** ett nystat system: 39 fristående distrikt sida vid sida, inget
+omsluter de andra. Där finns däremot inga munkhål – problemet med delvis täckta hål uppstår
+bara när zoner ligger i varandra – så den enkla hål-för-hål-regeln duger där. Koden väljer
+gren efter **datans form**, inte efter stad.
+
+Provat med ett objektivt komplement-test: 2 114 slumpade punkter innanför Uppsalas
+zonsystem, **0 punkter med både färg och grått, 0 med varken eller** · Höganäsgatan är nu
+grå · Stockholm oförändrat 16 grå hål (en mellanversion tappade dem helt – fångat av samma
+test) · Karlstad 0 och ingen rad · inga konsolfel.
+
 ## v1.42.3 – 2026-09-20
 **Centrums hål blev aldrig grå – min urvalsregel räknade fel.**
 

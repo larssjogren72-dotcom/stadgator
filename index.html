@@ -2704,42 +2704,14 @@ async function loadZonesForViewport(apiKey) {        // (bounds behövs inte lä
   } catch (e) { console.warn('Zoner:', e.message); }
 }
 
-// ── Hålen i zonpolygonerna ───────────────────────────────────────────────────
-// Kommunernas zoner har hål, och de är av TVÅ slag som ser likadana ut i datan:
-//
-//   1. MUNKHÅL. Zon E omger D som omger C – varje yttre zon har ett hål där den
-//      inre ligger. De syns aldrig, för den inre zonen ritas ovanpå.
-//   2. EGNA REGLER. Ytor kommunen stansat ut med flit, där zonens pris inte gäller.
-//
-// Lars fotograferade Uppsala 2026-09-20: slag 2 ritades som VITA fläckar, vilket läses
-// som «trasig karta» i stället för «annat gäller här». De är dock äkta och betyder något
-// – uppmätt samma dag: 288 p-sträckor börjar i ett sådant hål, och 150 av dem kräver
-// TILLSTÅND dagtid («7-16 Tillstånd erfordras») medan resten är tidsbegränsat fria eller
-// skolparkering. Utanför hålen är det tvärtom bara de vanliga zonpriserna. Att fylla igen
-// dem med zonfärgen hade alltså lovat «5 kr/tim» där man behöver tillstånd.
-//
-// SKILJANDET ÄR SEMANTISKT, INTE EN STORLEKSGRÄNS: ett hål är ett munkhål om en ANNAN zon
-// täcker det. En tröskel på ytan hade varit en gissning som tyst blir fel när kommunen
-// ritar om – och den hade missat 26 av 51 munkhål i Uppsala, som är små.
-// Uppmätt 2026-09-20 med regeln nedan, i appen: Uppsala 161 hål = 51 munkhål + 110 med egna
-// regler. Stockholm 22 hål = 6 munkhål + 16 med egna regler. (En tidigare räkning med en
-// ytgräns gav 9/13 för Stockholm – den siffran var fel, och är just därför tröskeln ströks.)
-function punktInutiRing(ring) {
-  let sx = 0, sy = 0;
-  ring.forEach(c => { sx += c[0]; sy += c[1]; });
-  const mitt = [sx / ring.length, sy / ring.length];
-  if (punktIPolygon(mitt, ring)) return mitt;
-  // Konkav ring – tyngdpunkten kan hamna utanför. Krypa in från en kantmittpunkt.
-  for (let i = 0; i < ring.length; i++) {
-    const a = ring[i], b = ring[(i + 1) % ring.length];
-    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    for (const f of [0.01, 0.05, 0.1]) {
-      const q = [m[0] + (mitt[0] - m[0]) * f, m[1] + (mitt[1] - m[1]) * f];
-      if (punktIPolygon(q, ring)) return q;
-    }
-  }
-  return mitt;
-}
+// ── Hålen i zonpolygonerna ────────────────────────────────────────
+// Kommunernas zonpolygoner har hål, och de betyder något: ytor kommunen stansat ut där
+// zonens pris INTE gäller. Uppmätt i Uppsala 2026-09-20: 288 p-sträckor börjar i ett sådant
+// hål, och 150 av dem kräver TILLSTÅND dagtid ("7-16 Tillstånd erfordras") medan resten är
+// tidsbegränsat fria eller skolparkering. Utanför hålen är det tvärtom bara de vanliga
+// zonpriserna. Att fylla igen dem med zonfärgen hade alltså lovat "5 kr/tim" där man behöver
+// tillstånd – därför får de en dämpad grå ton i stället, se ritaGraYta().
+// Lars fotograferade dem som VITA fläckar, vilket läses som "trasig karta".
 function punktIPolygon(pt, ring) {
   let inne = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -2773,30 +2745,109 @@ const ZON_HAL_OPACITET = 0.85;
 // existens – rutan ska inte beskriva en grå fläck i en stad som inte har några.
 let zonHalRitade = false;
 
+// Den grå ytan = allt INNANFÖR zonsystemets yttre gräns som INGEN zon färgar.
+//
+// ⚠ TVÅ FÖRSÖK MISSLYCKADES FÖRST, och båda på samma sätt: de försökte KLASSA varje hål
+// ("är det ett munkhål där en inre zon ligger, eller ett hål med egna regler?") genom att
+// testa en punkt inuti hålet mot andra zoner. Det går inte att göra pålitligt här:
+//   1) Testade man mot andra zoners YTTRE ringar såg varje hål i A–D ut att täckas av E,
+//      som omsluter hela staden. 50 av 161 hål försvann, allihop i centrum.
+//   2) Testade man mot deras YTOR (ring minus hål) blev det bättre – men D:s stora hål är
+//      STÖRRE än C, så ringen mellan C och D är ett gap som ingen zon färgar och som inget
+//      hål-beslut kan fånga: hålet är "tillämpat" på mitten men inte i kanten.
+//      Lars hittade det på Höganäsgatan vid Österplan.
+// Och en punkt kan inte klassa något alls när zonerna DELAR gräns – ett hörn på den ena
+// ligger då exakt på den andras kant, och "inuti?" blir ett slantsingel.
+//
+// LÖSNINGEN KLASSAR INGENTING. En enda yta ritas, med jämn/udda-regeln (even-odd), av:
+//     [yttersta ringen] + [alla zoners yttre ringar] + [alla zoners hål]
+// En punkt färgas när den korsas av ett UDDA antal ringar. Räkna efter:
+//   • i E:s färg      → yttersta(1) + E(1) = 2            → jämnt, ingen grå ✓
+//   • i D:s färg      → 1 + E,D(2) + E:s stora hål(1) = 4   → jämnt ✓
+//   • i gapet C–D     → 1 + E,D(2) + E:s och D:s hål(2) = 5 → UDDA, grå ✓
+//   • i ett litet hål → hålet lägger till 1 till en jämn summa → UDDA, grå ✓
+// Resultatet blir exakt komplementet till färgen, utan att någon punkt behöver bedömas.
+//
+// VAKT: knepet förutsätter att EN ring omsluter alla andra (nystade zoner, som i Uppsala och
+// Stockholm). Håller det inte – t.ex. två zoner sida vid sida i en framtida stad – ritas
+// ingen grå alls i stället för något felaktigt, och konsolen säger varför.
+function ritaGraYta(zonYtor) {
+  if (!zonYtor.length) return 0;
+  const ringArea = r => { let a = 0; for (let i = 0, n = r.length; i < n; i++) {
+    const p1 = r[i], p2 = r[(i + 1) % n]; a += p1[0] * p2[1] - p2[0] * p1[1]; } return Math.abs(a / 2); };
+  const yttreRingar = zonYtor.map(y => y.yttre);
+  const yttersta = yttreRingar.reduce((a, b) => ringArea(b) > ringArea(a) ? b : a);
+  // Omsluter den verkligen alla andra? Testa flera hörn per ring, inte ett – delade
+  // gränser gör enstaka hörn otillförlitliga, men en majoritet är det inte.
+  const omsluter = yttreRingar.every(r => {
+    if (r === yttersta) return true;
+    let inne = 0, prov = 0;
+    for (let i = 0; i < r.length; i += Math.max(1, Math.floor(r.length / 9))) {
+      prov++; if (punktIPolygon(r[i], yttersta)) inne++;
+    }
+    return prov > 0 && inne / prov > 0.5;
+  });
+  const hal = [].concat(...zonYtor.map(y => y.hal));
+  if (!hal.length) return 0;                       // inga hål = inget att gråfärga
+
+  if (omsluter) {
+    // NYSTAT SYSTEM (Uppsala): en enda yta med jämn/udda – se resonemanget ovan.
+    const ringar = [yttersta].concat(yttreRingar, hal);
+    zoneGroupLayers.push(L.polygon(ringar.map(r => r.map(c => toLatLng(c[0], c[1]))), {
+      pane: 'zonesPane', interactive: false, stroke: false, fillRule: 'evenodd',
+      fillColor: ZON_HAL_FYLL, fillOpacity: ZON_HAL_OPACITET
+    }).addTo(map));
+    return hal.length;
+  }
+
+  // ZONER SIDA VID SIDA (Stockholm: 39 fristående distrikt, inget omsluter de andra).
+  // Där finns inga munkhål – hela problemet med delvis täckta hål uppstår bara när zoner
+  // ligger i varandra. Varje hål är alltså ett "egna regler"-hål, så länge ingen ANNAN zons
+  // yta råkar täcka det. Den enkla regeln duger här, och bara här.
+  const iZonYta = (pt, y) => punktIPolygon(pt, y.yttre) && !y.hal.some(h => punktIPolygon(pt, h));
+  let ritade = 0;
+  zonYtor.forEach(y => y.hal.forEach(h => {
+    const punkt = punktInutiRing(h);
+    if (zonYtor.some(a => a !== y && iZonYta(punkt, a))) return;
+    zoneGroupLayers.push(L.polygon(h.map(c => toLatLng(c[0], c[1])), {
+      pane: 'zonesPane', interactive: false, stroke: false,
+      fillColor: ZON_HAL_FYLL, fillOpacity: ZON_HAL_OPACITET
+    }).addTo(map));
+    ritade++;
+  }));
+  return ritade;
+}
+
+// Representativ punkt INUTI en ring (tyngdpunkten kan hamna utanför en konkav ring).
+// Används bara av sida-vid-sida-grenen ovan; den nystade grenen klassar inga punkter alls.
+function punktInutiRing(ring) {
+  let sx = 0, sy = 0;
+  ring.forEach(c => { sx += c[0]; sy += c[1]; });
+  const mitt = [sx / ring.length, sy / ring.length];
+  if (punktIPolygon(mitt, ring)) return mitt;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length];
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    for (const f of [0.01, 0.05, 0.1]) {
+      const q = [m[0] + (mitt[0] - m[0]) * f, m[1] + (mitt[1] - m[1]) * f];
+      if (punktIPolygon(q, ring)) return q;
+    }
+  }
+  return mitt;
+}
+
 function ritaZoner(data) {
   // ANTI-BLINK: bygg nya lager först, ta bort gamla EFTER (swap) → zonerna blinkar aldrig till tomt.
   const oldLayers = zoneGroupLayers;
   zoneGroupLayers = []; taxaZones = [];
   const stilar = Object.values(ZONE_STYLES);     // ordnade dyrast → billigast
-  // ⚠ ALLA ZONERS YTOR först – och en YTA är yttre ringen MINUS zonens egna hål.
-  // Det var precis den skillnaden som gjorde att fixen inte syntes där Lars tittade:
-  // första versionen testade bara mot andra zoners YTTRE RINGAR, och Uppsalas zon E
-  // omsluter hela staden. Då såg varje hål i A, B, C och D ut att «täckas av E» och
-  // hoppades över som munkhål – 50 av 161 hål, allihop i centrum. Kvar blev 110 grå, alla
-  // i zon E, vilket såg ut som en lyckad siffra tills man frågade VILKA. Med ytan (ringen
-  // minus hålen) ligger en punkt i D inte längre «i E», eftersom D sitter i E:s stora hål.
-  // Uppmätt 2026-09-20: rätt regel ger 159 grå och 2 äkta munkhål (E:s och D:s stora).
+  // Alla zoners ringar samlas först – den grå ytan byggs av dem, se ritaGraYta().
   const zonYtor = [];
   (data.features || []).forEach(feat => {
     const g = feat.geometry || {}, id = feat.properties && (feat.properties.ZON || feat.properties.DISTRICT_NAME);
     const ytor = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
     ytor.forEach(yta => { if (yta[0]) zonYtor.push({ id, yttre: yta[0], hal: yta.slice(1) }); });
   });
-  const iZonYta = (pt, y) => punktIPolygon(pt, y.yttre) && !y.hal.some(h => punktIPolygon(pt, h));
-  // Grå hål samlas och ritas EFTER alla zonfyllningar. Ritades de per zon kunde en senare
-  // zons fyllning lägga sig över en tidigare zons grå hål – en ordningsberoende bugg som
-  // bara slår till för vissa städer. Nu kan den inte uppstå.
-  const graHal = [];
   (data.features||[]).forEach(feat => {
       const p    = feat.properties || {};
       const name = p.DISTRICT_NAME || '';
@@ -2825,31 +2876,9 @@ function ritaZoner(data) {
         pane: 'zonesPane', interactive: false, color:s.color, weight:2, fill:false
       }).addTo(map);
     zoneGroupLayers.push(fyll, kant);
-    // Hålen med EGNA REGLER får en dämpad grå ton (se kommentaren vid punktInutiRing).
-    // Munkhålen hoppas över – där ligger en inre zon och grått hade lagt sig under den
-    // i bästa fall, över den i värsta. INGEN KANT: en kant runt 110 fläckar gjorde
-    // Uppsalas E-zon prickig när det provades förra gången, och det är inte gränsen
-    // som är budskapet utan att ytan hör till något annat.
-    const zonId = p.ZON || name;
-    ytor.forEach(yta => {
-      for (let i = 1; i < yta.length; i++) {
-        const hal = yta[i];
-        const punkt = punktInutiRing(hal);
-        if (zonYtor.some(y => y.id !== zonId && iZonYta(punkt, y))) continue;   // munkhål
-        graHal.push(hal);
-      }
-    });
   });
-  // ANDRA SVEPET: alla grå hål, ovanpå samtliga zonfyllningar (se kommentaren vid graHal).
-  // Tonen är räknad mot bakgrundskartan, inte vald på känsla – räkningen och historiken
-  // står vid ZON_HAL_FYLL.
-  graHal.forEach(hal => {
-    zoneGroupLayers.push(L.polygon(hal.map(c => toLatLng(c[0], c[1])), {
-      pane: 'zonesPane', interactive: false, stroke: false,
-      fillColor: ZON_HAL_FYLL, fillOpacity: ZON_HAL_OPACITET
-    }).addTo(map));
-  });
-  const halRitade = graHal.length;
+  // ANDRA SVEPET: den grå ytan, ovanpå samtliga zonfyllningar (se ritaGraYta).
+  const halRitade = ritaGraYta(zonYtor);
   oldLayers.forEach(lg => lg.remove());              // SWAP: ta bort gamla nu
   // Förklaringsraden ska bara finnas där en grå fläck kan förekomma. Zonerna hämtas
   // asynkront, så rutan kan redan vara ritad – då måste den ritas om (samma skäl som
@@ -8564,7 +8593,7 @@ function updateLegend(mode) {
   const taxaEtiketter = STAD.zonLager ? STAD.zonLager.etiketter : ['1', '2', '3', '4', '5'];
   const taxaRubrik    = STAD.zonLager ? STAD.zonLager.rubrik    : 'Taxa · dyrast → billigast';
   // Grå fläckar inuti zonerna = ytor kommunen stansat ut, där zonens pris INTE gäller
-  // (se kommentaren vid punktInutiRing). Raden visas bara i en stad som faktiskt har
+  // (se ritaGraYta). Raden visas bara i en stad som faktiskt har
   // sådana ytor ritade – zonHalRitade sätts av ritaZoner när de ritats.
   const halRad = zonHalRitade
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ZON_HAL_FYLL};opacity:${ZON_HAL_OPACITET}"></div>Egna regler – zonens pris gäller inte</div>` : '';
