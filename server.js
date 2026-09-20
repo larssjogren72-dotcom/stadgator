@@ -824,7 +824,7 @@ http.createServer((req, res) => {
     const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n${seoXml}\n</urlset>`;
     finish(req, res, 200, Buffer.from(xmlBody));
 
-  } else if (/^\/(parkering|billigare-parkering|parkering-over-natten|stadgator|parkering-nara|parkeringshus-stockholm|parkeringstaxor-stockholm|stadgator-stockholm|parkering-over-natten-stockholm|sommar-parkering-stockholm|parking-in-stockholm|om-parkspot|en|parkering-goteborg|stadgator-goteborg|boendeparkering-goteborg|parkeringsanlaggningar-goteborg|parkering-uppsala|parkeringsavgifter-uppsala|parkering-over-natten-uppsala|parkeringshus-uppsala|parkering-karlstad|servicedagar-karlstad|parkering-over-natten-karlstad)(\/[a-z0-9\-]+)?\/?$/i.test(reqUrl.pathname)) {
+  } else if (seoSidaTillaten(reqUrl.pathname)) {
     // SEO-sidor (statiska, genererade i seo/site/) – egna URL:er, rör ej appen.
     const rel = reqUrl.pathname.replace(/\/+$/, '');
     const seoFile = path.join(__dirname, 'seo', 'site', rel + '.html');
@@ -1017,6 +1017,25 @@ function send(req, res, status, type, body, cacheState) {
 //   og-image.png – ingen sida pekar dit längre, men gamla delningar kan ha den cachad
 // Vägar som /phus, /r, SEO-sidorna, robots.txt och sitemap.xml är egna rutter ovanför och
 // berörs inte. En ny fil som ska vara publik måste läggas till här – det är meningen.
+// SEO-sidornas vitlista LÄSES UR seo/pages.json, som generatorn skriver. Tidigare stod
+// den som en handskriven regexlista med 24 sidnamn, och en ny sida hamnade då i
+// sitemap men svarade 404 (hände 2026-09-20 med /parkeringsavgifter-karlstad: Google
+// hade fått adressen av oss och mötts av en 404-sida). Listan kan inte släppa ut mer
+// än generatorn skapat – varje post är en sida som ligger i seo/site/.
+const SEO_SIDOR = (() => {
+  try {
+    const rader = JSON.parse(fs.readFileSync(path.join(__dirname, 'seo', 'pages.json'), 'utf8'));
+    const s = new Set();
+    for (const r of rader) {
+      const vag = String(r.loc || '').replace(/^https?:\/\/[^/]+/, '');
+      if (/^\/[a-z0-9/-]*$/i.test(vag) && vag !== '/') s.add(vag.replace(/\/+$/, ''));
+    }
+    return s;
+  } catch (e) { console.warn('[seo] pages.json kunde inte läsas:', e.message); return new Set(); }
+})();
+console.log(`[seo] ${SEO_SIDOR.size} SEO-sidor i vitlistan`);
+function seoSidaTillaten(p) { return SEO_SIDOR.has(String(p).replace(/\/+$/, '')); }
+
 const STATISKA_FILER = new Set(['/', '/index.html', '/llms.txt', '/og-image.png', '/og-image-v2.png',
                                 '/docs/arkitektur.html']);
 function statiskTillaten(p) {

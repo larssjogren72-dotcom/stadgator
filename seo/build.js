@@ -1114,9 +1114,59 @@ const KSD_GRANS = Object.fromEntries(KSD_DATA.granser.map(g => [g.namn, g.antal]
 function ksdRelated(utom) {
   return [
     { href:'parkering-karlstad', text:'Parkering i Karlstad – översikt' },
+    { href:'parkeringsavgifter-karlstad', text:'Vad kostar parkering i Karlstad?' },
     { href:'servicedagar-karlstad', text:'Servicedagar i Karlstad – gata för gata' },
     { href:'parkering-over-natten-karlstad', text:'Parkera över natten i Karlstad' },
   ].filter(r => r.href !== utom);
+}
+
+// ── Vad kostar det? ─────────────────────────────────────────────────────────
+// Den mest sökta frågan om en stads parkering, och Karlstad har ett ovanligt rakt
+// svar: fyra gatuzoner som HETER färger och ligger i prisordning. Siffrorna kommer
+// ur samma fält som appens prisstege (seo/karlstad.json, mätt vid bygget) – ingen
+// prislista skrivs för hand, för då skiljer sig sidan från appen vid nästa höjning.
+const KSD_GATUZONER = ['Röd zon', 'Gul zon', 'Grön zon', 'Blå zon'];
+function ksdAvgifter() {
+  const gatu = KSD_GATUZONER
+    .map(n => KSD_DATA.zoner.find(z => z.zon === n))
+    .filter(z => z && z.priser && z.priser.length);
+  const ovriga = KSD_DATA.zoner
+    .filter(z => z.zon && z.zon !== 'Okänt område' && !KSD_GATUZONER.includes(z.zon) && z.priser && z.priser.length)
+    .sort((a, b) => b.platser - a.platser);
+  const rad = z => `<li><b>${esc(z.zon)}</b> – ${esc(z.priser[0])} · ${z.stracker} sträckor, ${ksdTal(z.platser)} platser</li>`;
+  const sections =
+    '<section class="card"><h2>Fyra gatuzoner, i prisordning</h2>' +
+    '<p>Karlstads gatuparkering är indelad i fyra zoner, och kommunen har döpt dem efter färg. ' +
+    'Ordningen är enkel att minnas: <b>röd är dyrast och blå billigast</b>. Zonen står på skylten och styr timpriset.</p>' +
+    '<ul>' + gatu.map(rad).join('') + '</ul>' +
+    '<p>Klockslagen läses som på skylten: en tid utan parentes gäller vardagar, och en tid ' +
+    '<b>inom parentes</b> gäller dag före sön- och helgdag, alltså oftast lördag. Står det ' +
+    '«fritt övrig tid» kostar det inget utanför de tiderna – men parkeringen kan ändå ha en ' +
+    'tidsgräns, och servicedagen gäller oavsett pris.</p>' +
+    '<p>' + KSD_FORBEHALL + '</p></section>' +
+    (ovriga.length ? '<section class="card"><h2>Parkeringsområden med egen taxa</h2>' +
+      `<p>Utanför gatuzonerna har ${ovriga.length} namngivna parkeringar sin egen prislista, ofta med dygns- och veckopris. ` +
+      'De ligger som egna öar inne i zonerna, så priset kan skilja sig från gatan tvärs över:</p><ul>' +
+      ovriga.slice(0, 14).map(rad).join('') + '</ul></section>' : '') +
+    '<section class="card"><h2>Så ser du priset i appen</h2>' +
+    '<p>Tryck på en gata i <a href="https://parkspot.se/?stad=karlstad">ParkSpot Karlstad</a> så står zonen och priset på platskortet, ' +
+    'tillsammans med tidsgränsen och nästa servicedag. Öppnar du Förklaring visas hela prisstegen från röd till blå. ' +
+    'Färgen på själva gatan handlar däremot aldrig om pris – den visar om du får stå just nu.</p>' +
+    '<p>Kvällar och nätter är ofta gratis i gatuzonerna, medan de namngivna parkeringarna oftast tar 2 kr i timmen dygnet runt. ' +
+    'Ska bilen stå länge är dygns- eller veckopriset där nästan alltid billigare än timtaxan på gatan.</p></section>';
+  const faq = [
+    { q:'Vilken zon är billigast i Karlstad?', a: gatu.length ? `Blå zon, ${esc((gatu[gatu.length - 1].priser[0] || '').split('·')[0].trim())}. Dyrast är Röd zon, ${esc((gatu[0].priser[0] || '').split('·')[0].trim())}. Däremellan ligger Gul och Grön zon.` : 'Blå zon är billigast och Röd zon dyrast.' },
+    { q:'Är det gratis att parkera på kvällen i Karlstad?', a:'I gatuzonerna står det ofta «fritt övrig tid», alltså utanför de skyltade avgiftstiderna. De namngivna parkeringarna, som Sundstabadet och Sandgrund, tar däremot oftast 2 kr i timmen även på natten. Kontrollera alltid skylten.' },
+    { q:'Vad betyder klockslag inom parentes?', a:'Att tiden gäller dag före sön- och helgdag, alltså oftast lördag. En tid utan parentes gäller vardagar. Söndagar och helgdagar saknas i regel helt, och då är det avgiftsfritt.' },
+    { q:'Kostar det något att stå på en servicedag?', a:'Servicedagen är ett parkeringsförbud, inte ett pris. Under de timmarna får bilen inte stå kvar alls, oavsett om du betalat eller inte.' },
+  ];
+  emit('parkeringsavgifter-karlstad', layout({
+    slug:'parkeringsavgifter-karlstad',
+    title:'Vad kostar parkering i Karlstad? Zoner och priser | ParkSpot',
+    desc:'Röd, gul, grön och blå zon – så mycket kostar gatuparkering i Karlstad per timme. Se priserna per zon, vad parentesen på skylten betyder och när det är gratis.',
+    h1:'Parkeringsavgifter i Karlstad',
+    lead:'Fyra zoner med färgnamn, från röd dyrast till blå billigast. Här är priserna – och när det är gratis.',
+    sections, faq, related: ksdRelated('parkeringsavgifter-karlstad'), lat:null, lng:null, match:null, stad:KSD }));
 }
 
 function ksdPillar() {
@@ -1302,7 +1352,30 @@ function upsAvgifter() {
     `<p>Uppsala delar in gatuparkeringen i <b>${UPS_DATA.omraden.length} avgiftsområden</b>. Koden står på skylten, till exempel <b>18114</b> eller en bokstav som <b>C</b>, och den avgör både timpriset och hur länge du får stå. ParkSpot läser området under den gata du tittar på och visar priset och tidsgränsen på kortet.</p>` +
     '<p>Klockslagen läses som på skylten: en tid utan parentes gäller vardagar utom dag före helgdag, en tid <b>inom parentes</b> gäller dag före sön- och helgdag. «Max-P 4tim» betyder att du får stå högst fyra timmar.</p>' +
     '<p>' + UPS_FORBEHALL + '</p></section>' +
-    (zoner.length ? '<section class="card"><h2>Zonerna</h2><ul>' + zoner.map(rad).join('') + '</ul></section>' : '') +
+    // Fem av de 95 områdena är STADSZONER som täcker hela Uppsala, och de är det folk
+    // söker på («vad kostar parkering i Uppsala centrum»). De ligger i prisordning
+    // A→E och ritas numera som färgade zoner på kartan (v1.35.0). Priserna hämtas ur
+    // samma avgiftstext som appen visar – ingen prislista skriven för hand.
+    (() => {
+      const ORDNING = ['A', 'B', 'C', 'D', 'E'];
+      const stads = ORDNING.map(b => UPS_DATA.omraden.find(o => o.namn === b)).filter(Boolean);
+      if (!stads.length) return '';
+      return '<section class="card"><h2>Fem områden, från dyrast till billigast</h2>' +
+        '<p>Uppsala delar staden i fem avgiftsområden. <b>A är innerstadskärnan och dyrast</b>, ' +
+        'sedan faller priset utåt till <b>E</b>, som täcker resten av tätorten. ' +
+        'I ParkSpot ritas de som färgade zoner på kartan, rött för A och blått för E, så att du ser ' +
+        'var det blir billigare att gå några kvarter.</p><ul>' +
+        stads.map(o => `<li><b>Område ${esc(o.namn)}</b> (kod ${esc(o.kod)}) – ${esc(o.avgiftstext)}</li>`).join('') +
+        '</ul>' +
+        '<p>Två saker är lätta att missa. Mellan 18 och 24 kostar det <b>5 kr i timmen i alla fem områdena</b>, ' +
+        'och i område A gäller det högre priset först efter två timmar. Söndagar och helgdagar är avgiftsfria, ' +
+        'eftersom avgiftstiderna bara gäller vardagar och dagen före sön- och helgdag.</p>' +
+        '<p>Zonen är en huvudregel, inte hela sanningen: inne i områdena ligger enskilda parkeringar med ' +
+        '<b>egen taxa</b> – Stadshusgatan kostar till exempel 36 kr i timmen mitt i de centrala områdena. ' +
+        'Därför visar <a href="https://parkspot.se/?stad=uppsala">ParkSpot</a> alltid gatans eget pris på platskortet, ' +
+        'inte zonens.</p></section>';
+    })() +
+    (zoner.length ? '<section class="card"><h2>Alla områdeskoder</h2><ul>' + zoner.map(rad).join('') + '</ul></section>' : '') +
     (besok.length ? `<section class="card"><h2>Besöksparkeringar med egen taxa</h2><p>${besok.length} platser har sin egen prislista, ofta torg och centrala lägen:</p><ul>` + besok.map(rad).join('') + '</ul></section>' : '');
   const faq = [
     { q:'Var hittar jag områdeskoden?', a:'På parkeringsskylten, som en sifferkod (till exempel 18114) eller en bokstav. Samma kod styr priset i betalappen.' },
@@ -1584,7 +1657,7 @@ gbgPillar(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
 GBG_OMR.forEach(gbgOmrade);
 upsPillar(); upsAvgifter(); upsNatt(); upsGarage();
 UPS_DATA.stadsdelar.forEach(upsStadsdel);
-ksdPillar(); ksdServicedagar(); ksdNatt();
+ksdPillar(); ksdAvgifter(); ksdServicedagar(); ksdNatt();
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);

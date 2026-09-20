@@ -17,12 +17,12 @@ Städdagar (med **jämna och udda veckor**, vilket är hur Göteborg städar –
 **Boendezoner i Göteborg** (t.ex. `Boende Ö6`) är ett undantag från platsens tidsgräns, inte ett förbud för andra: utan tillstånd gäller skyltens tid, med tillstånd upp till 14 dygn. Ett `n` efter zonkoden (t.ex. `V5n`) betyder att tillståndet bara gäller kvällar och nätter, ungefär 18–09.
 
 ### Uppsala —[parkspot.se/?stad=uppsala](https://parkspot.se/?stad=uppsala)
-Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehindrade, tillståndsparkering vid skolor och kommunens parkeringsgarage – ur Uppsala kommuns parkeringskarta (inte kommunens öppna dataportal).
+Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehindrade, tillståndsparkering vid skolor och kommunens parkeringsgarage – ur Uppsala kommuns parkeringskarta (inte kommunens öppna dataportal). Appen ritar stadens **fem avgiftsområden A–E** som färgade zoner: A (centrum) 20 kr/tim i två timmar och därefter 35, B 20 kr/tim, C 15 kr/tim, D 10 kr/tim och E (resten av tätorten) 5 kr/tim. Mellan 18 och 24 kostar det 5 kr/tim i alla fem, och söndagar och helgdagar är avgiftsfria. Enskilda parkeringar inne i områdena har egen taxa (t.ex. Stadshusgatan 36 kr/tim), och appen visar därför alltid gatans eget pris, inte zonens.
 
 **Viktigt om Uppsala:** Uppsala har **inga fasta städdagar** – vårens sandupptagning skyltas tillfälligt 24 timmar före – och kommunen publicerar **inga parkeringsförbud** utanför parkeringsplatserna. Appen säger ingenting om städning i Uppsala. En tid på skylten utan parentes («4 tim 8-18») gäller vardagar utom dag före sön- och helgdag. Lastplatser utan tid gäller dygnet runt.
 
 ### Karlstad — [parkspot.se/?stad=karlstad](https://parkspot.se/?stad=karlstad)
-Servicedagar (städdagar) på drygt 90 gatuavsnitt i centrala Karlstad, avgiftszoner och parkeringsområden med kommunens egna prisuppgifter, tidsgränser (en vecka, ett dygn eller 120 minuter där de finns) och 37 parkeringsanläggningar – ur Karlstads kommuns webbkarta.
+Servicedagar (städdagar) på drygt 90 gatuavsnitt i centrala Karlstad, fyra gatuzoner med **färgnamn i prisordning – Röd 18 kr/tim, Gul 16, Grön 8 och Blå 4** – plus ett tjugotal namngivna parkeringsområden med egen taxa (ofta 2 kr/tim övrig tid samt dygns- och veckopris), tidsgränser (en vecka, ett dygn eller 120 minuter där de finns) och 37 parkeringsanläggningar – ur Karlstads kommuns webbkarta.
 
 **Viktigt om Karlstad:** servicedagen är ett **skyltat parkeringsförbud några timmar varannan vecka** (jämna eller udda veckor, året runt) och gäller **inte på röda dagar** – till skillnad från Stockholm, där städförbudet gäller även på helgdagar. Kommunen publicerar **inga andra parkeringsförbud** och inga MC- eller rörelsehindradeplatser som sträckor. Nära hälften av avgiftssträckorna, nästan bara gatuzonerna (Grön, Gul, Blå), saknar tidsgräns i datan; kontrollerade skyltar där har ingen gräns heller, så trafikförordningens allmänna regel gäller (högst 24 timmar i följd på vardagar).
 
@@ -34,10 +34,11 @@ Servicedagar (städdagar) på drygt 90 gatuavsnitt i centrala Karlstad, avgiftsz
 - [Parkera över natten](https://parkspot.se/parkering-over-natten-stockholm): Hur man hittar en trygg nattplats.
 - [Parkering i Stockholm – alla stadsdelar](https://parkspot.se/parkering): Ingång stadsdel för stadsdel.
 - [Parkering i Uppsala](https://parkspot.se/parkering-uppsala): Tidsgränser, skyltens klockslag och lastplatser i Uppsala, plus en sida per stadsdel.
-- [Parkeringsavgifter i Uppsala](https://parkspot.se/parkeringsavgifter-uppsala): Områdeskoden på skylten styr priset; zonerna och besöksparkeringarnas taxor.
+- [Parkeringsavgifter i Uppsala](https://parkspot.se/parkeringsavgifter-uppsala): Områdeskoden på skylten styr priset; områdena A–E med timpris, kvällstaxan och besöksparkeringarnas egna taxor.
 - [Parkera över natten i Uppsala](https://parkspot.se/parkering-over-natten-uppsala): Tidsgränsen, gränsens klockslag och avgiften – ingen städnatt att undvika.
 - [Parkeringsgarage i Uppsala](https://parkspot.se/parkeringshus-uppsala): Fyra kommunala garage med platser, laddplatser, takhöjd och maxtid.
 - [Parkering i Karlstad](https://parkspot.se/parkering-karlstad): Servicedagar, zoner och avgifter, tidsgränser och parkeringsanläggningar i Karlstad.
+- [Parkeringsavgifter i Karlstad](https://parkspot.se/parkeringsavgifter-karlstad): Röd, gul, grön och blå zon med timpris, vad parentesen på skylten betyder och när det är gratis.
 - [Servicedagar i Karlstad](https://parkspot.se/servicedagar-karlstad): Varje gata med servicedag, dag för dag, jämna och udda veckor – som kommunen själv listar dem.
 - [Parkera över natten i Karlstad](https://parkspot.se/parkering-over-natten-karlstad): Servicedagar klockan 05–07, tidsgränser och helgdagar.
 

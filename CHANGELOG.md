@@ -14,6 +14,25 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.37.0 – 2026-09-20
+**Prissidor för Karlstad och Uppsala – och en 404 som dölde sig i sitemap.**
+
+«Vad kostar parkering i X» är den mest sökta frågan om en stads parkering, och varken
+Karlstads eller Uppsalas priser fanns beskrivna som egen sida.
+
+- Ny sida **/parkeringsavgifter-karlstad**: de fyra gatuzonerna i prisordning (Röd 18 ·
+  Gul 16 · Grön 8 · Blå 4 kr/tim), de 26 namngivna parkeringarna med egen taxa, vad
+  parentesen på skylten betyder och när det är gratis.
+- **/parkeringsavgifter-uppsala** fick områdena **A–E** som egen prisstege med kvällstaxan
+  och de avgiftsfria söndagarna, plus varningen att enskilda parkeringar inne i områdena
+  har egen taxa (Stadshusgatan 36 kr/tim). Siffrorna kommer ur samma data som appen.
+- `llms.txt`: priserna per zon i båda städerna, för svarsmotorer som citerar utan besök.
+
+**Servern släppte bara ut sidor som stod i en handskriven lista.** Den nya Karlstad-sidan
+hamnade därför i sitemap men svarade **404** – vi hade skickat Google en adress som inte
+fanns. Vitlistan läses nu ur `seo/pages.json`, alltså exakt de sidor generatorn skapat.
+Provat: alla 259 sidor i sitemap svarar 200, okänd adress och katalogtrick ger fortsatt 404.
+
 ## v1.36.0 – 2026-09-20
 **Karlstads prisstege i förklaringen: Röd 18 · Gul 16 · Grön 8 · Blå 4 kr/tim.**
 
