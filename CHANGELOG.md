@@ -14,6 +14,40 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.41.0 – 2026-09-20
+**Förklaringsrutan beskriver bara färger staden faktiskt kan rita.**
+
+Regeln infördes 2026-09-19 för gågata och uteservering, men gällde bara de två raderna.
+Fordonsraderna fortsatte lova platser som inte finns. En census över **hela kommunen** i
+fyra städer visar hur illa det var i Karlstad: alla **381 sträckor** har ett enda
+fordonsvärde («fordon») och en enda platstyp («P Avgift»). Noll MC-rutor, noll platser för
+rörelsehindrade, noll cykelplatser, noll lastplatser – och rutan visade ändå varenda en av
+de raderna. Cykelläget lovade nålar på en karta som är helt tom.
+
+**Tre saker rättade:**
+- **Rader som inte kan ritas tas bort.** Nya, uppmätta fält per stad (`fordonIData`,
+  `andamalIData`) styr vilka rader som visas. Där ett helt fordonsläge saknar platser står
+  i stället varför: «Karlstad publicerar inga MC-platser som egna sträckor». Röda radens
+  orsaker räknas upp efter vad staden har – Karlstad säger nu bara «städning pågår», och
+  Göteborgs Natt-läge «Lastplats – parkera ej» i stället för «Förbud», eftersom staden
+  inte publicerar några förbud. Uppsala tappar «Gott om tid» (kräver städdata staden
+  saknar) och får «Lastplats eller liknande» där det stod «Servas», i en stad utan städning.
+- **Sundbyberg slutar säga emot sig själv.** I Natt-läget med MC eller rörelsehindrad stod
+  «publicerar ingen maxtid – appen kan inte säga hur länge» med «Trygg över natten» tio
+  pixlar under. Raden är borta. Samma spärr lades i `nyssSnartRing` så att nålen följer
+  gatans regel – se not om att den grenen ännu inte nås av någon stads data.
+- **Karlstads prisstege begravde färgnyckeln.** Fyra prisrader plus en fotnot på tre låg
+  överst; uppmätt på 375×812 syntes **inte en enda färg** innan lådan tog vid. Stegen
+  flyttad under färgnyckeln – priset är det mindre viktiga av de två.
+
+Provat: Stockholms ruta **byte-identisk i alla åtta kombinationer** av läge och fordon
+före/efter · censusen körd över hela kommunrutan i Göteborg (6 428), Uppsala (2 272),
+Sundbyberg (1 109) och Karlstad (381) · Natt-flödet kört mot riktig data i Karlstad
+(60 sträckor: bara grönt och blått, ingen röd – raden som togs bort) och Göteborg
+(6 röda, alla «Lastplats · gäller dygnet runt» – ordet som byttes) · inga konsolfel.
+Malmö lämnas orörd: stadens tjänst svarade HTTP 500 hela dagen, så censusen gick inte att
+köra, och utan fälten beter sig appen exakt som förut.
+
 ## v1.40.0 – 2026-09-20
 **Göteborg får sin prissida – och taxenumret som lurar reds ut.**
 

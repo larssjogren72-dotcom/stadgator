@@ -1536,6 +1536,11 @@ STADER_CFG.sundbyberg =
       // vore då något appen ANTAR, inte något den läser. Lars skylt vid Brunnsgatans
       // vändplan ("2 tim") visar att korttidsplatserna finns i verkligheten ändå.
       skiljerKorttid:false,
+      // Uppmätt 2026-09-20 över hela kommunrutan (1 109 sträckor): fordon 893,
+      // cykel 143, rörelsehindrade 52, motorcykel 21, och 79 lastplatser (kod 7).
+      // Se Karlstads motsvarighet för vad fälten styr.
+      fordonIData:['fordon', 'motorcykel', 'rörelsehindrade', 'cykel'],
+      andamalIData:['7'],
       // Schema-uppslaget är en URL, inte en ja/nej-flagga: varje stad pekar ut sin egen
       // endpoint med samma kontrakt. Tom sträng = staden saknar uppslag. Att hålla
       // skillnaden i konfigurationen i stället för i if-satser är det som gör nästa stad
@@ -1581,6 +1586,10 @@ STADER_CFG.malmo =
       // Verifierat i verkligheten 2026-09-04 (Arkitektgatan, Dybäcksgatan):
       // inga skyltar, och EasyPark hittar ingen zon.
       skiljerKorttid:true,
+      // INGA fordonIData/andamalIData här med flit: Malmös tjänst svarade HTTP 500
+      // hela 2026-09-20, så censusen kunde inte köras. Utan fälten antar appen att
+      // allt förekommer – samma beteende som före den ändringen, alltså ingen
+      // försämring. Mät och fyll i när tjänsten svarar igen (se Karlstad).
       // AV I VALET tills Malmö svarat på brevet om lastplatserna (MALMO_BREV.md)
       // och tills dygnssvep + skyltrunda är körda enligt NY_STAD.md steg 5.
       // Koden bor ändå i huvudversionen så den aldrig halkar efter – samma skäl
@@ -1630,6 +1639,14 @@ STADER_CFG.uppsala =
       // avgiftsfria sträckor bär 301 en tidsgräns. Avgiftssträckor utan egen gräns
       // följer områdets, och saknas områdesposten fäller adaptern till «kontrollera».
       skiljerKorttid:true,
+      // Uppmätt 2026-09-20 över hela kommunrutan (2 272 sträckor): fordon 1 995,
+      // rörelsehindrade 257, buss 10, motorcykel 7, lastbil 3 – och NOLL cykelplatser,
+      // så cykelläget visade en tom karta under en rad som lovade nålar.
+      // Ändamålskoderna är Uppsalas egna tresiffriga (se ANDAMAL_LABELS): 902
+      // tillståndsparkering 192, 7 lastplats 128, 901 parkeringsförbud 14, 903
+      // korttid 3. Se Karlstads motsvarighet för vad fälten styr.
+      fordonIData:['fordon', 'rörelsehindrade', 'buss', 'motorcykel', 'lastbil'],
+      andamalIData:['7', '901', '902', '903'],
       // I VALET sedan 2026-09-15 (Lars «kör»). Skyltrundan bekräftade tidstolkningen
       // (Hagundagatan «4 tim 8-18» utan parentes) och avgifterna; lastplatserna är lästa
       // i föreskrifterna. INTE pilot längre (Lars 2026-09-15, efter att skillnaden mot
@@ -1688,6 +1705,21 @@ STADER_CFG.karlstad =
       // Stockholm: ingen skyltad gräns, grönt möjligt. Skyltrundan 2026-09-18 stöder det:
       // Vikengatan och Trädgårdsgatan har ingen tidsgräns på skylten.
       skiljerKorttid:true,
+      // ── VAD STADEN FAKTISKT PUBLICERAR (uppmätt, inte antaget) ──────────
+      // Förklaringsrutan får aldrig beskriva en färg som stadens data inte kan ge
+      // upphov till. Regeln infördes 2026-09-19 för gågata/uteservering men gällde
+      // bara de två raderna – fordonsraderna fortsatte lova platser som inte finns.
+      // Karlstad var värst: räknat 2026-09-20 över HELA kommunrutan har alla 381
+      // sträckor ett enda fordonsvärde ("fordon") och en enda platstyp ("P Avgift").
+      // Noll MC-rutor, noll platser för rörelsehindrade, noll cykelplatser, noll
+      // lastplatser. Ändå visade rutan alla de raderna, och cykelläget lovade nålar
+      // på en karta som är helt tom.
+      //   fordonIData   VEHICLE-värden som finns i stadens data.
+      //   andamalIData  ändamålskoder som finns (se ANDAMAL_LABELS).
+      // UTELÄMNAS fälten antar appen att allt förekommer, precis som före
+      // 2026-09-20 – det är därför Stockholm och Malmö saknar dem. Tom lista
+      // betyder "uppmätt, och det finns inget"; avsaknad betyder "inte mätt".
+      fordonIData:['fordon'], andamalIData:[],
       // ⚠ STADENS EGEN REGEL, INGEN ANNAN STAD HAR DEN: servicedagen gäller inte på
       // röd dag. Kommunens egna ord på sidan om servicedagar. Flaggan läses av
       // cleaningActiveOn, som är den enda grinden för hela städflödet.
@@ -1752,6 +1784,12 @@ STADER_CFG.goteborg =
       // utan ett enda fel. Appen får därför visa grönt "Trygg över natten" –
       // och fäller det till blått där maxtiden är under ett dygn.
       skiljerKorttid:true,
+      // Uppmätt 2026-09-20 över hela kommunrutan (6 428 sträckor): fordon 4 436,
+      // cykel 1 691, rörelsehindrade 204, motorcykel 97, och 336 lastplatser (kod 7)
+      // – men ingen förbudskod, vilket är varför Natt-lägets röda rad heter
+      // "Lastplats" här och "Förbud" i Stockholm. Se Karlstad för vad fälten styr.
+      fordonIData:['fordon', 'motorcykel', 'rörelsehindrade', 'cykel'],
+      andamalIData:['7'],
       // Göteborg är INTE pilot längre (Lars 2026-08-27). Varningen om att staden
       // saknar förbudsdata står kvar i disclaimern nedan, som säger samma sak
       // utförligare och alltid syns – banderollen tillförde bara ordet "PILOT".
@@ -1817,6 +1855,10 @@ STADER_CFG.stockholm =
       // även utan minutsiffran. Sundbybergs motsvarande fält (`Typ_av_parkering`) säger
       // bara längsgående kontra vinkelparkering – ingen sådan uppdelning finns.
       skiljerKorttid:true,
+      // INGA fordonIData/andamalIData här med flit: Stockholm har varje fordonstyp
+      // och varje ändamålskod appen känner till – förklaringsrutans alla rader kan
+      // ritas. Utan fälten antar appen just det, så Stockholms ruta är oförändrad
+      // och förblir måttstocken de andra städerna följer (se Karlstad).
       schemaUrl:'/schedule' };
 
 // Okänt ?stad= faller tillbaka på Stockholm i stället för att rita tom karta.
@@ -3448,7 +3490,22 @@ function nyssSnartRing(s, now, baseInfo) {
   // Natt-läge (2026-08-18): "trygg" är default-domen (grön, som gatorna) – "risk" byter även
   // TITELN (inte bara ring+info), samma val som bilens tier natt/morgon som ersätter hela
   // "Trygg över natten"-texten i stället för att bara lägga till en varning bredvid.
-  if (s.tryggNatt) return { ring: '#86efac', info: 'Trygg över natten – ingen städning imorgon som stör.' };
+  // ⚠ Samma spärr som gatorna har (se STAD.skiljerKorttid i uc2-flödet): kan staden inte
+  // skilja korttidsplats från långtidsplats får ingenting lova "trygg över natten".
+  // Gatlinjerna fälldes till blått redan, men NÅLENS gröna ring gick fri och bär samma ord.
+  //
+  // ÄRLIGHET OM VAD SOM ÄR BEVISAT (mätt 2026-09-20): ingen stad når den här grenen i dag.
+  // Enda staden med skiljerKorttid=false är Sundbyberg, och där saknar ALLA 73 MC-/RH-poster
+  // STREET_NAME (mot 806 av 893 bilposter) – stadTierFor bommar på namnet och sätter aldrig
+  // tryggNatt, så den gröna ringen har aldrig ritats där. Det var alltså FÖRKLARINGSRUTANS
+  // rad som ljög, inte nålen. Spärren står kvar ändå: gatunamnen kommer ur SBG_GATUNAMN-
+  // tabellen i cities/sundbyberg.js, och fylls den på blir grenen nådd samma dag. Då ska
+  // nålen redan följa samma regel som gatan, inte upptäckas som en ny bugg.
+  // Städuppgiften i sig är fortfarande sann och värd att visa – bara inte som ett löfte.
+  if (s.tryggNatt) return STAD.skiljerKorttid
+    ? { ring: '#86efac', info: 'Trygg över natten – ingen städning imorgon som stör.' }
+    : { ring: null, info: `Ingen städning imorgon som stör. Men ${STAD.namn} publicerar ingen maxtid, `
+                        + 'så hur länge du får stå avgörs av skylten.' };
   if (s.nattRisk) {
     const natt = s.nattTier === 'natt';
     return { ring: '#fcd34d',
@@ -8224,6 +8281,26 @@ function laddaPrisstege() {
 // ── Legend – uppdateras när mode byts ────────────────────────────────────────
 function updateLegend(mode) {
   if (!legendDiv) return;
+  // ── Vilka rader KAN den här staden ge upphov till? ──────────────────────────
+  // Regeln som gågata/uteservering fick 2026-09-19, nu tillämpad på ALLA rader:
+  // förklaringsrutan beskriver aldrig en färg stadens data inte kan producera.
+  // Listorna är uppmätta över hela kommunen (se STAD.fordonIData i stadsblocken).
+  // Saknas de är staden inte mätt → anta att allt förekommer, precis som förr.
+  // Det är därför Stockholms ruta är byte-identisk efter den här ändringen.
+  const fordonIData = STAD.fordonIData || null;
+  const andamalIData = STAD.andamalIData || null;
+  const finnsFordon = pred => !fordonIData || fordonIData.some(pred);
+  const harKod = k => !andamalIData || andamalIData.includes(k);
+  const harMcPlatser    = finnsFordon(v => MC_VEHICLES.has(v));
+  const harRhPlatser    = finnsFordon(v => RH_VEHICLES.has(v));
+  const harCykelPlatser = finnsFordon(v => CYKEL_VEHICLES.has(v));
+  // Lila "ej för dig" beror på VALT fordon lika mycket som på datan – därför den
+  // riktiga vehicleAllowed(), inte en parallell regel som kan glida isär från den.
+  const harAnnatFordon  = finnsFordon(v => !vehicleAllowed(v));
+  const harStadning     = !!STAD.servicedagarUrl;
+  const harLastplats    = harKod('7') || harKod('18');
+  const harForbudsorsak = !!STAD.harForbud || harKod('901');
+  const harAndamal      = !andamalIData || andamalIData.length > 0;
   const otherLabel = vehicleMode === 'mc' ? 'Övrigt (ej MC)' : 'Ej för bil (t.ex. mc/buss)';
   const otherColor = vehicleMode === 'mc' ? '#c3ccd6' : '#9333ea';
   const otherBorder = vehicleMode === 'mc' ? '#94a3b8' : '#6b21a8';
@@ -8233,17 +8310,29 @@ function updateLegend(mode) {
   // De två ring-raderna beror på LÄGE (Nu vs Natt), inte bara fordon – Natt frågar "stör
   // något imorgon" istället för "nyss/snart städat", och ger ALLTID en dom (grön eller gul),
   // aldrig neutral – precis som gatorna alltid är gröna eller gula i Natt-läge (2026-08-18).
-  const ringRows = (shape, ringBg) => mode === 'uc2'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;${shape}"></div>Trygg över natten</div>
+  // Alla fyra ring-etiketter kommer ur städflödet (nyssStadad/stadasSnart/tryggNatt/
+  // nattRisk i nyssSnartRing) – en stad utan städdata kan inte rita någon av dem.
+  // Och "Trygg över natten" faller med samma spärr som gatorna och nålen själv:
+  // utan korttids-signal får inget lova trygghet (se nyssSnartRing).
+  const ringRows = (shape, ringBg) => !harStadning ? '' : mode === 'uc2'
+    ? `${STAD.skiljerKorttid ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;${shape}"></div>Trygg över natten</div>` : ''}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;${shape}"></div>Störs imorgon – flytta innan</div>`
     : `<div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #86efac, 0 0 0 5px #fff;${shape}"></div>Förbudet tog nyss slut – bra chans</div>
        <div class="lgnd-row"><div class="lgnd-sw" style="background:${ringBg};box-shadow:0 0 0 3px #fcd34d, 0 0 0 5px #fff;${shape}"></div>Gott om tid – bra möjlighet just nu</div>`;
+  // Saknar staden fordonets egna platser ritas ingen nål alls. Då är tystnad sämre än
+  // en rad som säger VARFÖR – annars ser MC-läget bara ut som bil-läget utan förklaring.
+  const saknasNot = vad =>
+    `<div class="lgnd-hidden-note">${STAD.namn} publicerar inga ${vad} som egna sträckor, så kartan visar bara gatorna.</div>`;
   const mcRow = vehicleMode === 'mc'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (MC &amp; moped klass 1)</div>
+    ? (harMcPlatser
+      ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af;border-radius:50%"></div>MC-ruta (MC &amp; moped klass 1)</div>
        ${ringRows('border-radius:50%', '#2563eb')}`
+      : saknasNot('MC-platser'))
     : vehicleMode === 'rh'
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #0c5a70;border-radius:5px"></div>Reserverad plats – tillstånd krävs</div>
-       ${ringRows('border-radius:5px', RH_COLOR)}` : '';
+    ? (harRhPlatser
+      ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${RH_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #0c5a70;border-radius:5px"></div>Reserverad plats – tillstånd krävs</div>
+       ${ringRows('border-radius:5px', RH_COLOR)}`
+      : saknasNot('reserverade platser för rörelsehindrade')) : '';
   // Taxa 1–5 är en ORDNAD prisskala (dyrast→billigast), inte fem fristående kategorier →
   // en kompakt färgstege i stället för fem staplade rader (samma info, en fjärdedel av höjden).
   // Bara städer där zonerna faktiskt RITAS (se STAD.taxaZon, som redan avbryter
@@ -8265,8 +8354,15 @@ function updateLegend(mode) {
   // "får stå nu" respektive "kontrollera tiden". Priserna kommer från kommunens data
   // via adaptern (se /karlstad/zontaxor) – aldrig inskrivna här, så en taxehöjning
   // slår igenom av sig själv. Tom lista = ingen rubrik alls, aldrig en halv stege.
+  // ⚠ LIGGER SIST i rutan, till skillnad från taxaScale som ligger först. Skälet är
+  // höjd, inte smak: Stockholms taxa-stege är EN rad, så färgnyckeln syns direkt under.
+  // Karlstads stege är fyra rader plus en fotnot på tre – uppmätt 2026-09-20 på
+  // 375×812 syntes då inte EN ENDA färg innan lådan tog vid, i en ruta vars hela
+  // uppgift är färgnyckeln. Priset är dessutom det mindre viktiga av de två
+  // («gatufärg = laglighet, inte pris»), så det får komma efter.
   const stegRader = (!HAR_ZONER && STAD.prisStege && prisStegData.length)
-    ? `<div class="lgnd-taxa-label">${STAD.prisStege.rubrik}</div>
+    ? `<hr class="lgnd-sep">
+       <div class="lgnd-taxa-label">${STAD.prisStege.rubrik}</div>
        ${prisStegData.map(s => `<div class="lgnd-row lgnd-steg"><span style="flex:1">${escHtml(s.zon)}</span><b>${escHtml(s.pris)}</b></div>`).join('')}
        <div class="lgnd-hidden-note">${STAD.prisStege.fotnot}</div>` : '';
   // EN switch i stället för de gamla två (gågata/förbud). De täckte inte lila "ej för bil",
@@ -8297,15 +8393,33 @@ function updateLegend(mode) {
   const uc2TryggRad = STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Trygg över natten</div>`
     : `<div class="lgnd-hidden-note">${STAD.namn} publicerar ingen maxtid – appen kan visa var du får parkera, men inte hur länge. Skylten avgör.</div>`;
+  // Orange i Natt-läget har två källor, och BÅDA kan komma från en ändamålsplats:
+  // natt/morgon-domen bygger på `hinder`, som är städningen ELLER lastplatsens fönster
+  // i morgon (se showSafeStreetsV2Flow), och andamalOkand ger orange för okänd tid.
+  // Har staden ingen städdata alls återstår bara ändamålsplatsen – och då är ordet
+  // "servas" fel i en stad som inte städar. Uppmätt i Uppsala 2026-09-20: noll städdagar,
+  // och alla sex orange sträckor i centrum sa "Får stå · flytta innan 07", alltså en
+  // lastplats. Meningens form behålls, bara det felaktiga ordet byts.
+  const uc2AmberRad = harStadning
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>`
+    : harLastplats
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Lastplats eller liknande – flytta först</div>` : '';
+  // Rött i Natt-läget kommer ur förbudslagret eller en ändamålsplats som alltid gäller.
+  // Karlstad har varken – där ritas ingen röd linje i Natt-läget alls. Göteborg och
+  // Sundbyberg har bara lastplatser, inget förbudslager, så "Förbud" är fel ord där.
+  const uc2RodRad = harForbudsorsak
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`
+    : harLastplats
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Lastplats – parkera ej</div>` : '';
   const uc2LegendV2 =
       `<hr class="lgnd-sep">
        ${uc2TryggRad}
        ${mcRow}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>
        ${gagataUteserveringRader}
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Servas i natt/morgon – flytta först</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Förbud – parkera ej</div>`;
+       ${uc2AmberRad}
+       ${harAnnatFordon ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>` : ''}
+       ${uc2RodRad}`;
   const uc2LegendOld =
       `<hr class="lgnd-sep">
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#60a5fa;border:1px solid #2563eb"></div>Säker parkering</div>
@@ -8315,30 +8429,61 @@ function updateLegend(mode) {
   // Samma skäl som uc2TryggRad ovan: fäller vi grönt till blått i Nu-läget (se
   // STAD.skiljerKorttid) skulle "Får stå nu" förklara en färg som aldrig ritas.
   // "Nyss städad" finns kvar – den signalen överlever färgbytet, bara i blått.
+  // Glöden "nyss slut" tänds av städning som just avslutats ELLER ett förbuds-/
+  // ändamålsfönster som just stängt – minst en av dem måste finnas i staden.
+  const nyssGlow = harStadning || harAndamal || harForbudsorsak;
+  const nyssGlowRad = !nyssGlow ? ''
+    : STAD.skiljerKorttid
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Förbudet tog nyss slut – bra chans</div>`
+    : `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;box-shadow:0 0 0 3px #075985"></div>Förbudet tog nyss slut – bra chans</div>`;
   const nowStaRad = STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Förbudet tog nyss slut – bra chans</div>`
-    : `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;box-shadow:0 0 0 3px #075985"></div>Förbudet tog nyss slut – bra chans</div>
+       ${nyssGlowRad}`
+    : `${nyssGlowRad}
        <div class="lgnd-hidden-note">${STAD.namn} pekar inte ut vilka platser som är korttid, så appen kan inte lova hur länge du får stå. Därför blått i stället för grönt – skylten avgör.</div>`;
+  // Orange i Nu-läget: städning som börjar snart, eller en ändamålsplats som börjar
+  // gälla senare i dag. Glöden "gott om tid" kommer däremot BARA ur städflödet
+  // (hiddenGem sätts i de två städgrenarna), så den faller i en stad utan städdata.
+  const nowAmberRad = (harStadning || harAndamal)
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Får stå – men inte länge till</div>` : '';
+  const nowGemRad = harStadning
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>Gott om tid – bra möjlighet just nu</div>` : '';
+  // Röd i Nu-läget har tre möjliga orsaker. Räkna upp bara dem staden faktiskt har –
+  // Karlstad hade annars lovat "förbud, lastplats" om data den inte publicerar.
+  // Är alla tre kända (Stockholm, Malmö) blir strängen ordagrant den gamla.
+  const rodaOrsaker = [];
+  if (harForbudsorsak) rodaOrsaker.push('förbud');
+  if (harLastplats)    rodaOrsaker.push('lastplats');
+  if (harStadning)     rodaOrsaker.push('städning pågår');
+  const rodEtikett = rodaOrsaker.length < 2 ? (rodaOrsaker[0] || '')
+    : rodaOrsaker.slice(0, -1).join(', ') + ' eller ' + rodaOrsaker[rodaOrsaker.length - 1];
+  const nowRodRad = rodaOrsaker.length
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Får inte stå – ${rodEtikett}</div>` : '';
   const nowLegend =
       `<hr class="lgnd-sep">
        ${nowStaRad}
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;border:1px solid #d97706"></div>Får stå – men inte länge till</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#f59e0b;box-shadow:0 0 0 3px #fcd34d"></div>Gott om tid – bra möjlighet just nu</div>
+       ${nowAmberRad}
+       ${nowGemRad}
        <div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;border:1px solid #0369a1"></div>Tidsgräns – var uppmärksam på tiden</div>
        ${mcRow}
        ${gagataUteserveringRader}
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:#ef4444;border:1px solid #b91c1c"></div>Får inte stå – förbud, lastplats eller städning pågår</div>`;
+       ${harAnnatFordon ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${otherColor};border:1px solid ${otherBorder}"></div>${otherLabel}</div>` : ''}
+       ${nowRodRad}`;
   // Cykel + moped klass 2 målar inga gator (registret har ingen förbudszon för dem, se
   // project-minnet 2026-08-18) – bara nålen för Stockholms dedikerade platser. Samma
   // taxa-steg som alla andra lägen (zonfärgen på kartan ritas oavsett fordon), men egna
   // rader i stället för gatufärgerna eftersom inga sådana ritas. Amber-raden hör ihop med
   // städ-kollen på nålarna (2026-08-18): gäller MC vanligast, cykel/RH i praktiken aldrig
   // idag (0 sådana poster i registret) men samma regel oavsett fordon.
-  const cykelLegend =
-      `<hr class="lgnd-sep">
-       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>`;
+  // Publicerar staden inga cykelplatser ritas INGENTING i cykelläget – kartan är tom
+  // så när som på busshållplatserna. Uppmätt 2026-09-20: Karlstad 0 av 381, Uppsala
+  // 0 av 2 272. Raden lovade då nålar som aldrig kommer, vilket läses som att appen
+  // är trasig snarare än att uppgiften saknas. Säg vilket det är.
+  const cykelLegend = harCykelPlatser
+    ? `<hr class="lgnd-sep">
+       <div class="lgnd-row"><div class="lgnd-sw" style="background:${CYKEL_COLOR};border:2px solid #fff;box-shadow:0 0 0 1px #1e293b;border-radius:7px;transform:rotate(45deg)"></div>Cykel-/mopedplats (moped klass 2)</div>`
+    : `<hr class="lgnd-sep">
+       <div class="lgnd-hidden-note">${STAD.namn} publicerar inga cykel- eller mopedplatser, så kartan kan inte visa några. Kontrollera skylt på plats.</div>`;
   const modeRows = vehicleMode === 'cykel' ? cykelLegend
     : mode === 'now' ? nowLegend
     : (v2Active ? uc2LegendV2 : uc2LegendOld);
@@ -8346,7 +8491,7 @@ function updateLegend(mode) {
     `<button class="lgnd-toggle" onclick="toggleLegend()" title="Visa/dölj förklaring">
        <span class="lt-label">🗺 Förklaring</span><span class="lt-x">✕</span>
      </button>
-     <div id="legend-content">${taxaScale}${stegRader}${modeRows}${layerToggles}</div>`;
+     <div id="legend-content">${taxaScale}${modeRows}${stegRader}${layerToggles}</div>`;
   applyLegendState();
 }
 
