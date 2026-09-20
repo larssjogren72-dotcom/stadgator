@@ -810,8 +810,32 @@ http.createServer((req, res) => {
     }));
 
   } else if (reqUrl.pathname === '/robots.txt') {
+    // Appens DATA-adresser är inga sidor. Utan parametrar svarar de 4xx, och Search
+    // Console rapporterade 2026-09-20 åtta sådana som «blockerad av 4xx-problem»
+    // (/schedule, /servicedagar-bbox, /gbg/schedule, /malmo/…, /sbg/…). De ska inte
+    // krypas alls – då försvinner både bruset i rapporten och den onödiga trafiken.
+    // OBS: bara katalogerna nedan, aldrig /vendor/ (kartan och typsnittet måste hämtas
+    // för att Google ska kunna rendera appen) och aldrig SEO-sidornas adresser, som
+    // alla börjar med parkering…/stadgator…/billigare… utan avslutande snedstreck.
     res.setHeader('Content-Type', 'text/plain');
-    finish(req, res, 200, Buffer.from('User-agent: *\nAllow: /\nSitemap: https://parkspot.se/sitemap.xml\n'));
+    const robots = 'User-agent: *\n'
+      + 'Allow: /\n'
+      + 'Disallow: /schedule\n'
+      + 'Disallow: /servicedagar-bbox\n'
+      + 'Disallow: /proxy/\n'
+      + 'Disallow: /wfs/\n'
+      + 'Disallow: /gbg/\n'
+      + 'Disallow: /sbg/\n'
+      + 'Disallow: /malmo/\n'
+      + 'Disallow: /uppsala/\n'
+      + 'Disallow: /karlstad/\n'
+      + 'Disallow: /phus\n'
+      + 'Disallow: /r\n'
+      + 'Disallow: /statistik\n'
+      + 'Disallow: /cache-stats\n'
+      + 'Disallow: /datastatus\n'
+      + 'Sitemap: https://parkspot.se/sitemap.xml\n';
+    finish(req, res, 200, Buffer.from(robots));
 
   } else if (reqUrl.pathname === '/sitemap.xml') {
     res.setHeader('Content-Type', 'application/xml');

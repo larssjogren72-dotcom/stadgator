@@ -1,0 +1,12 @@
+{
+  "name": "stadgator",
+  "version": "1.37.0",
+  "description": "Karta som visar var du får parkera lagligt på gatan – städdagar, taxor och tidsgränser",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
