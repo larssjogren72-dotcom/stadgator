@@ -1505,10 +1505,79 @@ const GBG_FORBEHALL = 'Göteborg publicerar inga parkeringsförbud i sin öppna 
 function gbgRelated(utom) {
   return [
     { href:'parkering-goteborg', text:'Parkering i Göteborg – översikt' },
+    { href:'parkering-over-natten-goteborg', text:'Parkera över natten i Göteborg' },
     { href:'stadgator-goteborg', text:'Städdagar i Göteborg – jämna och udda veckor' },
     { href:'boendeparkering-goteborg', text:'Boendeparkering i Göteborg – zoner och regler' },
     { href:'parkeringsanlaggningar-goteborg', text:'Parkeringsanläggningar i Göteborg' },
   ].filter(r => r.href !== utom);
+}
+
+// ── Över natten ─────────────────────────────────────────────────────────────
+// Den mest sökta frågan i varje stad, och den saknades helt för Göteborg (Stockholm,
+// Uppsala och Karlstad hade sin sida sedan tidigare). Siffrorna kommer ur
+// seo/goteborg-natt.json, som verktyg/bygg-gbg-natt.js räknar fram ur kommunens WFS –
+// skriv dem aldrig för hand här, se skriptets huvud.
+const GBG_NATT = JSON.parse(fs.readFileSync(path.join(__dirname, 'goteborg-natt.json'), 'utf8'));
+const GBG_VECKODAG = { 1:'måndagar', 2:'tisdagar', 3:'onsdagar', 4:'torsdagar', 5:'fredagar' };
+function gbgNatt() {
+  const N = GBG_NATT, S = N.stad;
+  const gTal = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const nattandel = Math.round(S.nattstad / S.poster * 100);
+  const varannan = S.uddaBara + S.jamnBara;
+  const varannanAndel = Math.round(varannan / S.poster * 100);
+  const toppDag = Object.entries(S.dagar).sort((a, b) => b[1] - a[1])[0];
+  const natttid = (S.tider.find(t => /^2–/.test(t.tid)) || S.tider[1] || {});
+  const morgon  = S.tider[0] || {};
+  const dygn = (N.granser.find(g => g.namn === '24 tim') || {}).antal || 0;
+  const halvtimme = (N.granser.find(g => g.namn === '30 min') || {}).antal || 0;
+  const sections =
+    '<section class="card"><h2>Kan bilen stå kvar till i morgon?</h2>' +
+    '<p>I Göteborg avgörs det av två saker: <b>städningen</b> och <b>tidsgränsen</b> på platsen. ' +
+    `Appens Natt-läge räknar ihop båda och färgar bara de gator som håller hela natten. ` +
+    `<a href="https://parkspot.se/?stad=goteborg">Öppna kartan</a>, välj <b>Natt</b> och sök på din adress.</p>` +
+    '<p>' + GBG_FORBEHALL + '</p></section>' +
+    '<section class="card"><h2>Städningen: mitt på dagen för de flesta – men inte för alla</h2>' +
+    `<p>Kommunen har <b>${gTal(S.poster)} städsträckor</b>. De allra flesta städas mitt på dagen – ` +
+    `<b>${gTal(morgon.antal || 0)}</b> sträckor klockan ${esc(morgon.tid || '')} – och dem hinner du flytta bilen ifrån på morgonen. ` +
+    `Men <b>${gTal(S.nattstad)} sträckor (${nattandel} %) börjar före klockan 8</b>, och den vanligaste nattiden är ` +
+    `<b>klockan ${esc(natttid.tid || '')}</b> med ${gTal(natttid.antal || 0)} sträckor. Står bilen kvar då är den i vägen ` +
+    'mitt i natten, inte på morgonen.</p>' +
+    `<p>Städningen går dessutom oftast <b>varannan vecka</b>: ${gTal(varannan)} av sträckorna (${varannanAndel} %) städas bara jämna ` +
+    `eller bara udda veckor, medan ${gTal(S.varjeVecka)} städas varje vecka. Vanligaste veckodagen är ` +
+    `<b>${GBG_VECKODAG[toppDag[0]] || 'tisdagar'}</b> (${gTal(toppDag[1])} sträckor). ParkSpot räknar veckonumret åt dig, ` +
+    'så du slipper räkna ut om det är jämn vecka på söndag kväll.</p>' +
+    '<p><a href="/stadgator-goteborg">Mer om städdagarna i Göteborg →</a></p></section>' +
+    '<section class="card"><h2>Tidsgränsen kan ta slut medan du sover</h2>' +
+    `<p>Av de <b>${gTal(N.tidsbegransade)} tidsbegränsade sträckorna</b> har ${gTal(halvtimme)} bara <b>30 minuter</b> – ` +
+    `det är ärenden, inte nattparkering. Bara <b>${gTal(dygn)} sträckor tillåter ett helt dygn</b>. ` +
+    'Däremellan ligger en, två och fyra timmar, som alla tar slut före morgonen om du ställer bilen på kvällen.</p>' +
+    `<p>En viktig nyans: på <b>${gTal(N.villkorVardag)} sträckor gäller tidsgränsen bara vardagar</b>, ofta «vardag utom dag före ` +
+    'sön- och helgdag». Där är natten och helgen alltså fria trots att skylten visar en siffra. ' +
+    'ParkSpot läser villkoret och visar nedräkningen bara när gränsen faktiskt gäller.</p></section>' +
+    '<section class="card"><h2>Boendeparkering är ett undantag, inte ett förbud</h2>' +
+    `<p>Göteborg har <b>${gTal(N.boende)} sträckor med boendeparkering</b>. Zonen är inget förbud för dig som gäst: utan tillstånd ` +
+    'gäller skyltens vanliga tid, med tillstånd får den boende stå upp till 14 dygn. Ett <b>n</b> efter zonkoden ' +
+    '(till exempel V5n) betyder att tillståndet bara gäller kvällar och nätter, ungefär 18–09.</p>' +
+    '<p><a href="/boendeparkering-goteborg">Så fungerar boendeparkeringen →</a></p></section>' +
+    '<section class="card"><h2>Tre råd för natten</h2>' +
+    '<ul><li><b>Välj en gata utan städning de närmaste dygnen.</b> Appen skriver ut nästa städdag på platskortet.</li>' +
+    '<li><b>Kolla veckoparitet på söndag kväll.</b> Natten mot måndag tillhör den nya veckan – där byter jämn och udda plats.</li>' +
+    '<li><b>Är gatan tidsbegränsad, läs villkoret.</b> Gäller gränsen bara vardagar är fredag kväll till måndag morgon ofta fri.</li></ul>' +
+    `<p>Ska bilen stå flera dygn är en <a href="/parkeringsanlaggningar-goteborg">parkeringsanläggning</a> nästan alltid tryggare än gatan.</p></section>`;
+  const faq = [
+    { q:'Får man parkera gratis på natten i Göteborg?', a:`Ofta, men inte alltid – avgiftstiden står på skylten och skiljer sig mellan gator. Det som avgör om bilen kan stå kvar är städningen och tidsgränsen, inte priset. ${gTal(S.nattstad)} städsträckor börjar före klockan 8.` },
+    { q:'Hur vet jag om det är jämn eller udda vecka?', a:`ParkSpot räknar ut veckonumret och visar bara städningar som gäller den vecka du frågar om. ${gTal(S.uddaBara + S.jamnBara)} av ${gTal(S.poster)} sträckor städas varannan vecka, så det är regel snarare än undantag i Göteborg.` },
+    { q:'Hur länge får jag stå på en tidsbegränsad plats över natten?', a:`Det beror på villkoret. Bara ${gTal(dygn)} sträckor tillåter ett helt dygn, men på ${gTal(N.villkorVardag)} sträckor gäller gränsen bara vardagar – då är natten fri. Appen visar nedräkningen bara när gränsen faktiskt gäller.` },
+    { q:'Kan ParkSpot visa var jag inte får stå i Göteborg?', a:'Nej. Staden publicerar inga parkeringsförbud i sin öppna data. Appen visar var du får stå enligt kommunens parkeringsdata, och en gata utan färg betyder att uppgift saknas.' },
+    { q:'Behöver jag flytta bilen före klockan 7?', a:`Bara om gatan har en nattstädning. Den vanligaste nattiden är klockan ${esc(natttid.tid || '')}, och ${gTal(natttid.antal || 0)} sträckor har just den. Appens Natt-läge undviker dem åt dig.` },
+  ];
+  emit('parkering-over-natten-goteborg', layout({
+    slug:'parkering-over-natten-goteborg',
+    title:'Parkera över natten i Göteborg – var står bilen tryggt? | ParkSpot',
+    desc:'Kan bilen stå kvar till i morgon i Göteborg? Se vilka gator som städas på natten, hur jämna och udda veckor fungerar och var tidsgränsen tar slut medan du sover.',
+    h1:'Parkera över natten i Göteborg',
+    lead:'Städningen och tidsgränsen avgör – här är siffrorna, och hur du hittar en gata som håller hela natten.',
+    sections, faq, related: gbgRelated('parkering-over-natten-goteborg'), lat:null, lng:null, match:null, stad:GBG }));
 }
 
 function gbgPillar() {
@@ -1653,7 +1722,7 @@ DESTINATIONS.forEach(destination);
 DESTINATIONS.forEach(destinationEN);
 STREETS.forEach(streetPage);
 
-gbgPillar(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
+gbgPillar(); gbgNatt(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
 GBG_OMR.forEach(gbgOmrade);
 upsPillar(); upsAvgifter(); upsNatt(); upsGarage();
 UPS_DATA.stadsdelar.forEach(upsStadsdel);

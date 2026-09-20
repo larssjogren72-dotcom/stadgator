@@ -1,0 +1,82 @@
+{
+ "_kommentar": "Genererad av verktyg/bygg-gbg-natt.js – skriv inte för hand.",
+ "matt": "2026-09-20",
+ "stad": {
+  "poster": 2002,
+  "nattstad": 514,
+  "uddaBara": 746,
+  "jamnBara": 851,
+  "varjeVecka": 405,
+  "dagar": {
+   "1": 236,
+   "2": 620,
+   "3": 527,
+   "4": 301,
+   "5": 318
+  },
+  "tider": [
+   {
+    "tid": "9–12",
+    "antal": 1170
+   },
+   {
+    "tid": "2–7",
+    "antal": 512
+   },
+   {
+    "tid": "8–10",
+    "antal": 314
+   },
+   {
+    "tid": "8–12",
+    "antal": 3
+   },
+   {
+    "tid": "2–10",
+    "antal": 1
+   },
+   {
+    "tid": "7–12",
+    "antal": 1
+   }
+  ]
+ },
+ "tidsbegransade": 2335,
+ "granser": [
+  {
+   "namn": "30 min",
+   "antal": 1236
+  },
+  {
+   "namn": "2 tim",
+   "antal": 502
+  },
+  {
+   "namn": "1 tim",
+   "antal": 225
+  },
+  {
+   "namn": "4 tim",
+   "antal": 189
+  },
+  {
+   "namn": "24 tim",
+   "antal": 171
+  },
+  {
+   "namn": "12 tim",
+   "antal": 9
+  },
+  {
+   "namn": "3 tim",
+   "antal": 2
+  },
+  {
+   "namn": "6 tim",
+   "antal": 1
+  }
+ ],
+ "villkorVardag": 388,
+ "medVillkor": 395,
+ "boende": 2095
+}

@@ -14,6 +14,28 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.38.0 – 2026-09-20
+**Göteborg får sin sida om att parkera över natten – den mest sökta frågan saknades.**
+
+Stockholm, Uppsala och Karlstad hade sedan tidigare varsin «över natten»-sida. Göteborg,
+vår näst största stad, hade ingen alls.
+
+Sidan svarar på det som faktiskt avgör om bilen kan stå kvar, och siffrorna är mätta,
+inte ungefärliga:
+- **Städningen.** 1 170 av 2 002 sträckor städas 09–12, men **514 börjar före klockan 8**
+  och vanligaste nattiden är **02–07 (512 sträckor)**. 1 597 sträckor (80 %) städas bara
+  jämna eller bara udda veckor; vanligaste dagen är tisdag.
+- **Tidsgränsen.** Av 2 335 tidsbegränsade sträckor har 1 236 bara 30 minuter och **bara
+  171 tillåter ett helt dygn**. På **388 sträckor gäller gränsen bara vardagar** – då är
+  natten och helgen fria trots siffran på skylten.
+- **Boendeparkering** som undantag, inte förbud, med n-zonernas 18–09.
+
+- `verktyg/bygg-gbg-natt.js`: nytt skript som räknar fram siffrorna ur Trafikkontorets
+  WFS till `seo/goteborg-natt.json`. Inga handskrivna tal i generatorn – kör om skriptet
+  när kommunen ändrar. Skriptet räknar bara poster med veckodag 1–5, så sidan säger
+  samma 2 002 som resten av sajten.
+- Sidan länkas från alla Göteborgssidor och står i `llms.txt`.
+
 ## v1.37.1 – 2026-09-20
 **Återställning: v1.37.0 hade en TOM package.json och slog ut servern.**
 
