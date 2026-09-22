@@ -14,6 +14,39 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.47.0 – 2026-09-22
+**Göteborg: 19 zonsidor, en regelsida och en titel som svarar på frågan.**
+
+Search Console 2026-09-22 visade att Göteborg **syns** – 5 430 visningar, 91 klick,
+snittposition 8 på tre månader – men att frågorna och sidorna inte möts. Folk söker
+**zonkoden rakt av**: «m4n parkering» 41 visningar, «m4n göteborg» 26, «boende m4n» 20,
+«boendeparkering göteborg m4» 16, «ä9» 15, «boende m5 göteborg» 11, «v6n», «g9n», «s7n» …
+tillsammans ~170 visningar och nästan noll klick. Sidorna var indelade efter område
+(Mellanstaden, Väster) och svarade aldrig på koden.
+
+- **19 zonsidor** (`/boendeparkering-goteborg/m4` m.fl.): vad koden betyder, vilka gator som
+  ingår, taxan ordagrant, städdagarna i zonen och vad som gäller utan tillstånd.
+  n-varianten får ingen egen sida – M4n är samma gator som M4, bara ett tillstånd som gäller
+  18–09, så de står tillsammans.
+- **Regler och vanliga frågor** (`/boendeparkering-goteborg/regler`): svarar på «boendeparkering
+  göteborg regler» (27 visningar, noll klick), «vad betyder boende parkering», «får man parkera
+  på boendeparkering», «boendekort», «säga upp». Ansökan och uppsägning hör till kommunen, och
+  sidan säger det i stället för att låtsas.
+- **Titeln** på boendeparkeringssidan bär nu ordet **zonkarta** – «boendeparkering karta» och
+  varianter är 52 visningar utan klick, och kartan är precis vad sidan leder till.
+
+Underlaget mäts av nya `verktyg/bygg-gbg-zoner.js` genom adaptern: 6 122 unika segment i fyra
+rutor över staden, grupperade på zonnummer.
+
+⚠ **Platssiffran publiceras inte.** `VF_PLATSER` bär zonens TOTAL på varje segment i zonlagret –
+«Zon Änggården» står med 272 på var och en av sina poster, och en summering gav 10 897 platser
+på 60 sträckor. Fältet går inte att addera, så sidorna säger sträckor och gator i stället. Samma
+poster bär zonens namn i gatufältet och filtreras ur gatulistorna.
+
+Provat: alla 19 zonsidor + regelsidan svarar 200, taggbalans hel i alla 20, titlar 44–53 tecken,
+sitemap 295 adresser, och Stockholm, Uppsala och Karlstad oförändrade. Zonlänkarna finns på
+boendeparkeringssidan och regelsidan; sidfoten fick regelsidan.
+
 ## v1.46.0 – 2026-09-22
 **Tre nya Uppsala-sidor – andra sidor än Karlstads, för Uppsala har annan data.**
 

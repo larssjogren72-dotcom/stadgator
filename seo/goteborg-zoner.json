@@ -1,0 +1,1400 @@
+{
+ "_kommentar": "Uppmätt underlag för Göteborgs zonsidor. Byggt av verktyg/bygg-gbg-zoner.js genom adaptern. Redigera inte för hand.",
+ "matt": "2026-09-22",
+ "segmentTotalt": 6122,
+ "zoner": [
+  {
+   "zon": "M4",
+   "koder": [
+    "M4",
+    "M4n"
+   ],
+   "harNatt": true,
+   "stracker": 455,
+   "gator": [
+    "Alfhemsgatan",
+    "Arkivgatan",
+    "Aschebergsgatan",
+    "Barnhusgatan",
+    "Bellmansgatan",
+    "Bohusgatan",
+    "Burgårdsgatan",
+    "Chalmersgatan",
+    "Djupedalsgatan",
+    "Engelbrektsgatan",
+    "Erik Dahlbergsgatan",
+    "Erik Dahlbergstrappan",
+    "Fjärde Långgatan",
+    "Folkungagatan",
+    "Friggagatan",
+    "Färgaregatan",
+    "Föreningsgatan",
+    "Första Långgatan",
+    "Geijersgatan",
+    "Götabergsgatan",
+    "Haga Kyrkogata",
+    "Hedåsgatan",
+    "Johannebergsgatan",
+    "Kapellgatan",
+    "Kapellplatsen",
+    "Karl Gerhards Plats",
+    "Karl Gustavsgatan",
+    "Kastellgatan",
+    "Kristinelundsgatan",
+    "Kungsportsavenyen",
+    "Lilla Risåsgatan",
+    "Linnégatan",
+    "Linnéplatsen",
+    "Lorensbergsgatan",
+    "Lyckans Väg",
+    "Majorsgatan",
+    "Molinsgatan",
+    "Nedre Fogelbergsgatan",
+    "Nordenskiöldsgatan",
+    "Nordhemsgatan",
+    "Odinsgatan",
+    "Olivedalsgatan",
+    "Olof Wijksgatan",
+    "Plantagegatan",
+    "Prinsgatan",
+    "Risåsgatan",
+    "Rosengatan",
+    "Skånegatan",
+    "Sprängkullsgatan",
+    "Stampgatan",
+    "Sten Sturegatan",
+    "Stenhammarsgatan",
+    "Storgatan",
+    "Sveagatan",
+    "Södra Vägen",
+    "Teatergatan",
+    "Tegnérsgatan",
+    "Tredje Långgatan",
+    "Vasagatan",
+    "Vasaplatsen",
+    "Vegagatan",
+    "Viktor Rydbergsgatan",
+    "Viktoriagatan",
+    "Värmlandsgatan",
+    "Wadmansgatan",
+    "Övre Djupedalsgatan",
+    "Övre Fogelbergsgatan",
+    "Övre Husargatan",
+    "Övre Majorsgatan"
+   ],
+   "medStadning": 274,
+   "taxor": [
+    {
+     "text": "34 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 268
+    },
+    {
+     "text": "boende",
+     "antal": 73
+    },
+    {
+     "text": "23 kr/30 min 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 36
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Torsdag klockan 02.00 - 07.00.",
+     "antal": 41
+    },
+    {
+     "text": "Måndag klockan 08.00 - 10.00.",
+     "antal": 39
+    },
+    {
+     "text": "Onsdag klockan 08.00 - 10.00.",
+     "antal": 25
+    },
+    {
+     "text": "Fredag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 23
+    },
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 22
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 273
+    },
+    {
+     "text": "Tidsbegränsningen gäller vardag klockan 08.00 - 22.00 och sön- och helgdag klockan 08.00 - 22.00.",
+     "antal": 27
+    }
+   ]
+  },
+  {
+   "zon": "V6",
+   "koder": [
+    "V6",
+    "V6n"
+   ],
+   "harNatt": true,
+   "stracker": 233,
+   "gator": [
+    "Allmänna Vägen",
+    "Amerikagatan",
+    "Amiralitetsgatan",
+    "Ankargatan",
+    "Bangatan",
+    "Birger Jarlsgatan",
+    "Bläsgatan",
+    "Chapmansgatan",
+    "Dahlströmsgatan",
+    "Djurgårdsgatan",
+    "Ekedalsgatan",
+    "Fredbergsgatan",
+    "Fridhemsgatan",
+    "Galateagatan",
+    "Godhemsgatan",
+    "Godhemsplatsen",
+    "Gröna Vallen",
+    "Hamneskärsgatan",
+    "Kabyssgatan",
+    "Kennedygatan",
+    "Kjellestadsgatan",
+    "Klareborgsgatan",
+    "Krukmakaregatan",
+    "Kungsladugårdsgatan",
+    "Långlandia",
+    "Majstångsgatan",
+    "Mariagatan",
+    "Mariaplan",
+    "Mariebergsgatan",
+    "Oljekvarnsgatan",
+    "Olof Strålegatan",
+    "Ostindiegatan",
+    "Peter Bagges Gata",
+    "Sannaplan",
+    "Silverkällegatan",
+    "Slottsskogsgatan",
+    "Standargatan",
+    "Stenklevsgatan",
+    "Stigbergsliden",
+    "Stigbergstorget",
+    "Stilla Gatan",
+    "Stjernsköldsgatan",
+    "Strandridaregatan",
+    "Svanebäcksgatan",
+    "Såggatan",
+    "Tellgrensgatan",
+    "Toppsegelsgatan",
+    "Valvgången",
+    "Vänmötet",
+    "Wärnsköldsgatan",
+    "Älvsborgsgatan",
+    "Älvsborgsplan"
+   ],
+   "medStadning": 64,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 57
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 53
+    },
+    {
+     "text": "18 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 15
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Onsdag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 17
+    },
+    {
+     "text": "Måndag klockan 09.00 - 12.00 jämna veckor under tiden 1:a oktober - 30:e april.",
+     "antal": 10
+    },
+    {
+     "text": "Torsdag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 9
+    },
+    {
+     "text": "Fredag klockan 09.00 - 12.00 jämna veckor under tiden 1:a oktober - 30:e april.",
+     "antal": 9
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 5
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 74
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 12.00.",
+     "antal": 2
+    }
+   ]
+  },
+  {
+   "zon": "Ö6",
+   "koder": [
+    "Ö6",
+    "Ö6n"
+   ],
+   "harNatt": true,
+   "stracker": 219,
+   "gator": [
+    "Bagaregårdsgatan",
+    "Bauersgatan",
+    "Betaniagatan",
+    "Bielkegatan",
+    "Danska Vägen",
+    "Ejdergatan",
+    "Ernst Kristenssons Gata",
+    "Falkgatan",
+    "Hebegatan",
+    "Hogenskildsgatan",
+    "Jakobsdalsgatan",
+    "Karlagatan",
+    "Karlfeldtsgatan",
+    "Kobbarnas Väg",
+    "Kronhjortsgatan",
+    "Kungälvsgatan",
+    "Lagerströmsplatsen",
+    "Liedstrandsgatan",
+    "Lilla Olskroksgatan",
+    "Mintensgatan",
+    "Mäster Johansgatan",
+    "Nobelplatsen",
+    "Norra Gubberogatan",
+    "Persgatan",
+    "Pipblåsaregatan",
+    "Pukegatan",
+    "Påskbergsgatan",
+    "Pärlstickaregatan",
+    "Riddaregatan",
+    "Räntmästaregatan",
+    "Sankt Pauligatan",
+    "Sankt Sigfridsgatan",
+    "Schéelegatan",
+    "Sergelsgatan",
+    "Snoilskygatan",
+    "Stockholmsgatan",
+    "Storkgatan",
+    "Svangatan",
+    "Torkelsgatan",
+    "Uddevallagatan",
+    "Uddevallaplatsen",
+    "Viloplatsen",
+    "Vävlagaregatan",
+    "Ånäsvägen",
+    "Överstegatan"
+   ],
+   "medStadning": 63,
+   "taxor": [
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 65
+    },
+    {
+     "text": "boende",
+     "antal": 38
+    },
+    {
+     "text": "18 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 34
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 12
+    },
+    {
+     "text": "Tisdag klockan 02.00 - 07.00 udda veckor.",
+     "antal": 11
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor under tiden 15:e mars - 30:e april.",
+     "antal": 8
+    },
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 jämna veckor under tiden 15:e mars - 30:e april.",
+     "antal": 6
+    },
+    {
+     "text": "Torsdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 6
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 118
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+     "antal": 2
+    }
+   ]
+  },
+  {
+   "zon": "S6",
+   "koder": [
+    "S6",
+    "S6n"
+   ],
+   "harNatt": true,
+   "stracker": 159,
+   "gator": [
+    "Carlandersplatsen",
+    "Dalheimersgatan",
+    "Daniel Petterssons Gata",
+    "Doktor Belfrages Gata",
+    "Doktor Billqvists Gata",
+    "Doktor Sydows Gata",
+    "Eklandagatan",
+    "Fricksgatan",
+    "Gibraltargatan",
+    "Guldhedstorget",
+    "Gyllenkrooksgatan",
+    "Kristinehöjdsgatan",
+    "Källsprångsgatan",
+    "Lagerbringsgatan",
+    "Lundgrensgatan",
+    "Lövskogsgatan",
+    "Mölndalsvägen",
+    "Pontus Wiknersgatan",
+    "Raketgatan",
+    "Reutersgatan",
+    "Rosenhillsgatan",
+    "Södra Vägen",
+    "Utlandagatan",
+    "Vidblicksgatan",
+    "Viktor Rydbergsgatan",
+    "Walleriusgatan",
+    "Wijkandersgatan",
+    "Ängemarken",
+    "Övre Buråsliden"
+   ],
+   "medStadning": 66,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 41
+    },
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 32
+    },
+    {
+     "text": "18 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 25
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 17
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 17
+    },
+    {
+     "text": "Fredag klockan 02.00 - 07.00.",
+     "antal": 11
+    },
+    {
+     "text": "Tisdag klockan 02.00 - 07.00.",
+     "antal": 9
+    },
+    {
+     "text": "Onsdag klockan 02.00 - 07.00.",
+     "antal": 6
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 92
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+     "antal": 4
+    }
+   ]
+  },
+  {
+   "zon": "V5",
+   "koder": [
+    "V5",
+    "V5n"
+   ],
+   "harNatt": true,
+   "stracker": 152,
+   "gator": [
+    "Allmänna Vägen",
+    "Amiralitetsgatan",
+    "August Kobbsgatan",
+    "Birgittagatan",
+    "Bockhornsgatan",
+    "Bäckegatan",
+    "Carnegiegatan",
+    "Chapmans Torg",
+    "Eldaregatan",
+    "Fjällgatan",
+    "Flaggatan",
+    "Gamla Varvsgatan",
+    "Hjorthagsgatan",
+    "Hägergatan",
+    "Jaegerdorffsplatsen",
+    "Kaptensgatan",
+    "Karl Johansgatan",
+    "Kommendörsgatan",
+    "Kompassgatan",
+    "Koopmansgatan",
+    "Krokegatan",
+    "Kustroddaregatan",
+    "Kusttorget",
+    "Lilla Gatan",
+    "Lotsgatan",
+    "Nedre Matrosgatan",
+    "Oljekvarnsgatan",
+    "Paradisgatan",
+    "Repslagaregatan",
+    "Signalgatan",
+    "Sjömansgatan",
+    "Sofiebergsgatan",
+    "Storebackegatan",
+    "Styrmansgatan",
+    "Svanebäcksgatan",
+    "Såggatan",
+    "Tranegatan",
+    "Vattugatan",
+    "Älghagsgatan",
+    "Övre Matrosgatan"
+   ],
+   "medStadning": 40,
+   "taxor": [
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 44
+    },
+    {
+     "text": "boende",
+     "antal": 36
+    },
+    {
+     "text": "18 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 18
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Torsdag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 10
+    },
+    {
+     "text": "Onsdag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 8
+    },
+    {
+     "text": "Torsdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 7
+    },
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 6
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 4
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 68
+    },
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 07.00 - 18.00.",
+     "antal": 2
+    }
+   ]
+  },
+  {
+   "zon": "M5",
+   "koder": [
+    "M5",
+    "M5n"
+   ],
+   "harNatt": true,
+   "stracker": 124,
+   "gator": [
+    "Alströmergatan",
+    "Andra Långgatan",
+    "Annedals Trappor",
+    "Baldersgatan",
+    "Barnhusgatan",
+    "Besvärsgatan",
+    "Bohusgatan",
+    "Brunnsgatan",
+    "Burggrevegatan",
+    "Bältgatan",
+    "Carl Grimbergsgatan",
+    "Elfrida Andrées Gata",
+    "Folke Bernadottes Gata",
+    "Färgaregatan",
+    "Föreningsgatan",
+    "Garverigatan",
+    "Haga Kyrkogata",
+    "Jungmansgatan",
+    "Konstepidemins Väg",
+    "Lilla Garverigatan",
+    "Lilla Stampgatan",
+    "Masthuggstorget",
+    "Muraregatan",
+    "Norra Ågatan",
+    "Oscar Fredriks Kyrkogata",
+    "Ranängsgatan",
+    "Seminariegatan",
+    "Skanstorget",
+    "Smålandsgatan",
+    "Sprängkullsgatan",
+    "Stampgatan",
+    "Stureplatsen",
+    "Svingeln",
+    "Vegagatan",
+    "Västergatan",
+    "Västgötagatan"
+   ],
+   "medStadning": 71,
+   "taxor": [
+    {
+     "text": "34 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 58
+    },
+    {
+     "text": "24 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 33
+    },
+    {
+     "text": "boende",
+     "antal": 17
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 17
+    },
+    {
+     "text": "Måndag klockan 08.00 - 10.00.",
+     "antal": 13
+    },
+    {
+     "text": "Tisdag klockan 02.00 - 07.00.",
+     "antal": 10
+    },
+    {
+     "text": "Onsdag klockan 02.00 - 07.00.",
+     "antal": 8
+    },
+    {
+     "text": "Måndag klockan 08.00 - 10.00 jämna veckor.",
+     "antal": 7
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 98
+    }
+   ]
+  },
+  {
+   "zon": "C4",
+   "koder": [
+    "C4",
+    "C4n"
+   ],
+   "harNatt": true,
+   "stracker": 102,
+   "gator": [
+    "Arsenalsgatan",
+    "Drottninggatan",
+    "Ekelundsgatan",
+    "Hvitfeldtsgatan",
+    "Hvitfeldtsplatsen",
+    "Ingenjörsgatan",
+    "Kaserntorget",
+    "Klädpressaregatan",
+    "Kronhusgatan",
+    "Kungsgatan",
+    "Kungshöjdsgatan",
+    "Köpmansgatan",
+    "Lasarettsgatan",
+    "Lilla Kungsgatan",
+    "Lilla Nygatan",
+    "Luntantugatan",
+    "Mjölnaregatan",
+    "Norra Hamngatan",
+    "Norra Liden",
+    "Otterhällegatan",
+    "Packhusplatsen",
+    "Postgatan",
+    "Rosenlundsgatan",
+    "Sahlgrensgatan",
+    "Skeppsbron",
+    "Smedjegatan",
+    "Spannmålsgatan",
+    "Stora Badhusgatan",
+    "Stora Nygatan",
+    "Surbrunnsgatan",
+    "Södra Hamngatan",
+    "Tyggårdsgatan",
+    "Västra Hamngatan",
+    "Västra Liden",
+    "Övre Spannmålsgatan"
+   ],
+   "medStadning": 40,
+   "taxor": [
+    {
+     "text": "34 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 76
+    },
+    {
+     "text": "boende",
+     "antal": 7
+    },
+    {
+     "text": "23 kr/30 min 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 4
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 08.00 - 10.00 udda veckor.",
+     "antal": 21
+    },
+    {
+     "text": "Fredag klockan 08.00 - 10.00 jämna veckor.",
+     "antal": 13
+    },
+    {
+     "text": "Måndag klockan 08.00 - 10.00 udda veckor.",
+     "antal": 6
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 65
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+     "antal": 5
+    }
+   ]
+  },
+  {
+   "zon": "V7",
+   "koder": [
+    "V7",
+    "V7n"
+   ],
+   "harNatt": true,
+   "stracker": 99,
+   "gator": [
+    "Asperögatan",
+    "Bangatan",
+    "Bankebergsgatan",
+    "Brännögatan",
+    "Donsögatan",
+    "Ekedalsgatan",
+    "Fridhemsgatan",
+    "Godhemsgatan",
+    "Hålekärrsgatan",
+    "Jordhyttegatan",
+    "Kabelgatan",
+    "Karl Johansgatan",
+    "Kravellgatan",
+    "Kungsladugårdsgatan",
+    "Lilla Fridhemsgatan",
+    "Lugnet",
+    "Orustgatan",
+    "Oxhagsgatan",
+    "Paternostergatan",
+    "Slottsskogsgatan",
+    "Spetsbergsgatan",
+    "Stortoppsgatan",
+    "Styrsögatan",
+    "Ståthållaregatan",
+    "Såggatan",
+    "Söderlingsgatan",
+    "Vantgatan",
+    "Vitögatan",
+    "Ärlegatan",
+    "Öckerögatan"
+   ],
+   "medStadning": 22,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 34
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 30
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Fredag klockan 09.00 - 12.00 jämna veckor under tiden 1:a oktober - 30:e april.",
+     "antal": 8
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 6
+    },
+    {
+     "text": "Måndag klockan 09.00 - 12.00 jämna veckor under tiden 1:a oktober - 30:e april.",
+     "antal": 4
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 jämna veckor under tiden 15:e mars - 30:e april.",
+     "antal": 2
+    },
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 2
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 30
+    },
+    {
+     "text": "Lastplats vardagar utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardagar före sön- och helgdag klockan 09.00 - 15.00.",
+     "antal": 1
+    }
+   ]
+  },
+  {
+   "zon": "H6",
+   "koder": [
+    "H6",
+    "H6n"
+   ],
+   "harNatt": true,
+   "stracker": 65,
+   "gator": [
+    "Ekebergsgatan",
+    "Hallegatan",
+    "Herkulesgatan",
+    "Hisingsgatan",
+    "Hjalmar Brantingsgatan",
+    "Jägaregatan",
+    "Löjtnantsgatan",
+    "Madängsgatan",
+    "Myntgatan",
+    "Tunnbindaregatan",
+    "Vindragaregatan",
+    "Vågmästareplatsen",
+    "Väderkvarnsgatan"
+   ],
+   "medStadning": 11,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 29
+    },
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 12
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 1
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 7
+    },
+    {
+     "text": "Fredag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 4
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 13
+    }
+   ]
+  },
+  {
+   "zon": "K9",
+   "koder": [
+    "K9",
+    "K9n"
+   ],
+   "harNatt": true,
+   "stracker": 62,
+   "gator": [
+    "Fågelfängaregatan",
+    "Guvernörsgatan",
+    "Högsbogatan",
+    "Klintens Väg",
+    "Kungsladugårdsgatan",
+    "Kålgården",
+    "Kålgårdsgatan",
+    "Majgatan",
+    "Oxhagsgatan",
+    "Rörmyren",
+    "Skytteskogsgatan",
+    "Slottsskogsgatan",
+    "Snäckvägen",
+    "Sollidsgatan",
+    "Stubbeledsgatan",
+    "Ståthållaregatan",
+    "Sundshagsgatan",
+    "Svalebogatan"
+   ],
+   "medStadning": 3,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 22
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 3
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 udda veckor under tiden 15:e mars - 30:e april.",
+     "antal": 3
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 15
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+     "antal": 1
+    }
+   ]
+  },
+  {
+   "zon": "Ä9",
+   "koder": [
+    "Ä9",
+    "Ä9n"
+   ],
+   "harNatt": true,
+   "stracker": 60,
+   "gator": [
+    "Apotekaregatan",
+    "Askimsgatan",
+    "Carl Skottsbergs Gata",
+    "Fyradalersgatan",
+    "Håbergsstigen",
+    "Malmgårdsgatan",
+    "Storängsgatan",
+    "Särögatan",
+    "Thorild Wulffsgatan",
+    "Änggårdsplatsen"
+   ],
+   "medStadning": 1,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 13
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 4
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Måndag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 1
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 4
+    },
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 08.00 - 15.00.",
+     "antal": 2
+    }
+   ]
+  },
+  {
+   "zon": "G9",
+   "koder": [
+    "G9",
+    "G9n"
+   ],
+   "harNatt": true,
+   "stracker": 60,
+   "gator": [
+    "Ambrosiusgatan",
+    "Banérsgatan",
+    "Batterigatan",
+    "Björnekärrsgatan",
+    "Brahegatan",
+    "Fänriksgatan",
+    "Gamlestadstorget",
+    "Gamlestadsvägen",
+    "Götaholmsgatan",
+    "Harald Stakegatan",
+    "Holländaregatan",
+    "Konstapelsgatan",
+    "Lars Kaggsgatan",
+    "Måns Bryntessonsgatan",
+    "Nylösegatan",
+    "Ryttaregatan"
+   ],
+   "medStadning": 18,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 40
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 16
+    },
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 2
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 9
+    },
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 3
+    },
+    {
+     "text": "Fredag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 3
+    },
+    {
+     "text": "Torsdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 3
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 18
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00.",
+     "antal": 1
+    }
+   ]
+  },
+  {
+   "zon": "H7",
+   "koder": [
+    "H7",
+    "H7n"
+   ],
+   "harNatt": true,
+   "stracker": 58,
+   "gator": [
+    "Fjärdingsgatan",
+    "Godemansgatan",
+    "Hisingsgatan",
+    "Hårdvallsgatan",
+    "Jägaregatan",
+    "Knapegatan",
+    "Lantmätaregatan",
+    "Långängen",
+    "Madängsgatan",
+    "Neptunusgatan",
+    "Pallasgatan",
+    "Rörstrandsgatan",
+    "Skiftesgatan",
+    "Tjärblomsgatan",
+    "Trädesgatan",
+    "Vindragaregatan",
+    "Vårlöksgatan",
+    "Väderkvarnsgatan"
+   ],
+   "medStadning": 25,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 24
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 23
+    },
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 2
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 08.00 - 10.00 udda veckor.",
+     "antal": 24
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 1
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 25
+    }
+   ]
+  },
+  {
+   "zon": "S5",
+   "koder": [
+    "S5",
+    "S5n"
+   ],
+   "harNatt": true,
+   "stracker": 54,
+   "gator": [
+    "Fribergsgatan",
+    "Gibraltargatan",
+    "Kjellbergsgatan",
+    "Lindströmsgatan",
+    "Mackliersgatan",
+    "Meijerbergsgatan",
+    "Olof Rudbecksgatan",
+    "Palmstedtsgatan",
+    "Pontus Wiknersgatan",
+    "Richertsgatan",
+    "Rosensköldsgatan",
+    "Spaldingsgatan",
+    "Stuartsgatan",
+    "Sylvestergatan",
+    "Teknologgatan",
+    "Terrassgatan",
+    "Volrat Thamsgatan",
+    "Von Gerdesgatan",
+    "Ålandsgatan",
+    "Örnehufvudsgatan"
+   ],
+   "medStadning": 12,
+   "taxor": [
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 20
+    },
+    {
+     "text": "boende",
+     "antal": 17
+    },
+    {
+     "text": "18 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 7
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 6
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 6
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 27
+    }
+   ]
+  },
+  {
+   "zon": "S7",
+   "koder": [
+    "S7",
+    "S7n"
+   ],
+   "harNatt": true,
+   "stracker": 43,
+   "gator": [
+    "Bengt Lidnersgatan",
+    "Dicksonsgatan",
+    "Doktor Bondesons Gata",
+    "Doktor Saléns Gata",
+    "Eklandagatan",
+    "Ekmansgatan",
+    "Gibraltargatan",
+    "Lennart Torstenssonsgatan",
+    "Lyckans Väg",
+    "Olof Wijksgatan",
+    "Skyttegatan"
+   ],
+   "medStadning": 19,
+   "taxor": [
+    {
+     "text": "18 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 25
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 3
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 9
+    },
+    {
+     "text": "Fredag klockan 02.00 - 07.00.",
+     "antal": 4
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 3
+    },
+    {
+     "text": "Tisdag klockan 02.00 - 07.00.",
+     "antal": 2
+    },
+    {
+     "text": "Tisdag klockan 09.00 - 12.00 jämna veckor under tiden 15:e mars - 30:e april.",
+     "antal": 1
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 28
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+     "antal": 1
+    }
+   ]
+  },
+  {
+   "zon": "L9",
+   "koder": [
+    "L9",
+    "L9n"
+   ],
+   "harNatt": true,
+   "stracker": 39,
+   "gator": [
+    "Egnahemsvägen",
+    "Kolonigatan",
+    "Ljunggatan"
+   ],
+   "medStadning": 0,
+   "taxor": [
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 2
+    },
+    {
+     "text": "boende",
+     "antal": 2
+    }
+   ],
+   "staddagar": [],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 2
+    }
+   ]
+  },
+  {
+   "zon": "Ö5",
+   "koder": [
+    "Ö5",
+    "Ö5n"
+   ],
+   "harNatt": true,
+   "stracker": 34,
+   "gator": [
+    "Jenny Lindsgatan",
+    "Lilla Redbergsgatan",
+    "Lilla Sparvgatan",
+    "Lundgatan",
+    "Olskroksgatan",
+    "Redbergsvägen",
+    "Slätten",
+    "Sparvgatan",
+    "Wrangelsgatan",
+    "Ånäsvägen",
+    "Örngatan",
+    "Övre Olskroksgatan"
+   ],
+   "medStadning": 10,
+   "taxor": [
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 7
+    },
+    {
+     "text": "boende",
+     "antal": 7
+    },
+    {
+     "text": "24 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 4
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Fredag klockan 09.00 - 12.00 udda veckor.",
+     "antal": 4
+    },
+    {
+     "text": "Tisdag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 2
+    },
+    {
+     "text": "Torsdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 2
+    },
+    {
+     "text": "Tisdag klockan 02.00 - 10.00.",
+     "antal": 1
+    },
+    {
+     "text": "Tisdag klockan 02.00 - 07.00.",
+     "antal": 1
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 20
+    },
+    {
+     "text": "Lastplats vardag utom vardag före sön- och helgdag klockan 09.00 - 18.00 och vardag före sön- och helgdag klockan 09.00 - 15.00.",
+     "antal": 1
+    }
+   ]
+  },
+  {
+   "zon": "Ö7",
+   "koder": [
+    "Ö7",
+    "Ö7n"
+   ],
+   "harNatt": true,
+   "stracker": 33,
+   "gator": [
+    "Bagaregårdsgatan",
+    "Gustavsgatan",
+    "Jakobsdalsgatan",
+    "Jörgensgatan",
+    "Laboratoriegatan",
+    "Landerigatan",
+    "Löparegatan",
+    "Nobelgatan",
+    "Nobelplatsen",
+    "Pipblåsaregatan",
+    "Uddevallagatan",
+    "Ulfsparregatan",
+    "Waernsgatan",
+    "Årbogatan"
+   ],
+   "medStadning": 1,
+   "taxor": [
+    {
+     "text": "boende",
+     "antal": 18
+    },
+    {
+     "text": "7 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 2
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Torsdag klockan 09.00 - 12.00 jämna veckor under tiden 15:e mars - 30:e april.",
+     "antal": 1
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 2
+    }
+   ]
+  },
+  {
+   "zon": "H5",
+   "koder": [
+    "H5",
+    "H5n"
+   ],
+   "harNatt": true,
+   "stracker": 18,
+   "gator": [
+    "Brämaregatan",
+    "Kvillegatan",
+    "Kvilletorget",
+    "Parmmätaregatan",
+    "Tunnbindaregatan"
+   ],
+   "medStadning": 3,
+   "taxor": [
+    {
+     "text": "12 kr/tim 8-22 alla dagar. Övrig tid: 2 kr/tim",
+     "antal": 13
+    },
+    {
+     "text": "boende",
+     "antal": 3
+    }
+   ],
+   "staddagar": [
+    {
+     "text": "Fredag klockan 02.00 - 07.00 jämna veckor.",
+     "antal": 2
+    },
+    {
+     "text": "Onsdag klockan 09.00 - 12.00 jämna veckor.",
+     "antal": 1
+    }
+   ],
+   "maxtid": [
+    {
+     "text": "Tidsbegränsningen gäller vardag utom dag före sön- och helgdag klockan 00.00 - 24.00.",
+     "antal": 13
+    }
+   ]
+  }
+ ]
+}

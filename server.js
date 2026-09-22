@@ -583,6 +583,7 @@ const SEO_FOTER = {
     + '<a href="/parkering-goteborg">Parkering i Göteborg</a>'
     + '<a href="/stadgator-goteborg">Städdagar</a>'
     + '<a href="/boendeparkering-goteborg">Boendeparkering</a>'
+    + '<a href="/boendeparkering-goteborg/regler">Boendeparkering: regler</a>'
     + '<a href="/parkeringsanlaggningar-goteborg">Parkeringsanläggningar</a>'
     + '<a href="/om-parkspot">Om ParkSpot</a>'
     + '</div></footer>',
