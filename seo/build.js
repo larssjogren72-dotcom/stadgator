@@ -1509,14 +1509,179 @@ const UPS_FORBEHALL = 'Uppsala kommun publicerar inga städdagar och inga parker
 // byggs. Kör om verktyget när siffrorna ska uppdateras.
 const UPS_DATA = JSON.parse(fs.readFileSync(path.join(__dirname, 'uppsala.json'), 'utf8'));
 const upsTal = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+// Bojningen raknas ut, den skrivs inte: "1 strackor" stod pa tidsgranssidan i forsta
+// versionen (samma fel som "1 platser" i Goteborg, se platserRow i index.html).
+const upsStrackor = n => upsTal(n) + (n === 1 ? ' sträcka' : ' sträckor');
 
 function upsRelated(utom) {
   return [
     { href:'parkering-uppsala', text:'Parkering i Uppsala – översikt' },
     { href:'parkeringsavgifter-uppsala', text:'Parkeringsavgifter i Uppsala – zoner och priser' },
+    { href:'gratis-parkering-uppsala', text:'Gratis parkering i Uppsala' },
+    { href:'billigare-parkering-uppsala', text:'Billig parkering i Uppsala' },
+    { href:'parkeringstid-uppsala', text:'Hur länge får man parkera i Uppsala?' },
     { href:'parkering-over-natten-uppsala', text:'Parkera över natten i Uppsala' },
     { href:'parkeringshus-uppsala', text:'Parkeringsgarage i Uppsala' },
   ].filter(r => r.href !== utom);
+}
+
+// ── Tre nya Uppsala-sidor (2026-09-22) ──────────────────────────────────────
+// Uppsala kan INTE få samma sidor som Karlstad: det finns ingen zonbokstav per gata och
+// inga städdagar alls. Det Uppsala däremot har, och som ingen sida täckte, är tre
+// mätbara saker: vilka sträckor som är avgiftsfria, vad de kostar där det kostar, och
+// hur länge man får stå. Siffrorna mäts av verktyg/bygg-uppsala-seo.js, aldrig här.
+const UPS_LAGER = UPS_DATA.lagerTotal || {};
+const upsLagerTal = (n, f) => (UPS_LAGER[n] && UPS_LAGER[n][f]) || 0;
+
+function upsGratis() {
+  const fri = upsLagerTal('avgiftsfri', 'stracker'), friPl = upsLagerTal('avgiftsfri', 'platser');
+  const sam = upsLagerTal('samnyttjad', 'stracker'), samPl = upsLagerTal('samnyttjad', 'platser');
+  const avg = upsLagerTal('avgift', 'stracker');
+  // Avgiftsfritt är ojämnt fördelat, och DET är sidans hela nytta: var i staden man
+  // slipper betala. Bara stadsdelar med egen sida kan länkas, resten nämns i text.
+  const topp = UPS_DATA.stadsdelar.slice()
+    .filter(s => s.avgiftsfri > 0)
+    .sort((a, b) => b.avgiftsfri - a.avgiftsfri).slice(0, 12);
+  const sections =
+    '<section class="card"><h2>Hur mycket är avgiftsfritt?</h2>' +
+    `<p>Uppsala kommun publicerar <b>${upsTal(fri)} avgiftsfria parkeringssträckor</b> med tillsammans ` +
+    `<b>${upsTal(friPl)} platser</b>. Till det kommer <b>${upsTal(sam)} samnyttjade sträckor</b> (${upsTal(samPl)} platser), ` +
+    'alltså parkeringar som delas med en verksamhet och ofta är fria på kvällar och helger – där avgör skylten. ' +
+    `Resten, <b>${upsTal(avg)} sträckor</b>, är avgiftsbelagda.</p>` +
+    '<p><b>Avgiftsfritt är inte samma sak som obegränsat.</b> En avgiftsfri plats kan ha tidsgräns, ' +
+    'och den står på skylten. <a href="/parkeringstid-uppsala">Så länge får du stå →</a></p>' +
+    '<p>' + UPS_FORBEHALL + '</p></section>' +
+    (topp.length ? '<section class="card"><h2>Stadsdelar med flest avgiftsfria sträckor</h2>' +
+      '<p>Så här fördelar de sig i de stadsdelar som har en egen sida hos oss:</p><ul>' +
+      topp.map(s => `<li><a href="/parkering-uppsala/${s.slug}">${esc(s.namn)}</a> – <b>${s.avgiftsfri} av ${s.stracker}</b> sträckor avgiftsfria</li>`).join('') +
+      '</ul><p>Mönstret är tydligt: ju längre från centrum, desto mer är gratis. I de centrala ' +
+      'stadsdelarna är nästan allt avgiftsbelagt.</p></section>' : '') +
+    '<section class="card"><h2>Gratis på kvällen och natten?</h2>' +
+    '<p>I de avgiftsbelagda zonerna tar taxan ofta slut klockan 24, och flera zoner har en ' +
+    'billigare kvällstaxa från 18. Det är alltså sällan gratis mitt i stan på kvällen, men ' +
+    'betydligt billigare. <a href="/billigare-parkering-uppsala">Se prisstegen →</a></p>' +
+    '<p>Kommunens parkeringsgarage har egna taxor dygnet runt, med dygnspris. ' +
+    '<a href="/parkeringshus-uppsala">Garagen och deras priser →</a></p></section>' +
+    '<section class="card"><h2>Se det på karta</h2>' +
+    '<p><a href="https://parkspot.se/?stad=uppsala">ParkSpot Uppsala</a> visar avgiftsfria och avgiftsbelagda ' +
+    'sträckor tillsammans, eftersom frågan «får jag stå här» kommer före «vad kostar det». ' +
+    'Trycker du på en gata står priset, tidsgränsen och platstypen på kortet.</p></section>';
+  const faq = [
+    { q:'Finns det gratis parkering i Uppsala?', a:`Ja. Kommunen publicerar ${upsTal(fri)} avgiftsfria parkeringssträckor med ${upsTal(friPl)} platser, mest utanför de centrala delarna. Även en avgiftsfri plats kan ha tidsgräns – skylten avgör.` },
+    { q:'Var är det gratis att parkera i Uppsala?', a: topp.length ? `Flest avgiftsfria sträckor finns i ${topp.slice(0, 4).map(s => s.namn).join(', ')}. I centrala Uppsala är nästan all gatuparkering avgiftsbelagd.` : 'Främst utanför de centrala stadsdelarna.' },
+    { q:'Vad betyder samnyttjad parkering?', a:`Att parkeringen delas med en verksamhet, till exempel en butik eller arbetsplats, och att villkoren kan skilja sig mellan dag och kväll. Uppsala har ${upsTal(sam)} sådana sträckor. Läs skylten på plats.` },
+    { q:'Är det gratis att parkera i Uppsala på natten?', a:'I de avgiftsbelagda zonerna gäller taxan oftast till klockan 24, med en billigare kvällstaxa från 18. Garagen tar betalt dygnet runt. Skylten och taxeskylten avgör.' },
+  ];
+  emit('gratis-parkering-uppsala', layout({
+    slug:'gratis-parkering-uppsala',
+    title:'Gratis parkering i Uppsala – var slipper du betala?',
+    desc:`Uppsala har ${upsTal(fri)} avgiftsfria parkeringssträckor med ${upsTal(friPl)} platser. Se var de finns, vad samnyttjad parkering betyder och vilka tidsgränser som gäller.`,
+    h1:'Gratis parkering i Uppsala',
+    lead:`${upsTal(fri)} avgiftsfria sträckor och ${upsTal(friPl)} platser – här är var de ligger, och vad som gäller ändå.`,
+    sections, faq, related: upsRelated('gratis-parkering-uppsala'), lat:null, lng:null, match:null, stad:UPS }));
+}
+
+function upsBilligare() {
+  // Zonerna A–E ligger som områdeskoder (18100–18500) med kommunens avgiftstext ordagrant.
+  // Ordningen är bokstavens, baklanges: E ligger ytterst och är billigast, A mitt i stan och
+  // dyrast. Priset läses aldrig ur texten – kommunens formulering skrivs ut ordagrant i stället.
+  const zonKod = { '18100':'A', '18200':'B', '18300':'C', '18400':'D', '18500':'E' };
+  const zoner = UPS_DATA.omraden.filter(o => zonKod[String(o.kod)])
+    .map(o => ({ bokstav: zonKod[String(o.kod)], ...o }))
+    .sort((a, b) => a.bokstav < b.bokstav ? 1 : -1);          // E (billigast) först
+  const garage = (UPS_DATA.garage || []).filter(g => g.platser);
+  const sections =
+    (zoner.length ? '<section class="card"><h2>Zonerna, billigast först</h2>' +
+      '<p>Uppsalas gatuparkering är indelad i zoner med bokstav. Bokstaven står på skylten, ' +
+      'och priset följer zonen – <b>A är dyrast och ligger mitt i stan, E är billigast</b>. ' +
+      'Så här skriver kommunen priserna, ordagrant:</p><ul>' +
+      zoner.map(z => `<li><b>Zon ${esc(z.bokstav)}</b> – ${esc(z.avgiftstext)} · ${upsTal(z.stracker)} sträckor, ${upsTal(z.platser)} platser</li>`).join('') +
+      '</ul><p>Klockslag <b>inom parentes</b> gäller dag före sön- och helgdag, alltså oftast lördag. ' +
+      '«Max-P» är tidsgränsen, inte priset.</p></section>' : '') +
+    '<section class="card"><h2>Fyra sätt att betala mindre</h2><ul>' +
+    '<li><b>Gå en zon utåt.</b> Skillnaden mellan innerstan och zonerna utanför är flera kronor i timmen för samma promenad på några minuter.</li>' +
+    '<li><b>Parkera efter 18.</b> Flera zoner har kvällstaxa 5 kr i timmen, och taxan tar slut vid midnatt.</li>' +
+    '<li><b>Leta avgiftsfritt.</b> Kommunen publicerar avgiftsfria sträckor, mest utanför centrum. <a href="/gratis-parkering-uppsala">Var de finns →</a></li>' +
+    '<li><b>Ska bilen stå länge – räkna på garage.</b> Garagen har dygnspris, vilket slår timtaxan när bilen står över natten eller en hel dag.</li>' +
+    '</ul></section>' +
+    (garage.length ? '<section class="card"><h2>Garagen och deras taxor</h2><ul>' +
+      garage.map(g => `<li><b>${esc(g.namn)}</b> – ${g.platser} platser${g.maxtid ? `, max ${esc(g.maxtid)}` : ''}${g.hojd ? `, takhöjd ${esc(g.hojd)}` : ''}</li>`).join('') +
+      '</ul><p>Priserna står ordagrant på <a href="/parkeringshus-uppsala">garagesidan</a>. Flera garage har de ' +
+      'första timmarna gratis, och det gör dem billigare än gatan för ett kortare ärende.</p></section>' : '') +
+    '<section class="card"><h2>Billigt är inte samma sak som tillåtet</h2>' +
+    '<p>Priset säger inget om hur länge du får stå. Tidsgränsen står på skylten och skiljer sig kraftigt ' +
+    'mellan platser: från 15 minuter till två dygn. <a href="/parkeringstid-uppsala">Se tidsgränserna →</a></p>' +
+    '<p>' + UPS_FORBEHALL + '</p></section>';
+  const billigast = zoner[0], dyrast = zoner[zoner.length - 1];
+  const faq = [
+    { q:'Vilken zon är billigast i Uppsala?', a: billigast ? `Zon ${billigast.bokstav}: ${billigast.avgiftstext}. Dyrast är zon ${dyrast.bokstav}, som ligger mitt i stan.` : 'Zonerna längre från centrum är billigast.' },
+    { q:'Vad kostar parkering i Uppsala på kvällen?', a:'Flera zoner har kvällstaxa 5 kr i timmen från klockan 18, och taxan gäller till midnatt. Skylten avgör.' },
+    { q:'Är det billigare att stå i garage i Uppsala?', a:'Om bilen ska stå länge, ja. Garagen har dygnspris medan gatan räknar per timme. Några garage har dessutom de första timmarna gratis.' },
+    { q:'Vad betyder bokstaven på skylten?', a:'Den anger avgiftszonen. A ligger mitt i stan och är dyrast, E ligger ytterst och är billigast. ParkSpot visar zonen på kartan.' },
+  ];
+  emit('billigare-parkering-uppsala', layout({
+    slug:'billigare-parkering-uppsala',
+    title:'Billig parkering i Uppsala – zoner, kvällstaxa och garage',
+    desc:'Så parkerar du billigare i Uppsala: zonerna A–E med kommunens egna priser, kvällstaxa från 18, avgiftsfria sträckor och garagens dygnspris.',
+    h1:'Billigare parkering i Uppsala',
+    lead: billigast ? `Zon ${billigast.bokstav} är billigast, zon ${dyrast.bokstav} dyrast. Här är hela prisstegen – och tre sätt till att betala mindre.` : 'Här är prisstegen och sätten att betala mindre.',
+    sections, faq, related: upsRelated('billigare-parkering-uppsala'), lat:null, lng:null, match:null, stad:UPS }));
+}
+
+function upsParkeringstid() {
+  // 25 olika tidsgränser i datan. Sidan grupperar dem i tre spann – ingen läser en lista
+  // med 25 rader, men alla vill veta «räcker det för ett ärende, en dag eller en natt».
+  const G = UPS_DATA.granser || [];
+  const summa = G.reduce((s, g) => s + g.antal, 0);
+  const minuter = namn => {
+    const m = /^(\d+)\s*(min|tim|dygn)/.exec(namn);
+    if (!m) return null;
+    return +m[1] * (m[2] === 'min' ? 1 : m[2] === 'tim' ? 60 : 1440);
+  };
+  const spann = [
+    { namn:'Korta ärenden – högst 30 minuter', test: n => n != null && n <= 30 },
+    { namn:'Några timmar – 1 till 4 timmar',  test: n => n != null && n > 30 && n <= 240 },
+    { namn:'Ett dygn eller mer',              test: n => n != null && n >= 1440 },
+  ].map(s => {
+    const rader = G.filter(g => s.test(minuter(g.namn)));
+    return { ...s, rader, antal: rader.reduce((a, g) => a + g.antal, 0) };
+  }).filter(s => s.antal);
+  const ovriga = G.filter(g => !spann.some(s => s.rader.includes(g)));
+  const sections =
+    '<section class="card"><h2>Tidsgränsen står på skylten – och den varierar kraftigt</h2>' +
+    `<p>Uppsala kommun anger en tidsgräns på <b>${upsTal(summa)} av ${upsTal(UPS_DATA.strackorTotalt)} parkeringssträckor</b>, ` +
+    `och det finns <b>${G.length} olika varianter</b> i datan – från 15 minuter till två dygn. Det går alltså inte att ` +
+    'säga en enda siffra som gäller för Uppsala. Det här är fördelningen:</p>' +
+    spann.map(s => `<h3>${esc(s.namn)}</h3><ul>` +
+      s.rader.sort((a, b) => b.antal - a.antal).map(g => `<li><b>${esc(g.namn)}</b> – ${upsStrackor(g.antal)}</li>`).join('') +
+      '</ul>').join('') +
+    (ovriga.length ? '<h3>Övriga varianter</h3><ul>' +
+      ovriga.sort((a, b) => b.antal - a.antal).slice(0, 10).map(g => `<li><b>${esc(g.namn)}</b> – ${upsStrackor(g.antal)}</li>`).join('') +
+      '</ul>' : '') +
+    '<p>En gräns som «30 min 7-16» betyder att begränsningen bara gäller under de timmarna. ' +
+    'Utanför dem gäller trafikförordningens allmänna regel: högst 24 timmar i följd på vardagar.</p></section>' +
+    '<section class="card"><h2>Var gränsen inte står</h2>' +
+    `<p>På övriga sträckor finns ingen tidsgräns i kommunens data. Det betyder inte att du får stå hur länge ` +
+    'som helst – trafikförordningens 24-timmarsregel gäller ändå på vardagar, och skylten kan säga något annat. ' +
+    'ParkSpot skriver aldrig ut en gräns som inte finns i datan.</p>' +
+    '<p>' + UPS_FORBEHALL + '</p></section>' +
+    '<section class="card"><h2>Räcker tiden över natten?</h2>' +
+    '<p>De långa gränserna, ett eller två dygn, räcker för en natt. En 15- eller 30-minutersplats gör det aldrig. ' +
+    'Natt-läget i <a href="https://parkspot.se/?stad=uppsala">ParkSpot Uppsala</a> väger in tidsgränsen åt dig. ' +
+    '<a href="/parkering-over-natten-uppsala">Mer om att stå över natten →</a></p></section>';
+  const faq = [
+    { q:'Hur länge får man parkera i Uppsala?', a:`Det beror på platsen. Kommunen anger tidsgräns på ${upsTal(summa)} sträckor, i ${G.length} olika varianter – från 15 minuter till två dygn. Saknas gräns gäller trafikförordningens 24 timmar på vardagar. Skylten avgör.` },
+    { q:'Vad betyder «Max-P 24tim» på skylten?', a:'Att du får stå högst 24 timmar i följd på den platsen. Det är en tidsgräns, inte ett pris.' },
+    { q:'Vad betyder en gräns med klockslag, som «30 min 7-16»?', a:'Att begränsningen bara gäller de timmarna. Utanför dem gäller den allmänna regeln om högst 24 timmar i följd på vardagar.' },
+    { q:'Gäller tidsgränsen även om jag betalar?', a:'Ja. Avgiften och tidsgränsen är två olika saker – du kan inte betala dig till längre tid än skylten tillåter.' },
+  ];
+  emit('parkeringstid-uppsala', layout({
+    slug:'parkeringstid-uppsala',
+    title:'Hur länge får man parkera i Uppsala? Tidsgränser',
+    desc:`Tidsgränserna i Uppsala varierar från 15 minuter till två dygn – ${G.length} varianter i kommunens data. Se fördelningen och vad som gäller när gränsen saknas.`,
+    h1:'Hur länge får man parkera i Uppsala?',
+    lead:`Från 15 minuter till två dygn. ${G.length} olika tidsgränser finns i kommunens data – här är fördelningen.`,
+    sections, faq, related: upsRelated('parkeringstid-uppsala'), lat:null, lng:null, match:null, stad:UPS }));
 }
 
 function upsPillar() {
@@ -2016,6 +2181,8 @@ STREETS.forEach(streetPage);
 gbgPillar(); gbgAvgifter(); gbgNatt(); gbgStadgator(); gbgBoende(); gbgAnlaggningar();
 GBG_OMR.forEach(gbgOmrade);
 upsPillar(); upsAvgifter(); upsNatt(); upsGarage();
+// Tre nya sidor 2026-09-22: gratis, billigare och tidsgränser (se upsGratis m.fl.).
+upsGratis(); upsBilligare(); upsParkeringstid();
 UPS_DATA.stadsdelar.forEach(upsStadsdel);
 ksdPillar(); ksdAvgifter(); ksdServicedagar(); ksdNatt();
 // Tio nya sidor 2026-09-22 (se KSD_ZON_SLUG): fyra zoner, en billigare-sida, fem veckodagar.

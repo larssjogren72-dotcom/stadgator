@@ -14,6 +14,35 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.46.0 – 2026-09-22
+**Tre nya Uppsala-sidor – andra sidor än Karlstads, för Uppsala har annan data.**
+
+Uppsala kan inte få Karlstads sidor: det finns **ingen zonbokstav per gatusträcka** (zonerna
+A–E ligger som områdeskoder) och **inga städdagar alls**. Det Uppsala däremot har, mätt i
+kommunens egna lager, fick tre sidor:
+
+- **Gratis parkering i Uppsala** (`/gratis-parkering-uppsala`): 325 avgiftsfria sträckor med
+  3 026 platser, 212 samnyttjade (1 414 platser) och 1 349 avgiftsbelagda. Fördelningen per
+  stadsdel är sidans poäng – Storvretabygden 26 av 26, Sunnersta 32 av 40, mot Luthagen 9 av 210.
+- **Billig parkering i Uppsala** (`/billigare-parkering-uppsala`): zonerna E→A med kommunens
+  avgiftstext ordagrant, från 5 kr/tim i zon E till 20/35 kr/tim i zon A, plus kvällstaxa och garage.
+- **Hur länge får man parkera i Uppsala?** (`/parkeringstid-uppsala`): 358 av 1 886 sträckor har
+  en angiven gräns, i **25 varianter** från 15 minuter till två dygn, grupperade i tre spann.
+
+`verktyg/bygg-uppsala-seo.js` mäter nu även summor per lager (avgift/avgiftsfri/samnyttjad),
+sträckor och platser per områdeskod, och storleken på de stadsdelar som inte når tröskeln för
+egen sida. Inga siffror skrivs för hand.
+
+Uppsalas sidfot fick de tre sidorna. Böjningen räknas ut («1 sträcka», inte «1 sträckor»).
+
+Provat: alla tre 200 mot körande server, taggbalans hel, titlar 51–60 tecken, sitemap 275
+adresser, Stockholm, Göteborg och Karlstad oförändrade.
+
+**Mätt men inte byggt:** 10 stadsdelar utan egen sida har 11–24 sträckor (Polacksbacken 24,
+Gottsunda 21, Gamla Uppsala 19, Brillinge 17, Sävja 16, Slavsta 15, Norby 14, Studentstaden 13,
+Fyrislund 12, Bergsbrunna 11). Tröskeln är 25. Och zonerna A–E går att beskriva per gata via
+områdeskoden – underlag finns nu, sidorna är inte byggda.
+
 ## v1.45.0 – 2026-09-22
 **Tio nya sidor för Karlstad – valda ur Search Console, inte ur magkänslan.**
 

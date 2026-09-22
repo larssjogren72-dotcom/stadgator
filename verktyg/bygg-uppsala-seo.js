@@ -102,6 +102,11 @@ const slugga = s => String(s).toLowerCase()
   const stadsdelar = {};
   const granser = {};
   let platserTotalt = 0, strackorTotalt = 0;
+  // Per lager (avgift / avgiftsfri / samnyttjad) och per omradeskod. Behovs av sidorna
+  // "Gratis parkering" och "Billig parkering" (bygget 2026-09-22): utan totalen gick bara
+  // de stadsdelar som har egen sida att summera, och det ar inte hela staden.
+  const lagerTotal = {};
+  const omradeStrackor = {};
 
   for (const [namn, lager] of Object.entries(LAGER)) {
     const dom = await domaner(lager);
@@ -118,6 +123,13 @@ const slugga = s => String(s).toLowerCase()
       const platser = Number.isFinite(+p.AntalPlatser) ? +p.AntalPlatser : 0;
       platserTotalt += platser;
       if (grans) granser[grans] = (granser[grans] || 0) + 1;
+      const lt = lagerTotal[namn] || (lagerTotal[namn] = { stracker: 0, platser: 0 });
+      lt.stracker++; lt.platser += platser;
+      const kod = p.Omradeskod != null ? String(p.Omradeskod) : null;
+      if (kod) {
+        const o = omradeStrackor[kod] || (omradeStrackor[kod] = { stracker: 0, platser: 0 });
+        o.stracker++; o.platser += platser;
+      }
       if (!sd) continue;
       const s = stadsdelar[sd] || (stadsdelar[sd] = {
         namn: sd, slug: slugga(sd), stracker: 0, platser: 0,
@@ -195,9 +207,16 @@ const slugga = s => String(s).toLowerCase()
     matt: new Date().toISOString().slice(0, 10),
     strackorTotalt, platserTotalt,
     granser: Object.entries(granser).sort((a, b) => b[1] - a[1]).map(([namn, antal]) => ({ namn, antal })),
+    lagerTotal,
     stadsdelar: lista.filter(s => s.stracker >= MIN_STRACKOR),
     stadsdelarUtanSida: lista.filter(s => s.stracker < MIN_STRACKOR).length,
-    omraden, garage
+    // De sma stadsdelarnas storlek, for beslutet om troskeln ska sankas (Lars fraga
+    // 2026-09-22). Bara namn och antal - de far ingen sida av att sta har.
+    smaStadsdelar: lista.filter(s => s.stracker < MIN_STRACKOR)
+      .map(s => ({ namn: s.namn, slug: s.slug, stracker: s.stracker, platser: s.platser, avgiftsfri: s.avgiftsfri })),
+    omraden: omraden.map(o => ({ ...o, stracker: (omradeStrackor[String(o.kod)] || {}).stracker || 0,
+                                        platser:  (omradeStrackor[String(o.kod)] || {}).platser  || 0 })),
+    garage
   };
   fs.writeFileSync(path.join(__dirname, '..', 'seo', 'uppsala.json'), JSON.stringify(ut, null, 1));
   console.log(`[uppsala-seo] ${strackorTotalt} strackor, ${platserTotalt} platser, `
