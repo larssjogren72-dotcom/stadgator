@@ -311,9 +311,9 @@
     <h1>Grunden och<br>de fem städerna</h1>
     <p class="lede">Servern översätter, klienten resonerar. Varje stad får sina data omformade till samma form som Stockholms redan hade — sedan kör exakt samma regelmotor på allt.</p>
     <div class="stamp">
-      <span data-kod="version_text">Live: v1.43.2 · parkspot.se</span>
+      <span data-kod="version_text">Live: v1.44.0 · parkspot.se</span>
       <span data-kod="datum_text">Beskriver koden 22 sep 2026</span>
-      <span data-kod="alla_rader_text">14 320 rader i sju filer</span>
+      <span data-kod="alla_rader_text">14 322 rader i sju filer</span>
     </div>
   </header>
 
@@ -444,7 +444,7 @@
       <li><strong>Mellanhand mot kommunerna.</strong> Stockholms karttjänst kräver en nyckel som inte får ligga i webbläsaren — servern lägger på den. De andra kommunernas tjänster går inte att anropa direkt från en webbsida; webbläsaren blockerar det.</li>
       <li><strong>Cache.</strong> Kommunernas svar sparas i minnet i 6 timmar, upp till 512 MB. Stockholm Parkerings p-hus-API tar ungefär 30 sekunder och förvärms vid start — annars hade första besökaren fått vänta ut det.</li>
       <li><strong>Översättare.</strong> Här bor stadsanpassningen, och ingen annanstans på servern.</li>
-      <li><strong>Sidhuvud, sökmotorer och räknare.</strong> Servern skriver titel och förhandsvisning innan någon JavaScript hunnit köra — en delad länk till Göteborg förhandsvisades annars som Stockholm. Här ligger också <span data-kod="seo_sidor_text">de 261 SEO-sidorna</span> och den kakfria räknaren på <code>/r</code> och <code>/statistik</code>.</li>
+      <li><strong>Sidhuvud, sökmotorer och räknare.</strong> Servern skriver titel och förhandsvisning innan någon JavaScript hunnit köra — en delad länk till Göteborg förhandsvisades annars som Stockholm. Här ligger också <span data-kod="seo_sidor_text">de 271 SEO-sidorna</span> och den kakfria räknaren på <code>/r</code> och <code>/statistik</code>.</li>
     </ol>
   </section>
 
@@ -561,8 +561,8 @@
 
     <figure>
       <div class="figbox">
-        <svg viewBox="0 0 760 208" role="img" data-kod-aria="delning" aria-label="Av 14 320 rader kod är 10 995 delad grund och 3 325 stadsspecifika: 376 rader konfiguration i klienten plus 2 949 rader adaptrar på servern. Den stadsspecifika delen innehåller bara översättning, inga regler.">
-          <text class="d-s" x="40" y="44" data-kod="delad_text">Delad grund · 10 995 rader · 77 %</text>
+        <svg viewBox="0 0 760 208" role="img" data-kod-aria="delning" aria-label="Av 14 322 rader kod är 10 997 delad grund och 3 325 stadsspecifika: 376 rader konfiguration i klienten plus 2 949 rader adaptrar på servern. Den stadsspecifika delen innehåller bara översättning, inga regler.">
+          <text class="d-s" x="40" y="44" data-kod="delad_text">Delad grund · 10 997 rader · 77 %</text>
           <text class="d-s d-city-t" x="720" y="44" text-anchor="end" data-kod="stadsspec_text">Per stad · 3 325 rader · 23 %</text>
 
           <rect class="d-box" x="40" y="56" width="522" height="46" rx="2" data-kod-geom="delad_stapel"></rect>
@@ -694,7 +694,7 @@
   </section>
 
   <footer>
-    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 22 september 2026 · index.html 10 219 rader · server.js 1152 · cities/goteborg.js 585 · cities/karlstad.js 745 · cities/malmo.js 433 · cities/sundbyberg.js 432 · cities/uppsala.js 754</span><br>
+    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 22 september 2026 · index.html 10 219 rader · server.js 1154 · cities/goteborg.js 585 · cities/karlstad.js 745 · cities/malmo.js 433 · cities/sundbyberg.js 432 · cities/uppsala.js 754</span><br>
     Siffrorna och radhänvisningarna på sidan skrivs av <code>verktyg/kodpekare.js</code> — ändra dem inte för hand.<br>
     Källa: <code>docs/arkitektur.html</code> i repot — ändra där, publicera om till samma adress
   </footer>

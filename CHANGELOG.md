@@ -14,6 +14,36 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.45.0 – 2026-09-22
+**Tio nya sidor för Karlstad – valda ur Search Console, inte ur magkänslan.**
+
+Karlstad hade 4 SEO-sidor mot Uppsalas 30 och Stockholms dryga 200. De **enda** två
+Karlstad-frågor som nått sajten på tre månader var «parkering karlstad zoner» och «billig
+parkering karlstad» – båda utan sida. Den största icke-varumärkesfamiljen i Stockholm är
+«städdagar + plats». Därför:
+
+- **Fyra zonsidor** (`/parkeringsavgifter-karlstad/rod-zon` m.fl.): pris ordagrant ur
+  kommunens fält, antal sträckor och platser, tidsgräns och namngivna gator i zonen.
+  Sidorna skiljer sig åt i sak, inte bara i namn: **röd zon har 120-minutersgräns på alla
+  27 sträckor** medan grön (77 av 92) och blå (13 av 16) saknar gräns i datan.
+- **Billigare parkering i Karlstad** (`/billigare-parkering-karlstad`): prisstegen blå 4 →
+  röd 18 kr/tim, när det är gratis, och de parkeringar som har dygns- eller veckopris.
+- **Fem dagsidor** (`/servicedagar-karlstad/mandag` … `/fredag`): kommunens egen lista,
+  ordagrant, uppdelad per veckodag. 23 avsnitt måndag, 19 tisdag, 21 onsdag, 21 torsdag,
+  8 fredag – summan 92 stämmer med kommunens lista.
+
+Underlaget mäts av `verktyg/bygg-karlstad-seo.js` **genom adaptern**, som tidigare, nu även
+gatunamn och tidsgränser per zon. Inga siffror skrivs för hand. Gatunamnen är härledda (304
+av 381 sträckor har namn), och sidorna säger det rakt ut i stället för att låtsas vara
+fullständiga.
+
+Karlstads sidfot fick «Avgifter och zoner» och «Billigare parkering». Avgiftssidan länkar
+de fyra zonerna, servicedagssidan de fem dagarna.
+
+Provat: alla tio sidor 200 mot körande server, taggbalans hel, titlar 51–59 tecken (kapas
+inte på mobil), sitemap 272 adresser, och stickprov på Stockholm, Göteborg och Uppsala
+oförändrade. Siffrorna i texterna kommer ur samma fält som appens platskort.
+
 ## v1.44.0 – 2026-09-22
 **Sidfoten länkar till de andra städerna.**
 

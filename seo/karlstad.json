@@ -1,6 +1,6 @@
 {
  "_kommentar": "Uppmätt underlag för Karlstads SEO-sidor. Byggt av verktyg/bygg-karlstad-seo.js genom adaptern. Redigera inte för hand.",
- "matt": "2026-09-18",
+ "matt": "2026-09-22",
  "strackorTotalt": 376,
  "platserTotalt": 4136,
  "granser": [
@@ -29,7 +29,53 @@
    "priser": [
     "8 kr/tim 09–18",
     "8 kr/tim 09–18 · fritt övrig tid"
-   ]
+   ],
+   "gator": [
+    "Ahlmarksgatan",
+    "Ankersbron",
+    "Banmästargränd",
+    "Bogsprötsgatan",
+    "Bryggaregatan",
+    "Båtsmansgatan",
+    "Fabriksgatan",
+    "Garvaregatan",
+    "Gustaf Lovéns gata",
+    "Götgatan",
+    "Hadar Grudes gata",
+    "Hagagatan",
+    "Kanikenäsbanken",
+    "Konditorigatan",
+    "Konduktörsgatan",
+    "Lagergrens gata",
+    "Malmtorgsgatan",
+    "Munkforsgatan",
+    "märlingen",
+    "Norra Klaragatan",
+    "Odengatan",
+    "Orrholmsgatan",
+    "Packhusallén",
+    "Pråmvägen",
+    "Redaregatan",
+    "Regementsgatan",
+    "Rosenbadsgatan",
+    "Sandbäcksgatan",
+    "Segelgatan",
+    "Stapelgatan",
+    "Stinsgatan",
+    "Södra Klaragatan",
+    "Timmergatan",
+    "Trädgårdsgatan",
+    "Tullhusgatan",
+    "Tynäsgatan",
+    "Vikengatan",
+    "Vänernsgatan",
+    "Wennbergsgatan",
+    "Östra stationsgatan"
+   ],
+   "granser": {
+    "Ingen gräns i datan": 77,
+    "Högst 1 dygn": 15
+   }
   },
   {
    "zon": "Gul zon",
@@ -38,7 +84,36 @@
    "priser": [
     "16 kr/tim 09–18 (09–15) · fritt övrig tid",
     "16 kr/tim 09–18 (09–15)"
-   ]
+   ],
+   "gator": [
+    "Bryggaregatan",
+    "Drottninggatan",
+    "Eneströmsgatan",
+    "Grevgatan",
+    "Herrgårdsgatan",
+    "Hybelejens gata",
+    "Karlbergsgatan",
+    "Kungsgatan",
+    "Malmtorgsgatan",
+    "Mariedalsgatan",
+    "Norra Kyrkogatan",
+    "Norra Strandgatan",
+    "Pihlgrensgatan",
+    "Sandbäcksgatan",
+    "Sandgrundsgatan",
+    "Tage Erlandergatan",
+    "Trekantsgatan",
+    "Våxnäsgatan",
+    "Västra Kanalgatan",
+    "Åttkantsgatan",
+    "Älvgatan",
+    "Östra Kanalgatan",
+    "Östra Kyrkogatan"
+   ],
+   "granser": {
+    "Ingen gräns i datan": 48,
+    "Högst 1 dygn": 5
+   }
   },
   {
    "zon": "Solstadens sportcenter",
@@ -48,7 +123,15 @@
     "5–7 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 140 kr/vecka",
     "5–7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka",
     "4–6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Eva Lisa Holtz arena",
+    "Johan Banérs väg",
+    "Wittstocksslingan"
+   ],
+   "granser": {
+    "Ingen gräns i datan": 33
+   }
   },
   {
    "zon": "Röd zon",
@@ -57,7 +140,21 @@
    "priser": [
     "18 kr/tim 09–18 (09–15) · fritt övrig tid",
     "18 kr/tim 09–18 (09–15)"
-   ]
+   ],
+   "gator": [
+    "Drottninggatan",
+    "Fredsgatan",
+    "Herrgårdsgatan",
+    "Karlbergsgatan",
+    "Kungsgatan",
+    "Södra Kyrkogatan",
+    "Tingvallagatan",
+    "Västra Kyrkogatan",
+    "Västra Torggatan"
+   ],
+   "granser": {
+    "Högst 120 minuter": 27
+   }
   },
   {
    "zon": "Sundstabadet",
@@ -65,7 +162,13 @@
    "platser": 295,
    "priser": [
     "4–6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Drottning Kristinas väg"
+   ],
+   "granser": {
+    "Högst 1 vecka": 19
+   }
   },
   {
    "zon": "Sandgrund",
@@ -73,7 +176,15 @@
    "platser": 210,
    "priser": [
     "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
-   ]
+   ],
+   "gator": [
+    "Norra Strandgatan",
+    "Tingvallarondellen",
+    "Västra Torggatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 18
+   }
   },
   {
    "zon": "Blå zon",
@@ -82,7 +193,21 @@
    "priser": [
     "4 kr/tim 09–18",
     "4 kr/tim 09–18 · fritt övrig tid"
-   ]
+   ],
+   "gator": [
+    "Bjurbäcksgatan",
+    "Drottning Kristinas väg",
+    "Hertig Carls väg",
+    "Kanikenäset",
+    "Kaserngatan",
+    "Sundsta torg",
+    "Tullhusgatan",
+    "Varvsgatan"
+   ],
+   "granser": {
+    "Ingen gräns i datan": 13,
+    "Högst 1 dygn": 3
+   }
   },
   {
    "zon": "Karolinen",
@@ -90,7 +215,14 @@
    "platser": 146,
    "priser": [
     "13 kr/tim · 2 kr/tim övrig tid · 78 kr/dygn · 312 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Odengatan",
+    "Regementsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 15
+   }
   },
   {
    "zon": "Universalen",
@@ -98,7 +230,13 @@
    "platser": 153,
    "priser": [
     "6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Sommargatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 11
+   }
   },
   {
    "zon": "Älgen",
@@ -106,7 +244,14 @@
    "platser": 90,
    "priser": [
     "15 kr/tim · 2 kr/tim övrig tid · 105 kr/dygn"
-   ]
+   ],
+   "gator": [
+    "Drottninggatan",
+    "Pihlgrensgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 10
+   }
   },
   {
    "zon": "Landgången",
@@ -114,7 +259,13 @@
    "platser": 53,
    "priser": [
     "9 kr/tim · 2 kr/tim övrig tid · 45 kr/dygn · 180 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Landgången"
+   ],
+   "granser": {
+    "Högst 1 vecka": 8
+   }
   },
   {
    "zon": "Konstapeln",
@@ -122,7 +273,11 @@
    "platser": 160,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [],
+   "granser": {
+    "Högst 1 vecka": 8
+   }
   },
   {
    "zon": "Slussvakten",
@@ -130,7 +285,13 @@
    "platser": 40,
    "priser": [
     "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
-   ]
+   ],
+   "gator": [
+    "Västra Kanalgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 7
+   }
   },
   {
    "zon": "Gruvlyckan",
@@ -138,7 +299,13 @@
    "platser": 104,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Källarstugevägen"
+   ],
+   "granser": {
+    "Högst 1 vecka": 7
+   }
   },
   {
    "zon": "Klaraborg",
@@ -146,7 +313,11 @@
    "platser": 58,
    "priser": [
     "11 kr/tim · 2 kr/tim övrig tid · 66 kr/dygn · 264 kr/vecka"
-   ]
+   ],
+   "gator": [],
+   "granser": {
+    "Högst 1 vecka": 6
+   }
   },
   {
    "zon": "Gamla badhuset",
@@ -154,7 +325,14 @@
    "platser": 81,
    "priser": [
     "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
-   ]
+   ],
+   "gator": [
+    "Norra Strandgatan",
+    "Tingvallarondellen"
+   ],
+   "granser": {
+    "Högst 1 vecka": 6
+   }
   },
   {
    "zon": "Härolden",
@@ -162,7 +340,14 @@
    "platser": 124,
    "priser": [
     "11 kr/tim · 2 kr/tim övrig tid · 66 kr/dygn · 264 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Gustaf Anders gata",
+    "Våxnäsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 5
+   }
   },
   {
    "zon": "Gustaf Anders gata",
@@ -170,7 +355,14 @@
    "platser": 67,
    "priser": [
     "11 kr/tim · 2 kr/tim övrig tid · 66 kr/dygn · 264 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Gustaf Anders gata",
+    "Våxnäsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 4
+   }
   },
   {
    "zon": "Bilan",
@@ -178,7 +370,13 @@
    "platser": 82,
    "priser": [
     "12–14 kr/tim · 2 kr/tim övrig tid · 94 kr/dygn"
-   ]
+   ],
+   "gator": [
+    "Karlbergsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 4
+   }
   },
   {
    "zon": "Orrholmsplan",
@@ -186,7 +384,13 @@
    "platser": 57,
    "priser": [
     "9 kr/tim · 2 kr/tim övrig tid · 45 kr/dygn · 180 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Tullhusgatan"
+   ],
+   "granser": {
+    "Ingen gräns i datan": 3
+   }
   },
   {
    "zon": "Rosenbad",
@@ -194,7 +398,14 @@
    "platser": 20,
    "priser": [
     "13 kr/tim · 2 kr/tim övrig tid · 78 kr/dygn"
-   ]
+   ],
+   "gator": [
+    "Rosenbadsgatan",
+    "Trädgårdsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 3
+   }
   },
   {
    "zon": "Posthornsgatan",
@@ -203,7 +414,13 @@
    "priser": [
     "6 kr/tim · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka",
     "6 kr/tim 09–18 (09–15) · 2 kr/tim övrig tid · 30 kr/dygn · 120 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Posthornsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 3
+   }
   },
   {
    "zon": "Nya Depåvägen",
@@ -211,7 +428,13 @@
    "platser": 56,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Nya Depåvägen"
+   ],
+   "granser": {
+    "Högst 1 vecka": 3
+   }
   },
   {
    "zon": "Kronjuvelen",
@@ -219,7 +442,14 @@
    "platser": 25,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Fagottgatan",
+    "Stråkparken"
+   ],
+   "granser": {
+    "Högst 1 vecka": 3
+   }
   },
   {
    "zon": "Vattenhästen",
@@ -227,7 +457,13 @@
    "platser": 14,
    "priser": [
     "8 kr/tim · 2 kr/tim övrig tid · 48 kr/dygn · 192 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Munkforsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 2
+   }
   },
   {
    "zon": "Godsmagasinet",
@@ -235,13 +471,26 @@
    "platser": 63,
    "priser": [
     "13 kr/tim · 2 kr/tim övrig tid"
-   ]
+   ],
+   "gator": [
+    "Trädgårdsgatan"
+   ],
+   "granser": {
+    "Högst 1 dygn": 2
+   }
   },
   {
    "zon": "Okänt område",
    "stracker": 2,
    "platser": 0,
-   "priser": []
+   "priser": [],
+   "gator": [
+    "Kanikenäsbanken",
+    "Våxnäsgatan"
+   ],
+   "granser": {
+    "Ingen gräns i datan": 2
+   }
   },
   {
    "zon": "Karmen",
@@ -249,7 +498,14 @@
    "platser": 39,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Karmgatan",
+    "Petersbergsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 2
+   }
   },
   {
    "zon": "Café August",
@@ -257,7 +513,14 @@
    "platser": 0,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Kanikenäsbanken"
+   ],
+   "granser": {
+    "Ingen gräns i datan": 1,
+    "Högst 1 vecka": 1
+   }
   },
   {
    "zon": "Oxen",
@@ -265,7 +528,13 @@
    "platser": 24,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Östra Klarälvsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 1
+   }
   },
   {
    "zon": "Tusenskönan",
@@ -273,7 +542,13 @@
    "platser": 8,
    "priser": [
     "7 kr/tim · 2 kr/tim övrig tid · 35 kr/dygn · 140 kr/vecka"
-   ]
+   ],
+   "gator": [
+    "Älvdalsgatan"
+   ],
+   "granser": {
+    "Högst 1 vecka": 1
+   }
   }
  ],
  "servicedagar": {

@@ -75,6 +75,16 @@ function anropa(vag) {
     else grans['Högst 1 vecka']++;
   }
 
+  // Vilken tidsgränsklass hör en sträcka till? Samma trappa som `grans` ovan, utbruten
+  // så att zonsidorna kan räkna per zon utan att definitionen skrivs två gånger.
+  const gransKlass = p => {
+    const min = p.MAX_MINUTES != null ? p.MAX_MINUTES : p.MAX_HOURS != null ? p.MAX_HOURS * 60
+              : p.MAX_DAYS != null ? p.MAX_DAYS * 1440 : null;
+    return min == null ? 'Ingen gräns i datan'
+         : min <= 120 ? 'Högst 120 minuter'
+         : min <= 1440 ? 'Högst 1 dygn' : 'Högst 1 vecka';
+  };
+
   // Zoner och deras prisrader (ordagrant som adaptern skriver dem)
   const zoner = new Map();
   for (const p of P) {
@@ -82,10 +92,18 @@ function anropa(vag) {
     const i = rate.indexOf(':');
     const zon = i > 0 ? rate.slice(0, i).trim() : (rate || 'Okänt område');
     const pris = i > 0 ? rate.slice(i + 1).trim() : '';
-    const z = zoner.get(zon) || { zon, stracker: 0, platser: 0, priser: new Map() };
+    const z = zoner.get(zon) || { zon, stracker: 0, platser: 0, priser: new Map(),
+                                  gator: new Set(), granser: {} };
     z.stracker++;
     z.platser += p.VF_PLATSER || 0;
     if (pris) z.priser.set(pris, (z.priser.get(pris) || 0) + 1);
+    // Gatunamnen är HÄRLEDDA (se tabellen i cities/karlstad.js): 304 av 381 sträckor har
+    // ett namn, resten lämnas utan. En sida får därför aldrig påstå att listan är
+    // fullständig – den visar de gator vi kan namnge, inte alla gator i zonen.
+    const namn = (p.STREET_NAME || '').trim();
+    if (namn) z.gator.add(namn);
+    const k = gransKlass(p);
+    z.granser[k] = (z.granser[k] || 0) + 1;
     zoner.set(zon, z);
   }
   const zonLista = [...zoner.values()]
@@ -93,7 +111,9 @@ function anropa(vag) {
     .map(z => ({
       zon: z.zon, stracker: z.stracker, platser: z.platser,
       // Vanligaste prisraden först. Ett område kan ha flera, t.ex. dag- och helgtaxa.
-      priser: [...z.priser.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t).slice(0, 3)
+      priser: [...z.priser.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t).slice(0, 3),
+      gator: [...z.gator].sort((a, b) => a.localeCompare(b, 'sv')),
+      granser: z.granser
     }));
 
   const stadSegment = Object.values(stadData.dagar).reduce((s, fc) => s + fc.features.filter(f => f.properties.KARLSTAD_KALLA === 'servicedagar').length, 0);

@@ -609,6 +609,8 @@ const SEO_FOTER = {
     '<footer id="seo-links" aria-label="Parkering i Karlstad">'
     + '<div class="seo-h">Guider</div><div class="seo-grid">'
     + '<a href="/parkering-karlstad">Parkering i Karlstad</a>'
+    + '<a href="/parkeringsavgifter-karlstad">Avgifter och zoner</a>'
+    + '<a href="/billigare-parkering-karlstad">Billigare parkering</a>'
     + '<a href="/servicedagar-karlstad">Servicedagar</a>'
     + '<a href="/parkering-over-natten-karlstad">Parkera över natten</a>'
     + '<a href="/om-parkspot">Om ParkSpot</a>'

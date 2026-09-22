@@ -1126,9 +1126,217 @@ function ksdRelated(utom) {
   return [
     { href:'parkering-karlstad', text:'Parkering i Karlstad – översikt' },
     { href:'parkeringsavgifter-karlstad', text:'Vad kostar parkering i Karlstad?' },
+    { href:'billigare-parkering-karlstad', text:'Billigare parkering i Karlstad' },
     { href:'servicedagar-karlstad', text:'Servicedagar i Karlstad – gata för gata' },
     { href:'parkering-over-natten-karlstad', text:'Parkera över natten i Karlstad' },
   ].filter(r => r.href !== utom);
+}
+
+// ── Zon- och dagsidor (bygget 2026-09-22) ───────────────────────────────────
+// Frågorna kommer ur Search Console, inte ur magkänslan: de ENDA två Karlstad-frågor
+// som nått sajten på tre månader är «parkering karlstad zoner» och «billig parkering
+// karlstad», och den största icke-varumärkesfamiljen i Stockholm är «städdagar + plats».
+// Därför fyra zonsidor, en billigare-sida och fem dagsidor.
+//
+// ⚠ Sidorna får bara säga det datan bär. Gatunamnen är HÄRLEDDA (304 av 381 sträckor
+// har namn i tabellen), så listorna presenteras som «gator vi kan namnge», aldrig som
+// zonens fullständiga innehåll. Servicedagslistorna är däremot kommunens egna, ordagrant.
+const KSD_ZON_SLUG = { 'Röd zon':'rod-zon', 'Gul zon':'gul-zon', 'Grön zon':'gron-zon', 'Blå zon':'bla-zon' };
+const ksdZonData = namn => KSD_DATA.zoner.find(z => z.zon === namn);
+const ksdPris = z => (z && z.priser && z.priser[0]) ? z.priser[0] : '';
+// Timpriset som siffra, för prisordningen på billigare-sidan. Texten kommer ur kommunens
+// egen formulering («8 kr/tim 09–18 · fritt övrig tid»), så siffran läses ur den i stället
+// för att skrivas för hand – annars glider sidan isär från appen vid nästa höjning.
+const ksdTimpris = z => { const m = /(\d+)\s*kr\/tim/.exec(ksdPris(z)); return m ? +m[1] : null; };
+const KSD_GRANS_ORD = {
+  'Högst 120 minuter': 'högst 120 minuter',
+  'Högst 1 dygn': 'högst ett dygn',
+  'Högst 1 vecka': 'högst en vecka',
+  'Ingen gräns i datan': 'ingen tidsgräns i kommunens data'
+};
+
+function ksdZonSida(namn) {
+  const z = ksdZonData(namn);
+  if (!z) return;                                   // zonen saknas i mätningen → ingen sida
+  const slug = 'parkeringsavgifter-karlstad/' + KSD_ZON_SLUG[namn];
+  const farg = namn.replace(' zon', '').toLowerCase();
+  const timpris = ksdTimpris(z);
+  const alla = KSD_GATUZONER.map(ksdZonData).filter(Boolean)
+    .map(x => ({ zon: x.zon, pris: ksdTimpris(x) })).filter(x => x.pris != null)
+    .sort((a, b) => b.pris - a.pris);
+  const plats = alla.findIndex(x => x.zon === namn);
+  const billigare = alla.slice(plats + 1), dyrare = alla.slice(0, plats);
+  // Tidsgränsen är det som skiljer zonerna mest: Röd zon har 120 minuter på ALLA
+  // sträckor, medan Grön, Gul och Blå nästan aldrig har någon gräns i datan.
+  const gr = Object.entries(z.granser || {}).sort((a, b) => b[1] - a[1]);
+  const gransRader = gr.map(([k, n]) =>
+    `<li><b>${n} av ${z.stracker} sträckor</b> – ${KSD_GRANS_ORD[k] || esc(k)}</li>`).join('');
+  const allaSammaGrans = gr.length === 1;
+  const sections =
+    '<section class="card"><h2>Vad kostar ' + esc(namn.toLowerCase()) + '?</h2>' +
+    '<ul>' + z.priser.map(p => `<li>${esc(p)}</li>`).join('') + '</ul>' +
+    '<p>Klockslag <b>inom parentes</b> gäller dag före sön- och helgdag, alltså oftast lördag. ' +
+    'En tid utan parentes gäller vardagar. Står det «fritt övrig tid» kostar det inget utanför ' +
+    'de tiderna – men tidsgränsen och servicedagen gäller ändå.</p>' +
+    `<p>Zonen omfattar <b>${z.stracker} avgiftssträckor</b> med tillsammans <b>${ksdTal(z.platser)} platser</b>.</p>` +
+    (dyrare.length || billigare.length
+      ? '<p>' + (billigare.length
+          ? `Billigare zoner: ${billigare.map(x => `<b>${esc(x.zon.toLowerCase())}</b> ${x.pris} kr/tim`).join(', ')}. `
+          : 'Det här är den billigaste gatuzonen i Karlstad. ') +
+        (dyrare.length
+          ? `Dyrare: ${dyrare.map(x => `<b>${esc(x.zon.toLowerCase())}</b> ${x.pris} kr/tim`).join(', ')}.`
+          : 'Det här är den dyraste gatuzonen i Karlstad.') +
+        ' <a href="/billigare-parkering-karlstad">Se hela prisstegen →</a></p>'
+      : '') + '</section>' +
+    '<section class="card"><h2>Hur länge får du stå?</h2><ul>' + gransRader + '</ul>' +
+    (allaSammaGrans && gr[0][0] === 'Högst 120 minuter'
+      ? '<p><b>Hela zonen är korttidsparkering.</b> Samtliga sträckor har 120-minutersgräns i kommunens data, ' +
+        'så den här zonen fungerar för ett ärende – inte för att ställa bilen över dagen eller natten. ' +
+        'Behöver bilen stå längre är ett parkeringshus eller en zon längre ut nästan alltid rätt.</p>'
+      : '<p>Där ingen gräns står i datan har skyltarna vi kontrollerat heller ingen gräns, och då gäller ' +
+        'trafikförordningens allmänna regel: högst 24 timmar i följd på vardagar. Står det något annat på skylten gäller skylten.</p>') +
+    '</section>' +
+    (z.gator && z.gator.length
+      ? '<section class="card"><h2>Gator i ' + esc(namn.toLowerCase()) + '</h2>' +
+        `<p>Så här heter de gator vi kan namnge i zonen (${z.gator.length} stycken). ` +
+        'Namnen är härledda ur kommunens adresslager, och en del sträckor saknar namn – ' +
+        'listan visar alltså inte nödvändigtvis varje gata i zonen. Zonen står på skylten.</p>' +
+        '<ul>' + z.gator.map(g => `<li>${esc(g)}</li>`).join('') + '</ul></section>'
+      : '') +
+    '<section class="card"><h2>Servicedagen gäller oavsett zon</h2>' +
+    '<p>Zonen styr priset, inte om du får stå. Några timmar varannan vecka är det ' +
+    '<a href="/servicedagar-karlstad">servicedag</a> på många gator i centrala Karlstad, och då är det ' +
+    'parkeringsförbud oavsett vad du betalat. <a href="https://parkspot.se/?stad=karlstad">ParkSpot Karlstad</a> ' +
+    'visar zonen, priset, tidsgränsen och nästa servicedag på samma kort.</p>' +
+    '<p>' + KSD_FORBEHALL + '</p></section>';
+  const faq = [
+    { q: `Vad kostar ${namn.toLowerCase()} i Karlstad?`,
+      a: `${esc(ksdPris(z))}. Tid inom parentes gäller dag före sön- och helgdag.` },
+    { q: `Hur länge får man stå i ${namn.toLowerCase()}?`,
+      a: allaSammaGrans && gr[0][0] === 'Högst 120 minuter'
+        ? `Högst 120 minuter. Alla ${z.stracker} sträckor i zonen har den gränsen i kommunens data.`
+        : `På ${(z.granser['Ingen gräns i datan'] || 0)} av ${z.stracker} sträckor finns ingen tidsgräns i kommunens data, och då gäller trafikförordningens 24 timmar på vardagar. Övriga har en skyltad gräns. Skylten avgör.` },
+    { q: 'Är det gratis på kvällen?',
+      a: /fritt övrig tid/i.test(z.priser.join(' '))
+        ? 'Ja, i den här zonen står det «fritt övrig tid», alltså utanför de skyltade avgiftstiderna. Kontrollera skylten på plats.'
+        : 'Avgiftstiderna står på skylten. Utanför dem är gatuparkeringen i Karlstad i regel avgiftsfri, men läs alltid skylten.' },
+    { q: `Var ligger ${namn.toLowerCase()}?`,
+      a: `Zonen finns på ${z.stracker} gatusträckor i Karlstad${z.gator && z.gator.length ? `, bland annat ${z.gator.slice(0, 5).join(', ')}` : ''}. Zonen står på skylten, och ParkSpot visar den när du trycker på en gata.` },
+  ];
+  emit(slug, layout({
+    slug,
+    title: `${namn} Karlstad – pris och tidsgräns | ParkSpot`,
+    desc: `${namn} i Karlstad kostar ${timpris != null ? timpris + ' kr/tim' : 'enligt skylten'}. Se avgiftstider, tidsgräns, antal platser och vilka gator som ligger i zonen.`,
+    h1: `${namn} i Karlstad`,
+    lead: `${timpris != null ? timpris + ' kr i timmen' : 'Pris enligt skylten'} · ${z.stracker} sträckor · ${ksdTal(z.platser)} platser. Här är villkoren för ${farg} zon.`,
+    sections, faq, related: ksdRelated('parkeringsavgifter-karlstad'), lat:null, lng:null, match:null, stad:KSD }));
+}
+
+// ── Billigare parkering ─────────────────────────────────────────────────────
+// Bevisad fråga: «billig parkering karlstad» gav ett klick utan att sidan fanns.
+function ksdBilligare() {
+  const gatu = KSD_GATUZONER.map(ksdZonData).filter(Boolean)
+    .map(z => ({ z, pris: ksdTimpris(z) })).filter(x => x.pris != null)
+    .sort((a, b) => a.pris - b.pris);
+  const billigast = gatu[0], dyrast = gatu[gatu.length - 1];
+  // Områden med dygns- eller veckopris: det är de som gör skillnad när bilen ska stå länge.
+  const langtid = KSD_DATA.zoner
+    .filter(z => z.priser && z.priser.some(p => /dygn|vecka/i.test(p)))
+    .sort((a, b) => b.platser - a.platser).slice(0, 10);
+  const sections =
+    '<section class="card"><h2>Prisstegen, billigast först</h2>' +
+    '<p>Karlstads gatuzoner heter färger och ligger i prisordning. Att gå en zon utåt är ' +
+    'det enklaste sättet att halvera timpriset.</p><ul>' +
+    gatu.map(x => `<li><b>${esc(x.z.zon)}</b> – ${x.pris} kr/tim · ${x.z.stracker} sträckor, ${ksdTal(x.z.platser)} platser</li>`).join('') +
+    '</ul>' +
+    (billigast && dyrast && billigast.pris !== dyrast.pris
+      ? `<p>Skillnaden mellan dyrast och billigast är <b>${dyrast.pris - billigast.pris} kr i timmen</b>. ` +
+        `Fyra timmar i ${esc(billigast.z.zon.toLowerCase())} kostar ${billigast.pris * 4} kr, samma tid i ${esc(dyrast.z.zon.toLowerCase())} ${dyrast.pris * 4} kr.</p>`
+      : '') + '</section>' +
+    '<section class="card"><h2>Tre sätt att betala mindre</h2><ul>' +
+    '<li><b>Vänta till kvällen.</b> I gatuzonerna står det ofta «fritt övrig tid», alltså ingen avgift utanför de skyltade tiderna. Servicedagen gäller ändå.</li>' +
+    '<li><b>Gå en zon utåt.</b> ' + (billigast ? `${esc(billigast.z.zon)} kostar ${billigast.pris} kr/tim mot ${dyrast.pris} kr/tim närmast centrum.` : 'Zonerna längre ut är billigare.') + '</li>' +
+    '<li><b>Ska bilen stå länge – ta ett dygns- eller veckopris.</b> De namngivna parkeringarna har egna taxor, ofta 2 kr i timmen övrig tid och ett tak per dygn. Det blir nästan alltid billigare än timtaxan på gatan.</li>' +
+    '</ul></section>' +
+    (langtid.length ? '<section class="card"><h2>Parkeringar med dygns- eller veckopris</h2>' +
+      '<p>Så här skriver kommunen priserna, ordagrant:</p><ul>' +
+      langtid.map(z => `<li><b>${esc(z.zon)}</b> – ${esc(z.priser[0])} · ${ksdTal(z.platser)} platser</li>`).join('') +
+      '</ul></section>' : '') +
+    '<section class="card"><h2>Billigt är inte samma sak som tillåtet</h2>' +
+    '<p>Priset säger inget om du får stå. Kontrollera tidsgränsen och nästa ' +
+    '<a href="/servicedagar-karlstad">servicedag</a> – en gata kan vara gratis på kvällen och ändå ha ' +
+    'parkeringsförbud klockan 05 på morgonen. <a href="https://parkspot.se/?stad=karlstad">ParkSpot Karlstad</a> ' +
+    'visar båda delarna på samma kort.</p><p>' + KSD_FORBEHALL + '</p></section>';
+  const faq = [
+    { q:'Var är det billigast att parkera i Karlstad?', a: billigast ? `Av gatuzonerna är ${billigast.z.zon.toLowerCase()} billigast, ${billigast.pris} kr i timmen, mot ${dyrast.pris} kr i ${dyrast.z.zon.toLowerCase()} närmast centrum. Ska bilen stå länge är dygns- eller veckopriset på en namngiven parkering oftast billigare än gatan.` : 'Zonerna längre från centrum är billigast.' },
+    { q:'Är parkering gratis i Karlstad på kvällen?', a:'I gatuzonerna står det ofta «fritt övrig tid», alltså utanför de skyltade avgiftstiderna. Flera namngivna parkeringar tar 2 kr i timmen dygnet runt. Skylten avgör.' },
+    { q:'Är det gratis att parkera på söndagar?', a:'Kommunens avgiftstider anger vardagar och dag före sön- och helgdag. Söndagar och helgdagar saknas i regel, och då är det avgiftsfritt. Läs skylten på plats.' },
+    { q:'Lönar det sig att parkera i parkeringshus i Karlstad?', a:'Ofta, om bilen ska stå längre än några timmar. Parkeringshusen och de namngivna ytorna har dygnspris, medan gatan räknar per timme. ParkSpot visar närmaste anläggning när gatan är full.' },
+  ];
+  emit('billigare-parkering-karlstad', layout({
+    slug:'billigare-parkering-karlstad',
+    title:'Billig parkering i Karlstad – var är det billigast?',
+    desc:'Så hittar du billig parkering i Karlstad: prisstegen från blå till röd zon, när det är gratis och vilka parkeringar som har dygns- och veckopris.',
+    h1:'Billigare parkering i Karlstad',
+    lead: billigast ? `Blå zon ${billigast.pris} kr/tim, röd zon ${dyrast.pris} kr/tim – och gratis utanför avgiftstiden. Här är hela prisstegen.` : 'Här är prisstegen, och tre sätt att betala mindre.',
+    sections, faq, related: ksdRelated('billigare-parkering-karlstad'), lat:null, lng:null, match:null, stad:KSD }));
+}
+
+// ── En sida per veckodag med servicedag ─────────────────────────────────────
+// Stockholms största icke-varumärkesfamilj är «städdagar <plats>». Karlstads ord är
+// servicedagar, men folk söker på båda – därför står båda orden i titel och text.
+const KSD_DAG_SLUG = { 'Måndag':'mandag', 'Tisdag':'tisdag', 'Onsdag':'onsdag', 'Torsdag':'torsdag', 'Fredag':'fredag' };
+function ksdServicedagarDag(dag) {
+  const SD = KSD_DATA.servicedagar;
+  const rader = SD.grupper.filter(g => g.veckodag === dag);
+  if (!rader.length) return;                        // ingen servicedag den dagen → ingen sida
+  const slug = 'servicedagar-karlstad/' + KSD_DAG_SLUG[dag];
+  const dagLc = dag.toLowerCase();
+  const antalGator = rader.reduce((s, g) => s + g.gator.length, 0);
+  const jamna = rader.filter(g => g.vecka === 'jämna').reduce((s, g) => s + g.gator.length, 0);
+  const udda = antalGator - jamna;
+  const tidiga = rader.filter(g => g.klockslag.startsWith('05')).reduce((s, g) => s + g.gator.length, 0);
+  const tider = [...new Set(rader.map(g => g.klockslag.replace('-', '–')))];
+  const block = rader.map(g =>
+    `<section class="card"><h2>${g.vecka === 'jämna' ? 'Jämna' : 'Udda'} veckor, klockan ${esc(g.klockslag.replace('-', '–'))}</h2>` +
+    `<p>${g.gator.length} gatuavsnitt. Kommunens egen formulering, ordagrant:</p><ul>` +
+    g.gator.map(x => `<li>${esc(x)}</li>`).join('') + '</ul></section>').join('');
+  const sections =
+    '<section class="card"><h2>Servicedag på ' + dagLc + ' i Karlstad</h2>' +
+    `<p>På <b>${antalGator} gatuavsnitt</b> i centrala Karlstad är det parkeringsförbud några timmar på ${dagLc}ar – ` +
+    // «0 udda veckor» är en siffra som bara förvirrar. Säg i stället rakt ut att alla
+    // avsnitt ligger på samma veckoparitet.
+    (udda === 0 ? 'alla <b>jämna veckor</b>. ' : jamna === 0 ? 'alla <b>udda veckor</b>. '
+      : `${jamna} av dem <b>jämna veckor</b> och ${udda} <b>udda veckor</b>. `) +
+    'Kommunen kallar det servicedag (förr städdag), ' +
+    'och förbudet står på vägmärket vid varje berörd gata.</p>' +
+    `<p>Tiderna den här dagen: <b>${tider.map(esc).join('</b>, <b>')}</b>.</p>` +
+    (tidiga ? `<p><b>Tänk på kvällen före.</b> ${tidiga} av avsnitten börjar redan klockan 05, så bilen måste flyttas ` +
+              `innan dess. ParkSpot varnar för det redan kvällen före i Natt-läget.</p>` : '') +
+    '<ul><li><b>Varannan vecka.</b> Titta på veckonumret: jämn eller udda. ParkSpot räknar ut det åt dig.</li>' +
+    '<li><b>Inte på röda dagar.</b> Infaller servicedagen på en helgdag gäller inte förbudet.</li>' +
+    '<li><b>Gatans två sidor kan ha olika dagar.</b> Zooma in i appen så ser du båda.</li></ul></section>' +
+    block +
+    '<section class="card"><h2>Se det på karta</h2>' +
+    `<p><a href="https://parkspot.se/?stad=karlstad">ParkSpot Karlstad</a> visar bara de servicedagar som faktiskt gäller den här veckan, ` +
+    'och räknar jämn eller udda vecka åt dig. Trycker du på en gata står nästa servicedag på kortet, tillsammans med zon, pris och tidsgräns.</p>' +
+    `<p><a href="/servicedagar-karlstad">Alla veckodagar, gata för gata →</a></p></section>` +
+    '<section class="card"><h2>Källa</h2><p>Karlstads kommun, <a href="' + esc(SD.kalla) + '" rel="nofollow">Schema för servicedagar och parkeringsförbud</a>, ' +
+    `uppdaterad ${esc(SD.sidanUppdaterad)}. ` + KSD_FORBEHALL + '</p></section>';
+  const faq = [
+    { q:`Vilka gator har servicedag på ${dagLc} i Karlstad?`, a:`${antalGator} gatuavsnitt, ${jamna} jämna veckor och ${udda} udda veckor. Hela listan står på den här sidan, ordagrant som kommunen skriver den.` },
+    { q:'Är det jämn eller udda vecka nu?', a:'Det avgör veckonumret. ParkSpot räknar ut det och visar bara de servicedagar som gäller den här veckan.' },
+    { q:`Vad händer om jag står kvar på ${dagLc}ens servicedag?`, a:'Det är ett skyltat parkeringsförbud, så bilen kan få en kontrollavgift och i värsta fall flyttas. Förbudet gäller bara de timmar som står på skylten.' },
+    { q:'Gäller servicedagen på röda dagar?', a:'Nej. Enligt Karlstads kommun gäller inte förbudet om servicedagen infaller på en röd dag.' },
+  ];
+  emit(slug, layout({
+    slug,
+    title:`Servicedagar ${dagLc} Karlstad – städdagar gata för gata`,
+    desc:`Alla gator med servicedag på ${dagLc} i Karlstad: jämna och udda veckor, klockslag och vad som gäller på röda dagar. ${antalGator} gatuavsnitt.`,
+    h1:`Servicedagar på ${dagLc} i Karlstad`,
+    lead:`${antalGator} gatuavsnitt har parkeringsförbud några timmar på ${dagLc}ar – `
+      + (udda === 0 ? 'alla jämna veckor.' : jamna === 0 ? 'alla udda veckor.' : `${jamna} jämna veckor, ${udda} udda.`),
+    sections, faq, related: ksdRelated('servicedagar-karlstad'), lat:null, lng:null, match:null, stad:KSD }));
 }
 
 // ── Vad kostar det? ─────────────────────────────────────────────────────────
@@ -1154,6 +1362,9 @@ function ksdAvgifter() {
     '<b>inom parentes</b> gäller dag före sön- och helgdag, alltså oftast lördag. Står det ' +
     '«fritt övrig tid» kostar det inget utanför de tiderna – men parkeringen kan ändå ha en ' +
     'tidsgräns, och servicedagen gäller oavsett pris.</p>' +
+    '<p>Varje zon har en egen sida med tidsgräns, antal platser och vilka gator som ingår: ' +
+    KSD_GATUZONER.filter(n => ksdZonData(n)).map(n =>
+      `<a href="/parkeringsavgifter-karlstad/${KSD_ZON_SLUG[n]}">${esc(n)}</a>`).join(' · ') + '.</p>' +
     '<p>' + KSD_FORBEHALL + '</p></section>' +
     (ovriga.length ? '<section class="card"><h2>Parkeringsområden med egen taxa</h2>' +
       `<p>Utanför gatuzonerna har ${ovriga.length} namngivna parkeringar sin egen prislista, ofta med dygns- och veckopris. ` +
@@ -1238,7 +1449,10 @@ function ksdServicedagar() {
     // Skyltrundan 2026-09-18: på två gator säger skylten något annat än listan, och
     // kommunens eget avgiftslager håller med skylten. Sidan får inte framställa listan
     // som säkrare än skylten – det är skylten som gäller juridiskt.
-    '<p><b>Skylten gäller.</b> På två ställen har vi sett skyltar som säger något annat än listan: Vikengatan (skylten: måndag 10–12, listan: 08–10) och Drottninggatan mellan Östra Torggatan och Södra Kyrkogatan (skylten: måndag, listan: onsdag). I appen visas båda tiderna där.</p></section>' +
+    '<p><b>Skylten gäller.</b> På två ställen har vi sett skyltar som säger något annat än listan: Vikengatan (skylten: måndag 10–12, listan: 08–10) och Drottninggatan mellan Östra Torggatan och Södra Kyrkogatan (skylten: måndag, listan: onsdag). I appen visas båda tiderna där.</p>' +
+    '<p>Varje veckodag har också en egen sida: ' +
+    Object.keys(KSD_DAG_SLUG).filter(d => SD.grupper.some(g => g.veckodag === d)).map(d =>
+      `<a href="/servicedagar-karlstad/${KSD_DAG_SLUG[d]}">${d.toLowerCase()}</a>`).join(' · ') + '.</p></section>' +
     block +
     '<section class="card"><h2>Källa</h2><p>Karlstads kommun, <a href="' + esc(SD.kalla) + '" rel="nofollow">Schema för servicedagar och parkeringsförbud</a>. ' + KSD_FORBEHALL + '</p></section>';
   const faq = [
@@ -1804,6 +2018,9 @@ GBG_OMR.forEach(gbgOmrade);
 upsPillar(); upsAvgifter(); upsNatt(); upsGarage();
 UPS_DATA.stadsdelar.forEach(upsStadsdel);
 ksdPillar(); ksdAvgifter(); ksdServicedagar(); ksdNatt();
+// Tio nya sidor 2026-09-22 (se KSD_ZON_SLUG): fyra zoner, en billigare-sida, fem veckodagar.
+KSD_GATUZONER.forEach(ksdZonSida); ksdBilligare();
+Object.keys(KSD_DAG_SLUG).forEach(ksdServicedagarDag);
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);
