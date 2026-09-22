@@ -170,7 +170,7 @@
         "name": "Visar ParkSpot nyss avslutade och kommande städgator på kartan?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Ja. I läget \"Nu\" får gator som just städats en grön glow, och gator där städningen snart börjar men du ändå hinner gott om tid får en gul/orange glow – en snabb visuell signal om var chansen till en ledig plats är extra god just nu."
+          "text": "Ja. I läget \"Nu\" får gator som just städats en grön glow, och gator där städningen snart börjar men du ändå hinner gott om tid får en gul/orange glow (inte när bilen måste flyttas före kl 8 på morgonen) – en snabb visuell signal om var chansen till en ledig plats är extra god just nu."
         }
       },
       {
@@ -1144,7 +1144,7 @@
       <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
         <h3 itemprop="name">Visar ParkSpot nyss avslutade och kommande städgator på kartan?</h3>
         <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">Ja. I läget "Nu" får gator som just städats en grön glow, och gator där städningen snart börjar men du ändå hinner gott om tid får en gul/orange glow – en snabb visuell signal om var chansen till en ledig plats är extra god just nu.</p>
+          <p itemprop="text">Ja. I läget "Nu" får gator som just städats en grön glow, och gator där städningen snart börjar men du ändå hinner gott om tid får en gul/orange glow (inte när bilen måste flyttas före kl 8 på morgonen) – en snabb visuell signal om var chansen till en ledig plats är extra god just nu.</p>
         </div>
       </div>
 
@@ -3416,6 +3416,25 @@ function scheduleText(schedule) {
              .concat(gruppManad(schedule.filter(x => !x.vilande && arManad(x))));
   const vilande = grupp(schedule.filter(x =>  x.vilande && !arManad(x)));
 
+  // ── Två källor som säger olika (Karlstad, KONFLIKTREGELN) ────────────────
+  // Servern märker rader ur parkeringslagrets egen text med `kalla`. Finns både sådana
+  // och vanliga rader säger kommunen två saker om samma sträcka – Vikengatan 08–10 och
+  // 10–12. Listade med «·» lästes det som två städningar (feedback 2026-09-22). Nu skrivs
+  // «eller», och en andra rad säger varför. Andra städer skickar aldrig `kalla`.
+  const ejVilande = schedule.filter(x => !x.vilande && !arManad(x));
+  if (ejVilande.some(x => x.kalla) && ejVilande.some(x => !x.kalla)) {
+    const fonster = ejVilande.slice().sort((a, b) => a.day - b.day || a.s - b.s);
+    const dagNyckel = x => x.day + '_' + (x.veckor || '');
+    const sammaDag = new Set(fonster.map(dagNyckel)).size === 1;
+    const dagOrd = x => SV_DAYS[x.day].toLowerCase() + 'ar' + (x.veckor ? ` ${x.veckor} veckor` : '');
+    const tid = x => `${fmtClock(x.s)}–${fmtClock(x.e)}`;
+    const unika = [...new Map(fonster.map(x => [dagNyckel(x) + tid(x), x])).values()];
+    const rad = sammaDag
+      ? `Servas ${dagOrd(unika[0])} ` + unika.map(tid).join(' eller ')
+      : 'Servas ' + unika.map(x => `${dagOrd(x)} ${tid(x)}`).join(' eller ');
+    return rad + '\n' + `Kommunens uppgifter säger olika ${sammaDag ? 'tider' : 'dagar'}. `
+                      + 'Appen varnar för båda – kontrollera skylten.';
+  }
   if (aktiva.length) {
     // Aktivt schema vinner raden. Ett vilande schema bredvid nämns inte – det är brus när
     // gatan ändå städas den här säsongen.
@@ -3707,10 +3726,7 @@ function stadTierFor(dest, name, ctx, now) {
   const sen = ctx.nastaStadUppslag.senaste(dest, name, now);
   if (sen && (now - sen.when) / 3600000 <= SENASTE_H) return { tier: 'nyss', info: sen };
   const nx = ctx.nastaStadUppslag(dest, name, now);
-  if (nx) {
-    const h = (nx.when - now) / 3600000;
-    if (h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H) return { tier: 'snart', info: nx };
-  }
+  if (nx && glodFonster(nx.when, now)) return { tier: 'snart', info: nx };
   return null;
 }
 // Ring-färg + kompletterande info-text för en nål som är "nyss städad"/"städas snart" (men
@@ -4201,7 +4217,12 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   // (syns när en stad saknar schema-uppslag och fetchScheduleText ger '').
   const setClean = t => {
     if (!t) { cleanRow.style.display = 'none'; return; }
-    cleanRow.innerHTML = svgIcon('calendar') + '<span>' + escHtml(t) + '</span>';
+    // En andra rad efter «\n» är en förklaring (se konfliktformen i scheduleText) –
+    // dämpad, så att själva schemat fortfarande är det man läser först.
+    const [huvud, forkl] = String(t).split('\n');
+    cleanRow.innerHTML = svgIcon('calendar') + '<span>' + escHtml(huvud)
+      + (forkl ? '<span style="display:block;color:var(--muted);font-size:13px;margin-top:2px">' + escHtml(forkl) + '</span>' : '')
+      + '</span>';
     cleanRow.style.display = 'flex';
   };
   if (isSpecial || !dest || !name) {
@@ -5997,10 +6018,7 @@ function applyCoincidentCleaning(s, carRecord, now) {
     return;
   }
   if (lastEnd && (now - lastEnd.when) / 3600000 <= SENASTE_H) { s.nyssStadad = true; s.nyssInfo = lastEnd; return; }
-  if (nextStart) {
-    const h = (nextStart.when - now) / 3600000;
-    if (h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H) { s.stadasSnart = true; s.snartInfo = nextStart; }
-  }
+  if (nextStart && glodFonster(nextStart.when, now)) { s.stadasSnart = true; s.snartInfo = nextStart; }
 }
 
 // ── P-fickor som lagras som YTA i stället för linje ─────────────────────────
@@ -7737,6 +7755,19 @@ const SENASTE_H = 3;
 // sen 2026-08-18: samma fönster används nu även för MC/RH/cykel-nålarnas "städas snart"-ring,
 // eftersom en gatusopning bryr sig lika lite om en dedikerad plats som om en vanlig gata.
 const HIDDEN_GEM_MIN_H = 2, HIDDEN_GEM_MAX_H = 7;
+// Ingen glöd när bilen måste flyttas senast 08:00 (Lars beslut 2026-09-22). Glöden säger
+// «gott om tid – bra möjlighet just nu», och det är en möjlighet för ett ärende i vaken tid.
+// Klockan 01 inför en städning 05 (Karlstad) eller 06 (Stockholm) betyder samma fönster
+// «flytta bilen mitt i natten» – motsatsen till en möjlighet. Samma skäl som lastplatsen
+// redan fick (se «INGEN GLÖD» i showNowParkingV2Flow). Färgen är orörd: fortfarande gult.
+const GLOD_SENAST_DEADLINE_MIN = 8 * 60;
+function glodFonster(when, now) {
+  if (!when) return false;
+  const h = (when - now) / 3600000;
+  if (!(h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H)) return false;
+  const w = new Date(when);
+  return w.getHours() * 60 + w.getMinutes() > GLOD_SENAST_DEADLINE_MIN;
+}
 // Symmetrisk mot nastaStadTxt, fast bakåt – "avslutad" städning. Visas bara nyligen (se
 // SENASTE_H i drawParkingSegment): en städning för tre dygn sen säger inget om nu.
 // ── Tog förbudet precis slut? ────────────────────────────────────────────────
@@ -7940,8 +7971,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         const stadWhen = new Date(now);
         stadWhen.setHours(Math.floor(cs.start / 100), cs.start % 100, 0, 0);
         bindande = bindandeHinder(s, stadWhen, cs.start, cs.end, now);
-        const h = (bindande.when - now) / 3600000;    // timmar kvar till det som binder
-        hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
+        hiddenGem = glodFonster(bindande.when, now);   // se GLOD_SENAST_DEADLINE_MIN
         txt = hiddenGem ? `Gott om tid – får stå till ${fmtClock(bindande.start)}`
                         : `Får stå tills ${fmtClock(bindande.start)}`;
       }
@@ -7950,8 +7980,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         const stadWhen = tomorrow();
         stadWhen.setHours(Math.floor(nx.start / 100), nx.start % 100, 0, 0);
         bindande = bindandeHinder(s, stadWhen, nx.start, nx.end, now);
-        const h = (bindande.when - now) / 3600000;    // timmar kvar till det som binder
-        hiddenGem = h > HIDDEN_GEM_MIN_H && h < HIDDEN_GEM_MAX_H;
+        hiddenGem = glodFonster(bindande.when, now);   // se GLOD_SENAST_DEADLINE_MIN
         // Bär lastplatsen deadlinen är "i natt" fel ord – då står tiden i chipet i stället,
         // precis som i grenen ovan. Städningens egen formulering är oförändrad.
         txt = bindande.lastplats

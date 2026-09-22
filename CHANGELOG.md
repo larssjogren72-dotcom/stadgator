@@ -14,6 +14,31 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.43.0 – 2026-09-22
+**Ingen glöd mitt i natten – och Vikengatans två tider förklaras.**
+
+- **Glöden «gott om tid – bra möjlighet just nu» tänds inte när bilen måste flyttas senast
+  kl 08.** Klockan 01 inför en städning 05 betydde glöden i praktiken «flytta bilen mitt i
+  natten» – motsatsen till en möjlighet (feedbacken «Vad betyder gult?», 22/9). Gatan är
+  fortfarande gul med samma tid i texten, bara glöden är borta. Samma skäl som lastplatser
+  redan hade. En gemensam regel (`glodFonster`) används av gatorna och av MC/RH-nålarnas
+  ring, så de kan inte glida isär. Gäller alla städer. Lars beslut: gränsen 08.
+- **Konflikten syns i kortet.** Där kommunens två källor säger olika (Vikengatan 08–10 mot
+  10–12, Drottninggatan måndag mot onsdag) står nu «Servas måndagar jämna veckor 08–10
+  eller 10–12» och under det, dämpat: «Kommunens uppgifter säger olika tider. Appen varnar
+  för båda – kontrollera skylten.» Tidigare listades fönstren med «·», och det lästes som
+  två städningar. Servern märker raderna ur avgiftslagrets text (`kalla`); andra städer
+  skickar aldrig fältet.
+- **FAQ:n** om glöden säger nu undantaget (synlig text och strukturerad data, ordagrant lika).
+
+Provat: före/efter mot riktig data, 13 213 ritade sträckor i Stockholm, Göteborg och
+Karlstad vid åtta tider (kväll, natt, morgon, dag) – **0 färgbyten, 0 nya glöd, 319
+glöd släckta**, alla med deadline ≤ 08 eller «servas i natt». Glöd kvar med deadline 09
+(134 st, t.ex. kl 03 och 06) – enligt regeln. Gränsfall: 08:00 släcker, 08:30 tänder.
+Schemat mot servern: Vikengatan och Drottninggatan får konfliktformen, Trädgårdsgatan
+oförändrad. Kortet klickat i appen. Bil/MC/RH-lägena utan konsolfel. `test/karlstad-prov.js`
+grönt.
+
 ## v1.42.6 – 2026-09-22
 **«Klart 12», inte «klart 10» – och staden följer med feedbacken.**
 

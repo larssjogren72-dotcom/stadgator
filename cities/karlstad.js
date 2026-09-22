@@ -694,7 +694,7 @@ module.exports = function skapaKarlstad(delade) {
     }
 
     // ── Schema-uppslag: samma kontrakt som /schedule ────────────────────────
-    // { schedule:[{day,s,e,veckor?}] }.
+    // { schedule:[{day,s,e,veckor?,kalla?}] }.
     //
     // ⚠ UPPSLAGET ÄR GEOMETRISKT, INTE PÅ NAMN. Båda lagren saknar gatunamn i
     // källan (våra namn är härledda), så namnet duger inte som nyckel. Finns ett
@@ -725,7 +725,12 @@ module.exports = function skapaKarlstad(delade) {
           const k = dag + '_' + p.START_TIME + '_' + p.END_TIME + '_' + veckor;
           if (seen.has(k)) continue;
           seen.add(k);
-          schedule.push({ day: dag, s: p.START_TIME, e: p.END_TIME, veckor });
+          // `kalla` bara på rader ur KONFLIKTREGELN (parkeringslagrets egen text). Har samma
+          // sträcka rader från båda källorna vet kortet att kommunen säger två saker, och
+          // skriver ut det i stället för att lista fönstren som om båda vore givna.
+          schedule.push(p.KARLSTAD_KALLA === 'parkeringstext'
+            ? { day: dag, s: p.START_TIME, e: p.END_TIME, veckor, kalla: 'parkeringstext' }
+            : { day: dag, s: p.START_TIME, e: p.END_TIME, veckor });
         }
         send(req, res, 200, 'application/json; charset=utf-8',
              Buffer.from(JSON.stringify({ schedule })), varm ? 'HIT' : 'MISS');
