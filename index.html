@@ -8840,20 +8840,40 @@ function applyLegendState() {
 // Ge legenden ett tak = avståndet ner till bottenpanelen, och låt den skrolla i stället för att
 // försvinna. Räknas om vid varje render och vid resize/orientationsbyte, eftersom bottenpanelen
 // flyttar sig med appens tillstånd (uppmätt topp 494 respektive 640 i olika lägen).
-function fitLegendHeight() {
-  if (!legendDiv) return;
-  const inner = document.getElementById('legend-content');
-  if (!inner) return;
-  if (legendCollapsed) { inner.style.maxHeight = ''; inner.style.overflowY = ''; return; }
+const LEGEND_GOLV_PX = 120;   // aldrig så litet att det blir oläsligt
+// Utrymmet (px) mellan rutans innehåll och lådans topp. Delas av fitLegendHeight och
+// gorPlatsForForklaring, så de kan inte räkna olika.
+function legendPlats(inner) {
   const bot = document.getElementById('bottom');
   const golv = bot ? bot.getBoundingClientRect().top : window.innerHeight;
   const ir = inner.getBoundingClientRect();
   // Legendrutan har egen padding/kant UNDER innehållet – räkna bort den, annars
   // sticker de sista pixlarna ändå in under menyn.
   const krom = Math.max(0, legendDiv.getBoundingClientRect().bottom - ir.bottom);
-  const plats = Math.round(golv - ir.top - krom - 12);   // 12 px luft ner till menyn
-  inner.style.maxHeight = Math.max(120, plats) + 'px';   // aldrig så litet att det blir oläsligt
+  return Math.round(golv - ir.top - krom - 12);   // 12 px luft ner till menyn
+}
+function fitLegendHeight() {
+  if (!legendDiv) return;
+  const inner = document.getElementById('legend-content');
+  if (!inner) return;
+  if (legendCollapsed) { inner.style.maxHeight = ''; inner.style.overflowY = ''; return; }
+  inner.style.maxHeight = Math.max(LEGEND_GOLV_PX, legendPlats(inner)) + 'px';
   inner.style.overflowY = 'auto';
+}
+// ── Lådan viker när förklaringen öppnas utan plats (Lars 2026-09-22) ─────────
+// Golvet ovan gör att rutan på en låg skärm (375×667, lådan i vila med förklaringstexten)
+// blir 120 px fast bara ~45 px finns – nederdelen hamnar UNDER lådan (z-index 1050 mot 800),
+// och där ligger «Skicka feedback» och de sista färgraderna. Uppmätt: 0 av 264 tryck träffade.
+// Den som trycker på «Förklaring» vill läsa den, så lådan fälls ner till handtaget. Bara vid
+// användarens eget tryck (toggleLegend) – aldrig vid första besöket, då lådan bär välkomsttexten.
+// sheetSnapTo sparar INGET val (till skillnad från krysset), så lådan är som vanligt nästa gång.
+// Höjden räknas om när lådans rörelse (0,28 s, se sheetSet) är klar.
+function gorPlatsForForklaring() {
+  const inner = document.getElementById('legend-content');
+  if (!inner || !sheetEl || legendCollapsed) return;
+  if (legendPlats(inner) >= LEGEND_GOLV_PX) return;
+  sheetSnapTo('min');
+  setTimeout(fitLegendHeight, 320);
 }
 window.addEventListener('resize', fitLegendHeight);
 window.addEventListener('orientationchange', () => setTimeout(fitLegendHeight, 250));
@@ -8861,6 +8881,7 @@ window.addEventListener('orientationchange', () => setTimeout(fitLegendHeight, 2
 function toggleLegend() {
   legendCollapsed = !legendCollapsed;
   applyLegendState();
+  gorPlatsForForklaring();
 }
 
 // ── Kartans storlekssynk: vakthund, självläkning och logg ────────────────────

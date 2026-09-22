@@ -14,6 +14,21 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.43.2 – 2026-09-22
+**Lådan viker när förklaringen öppnas utan plats.**
+
+På en låg skärm (375×667, iPhone SE) med lådan i vila fick förklaringsrutan golvet 120 px fast
+bara ~45 px fanns, och nederdelen – med «Skicka feedback» och de sista färgraderna – hamnade
+under lådan: 0 av 264 tryck träffade. Nu fälls lådan ner till handtaget när användaren själv
+trycker på «Förklaring» och platsen är mindre än golvet. Aldrig vid första besöket (då bär
+lådan välkomsttexten), och lådans sparade val rörs inte – den är som vanligt nästa gång.
+Platsberäkningen är utbruten (`legendPlats`) så att öppnandet och höjdfunktionen räknar lika.
+
+Provat med ett riktigt tryck på knappen: 375×667 – lådan i vila och halvt uppe fälls ner
+(333/380 → 640), rutan får 327 px, **264 av 264** träffar, sparat val oförändrat.
+375×812 – lådan rör sig **inte** i något läge, 264 av 264. Att stänga rutan rör inte lådan.
+Inga konsolfel.
+
 ## v1.43.1 – 2026-09-22
 **«Skicka feedback» går att träffa.**
 
