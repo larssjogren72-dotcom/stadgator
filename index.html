@@ -767,7 +767,8 @@
     .lgnd-switch input:checked ~ .lgnd-switch-thumb { left: 15px; }
     /* 11 px, inte 10: rutan hade tre textstorlekar (10/11/12) och två radhöjder (1.4/1.9),
        vilket är vad som fick Karlstads ruta att se hoprafsad ut. Nu två storlekar – 12 för
-       raderna, 11 för allt sekundärt (etikett, not, feedback) – och 1.5 för båda notsorterna. */
+       raderna, 11 för allt sekundärt (etikett, not) – och 1.5 för båda notsorterna.
+       Undantag: feedbackraden är en KNAPP, inte text, och har egen storlek (se .lgnd-feedback). */
     .lgnd-hidden-note { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
     /* Prisstege utan zonkarta: samma radhöjd som övriga legendrader, priset högerställt.
        INDRAGNINGEN är poängen: stegraderna har ingen färgruta (med flit – en färgruta hade
@@ -778,8 +779,23 @@
     .lgnd-steg b     { font-variant-numeric: tabular-nums; }
     /* Samma radhöjd som noterna: sekundär text har EN rytm, färgraderna en annan
        (deras 1.9 är tryckytehöjd, inte typografi). */
-    .lgnd-feedback { font-size: 11px; line-height: 1.5; margin-top: 8px; text-align: center; }
-    .lgnd-feedback a { color: var(--accent); }
+    /* FAST RAD LÄNGST NER (Lars 2026-09-22: «svår att nå, fick klicka flera ggr»). Uppmätt
+       på 375 px bredd i Karlstad: rutan visade 174 av 394 px, länken låg 220 px under det
+       synliga och var 12 px hög. Nu sticky i rullytan (#legend-content) – syns alltid,
+       färgraderna rullar ovanför – och hela raden är tryckyta, 44 px (Apples minsta mått).
+       Bakgrunden måste vara TÄT, annars skymtar raderna som rullar in under.
+       margin-right täcker rullytans padding-right så raden går ut till skrollisten. */
+    .lgnd-feedback {
+      position: sticky; bottom: 0; z-index: 1;
+      margin: 8px -8px 0 0; background: #fff;
+      border-top: 1px solid var(--glass-border);
+    }
+    .lgnd-feedback a {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 44px; color: var(--accent); font-size: 13px; font-weight: 600;
+      text-decoration: none; -webkit-tap-highlight-color: transparent;
+    }
+    .lgnd-feedback a:active { background: var(--accent-dim); }
 
     /* Toggle: ✕ när öppen, tydlig pill "🗺 Förklaring" när minimerad */
     .lgnd-toggle {

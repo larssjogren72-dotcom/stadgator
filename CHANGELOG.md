@@ -14,6 +14,21 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.43.1 – 2026-09-22
+**«Skicka feedback» går att träffa.**
+
+Lars från Karlstad: länken i förklaringsrutan var svår att nå, han fick trycka flera gånger.
+Uppmätt på 375 px bredd: rutan visade 174 av 394 px, länken låg 220 px under det synliga
+och var **12 px hög**. Nu är den en fast rad längst ner i rutan – syns alltid, färgraderna
+rullar ovanför – och hela raden är tryckyta, **44 px** hög. Bara CSS, ingen logik ändrad.
+
+Provat (tryck provade över hela radens yta): 375×812 i Karlstad med lådan nere, i vila och
+halvt uppe – **264 av 264** träffar i alla tre; Stockholm Nu och Natt träffar allt, färgen
+följer läget; datorstorlek oförändrad.
+**Kvar:** på en låg skärm (375×667, iPhone SE) med lådan i vila hamnar rutans nederdel under
+lådan (rutans golv på 120 px är större än platsen). Då går raden inte att träffa – precis som
+länken före ändringen. Det är det gamla, kända problemet med rutan under lådan, eget beslut.
+
 ## v1.43.0 – 2026-09-22
 **Ingen glöd mitt i natten – och Vikengatans två tider förklaras.**
 
