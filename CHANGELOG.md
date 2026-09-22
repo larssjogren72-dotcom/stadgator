@@ -14,6 +14,26 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.44.0 – 2026-09-22
+**Sidfoten länkar till de andra städerna.**
+
+Genomgång av Search Console 2026-09-22: sidfoten länkade bara den egna staden, och
+startsidan – sajtens starkaste sida, 103 klick och 2 555 exponeringar på 28 dygn – länkade
+bara Stockholm. `/parkering-uppsala` var därför **«okänd för Google»** trots att den legat i
+sitemapen sedan 17/9. Nu avslutas varje stads sidfot med «Andra städer», byggt ur EN lista
+(`STAD_HUBBAR` i server.js), så att en ny stad hamnar i alla sidfötter samtidigt. Ingen stad
+länkar sig själv. Dolda städer (Malmö, Sundbyberg) står inte med – en länk dit vore ett löfte
+appen inte håller.
+
+Samma genomgång visade att indexeringen är frisk: 226 indexerade sidor, och den ENDA sidan
+som Google genomsökt men valt bort är `/phus`, en data-adress. 232 av 261 sidor fick
+exponeringar de senaste 28 dygnen, 159 fick klick.
+
+Provat mot körande server: Stockholm länkar Göteborg/Uppsala/Karlstad, och varje annan stad
+länkar de tre övriga utom sig själv (0 självlänkar). Alla fyra måladresser svarar 200.
+Sidfoten börjar fortfarande exakt vid skärmkanten (osynlig för besökaren, läsbar för Google).
+Inga konsolfel.
+
 ## v1.43.2 – 2026-09-22
 **Lådan viker när förklaringen öppnas utan plats.**
 

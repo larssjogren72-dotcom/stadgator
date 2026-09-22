@@ -617,6 +617,26 @@ const SEO_FOTER = {
   malmo: '',
   sundbyberg: ''
 };
+// ── ANDRA STÄDER: korslänkar mellan stadshubbarna ───────────────────────────
+// GSC 2026-09-22: sidfoten länkade bara den egna staden, och startsidan (sajtens starkaste
+// sida) bara Stockholm. /parkering-uppsala var «okänd för Google» trots sitemap sedan 17/9.
+// EN lista föder alla sidfötter – lägg till en ny stad här och den syns i allas fot.
+// Stockholms motsvarighet står i index.html (statisk, servern byter inte den).
+// Dolda städer (Malmö, Sundbyberg) står inte med: en länk dit vore ett löfte appen inte håller.
+const STAD_HUBBAR = [
+  { id: 'stockholm', text: 'Parkering i Stockholm',  url: '/parkering' },
+  { id: 'goteborg',  text: 'Parkering i Göteborg',   url: '/parkering-goteborg' },
+  { id: 'uppsala',   text: 'Parkering i Uppsala',    url: '/parkering-uppsala' },
+  { id: 'karlstad',  text: 'Parkering i Karlstad',   url: '/parkering-karlstad' }
+];
+const ANDRA_STADER = aktuell =>
+  '<div class="seo-h">Andra städer</div><div class="seo-grid">'
+  + STAD_HUBBAR.filter(s => s.id !== aktuell).map(s => `<a href="${s.url}">${s.text}</a>`).join('')
+  + '</div>';
+// Läggs in sist i varje stads fot – utan att fotens egen uppbyggnad behöver upprepas.
+for (const id of Object.keys(SEO_FOTER)) {
+  if (SEO_FOTER[id]) SEO_FOTER[id] = SEO_FOTER[id].replace('</footer>', ANDRA_STADER(id) + '</footer>');
+}
 const FOTER_RE = /<footer id="seo-links"[\s\S]*?<\/footer>/;
 // Samma ordning som klienten: ?stad= vinner, annars Stockholm. Är adaptrarna
 // avstängda serveras alltid Stockholm – annars hade metadatan lovat en stad
