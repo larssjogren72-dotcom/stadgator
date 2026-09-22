@@ -14,6 +14,23 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.42.6 – 2026-09-22
+**«Klart 12», inte «klart 10» – och staden följer med feedbacken.**
+
+- **Städfönster som tar vid direkt räknas ihop.** Vikengatan i Karlstad har två fönster en
+  jämn måndag, 08–10 och 10–12 (kommunens två källor säger olika, båda visas). Kl 09 stod
+  det «Städas nu, klart 10» fast sträckan förblev röd till 12. Nu följer «klart» kedjan av
+  fönster som ansluter eller överlappar, så texten säger när man faktiskt får stå igen.
+  Gäller alla städer; färgen är orörd.
+- **Feedbacken bär staden.** «Vad betyder gult?» (22/9) gick inte att besvara utan att veta
+  staden – färgerna betyder olika saker i olika städer. Kontexten är nu `läge · stad · ver`.
+  Mejlskriptet i Google skickar kontexten vidare ordagrant och behöver ingen ändring.
+
+Provat: före/efter mot riktig data, 8 016 ritade sträckor i Stockholm, Göteborg och Karlstad
+vid åtta tidpunkter – **2 texter ändrade (Vikengatans två konfliktsträckor), 0 färgbyten**.
+Feedbacken provad i riktiga formuläret med anropet fångat (inget skickat):
+`now · karlstad · ver …`.
+
 ## v1.42.5 – 2026-09-20
 **Ljusare grå ton, nu när täckningen är hel.**
 

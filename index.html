@@ -2352,6 +2352,9 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     // Kontext = läge + APPVERSION. Utan version går en rapport inte att knyta till den kod
     // personen faktiskt såg, så snart vi släpper oftare än användaren hör av sig.
     var ctx = ''; try { ctx = (typeof currentMode !== 'undefined' && currentMode) || (typeof mode !== 'undefined' && mode) || ''; } catch (e) {}
+    // Staden också: en fråga som «Vad betyder gult?» (2026-09-22) gick inte att svara på
+    // utan den – färgerna betyder inte samma sak i alla städer.
+    try { if (typeof STAD !== 'undefined' && STAD && STAD.id) ctx = (ctx ? ctx + ' · ' : '') + STAD.id; } catch (e) {}
     try { if (typeof APP_VERSION !== 'undefined' && APP_VERSION) ctx = (ctx ? ctx + ' · ' : '') + 'ver ' + APP_VERSION; } catch (e) {}
     var body = {};
     if (FEEDBACK.entryCtx) { body[FEEDBACK.entryMsg] = msg; body[FEEDBACK.entryCtx] = ctx; }
@@ -7368,7 +7371,26 @@ function buildCleaningMatcher(cleaningData, lat, lng, grp, sidolas = () => 25) {
     const ms = kand.filter(s => distPointToSegmentLL(ll, s.a, s.b) <= tak);
     if (!ms.length) return null;
     const act = ms.find(s => s.state === 'active');
-    if (act) return { state: 'active', start: act.start, end: act.end };
+    if (act) {
+      // «Klart» = när man får stå igen. Tar ett annat fönster vid där det här slutar (eller
+      // överlappar det) är gatan inte fri förrän DET är klart. Vikengatan i Karlstad har
+      // 08–10 och 10–12 (två källor som säger olika, båda visas): kl 09 stod «klart 10»
+      // fast sträckan förblev röd till 12. Kedjan följs bara framåt och bara för fönster
+      // som inte går över midnatt – de ligger i en annan gren av cleaningState.
+      let end = act.end;
+      if (act.start != null && end != null && act.start <= end) {
+        let vidare = true;
+        while (vidare) {
+          vidare = false;
+          for (const s of ms) {
+            if (s.start != null && s.end != null && s.start <= s.end && s.start <= end && s.end > end) {
+              end = s.end; vidare = true;
+            }
+          }
+        }
+      }
+      return { state: 'active', start: act.start, end };
+    }
     const up = ms.filter(s => s.state === 'upcoming').sort((a, b) => (a.start||0) - (b.start||0))[0];
     if (up) return { state: 'upcoming', start: up.start, end: up.end };
     return { state: 'passed' };
