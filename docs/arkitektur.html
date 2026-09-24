@@ -311,8 +311,8 @@
     <h1>Grunden och<br>de fem städerna</h1>
     <p class="lede">Servern översätter, klienten resonerar. Varje stad får sina data omformade till samma form som Stockholms redan hade — sedan kör exakt samma regelmotor på allt.</p>
     <div class="stamp">
-      <span data-kod="version_text">Live: v1.46.0 · parkspot.se</span>
-      <span data-kod="datum_text">Beskriver koden 22 sep 2026</span>
+      <span data-kod="version_text">Live: v1.47.0 · parkspot.se</span>
+      <span data-kod="datum_text">Beskriver koden 24 sep 2026</span>
       <span data-kod="alla_rader_text">14 326 rader i sju filer</span>
     </div>
   </header>
@@ -325,7 +325,7 @@
 
     <figure>
       <div class="figbox">
-        <svg viewBox="0 0 940 560" role="img" aria-label="Dataflödet: webbläsaren frågar servern, adressens prefix väljer väg. Stockholm går rakt igenom till sina egna källor medan Göteborg, Sundbyberg, Malmö, Uppsala och Karlstad passerar var sin adapter som översätter till Stockholms svarsform. Alla svarar tillbaka i samma form.">
+        <svg viewBox="0 0 940 630" role="img" aria-label="Dataflödet: webbläsaren frågar servern, adressens prefix väljer väg. Stockholm går rakt igenom till sina egna källor medan Göteborg, Sundbyberg, Malmö, Uppsala och Karlstad passerar var sin adapter som översätter till Stockholms svarsform. Alla svarar tillbaka i samma form.">
           <defs>
             <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
@@ -347,12 +347,12 @@
           <text class="d-arrl" x="239" y="238" text-anchor="middle">prefixet väljer väg</text>
 
           <!-- Serverhölje -->
-          <rect class="d-hull" x="290" y="30" width="330" height="480" rx="5"></rect>
+          <rect class="d-hull" x="290" y="30" width="330" height="550" rx="5"></rect>
           <text class="d-t" x="306" y="53">server.js — din server på Railway</text>
           <text class="d-s" x="306" y="70">cache 6 h · api-nyckel · rutt per prefix</text>
 
           <!-- Spine -->
-          <line class="d-line" x1="302" y1="126" x2="302" y2="423"></line>
+          <line class="d-line" x1="302" y1="126" x2="302" y2="493"></line>
           <line class="d-line" x1="284" y1="248" x2="302" y2="248"></line>
 
           <!-- A: Stockholm -->
@@ -386,6 +386,12 @@
           <text class="d-t d-city-t" x="328" y="418">cities/uppsala.js</text>
           <text class="d-m" x="328" y="438" data-kod="stad_uppsala_text">prefix /uppsala/ · 754 rader</text>
 
+          <!-- F: Karlstad -->
+          <line class="d-line" x1="302" y1="493" x2="308" y2="493" marker-end="url(#ar)"></line>
+          <rect class="d-city" x="312" y="464" width="286" height="58" rx="3"></rect>
+          <text class="d-t d-city-t" x="328" y="488">cities/karlstad.js</text>
+          <text class="d-m" x="328" y="508" data-kod="stad_karlstad_text">prefix /karlstad/ · 745 rader</text>
+
           <!-- Ut till källorna -->
           <line class="d-line" x1="602" y1="126" x2="694" y2="126" marker-end="url(#ar)"></line>
           <text class="d-arrl" x="648" y="116" text-anchor="middle">nyckel läggs på</text>
@@ -397,6 +403,8 @@
           <text class="d-arrl" x="648" y="343" text-anchor="middle">översätter</text>
           <line class="d-line" x1="602" y1="423" x2="694" y2="423" marker-end="url(#ar)"></line>
           <text class="d-arrl" x="648" y="413" text-anchor="middle">översätter</text>
+          <line class="d-line" x1="602" y1="493" x2="694" y2="493" marker-end="url(#ar)"></line>
+          <text class="d-arrl" x="648" y="483" text-anchor="middle">översätter</text>
 
           <!-- Källor -->
           <rect class="d-sunk" x="700" y="76" width="222" height="100" rx="3"></rect>
@@ -421,15 +429,19 @@
           <text class="d-s" x="716" y="418">Uppsalas parkeringskarta</text>
           <text class="d-m" x="716" y="438">kartportal.uppsala.se</text>
 
+          <rect class="d-sunk" x="700" y="464" width="222" height="58" rx="3"></rect>
+          <text class="d-s" x="716" y="488">Karlstads GeoServer</text>
+          <text class="d-m" x="716" y="508">gi.karlstad.se, ingen nyckel</text>
+
           <!-- Svaret tillbaka -->
-          <path class="d-back" d="M 340 482 H 105 V 312" marker-end="url(#arb)"></path>
-          <text class="d-arrl d-acc-t" x="352" y="486">samma svarsform oavsett stad</text>
+          <path class="d-back" d="M 340 552 H 105 V 312" marker-end="url(#arb)"></path>
+          <text class="d-arrl d-acc-t" x="352" y="556">samma svarsform oavsett stad</text>
 
           <!-- Teckenförklaring -->
-          <rect class="d-city" x="20" y="530" width="20" height="12" rx="2"></rect>
-          <text class="d-s" x="48" y="540">stadsspecifik kod</text>
-          <line class="d-back" x1="196" y1="536" x2="230" y2="536"></line>
-          <text class="d-s" x="238" y="540">svaret tillbaka till appen</text>
+          <rect class="d-city" x="20" y="600" width="20" height="12" rx="2"></rect>
+          <text class="d-s" x="48" y="610">stadsspecifik kod</text>
+          <line class="d-back" x1="196" y1="606" x2="230" y2="606"></line>
+          <text class="d-s" x="238" y="610">svaret tillbaka till appen</text>
         </svg>
       </div>
       <figcaption>Stockholm är inte en adapter — Stockholm är grundläget, och det är den formen alla andra städer översätts till. En adapter svarar bara på sitt eget prefix; allt utanför det rör den aldrig. Läses en adapterfil inte in loggas det och servern startar ändå: en trasig pilotstad kan inte ta ner Stockholm.</figcaption>
@@ -694,7 +706,7 @@
   </section>
 
   <footer>
-    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 22 september 2026 · index.html 10 219 rader · server.js 1158 · cities/goteborg.js 585 · cities/karlstad.js 745 · cities/malmo.js 433 · cities/sundbyberg.js 432 · cities/uppsala.js 754</span><br>
+    <span data-kod="fot_text">Kodpekarna är verifierade mot arbetsmappen 24 september 2026 · index.html 10 219 rader · server.js 1158 · cities/goteborg.js 585 · cities/karlstad.js 745 · cities/malmo.js 433 · cities/sundbyberg.js 432 · cities/uppsala.js 754</span><br>
     Siffrorna och radhänvisningarna på sidan skrivs av <code>verktyg/kodpekare.js</code> — ändra dem inte för hand.<br>
     Källa: <code>docs/arkitektur.html</code> i repot — ändra där, publicera om till samma adress
   </footer>
