@@ -327,6 +327,13 @@ den har ingen beläggningsdata (samma regel som glöden).
 lördagslastplats 11–17), 0 fynd aktiva någon minut av dagen, 0 fynd måndag och fredag.
 Göteborg, Natt-läget och fredag kväll: ingen rad, inga nålar.
 
+> **v1.49.1 (samma kväll): helgfynd AVSTÄNGT i Stockholm.** Fälten visade sig inte räcka.
+> 40 slumpade lastplatsföreskrifter lästa i original: 3 gäller även helgen (lör 08–17,
+> lör 11–17, alla dagar) medan datan bara har «vardag utom vardag före…» – API:et tappar
+> fönster. Där sa helgfyndet «gäller inte i dag». Slås på igen när varje lastplats fönster
+> är läst ur föreskriften. Lärdom: mätningen nedan frågade datan om sig själv – ett dataset
+> kan inte bevisa sin egen fullständighet.
+
 ### 8.4.1 Göteborg och Uppsala (v1.49.0, samma dag)
 
 **Lördag är juridiskt en vardag.** Stockholms lastplatser säger «vardag utom vardag före

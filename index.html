@@ -1909,10 +1909,14 @@ STADER_CFG.stockholm =
       sokRuta:[17.7607, 59.2273, 18.2001, 59.4403], sokOrter:['Stockholm'],   // samma på engelska
       center:[59.332, 18.065], zoom:13,
       harForbud:true,
-      // Helgfynd (v1.48.0, se arHelgfynd): lastplatsernas fönster står som fält och är
-      // mätta för frågan – 1 395 av 1 405 gäller inte lör–sön. Göteborg och Uppsala har
-      // egna mätningar (v1.49.0); sätt flaggan på en ny stad först efter en egen mätning.
-      helgfynd:true,
+      // Helgfynd AVSTÄNGT i Stockholm 2026-09-27 (v1.49.1). Fälten sa att 1 395 av 1 405
+      // lastplatser inte gäller lör–sön, men föreskrifterna säger ibland annat: API:et tappar
+      // fönster. 40 slumpade föreskrifter lästa i RDT – 3 gäller även helgen (Tjärhovsgatan
+      // 0180 2020-06545 lör 08–17, Åsögatan 0180 2021-00853 lör 11–17, Sirapsvägen
+      // 0180 2021-03380 alla dagar) medan datan bara har «vardag utom vardag före…». Där
+      // sa helgfyndet «gäller inte i dag». Slås på igen först när varje lastplats fönster är
+      // läst ur föreskriften (steg 2, se project_stadgator_dolda_fonster).
+      helgfynd:false,
       // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
       // `/phus` är Stockholm Parkerings EGET API och taxezonerna är Stockholms egna
       // polygoner med en Stockholms-bbox inbakad. En ny stad som satte flaggan till

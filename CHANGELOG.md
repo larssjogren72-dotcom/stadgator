@@ -14,6 +14,21 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.49.1 – 2026-09-27
+**Helgfynd avstängt i Stockholm – datan saknar fönster som föreskriften har.**
+
+Stockholms öppna data har ofta bara EN tidsrad per föreskrift, fast föreskriften har flera.
+40 slumpade lastplatsföreskrifter lästa i original hos Transportstyrelsen: 34 stämmer, men
+3 gäller även på helgen – Tjärhovsgatan lördag 08–17, Åsögatan lördag 11–17, Sirapsvägen
+alla dagar 07–17 – medan datan bara säger «vardag utom vardag före sön- och helgdag». Där
+sa helgfyndet «gäller inte i dag». Omräknat kan det vara runt 90 lastplatser i staden.
+
+- `helgfynd:false` på Stockholm. Göteborg (läser hela föreskriftsmeningen) och Uppsala orörda.
+- llms.txt och UX_DESIGN.md säger nu att funktionen är avstängd i Stockholm, och varför.
+
+Samma lucka ger ett äldre fel som rättas i nästa version: 322 tidsreglerade förbud gäller
+enligt föreskriften även lördag 11–17 men visas gröna då (sedan v1.16.0).
+
 ## v1.49.0 – 2026-09-27
 **Helgfynd i Göteborg och Uppsala – och «i dag» i stället för «i helgen».**
 
