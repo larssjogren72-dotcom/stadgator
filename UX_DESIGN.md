@@ -317,8 +317,8 @@ den har ingen beläggningsdata (samma regel som glöden).
 - **Bara lördag och söndag.** Enkeldagsposterna har en känd lucka: API:et tappar den andra
   veckodagen (Ormängsgatan «måndag och torsdag» har bara måndag). En vardag kan vi därför
   inte lova något om.
-- **Bara Stockholm.** Göteborgs fönster står som meningar, och de andra städerna är inte
-  mätta för frågan (Lars beslut).
+- **Bara Stockholm – i första versionen.** Göteborg och Uppsala kom till i v1.49.0 efter egna
+  mätningar, se 8.4.1. Karlstad har inga tidsbestämda förbud i datan.
 - **Bara Nu-läget.** Natt-läget svarar på «kan bilen stå till i morgon», och där sköter den
   vanliga logiken lastplatsen som öppnar måndag 07.
 - Fönster som vänder över midnatt räknas inte, och en glöd eller «nyss städad» vinner.
@@ -326,6 +326,37 @@ den har ingen beläggningsdata (samma regel som glöden).
 **Mätt.** 188 lastplatssegment i fem områden: lördag 187 fynd (enda undantaget en riktig
 lördagslastplats 11–17), 0 fynd aktiva någon minut av dagen, 0 fynd måndag och fredag.
 Göteborg, Natt-läget och fredag kväll: ingen rad, inga nålar.
+
+### 8.4.1 Göteborg och Uppsala (v1.49.0, samma dag)
+
+**Lördag är juridiskt en vardag.** Stockholms lastplatser säger «vardag utom vardag före
+sön- och helgdag» = mån–fre. Göteborg har flera som bara säger «vardag 07–17», och de gäller
+lördag också. Därför frågar helgfyndet om **dagens** fönster, inte om helgen, och texten säger
+**«gäller inte i dag»** – aldrig «i helgen». Det rättade också ett fel i v1.48.0: på söndagar
+blev Stockholms två lördagslastplatser fynd med texten «gäller inte i helgen».
+
+**Mätt i centrum (5×5 punkter):**
+- **Göteborg:** 144 lastplatser, 48 dygnet runt. 38 fynd på lördag, 90 på söndag, 88 på juldagen.
+- **Uppsala:** 97 ändamålsplatser – 53 lastplatser dygnet runt (aldrig fynd), 7 lastplatser med
+  tid och 37 skolplatser «Tillstånd 7-16». 42 fynd på lördag, 44 på söndag.
+- **Karlstad:** publicerar inga tidsbestämda förbud – inget att hitta, ingen flagga.
+- I alla tre: 0 fynd aktiva någon kvart av dagen, 0 fynd måndag och fredag.
+
+**Nålens bokstav följer sorten:** L = lastplats, T = tillståndsplats. Ett «L» på en skola hade
+lurat. Förklaringsrutan visar en rad per bokstav som staden faktiskt har.
+
+**En plats, inte en sträcka.** Samma föreskrift räknas en gång (Sveavägen har en lastplats med
+två fönster, 00–06:30 och 09:30–17, som två poster). Uppsala har inga föreskrifts-id och delar
+en skolas tillståndsyta i en sträcka per ruta – sex nålar ovanpå varandra. Utan id slås samma
+sort på samma gata inom 30 m ihop. Tulegatan: 67 → 65 platser.
+
+**Helgdagar:** Göteborg och Uppsala har hela meningen översatt med helgdagskalender, så där
+gäller helgfynd även röda dagar mitt i veckan. Stockholm stannar på lör/sön (API-luckan).
+
+**Parkeringsförbud är medvetet INTE med.** Uppsalas första träff var Svartmangatan
+«Parkeringsförbud tisdagar 6–18» – ett städförbud som är fritt sex dagar i veckan, inget
+helgfynd. Och Stockholms tidsbestämda förbud (grönt utanför fönstret sedan v1.16.0) får inga
+fynd. Ska förbud med, ska det göras i båda städerna samtidigt.
 
 ## 9. Vad detta INTE ska bli (medvetna nej)
 

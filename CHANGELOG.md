@@ -14,6 +14,29 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.49.0 – 2026-09-27
+**Helgfynd i Göteborg och Uppsala – och «i dag» i stället för «i helgen».**
+
+Lördag är juridiskt en vardag. Stockholms lastplatser säger «vardag utom vardag före sön-
+och helgdag» (mån–fre), men Göteborg har flera som bara säger «vardag 07–17» – de gäller
+lördag också. Helgfyndet frågar därför om dagens fönster, inte om helgen.
+
+- **Göteborg**: lastplatser som inte gäller i dag, på helger och röda dagar. Mätt i centrum:
+  38 fynd på lördag, 90 på söndag (144 lastplatser, 48 dygnet runt).
+- **Uppsala**: skolornas «Tillstånd 7-16» och lastplatser med tid. 42 fynd på lördag, 44 på
+  söndag. Tillståndsplatserna får en **T-nål**, lastplatserna behåller **L**.
+- **Rättat fel från v1.48.0**: kortet och raden sa «gäller inte i helgen» – falskt på söndagar
+  för Stockholms två lördagslastplatser. Nu «gäller inte i dag», som alltid är sant.
+- **En plats räknas en gång**: samma föreskrift = en plats (Sveavägen har en lastplats med två
+  tidsfönster), och Uppsalas tillståndsytor – en sträcka per ruta, utan föreskrifts-id – slås
+  ihop inom 30 m. Vid Tulegatan 21 blev 67 till 65, vid en Uppsalaskola sex nålar till en.
+- Karlstad publicerar inga tidsbestämda förbud och får inga helgfynd.
+- **Parkeringsförbud är medvetet inte med**: Uppsalas första träff var ett städförbud
+  tisdagar 6–18, och Stockholms tidsbestämda förbud får inga fynd. Båda eller ingen.
+
+Mätt: i ingen av de tre städerna är något fynd aktivt någon kvart av dagen; måndag och fredag
+ger 0 fynd. Stockholm stannar på lördag–söndag, Göteborg och Uppsala tar även helgdagar.
+
 ## v1.48.0 – 2026-09-27
 **Helgfynd: lastplatser som inte gäller i helgen pekas ut nära målet.**
 

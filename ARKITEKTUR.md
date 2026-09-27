@@ -152,9 +152,16 @@ Verifierat mot fältdata och skyltar:
 - **Helgfynd** (2026-09-27): ~1 395 av Stockholms 1 405 lastplatser gäller inte lör–sön
   (1 216 «vardag utom vardag före sön- och helgdag», 179 en enda vardag). `arHelgfynd(s, now)`
   frågar `andamalActiveAt` vid fönstrets egen start i dag – samma dagtolkning som färgen.
-  Bara städer med `helgfynd:true` i konfigen (i dag Stockholm), bara lör/sön (API:et tappar ibland en andra veckodag), bara Nu-läget,
-  bara gröna sträckor inom `HELGFYND_RADIE_M` (400 m); L-nål på de `HELGFYND_MAX_NALAR` (5)
-  närmaste. Färgen rörs inte. Se UX_DESIGN.md §8.4.
+  Städer med fönstret som regler/meningar (Göteborg, Uppsala) frågar i stället
+  `gbgLastplatsFonster(villkor, i dag)` – tom lista = fynd, och i går får inget fönster ha
+  vänt över midnatt. **Lördag är juridiskt vardag** («vardag 07–17» i Göteborg gäller
+  lördag), därför «gäller inte i dag», aldrig «i helgen».
+  Bara städer med `helgfynd:true` i konfigen (Stockholm, Göteborg, Uppsala). Fält: bara
+  lör/sön (API:et tappar ibland en andra veckodag). Regler: lör/sön/helgdag. Koder i
+  `HELGFYND_KODER`: lastplats 7/18 (L) och tillstånd 902 (T); förbud 901 medvetet ute.
+  Bara Nu-läget, bara gröna sträckor inom `HELGFYND_RADIE_M` (400 m). En plats = samma
+  CITATION, eller utan CITATION samma sort + gata inom 30 m. Nål på de `HELGFYND_MAX_NALAR`
+  (5) närmaste platserna. Färgen rörs inte. Se UX_DESIGN.md §8.4.
 - MC-platser (`LTFR_P_MOTORCYKEL_GEOM`) är korta (5–10 m) på vanliga bilgator – gör INTE hela gatan till mc-gata.
 - C35-förbud: **frånvaro** av P_TILLATEN-segment = förbjudet.
 

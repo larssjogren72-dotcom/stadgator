@@ -9,7 +9,7 @@ ParkSpot har inga sensorer för lediga parkeringsplatser i realtid. Appen visar 
 ### Stockholm — [parkspot.se](https://parkspot.se/)
 Fullständig data: parkeringsförbud, taxazoner (Taxa 1–5 med pris per timme), städdagar med säsong, boendeparkering, p-hus. En gata utan färg saknar uppgift i registret.
 
-**Helgfynd:** nästan alla lastplatser i Stockholm (ungefär 1 395 av 1 405) gäller bara vardagar. På lördagar och söndagar är de vanliga parkeringsplatser, men skylten läses lätt som ett förbud. Appen pekar ut dem nära målet på helgen, med en L-nål på kartan och en rad i menyn. Avgiften följer zonen: i Taxa 1 och 2 (innerstadens mest centrala delar) kostar det även på helgen, i Taxa 3 och 4 kostar lördag 11–17 och söndag är fri, i Taxa 5 är hela helgen fri. Kontrollera skylten på plats.
+**Helgfynd:** nästan alla lastplatser i Stockholm (ungefär 1 395 av 1 405) gäller bara vardagar. På lördagar och söndagar är de vanliga parkeringsplatser, men skylten läses lätt som ett förbud. Appen pekar ut dem nära målet på helgen, med en L-nål på kartan och en rad i menyn ("gäller inte i dag"). Avgiften följer zonen: i Taxa 1 och 2 (innerstadens mest centrala delar) kostar det även på helgen, i Taxa 3 och 4 kostar lördag 11–17 och söndag är fri, i Taxa 5 är hela helgen fri. Kontrollera skylten på plats.
 
 ### Göteborg — [parkspot.se/?stad=goteborg](https://parkspot.se/?stad=goteborg)
 Städdagar (med **jämna och udda veckor**, vilket är hur Göteborg städar – 80 % av gatorna städas varannan vecka), tidsgränser från 30 min till 7 dygn, 38 boendezoner, MC- och cykelplatser, platser för rörelsehindrade och 923 parkeringsanläggningar med aktuellt timpris.
@@ -18,10 +18,14 @@ Städdagar (med **jämna och udda veckor**, vilket är hur Göteborg städar –
 
 **Boendezoner i Göteborg** (t.ex. `Boende Ö6`) är ett undantag från platsens tidsgräns, inte ett förbud för andra: utan tillstånd gäller skyltens tid, med tillstånd upp till 14 dygn. Ett `n` efter zonkoden (t.ex. `V5n`) betyder att tillståndet bara gäller kvällar och nätter, ungefär 18–09.
 
+**Helgfynd i Göteborg:** på helger och röda dagar pekar appen ut lastplatser nära målet som inte gäller den dagen. Obs att lördag räknas som vardag i trafikföreskrifterna – en lastplats «vardag 07–17» gäller alltså lördag, och blir en vanlig p-plats först på söndagen. Ungefär två av tre lastplatser i centrum gäller inte på söndagar.
+
 ### Uppsala —[parkspot.se/?stad=uppsala](https://parkspot.se/?stad=uppsala)
 Tidsgränser, avgiftsområden, lastplatser, MC-platser, platser för rörelsehindrade, tillståndsparkering vid skolor och kommunens parkeringsgarage – ur Uppsala kommuns parkeringskarta (inte kommunens öppna dataportal). Appen ritar stadens **fem avgiftsområden A–E** som färgade zoner: A (centrum) 20 kr/tim i två timmar och därefter 35, B 20 kr/tim, C 15 kr/tim, D 10 kr/tim och E (resten av tätorten) 5 kr/tim. Mellan 18 och 24 kostar det 5 kr/tim i alla fem, och söndagar och helgdagar är avgiftsfria. Enskilda parkeringar inne i områdena har egen taxa (t.ex. Stadshusgatan 36 kr/tim), och appen visar därför alltid gatans eget pris, inte zonens.
 
 **Viktigt om Uppsala:** Uppsala har **inga fasta städdagar** – vårens sandupptagning skyltas tillfälligt 24 timmar före – och kommunen publicerar **inga parkeringsförbud** utanför parkeringsplatserna. Appen säger ingenting om städning i Uppsala. En tid på skylten utan parentes («4 tim 8-18») gäller vardagar utom dag före sön- och helgdag. Lastplatser utan tid gäller dygnet runt.
+
+**Helgfynd i Uppsala:** på helger och röda dagar pekar appen ut platser nära målet som bara är avstängda vardagar – främst skolornas «Tillstånd 7-16»-platser, som alla får använda på helgen, och lastplatser med tid. Avgiften gäller som vanligt, och tider inom parentes gäller lördag.
 
 ### Karlstad — [parkspot.se/?stad=karlstad](https://parkspot.se/?stad=karlstad)
 Servicedagar (städdagar) på drygt 90 gatuavsnitt i centrala Karlstad, fyra gatuzoner med **färgnamn i prisordning – Röd 18 kr/tim, Gul 16, Grön 8 och Blå 4** – plus ett tjugotal namngivna parkeringsområden med egen taxa (ofta 2 kr/tim övrig tid samt dygns- och veckopris), tidsgränser (en vecka, ett dygn eller 120 minuter där de finns) och 37 parkeringsanläggningar – ur Karlstads kommuns webbkarta.
