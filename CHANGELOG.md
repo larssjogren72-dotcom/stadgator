@@ -14,6 +14,29 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.48.0 – 2026-09-27
+**Helgfynd: lastplatser som inte gäller i helgen pekas ut nära målet.**
+
+En lördag i stan hittade Lars till sist en tom lastplats – «vardagar 7–17», bara en
+parentes som skiljer. Nästan alla Stockholms lastplatser är sådana: av 1 405 gäller cirka
+1 395 inte på helgen (1 216 «vardag utom vardag före sön- och helgdag», 179 en enda
+vardag). Appen visste redan att de var fria, men målade dem som gatan bredvid.
+
+- **Lådan** får en rad överst: «Helgfynd: N lastplatser nära målet gäller inte i helgen ·
+  närmast X m · Visa ›». Tryck zoomar till den närmaste och öppnar kortet.
+- **Kartan**: mörkare grön linje på alla fynd inom 400 m, och en **L-nål** på de fem
+  närmaste (67 fynd vid Tulegatan 21 gav annars 67 nålar).
+- **Kortet**: «Får stå nu · helgfynd» och att lastplatsen bara gäller vardagar – med
+  uppmaningen att kontrollera skylten. Taxan och «Lastplats igen på måndag» följer med.
+- **Förklaring** får en L-rad, bara på helgen.
+
+Färgen, dimningen och räknaren är orörda – grönt betyder fortfarande bara «får stå». Bara
+Stockholm, bara lördag–söndag, bara Nu-läget. Appen säger aldrig «ledig».
+
+Mätt: 188 lastplatssegment i fem områden – lördag 187 fynd (enda undantaget en riktig
+lördagslastplats 11–17), inget fynd aktivt någon minut av dagen, 0 fynd måndag och fredag.
+Göteborg och Natt-läget orörda.
+
 ## v1.47.0 – 2026-09-22
 **Göteborg: 19 zonsidor, en regelsida och en titel som svarar på frågan.**
 

@@ -282,6 +282,51 @@ samtidiga sträckor (Östermalm, fredag 00:00, nattstädning). I Vasastan-rutan 
 röda sträckor från 18 % till 20 % mitt på dagen, och från 0 % till 22 % under
 nattstädningen – toppen ligger alltså när minst antal människor söker plats.
 
+## 8.4 Helgfynd – lastplatser som inte gäller i helgen (2026-09-27)
+
+**Problemet.** Lars en lördag i stan: hittade till sist en lastplats «vardagar 7–17» som var
+tom. Skylten säger *Lastplats* med stora bokstäver och tiden i en parentes – den som kör
+förbi läser ett förbud. Appen visste redan att platsen var fri (utanför fönstret faller den
+igenom till vanlig logik och blir grön), men målade den likadant som gatan bredvid.
+
+**Datan.** Hela Stockholm, 2026-09-27: 1 405 lastplatser (VF_PLATS_TYP 7/18). 1 216 gäller
+«vardag utom vardag före sön- och helgdag», 179 en enda vardag, 2 lördag, 8 saknar dag.
+Cirka 1 395 gäller alltså inte på helgen. Median 13 m, ungefär två bilar.
+
+**Designen.** Tre ytor, ett budskap:
+- **Lådan (peek):** «Helgfynd: N lastplatser nära målet gäller inte i helgen · närmast X m ·
+  Visa ›». Det är raden som gör dem till förstahandsval. «Visa ›» zoomar till den närmaste
+  och öppnar kortet. Noll fynd = ingen rad.
+- **Kartan:** mörkare och tjockare grön linje (`#166534`) på alla fynd inom 400 m, och en
+  **L-nål** på de fem närmaste. Vid Tulegatan 21 en lördag fanns 67 fynd inom 400 m –
+  67 nålar dränkte kartan, därför taket.
+- **Kortet:** «Får stå nu · helgfynd» + «Lastplats vardag 07–19 – gäller inte i helgen, så i
+  dag är det en vanlig p-plats. Skylten är lätt att läsa som förbud – kontrollera att den
+  säger samma sak.» Raden «Lastplats igen på måndag 07–19» och taxan följer med som vanligt.
+
+**Varför inte glöden.** Glöden («förbudet tog nyss slut – bra chans») är sällsynt med flit –
+2 av 3 277 sträckor vid mätningen. Lyste alla lastplatser hela helgen hade den slutat betyda
+något. Helgfyndet får därför ingen halo, och kulören (`color`), dimningen och badgen är
+orörda: grönt betyder fortfarande bara «får stå». L-nålen är det nya tecknet – ingen annan
+nål är grön.
+
+**Ord.** «Gäller inte i dag» beskriver regeln, aldrig tillståndet. Appen säger inte «ledig» –
+den har ingen beläggningsdata (samma regel som glöden).
+
+**Avgränsningar, alla medvetna.**
+- **Bara lördag och söndag.** Enkeldagsposterna har en känd lucka: API:et tappar den andra
+  veckodagen (Ormängsgatan «måndag och torsdag» har bara måndag). En vardag kan vi därför
+  inte lova något om.
+- **Bara Stockholm.** Göteborgs fönster står som meningar, och de andra städerna är inte
+  mätta för frågan (Lars beslut).
+- **Bara Nu-läget.** Natt-läget svarar på «kan bilen stå till i morgon», och där sköter den
+  vanliga logiken lastplatsen som öppnar måndag 07.
+- Fönster som vänder över midnatt räknas inte, och en glöd eller «nyss städad» vinner.
+
+**Mätt.** 188 lastplatssegment i fem områden: lördag 187 fynd (enda undantaget en riktig
+lördagslastplats 11–17), 0 fynd aktiva någon minut av dagen, 0 fynd måndag och fredag.
+Göteborg, Natt-läget och fredag kväll: ingen rad, inga nålar.
+
 ## 9. Vad detta INTE ska bli (medvetna nej)
 
 - ❌ Inga flikar / lägesväljare som delar appen i "appar".

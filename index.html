@@ -1903,6 +1903,10 @@ STADER_CFG.stockholm =
       sokRuta:[17.7607, 59.2273, 18.2001, 59.4403], sokOrter:['Stockholm'],   // samma på engelska
       center:[59.332, 18.065], zoom:13,
       harForbud:true,
+      // Helgfynd (v1.48.0, se arHelgfynd): lastplatsernas fönster står som fält och är
+      // mätta för frågan – 1 395 av 1 405 gäller inte lör–sön. Andra städer är inte mätta
+      // (Göteborgs fönster står som meningar); sätt flaggan först efter en egen mätning.
+      helgfynd:true,
       // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
       // `/phus` är Stockholm Parkerings EGET API och taxezonerna är Stockholms egna
       // polygoner med en Stockholms-bbox inbakad. En ny stad som satte flaggan till
@@ -7907,14 +7911,15 @@ function forbudTogNyssSlut(s, now) {
 //   · BARA lördag och söndag. Enkeldagsposterna har en känd lucka – API:et tappar den
 //     andra veckodagen (Ormängsgatan «måndag OCH torsdag» har bara måndag). En vardag kan
 //     vi därför inte lova något om. Ingen helgdag bär en vardagslastplats på helgen.
-//   · BARA Stockholm. Göteborgs fönster står som meningar (andamalVillkor), och de andra
-//     städerna är inte mätta för den här frågan (Lars beslut 2026-09-27).
+//   · BARA städer med `helgfynd:true` i konfigen – i dag bara Stockholm. Göteborgs fönster
+//     står som meningar (andamalVillkor), och de andra städerna är inte mätta för den här
+//     frågan (Lars beslut 2026-09-27).
 //   · Fönster som vänder över midnatt räknas inte: ett fredagsfönster 22–06 gäller
 //     lördag morgon, och det kan provet vid starttiden inte se.
 // Ordet är «gäller inte i dag» – HÄNDELSEN, aldrig «ledig» (samma regel som glöden).
 const HELGFYND_RADIE_M = 400, HELGFYND_MAX_NALAR = 5;
 function arHelgfynd(s, now) {
-  if (STAD.id !== 'stockholm') return false;
+  if (!STAD.helgfynd) return false;
   const dag = now.getDay();
   if (dag !== 0 && dag !== 6) return false;
   if (s.andamal !== '7' && s.andamal !== '18') return false;
@@ -8895,10 +8900,10 @@ function updateLegend(mode) {
     : STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Förbudet tog nyss slut – bra chans</div>`
     : `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;box-shadow:0 0 0 3px #075985"></div>Förbudet tog nyss slut – bra chans</div>`;
-  // Helgfyndet finns bara i Stockholm och bara lör–sön (se arHelgfynd) – raden förklarar
+  // Helgfyndet finns bara i städer med `helgfynd:true` och bara lör–sön (se arHelgfynd) – raden förklarar
   // inget som inte kan ritas.
   const helgNu = new Date().getDay();
-  const helgfyndRad = (STAD.id === 'stockholm' && (helgNu === 0 || helgNu === 6))
+  const helgfyndRad = (STAD.helgfynd && (helgNu === 0 || helgNu === 6))
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${HELGFYND_FARG};border-radius:50%;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">L</div>Helgfynd – lastplats som inte gäller i helgen</div>` : '';
   const nowStaRad = STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>

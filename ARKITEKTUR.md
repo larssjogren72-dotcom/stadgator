@@ -149,6 +149,12 @@ Verifierat mot fältdata och skyltar:
 - Skylttext `"Boende <zon>"` (t.ex. "Boende Ci/Tr") → boendezon; besökare får stå **max 3 tim** utanför betaltid → visa som "kontrollera skylt", ej blå för nattparkering.
 - Lastzon (`LTFR_LASTZON_GEOM`, eller föreskrift "lastning/lossning") → reserverad för leveransfordon. Kort sträcka (5–22 m). Ska INTE göra hela gatan otillgänglig – visa som egen kort markör.
 - Ändamålsplats med `"övrig tid får fordon parkeras"` → parkerbar på natten.
+- **Helgfynd** (2026-09-27): ~1 395 av Stockholms 1 405 lastplatser gäller inte lör–sön
+  (1 216 «vardag utom vardag före sön- och helgdag», 179 en enda vardag). `arHelgfynd(s, now)`
+  frågar `andamalActiveAt` vid fönstrets egen start i dag – samma dagtolkning som färgen.
+  Bara städer med `helgfynd:true` i konfigen (i dag Stockholm), bara lör/sön (API:et tappar ibland en andra veckodag), bara Nu-läget,
+  bara gröna sträckor inom `HELGFYND_RADIE_M` (400 m); L-nål på de `HELGFYND_MAX_NALAR` (5)
+  närmaste. Färgen rörs inte. Se UX_DESIGN.md §8.4.
 - MC-platser (`LTFR_P_MOTORCYKEL_GEOM`) är korta (5–10 m) på vanliga bilgator – gör INTE hela gatan till mc-gata.
 - C35-förbud: **frånvaro** av P_TILLATEN-segment = förbjudet.
 
