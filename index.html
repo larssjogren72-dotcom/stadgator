@@ -1745,6 +1745,9 @@ STADER_CFG.uppsala =
       // korttid 3. Se Karlstads motsvarighet för vad fälten styr.
       fordonIData:['fordon', 'rörelsehindrade', 'buss', 'motorcykel', 'lastbil'],
       andamalIData:['7', '901', '902', '903'],
+      // Helgfynd (v1.49.0): 37 skolplatser «Tillstånd 7-16» och 7 lastplatser med tid i
+      // centrum är fria i helgen (53 lastplatser dygnet runt är det aldrig). Se arHelgfynd.
+      helgfynd:true,
       // I VALET sedan 2026-09-15 (Lars «kör»). Skyltrundan bekräftade tidstolkningen
       // (Hagundagatan «4 tim 8-18» utan parentes) och avgifterna; lastplatserna är lästa
       // i föreskrifterna. INTE pilot längre (Lars 2026-09-15, efter att skillnaden mot
@@ -1888,6 +1891,9 @@ STADER_CFG.goteborg =
       // "Lastplats" här och "Förbud" i Stockholm. Se Karlstad för vad fälten styr.
       fordonIData:['fordon', 'motorcykel', 'rörelsehindrade', 'cykel'],
       andamalIData:['7'],
+      // Helgfynd (v1.49.0): 96 av 144 lastplatser i centrum har en mening; 38 gäller inte
+      // lördag, 90 inte söndag. Mätt 2026-09-27, se arHelgfynd.
+      helgfynd:true,
       // Göteborg är INTE pilot längre (Lars 2026-08-27). Varningen om att staden
       // saknar förbudsdata står kvar i disclaimern nedan, som säger samma sak
       // utförligare och alltid syns – banderollen tillförde bara ordet "PILOT".
@@ -1904,8 +1910,8 @@ STADER_CFG.stockholm =
       center:[59.332, 18.065], zoom:13,
       harForbud:true,
       // Helgfynd (v1.48.0, se arHelgfynd): lastplatsernas fönster står som fält och är
-      // mätta för frågan – 1 395 av 1 405 gäller inte lör–sön. Andra städer är inte mätta
-      // (Göteborgs fönster står som meningar); sätt flaggan först efter en egen mätning.
+      // mätta för frågan – 1 395 av 1 405 gäller inte lör–sön. Göteborg och Uppsala har
+      // egna mätningar (v1.49.0); sätt flaggan på en ny stad först efter en egen mätning.
       helgfynd:true,
       // ⚠ DE HÄR VAR JA/NEJ-FLAGGOR OCH DET VAR FARLIGT (rättat 2026-08-27).
       // `/phus` är Stockholm Parkerings EGET API och taxezonerna är Stockholms egna
@@ -7907,23 +7913,62 @@ function forbudTogNyssSlut(s, now) {
 // sön- och helgdag») och 8 saknar dagangivelse (räknas som alla dagar). Cirka 1 395
 // gäller alltså inte på helgen.
 //
-// Tre avgränsningar, alla medvetna:
-//   · BARA lördag och söndag. Enkeldagsposterna har en känd lucka – API:et tappar den
-//     andra veckodagen (Ormängsgatan «måndag OCH torsdag» har bara måndag). En vardag kan
-//     vi därför inte lova något om. Ingen helgdag bär en vardagslastplats på helgen.
-//   · BARA städer med `helgfynd:true` i konfigen – i dag bara Stockholm. Göteborgs fönster
-//     står som meningar (andamalVillkor), och de andra städerna är inte mätta för den här
-//     frågan (Lars beslut 2026-09-27).
+// Utökat 2026-09-27 (v1.49.0) till Göteborg och Uppsala. Mätt i centrum (5×5 punkter):
+//   Göteborg: 144 lastplatser – 48 dygnet runt, 96 med mening. 38 gäller inte lördag,
+//             90 inte söndag (många gäller lördag förmiddag, «vardag före sön- och helgdag»).
+//   Uppsala:  97 ändamålsplatser – 53 lastplatser dygnet runt, 7 lastplatser med tid (5 fria
+//             hela helgen, 2 bara söndag) och 37 skolplatser «Tillstånd 7-16» (alla fria i helgen).
+//   Karlstad: publicerar inga tidsbestämda förbud (andamalIData tom) – inget att hitta.
+// Juridiskt är LÖRDAG en vardag. «Vardag 07–17» i Göteborg gäller alltså lördag, och
+// gbgLastplatsFonster räknar så (arVardag). Därför frågar vi om DAGENS fönster, inte om
+// helgen – och därför säger texten «gäller inte i dag», aldrig «i helgen».
+//
+// Avgränsningar, alla medvetna:
+//   · Fönster som FÄLT (Stockholm): bara lördag och söndag. Enkeldagsposterna har en känd
+//     lucka – API:et tappar den andra veckodagen (Ormängsgatan «måndag OCH torsdag» har
+//     bara måndag). En vardag, även en röd, kan vi därför inte lova något om.
+//   · Fönster som REGLER (Göteborg, Uppsala): lördag, söndag och helgdagar. Reglerna är
+//     hela meningen översatt, med helgdagskalender – ingen dag kan ha tappats.
+//   · BARA städer med `helgfynd:true` i konfigen, efter en egen mätning som ovan.
 //   · Fönster som vänder över midnatt räknas inte: ett fredagsfönster 22–06 gäller
-//     lördag morgon, och det kan provet vid starttiden inte se.
+//     lördag morgon, och det kan en fråga om dagens fönster inte se.
 // Ordet är «gäller inte i dag» – HÄNDELSEN, aldrig «ledig» (samma regel som glöden).
 const HELGFYND_RADIE_M = 400, HELGFYND_MAX_NALAR = 5;
-function arHelgfynd(s, now) {
+// Vilka ändamål som kan vara ett fynd, med ord för raden i lådan (ental, flertal).
+// Båda är «inte för dig» INOM fönstret och vanlig parkering utanför.
+// Taxi, på-/avstigning och skolskjuts är inte med: ingen letar parkering där.
+// Tredje fältet är bokstaven på nålen: ett «L» på en skolplats med tillstånd vore fel.
+//
+// ⚠ Parkeringsförbud (Uppsalas 901) är MEDVETET inte med (2026-09-27). Första träffen var
+// Svartmangatan «Parkeringsförbud tisdagar 6-18» – ett städförbud som är fritt sex dagar i
+// veckan, alltså inget helgfynd. Och Stockholms tidsbestämda förbud (P_FORBUD, grönt utanför
+// fönstret sedan v1.16.0) får inga fynd – att bara Uppsala gav dem hade gett samma sak två
+// betydelser. Ska förbud med, ska det göras i båda städerna samtidigt (Lars beslut).
+const HELGFYND_KODER = {
+  '7':   ['lastplats', 'lastplatser', 'L'],
+  '18':  ['lastplats', 'lastplatser', 'L'],
+  '902': ['tillståndsplats', 'tillståndsplatser', 'T'],
+};
+// Är det en dag då helgfynd kan finnas i den här staden? Delas av kartan och förklaringen.
+function helgfyndDag(now) {
   if (!STAD.helgfynd) return false;
   const dag = now.getDay();
-  if (dag !== 0 && dag !== 6) return false;
-  if (s.andamal !== '7' && s.andamal !== '18') return false;
-  if (s.andamalAlltid || s.andamalVillkor || s.andamalOkand) return false;
+  return dag === 0 || dag === 6 || arHelgdag(now);
+}
+function arHelgfynd(s, now) {
+  if (!helgfyndDag(now)) return false;
+  if (!HELGFYND_KODER[s.andamal]) return false;
+  if (s.andamalAlltid || s.andamalOkand) return false;
+  if (s.andamalVillkor) {
+    const idag = gbgLastplatsFonster(s.andamalVillkor, now);
+    if (idag === null || idag.length) return false;          // okänd mening, eller gäller i dag
+    // Ett fönster som vände över midnatt i går gäller fortfarande i morse.
+    const igar = gbgLastplatsFonster(s.andamalVillkor,
+                   new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    return !(igar || []).some(w => w.start >= w.end);
+  }
+  const dag = now.getDay();
+  if (dag !== 0 && dag !== 6) return false;                  // fält: se avgränsningen ovan
   const a = s.andamalStart, b = s.andamalEnd;
   if (a == null || b == null || a >= b) return false;
   // Prova vid fönstrets egen start i dag: då svarar andamalActiveAt på ren dagfråga,
@@ -7932,11 +7977,20 @@ function arHelgfynd(s, now) {
   prov.setHours(Math.floor(a / 100), a % 100, 0, 0);
   return andamalActiveAt(s, prov) === false;
 }
-// Kartnålen: ett «L» på mörkgrönt. Ingen annan nål är grön, och gatans egen färg rörs inte.
+// Kortets förklaring. Stockholm har fönstret som fält och kan skriva det («Lastplats vardag
+// 07–19»); Göteborg och Uppsala har inget fönster i dag att skriva, så där står bara namnet –
+// raden «Lastplats igen i morgon 09–18» under säger när det gäller nästa gång.
+function helgfyndForklaring(s) {
+  const vad = s.andamalVillkor ? andamalNamnFor(s) : andamalTxt(s);
+  return `${vad} – gäller inte i dag, så just nu är det en vanlig p-plats. `
+       + 'Skylten är lätt att läsa som förbud – kontrollera att den säger samma sak.';
+}
+// Kartnålen: sortens bokstav på mörkgrönt. Ingen annan nål är grön, och gatans egen färg rörs inte.
 const HELGFYND_FARG = '#166534';
-function helgfyndIcon() {
+function helgfyndIcon(s) {
+  const b = (HELGFYND_KODER[s.andamal] || [])[2] || 'L';
   return L.divIcon({ className: 'helgfynd-pin', iconSize: [22, 22], iconAnchor: [11, 11],
-    html: '<div class="helgfynd-pin-b">L</div>' });
+    html: '<div class="helgfynd-pin-b">' + b + '</div>' });
 }
 let helgfyndNarmast = null;   // { latlng, pl } – raden i lådan zoomar hit
 function visaHelgfynd() {
@@ -8331,8 +8385,7 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
         if (avst <= HELGFYND_RADIE_M) {
           helgfynd = true;
           txt = 'Får stå nu · helgfynd';
-          const rad = `${andamalTxt(s)} – gäller inte i helgen, så i dag är det en vanlig p-plats. `
-                    + 'Skylten är lätt att läsa som förbud – kontrollera att den säger samma sak.';
+          const rad = helgfyndForklaring(s);
           infoRow = infoRow ? `${rad} · ${infoRow}` : rad;
           helgfyndLista.push({ s, avst, mitt });
         }
@@ -8374,22 +8427,47 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     let helgfyndHtml = '';
     if (helgfyndLista.length) {
       helgfyndLista.sort((a, b) => a.avst - b.avst);
-      // L-nål bara på de närmaste. Uppmätt lördag 2026-09-26 vid Tulegatan 21: 67 helgfynd
+      // ── En PLATS, inte en sträcka ──────────────────────────────────────────
+      // Stockholm och Göteborg har en föreskrift per lastplats (CITATION unik per sträcka,
+      // mätt 67/67 vid Tulegatan och 19/19 i Göteborgs centrum). Uppsala har ingen alls och
+      // delar skolans tillståndsyta i en sträcka per ruta – sex sträckor vid S:t Olofsgatan
+      // som på skylten är ETT ställe. Utan sammanslagning stod där sex nålar på varandra
+      // och raden räknade sex. Samma föreskrift = samma plats; utan föreskrift slås samma
+      // sort på samma gata inom 30 m ihop. Listan är sorterad, så första medlemmen är närmast.
+      const platser = [];
+      helgfyndLista.forEach(f => {
+        const sammaPlats = platser.find(p => f.s.citation
+          ? p.s.citation === f.s.citation
+          : (!p.s.citation && p.s.andamal === f.s.andamal && p.s.street === f.s.street
+             && p.mitt && f.mitt && map.distance(p.mitt, f.mitt) < 30));
+        if (!sammaPlats) platser.push(f);
+      });
+      // Nål bara på de närmaste. Uppmätt lördag 2026-09-26 vid Tulegatan 21: 67 helgfynd
       // inom 400 m (egna föreskrifter, 13 gator) – 67 nålar dränkte kartan. De övriga
       // behåller den mörkgröna linjen och samma kort; raden i lådan räknar alla.
-      helgfyndLista.slice(0, HELGFYND_MAX_NALAR).forEach(({ s, mitt }) => {
+      platser.slice(0, HELGFYND_MAX_NALAR).forEach(({ s, mitt }) => {
         if (!mitt || !s._helgfyndPl) return;
-        L.marker(mitt, { icon: helgfyndIcon(), keyboard: false })   // tryck på nålen = tryck på linjen
+        L.marker(mitt, { icon: helgfyndIcon(s), keyboard: false })   // tryck på nålen = tryck på linjen
           .on('click', e => { L.DomEvent.stopPropagation(e); s._helgfyndPl.fire('click'); })
           .addTo(grp);
       });
       const n0 = helgfyndLista[0];
       helgfyndNarmast = { latlng: n0.mitt, pl: n0.s._helgfyndPl || null };
-      const n = helgfyndLista.length;
+      // Räkna per sort, i den ordning HELGFYND_KODER listar dem («5 lastplatser och
+      // 12 tillståndsplatser»). Lastplats 7 och 18 är samma ord och slås ihop.
+      const perOrd = new Map();
+      platser.forEach(({ s }) => {
+        const ord = HELGFYND_KODER[s.andamal];
+        const k = ord[1], v = perOrd.get(k) || { ord, n: 0 };
+        v.n++; perOrd.set(k, v);
+      });
+      const delar = [...perOrd.values()].map(({ ord, n }) => `${n} ${n === 1 ? ord[0] : ord[1]}`);
+      const vilka = delar.length < 2 ? delar[0]
+                  : delar.slice(0, -1).join(', ') + ' och ' + delar[delar.length - 1];
       helgfyndHtml = `<button class="helgfynd-rad" onclick="visaHelgfynd()">`
-        + `<span class="helgfynd-l">L</span>`
-        + `<span class="helgfynd-txt"><b>Helgfynd:</b> ${n} ${n === 1 ? 'lastplats' : 'lastplatser'} nära målet `
-        + `gäller inte i helgen · närmast ${Math.max(10, Math.round(n0.avst / 10) * 10)} m</span>`
+        + `<span class="helgfynd-l">${HELGFYND_KODER[n0.s.andamal][2]}</span>`
+        + `<span class="helgfynd-txt"><b>Helgfynd:</b> ${vilka} nära målet `
+        + `gäller inte i dag · närmast ${Math.max(10, Math.round(n0.avst / 10) * 10)} m</span>`
         + `<span class="helgfynd-visa">Visa ›</span></button>`;
     }
     document.getElementById('hint').innerHTML = helgfyndHtml +
@@ -8900,11 +8978,22 @@ function updateLegend(mode) {
     : STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Förbudet tog nyss slut – bra chans</div>`
     : `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;box-shadow:0 0 0 3px #075985"></div>Förbudet tog nyss slut – bra chans</div>`;
-  // Helgfyndet finns bara i städer med `helgfynd:true` och bara lör–sön (se arHelgfynd) – raden förklarar
+  // Helgfyndet finns bara i städer med `helgfynd:true`, bara lör/sön/helgdag (se helgfyndDag) – raden förklarar
   // inget som inte kan ritas.
-  const helgNu = new Date().getDay();
-  const helgfyndRad = (STAD.helgfynd && (helgNu === 0 || helgNu === 6))
-    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${HELGFYND_FARG};border-radius:50%;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">L</div>Helgfynd – lastplats som inte gäller i helgen</div>` : '';
+  // En rad per bokstav staden faktiskt har (andamalIData), så Uppsala förklarar T och
+  // Stockholm aldrig lovar något om tillståndsplatser.
+  // ⚠ INTE harKod(): Stockholm saknar listan, och då svarar harKod ja på allt – rutan hade
+  // lovat T i en stad där 902 inte finns (det är vår kod för Uppsala). Utan
+  // lista räknas bara lastplatsen, som Stockholms mätning bygger på.
+  const helgfyndKanHa = kod => andamalIData ? andamalIData.includes(kod) : (kod === '7' || kod === '18');
+  const helgfyndBokstaver = new Map();
+  Object.entries(HELGFYND_KODER).forEach(([kod, [ental, , b]]) => {
+    if (helgfyndKanHa(kod) && !helgfyndBokstaver.has(b)) helgfyndBokstaver.set(b, ental);
+  });
+  const helgfyndRad = helgfyndDag(new Date())
+    ? [...helgfyndBokstaver].map(([b, ental]) =>
+        `<div class="lgnd-row"><div class="lgnd-sw" style="background:${HELGFYND_FARG};border-radius:50%;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${b}</div>Helgfynd – ${ental} som inte gäller i dag</div>`).join('')
+    : '';
   const nowStaRad = STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>
        ${helgfyndRad}${nyssGlowRad}`
