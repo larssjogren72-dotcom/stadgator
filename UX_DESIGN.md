@@ -327,6 +327,11 @@ den har ingen beläggningsdata (samma regel som glöden).
 lördagslastplats 11–17), 0 fynd aktiva någon minut av dagen, 0 fynd måndag och fredag.
 Göteborg, Natt-läget och fredag kväll: ingen rad, inga nålar.
 
+> **v1.50.0: helgfynd PÅ igen i Stockholm** – nu mot föreskriftstexten. Alla 1 390
+> lastplatsföreskrifter lästa i RDT: 1 096 stämmer med datan, 180 har fler fönster (153 även
+> lördag, 43 även söndag). Helgfynd kräver en läst föreskrift. Samma läsning rättade falskt
+> grönt lördag 11–17 på 387 tidsreglerade förbud. Se ARKITEKTUR.md §5 och CHANGELOG v1.50.0.
+>
 > **v1.49.1 (samma kväll): helgfynd AVSTÄNGT i Stockholm.** Fälten visade sig inte räcka.
 > 40 slumpade lastplatsföreskrifter lästa i original: 3 gäller även helgen (lör 08–17,
 > lör 11–17, alla dagar) medan datan bara har «vardag utom vardag före…» – API:et tappar

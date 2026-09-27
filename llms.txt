@@ -9,7 +9,7 @@ ParkSpot har inga sensorer för lediga parkeringsplatser i realtid. Appen visar 
 ### Stockholm — [parkspot.se](https://parkspot.se/)
 Fullständig data: parkeringsförbud, taxazoner (Taxa 1–5 med pris per timme), städdagar med säsong, boendeparkering, p-hus. En gata utan färg saknar uppgift i registret.
 
-**Lastplatser på helgen:** de flesta lastplatser i Stockholm gäller bara vardagar och är vanliga parkeringsplatser på helgen – men inte alla. En del gäller även lördagar eller alla dagar, och det framgår inte alltid av stadens öppna data. Appens helgfynd (som i Göteborg och Uppsala) är därför avstängt i Stockholm tills varje lastplats tider är kontrollerade mot föreskriften. Läs skylten på plats.
+**Lastplatser på helgen (helgfynd):** de flesta lastplatser i Stockholm gäller bara vardagar och är vanliga parkeringsplatser på helgen – men inte alla. Ungefär 150 gäller även lördagar och ett 40-tal även söndagar, och det framgår inte alltid av stadens öppna data. ParkSpot har därför läst varje lastplats föreskrift i original hos Transportstyrelsen och pekar bara ut de lastplatser nära målet där föreskriften bekräftar att de inte gäller i dag. Samma genomgång visade att många tidsreglerade parkeringsförbud i innerstaden gäller även lördagar 11–17 – det visar appen. Avgiften följer zonen: i Taxa 1 och 2 kostar det även på helgen, i Taxa 3 och 4 lördag 11–17, i Taxa 5 är helgen fri. Läs skylten på plats.
 
 ### Göteborg — [parkspot.se/?stad=goteborg](https://parkspot.se/?stad=goteborg)
 Städdagar (med **jämna och udda veckor**, vilket är hur Göteborg städar – 80 % av gatorna städas varannan vecka), tidsgränser från 30 min till 7 dygn, 38 boendezoner, MC- och cykelplatser, platser för rörelsehindrade och 923 parkeringsanläggningar med aktuellt timpris.

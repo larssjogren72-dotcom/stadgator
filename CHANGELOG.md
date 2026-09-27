@@ -14,6 +14,37 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.50.0 – 2026-09-27
+**Stockholm läser föreskriftens egna tider – falskt grönt på lördagar borta, helgfynd tillbaka.**
+
+Stockholms öppna data har ofta bara EN tidsrad per föreskrift fast föreskriften har flera. Alla
+1 969 berörda föreskrifter är nu lästa i original hos Transportstyrelsen (29 gick inte att läsa –
+de behåller dagens beteende):
+
+- **Tidsreglerade förbud:** 387 av 579 har fönster som datan saknar – nästan alltid «vardag före
+  sön- och helgdag 11.00–17.00» (lördag) och en städnatt. Appen visade **grönt lördag 11–17 där
+  parkering är förbjuden** (sedan v1.16.0). Nu rött.
+- **Lastplatser:** 180 av 1 390 har fler fönster än datan – 153 gäller även lördag, 43 även
+  söndag. Plus den kända tappade veckodagen («måndag OCH tisdag») och Saltmätargatan, där datan
+  bara hade lördagsraden och missade vardagarna 07–19. 1 096 är lästa och stämmer med datan.
+- **Helgfynd i Stockholm på igen**, men bara för lastplatser vars föreskrift är läst och
+  kontrollerad. Vid Tulegatan 21 en lördag: 57 (förut 65).
+
+Säkerhetsspärrar: textens fönster används bara om de täcker alla datans rader; säsong, udda/jämn
+vecka och avvikelser ger dagens beteende; datumvakt som i v1.16.0-tabellen. «Under tiden X får
+dock fordon inte parkeras» (städnatt) blir inte lastplatsens tid – kortet säger då «Städas nu»,
+inte «Lastplats».
+
+Mätt med appens egen kod, hela staden, en vecka i halvtimmar, med och utan tabellen:
+39 287 förbudsposter – 496 får ny förbjuden tid (5 460 halvtimmar på lördag), **0 halvtimmar
+går från förbjuden till tillåten**. Lastplatser i fem innerstadsområden: 40 av 193 får textens
+tider, 0 går från gällande till icke gällande, 0 helgfynd aktiva någon kvart. Kartan vid
+Tulegatan: lördag 12:00 356 → 334 «gator där du får stå», tisdag 03:00 350 → 344, tisdag 12:00
+232 → 231. Göteborg och Uppsala orörda.
+
+Kostnad: index.html +98 kB, +15 kB komprimerat (+6,7 %). Nya verktyg: `las-sthlm-fonster.js`,
+`bygg-sthlm-fonster.js`; tabellen är ännu inte med i månadsroboten.
+
 ## v1.49.1 – 2026-09-27
 **Helgfynd avstängt i Stockholm – datan saknar fönster som föreskriften har.**
 

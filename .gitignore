@@ -12,3 +12,6 @@ server_test.log
 .cartokey
 cartokey.txt
 gbgkey.txt
+
+# Föreskriftstexter ur RDT (cache för verktyg/las-sthlm-fonster.js, ~3 MB, läses om vid behov)
+verktyg/.rdt-texter.json

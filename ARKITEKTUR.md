@@ -149,6 +149,14 @@ Verifierat mot fältdata och skyltar:
 - Skylttext `"Boende <zon>"` (t.ex. "Boende Ci/Tr") → boendezon; besökare får stå **max 3 tim** utanför betaltid → visa som "kontrollera skylt", ej blå för nattparkering.
 - Lastzon (`LTFR_LASTZON_GEOM`, eller föreskrift "lastning/lossning") → reserverad för leveransfordon. Kort sträcka (5–22 m). Ska INTE göra hela gatan otillgänglig – visa som egen kort markör.
 - Ändamålsplats med `"övrig tid får fordon parkeras"` → parkerbar på natten.
+- **Stockholms WFS tappar fönster** (2026-09-27, v1.50.0): ofta EN tidsrad per föreskrift fast
+  föreskriften har flera. 387 av 579 tidsreglerade förbud saknar lördag 11–17 och/eller en
+  städnatt; 180 av 1 390 lastplatser har fler fönster än datan. `STHLM_FONSTER` (genererad av
+  `verktyg/las-sthlm-fonster.js` + `bygg-sthlm-fonster.js`) bär textens alla fönster i
+  Göteborgs regelform; `sthlmFonster(cit, validFrom, 'f'|'a')` med datumvakt. `forbudActiveAt`
+  frågar den först; lastplatser får `andamalVillkor` + `andamalLast`. Tolkningen får bara
+  LÄGGA TILL fönster (texten måste täcka datans rader). Lärdom: ett dataset kan inte bevisa
+  sin egen fullständighet – mätningen före v1.48.0 frågade bara fälten.
 - **Helgfynd** (2026-09-27): ~1 395 av Stockholms 1 405 lastplatser gäller inte lör–sön
   (1 216 «vardag utom vardag före sön- och helgdag», 179 en enda vardag). `arHelgfynd(s, now)`
   frågar `andamalActiveAt` vid fönstrets egen start i dag – samma dagtolkning som färgen.

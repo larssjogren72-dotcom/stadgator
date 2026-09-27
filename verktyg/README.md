@@ -9,6 +9,22 @@ håller dem aktuella; den här filen säger hur, och vad som krävs av dig.
 | `forbud-ovrig-tid.json` | 46 föreskrifter där parkering är förbjuden dygnet runt (Stockholm) |
 | `gbg-maxtid-villkor.json` | När Göteborgs tidsgränser gäller – och när de vilar |
 | `gbg-lastplats-tider.json` | När Göteborgs lastplatser gäller |
+| `sthlm-fonster.json` | Stockholms tidsfönster ur föreskriftstexten, där kartdatan saknar några (lördag 11–17, städnatt, tappad veckodag) – och vilka lastplatser som är lästa (krävs för helgfynd). **Ej i roboten än** – kör för hand, se nedan. |
+
+### `sthlm-fonster.json` (v1.50.0, 2026-09-27)
+
+```
+node verktyg/las-sthlm-fonster.js     # läser nya föreskrifter i RDT (~20 min första gången), skriver JSON
+node verktyg/bygg-sthlm-fonster.js    # för in tabellen i index.html
+```
+
+Texterna cachas i `verktyg/.rdt-texter.json` (gitignorerad, ~3 MB), så en omkörning läser bara
+nya ärenden. Klasser per föreskrift: `lika` (texten = datan), `dolda` (texten har fler fönster),
+`oklar` (säsong, udda/jämn vecka, inga fönster), `avvikelse` (texten saknar ett fönster datan har
+– tolkningen litas inte på), `olasbar`. Bara `dolda` och `lika` hamnar i appen.
+
+**Åldras säkert:** ändrad föreskrift → datumvakten → dagens beteende; ny föreskrift → saknas i
+tabellen → dagens beteende och inget helgfynd. Täckningen sjunker alltså, felen ökar inte.
 
 ## Roboten
 
