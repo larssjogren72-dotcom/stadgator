@@ -248,6 +248,17 @@
     .mc-pin-b { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #fff; display: flex;
       align-items: center; justify-content: center; }
     .mc-pin-b svg { width: 15px; height: 15px; color: #fff; }
+    /* Helgfynd: lastplats som inte gäller i helgen (se arHelgfynd) */
+    .helgfynd-pin-b { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; background: #166534;
+      color: #fff; font: 700 12px/18px Inter, system-ui, sans-serif; text-align: center;
+      box-shadow: 0 1px 4px rgba(15,23,42,.35); }
+    .helgfynd-rad { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 10px; padding: 9px 12px;
+      border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 10px; color: #14532d; font: inherit;
+      font-size: 14px; text-align: left; cursor: pointer; }
+    .helgfynd-l { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #166534; color: #fff;
+      font-weight: 700; font-size: 12px; line-height: 22px; text-align: center; }
+    .helgfynd-txt { flex: 1; min-width: 0; }
+    .helgfynd-visa { flex: none; font-weight: 600; color: #166534; }
     #veh-toggle { display: flex; gap: 3px; background: rgba(15,23,42,0.05); border-radius: 10px; padding: 3px; flex: none; }
     .veh-opt {
       width: 40px; height: 32px; border: 0; border-radius: 8px; background: none; cursor: pointer;
@@ -3570,7 +3581,7 @@ function mcPinIcon(color, ring) {
 // Ritar ETT parkeringssegment. Bil-läge: oförändrat (vanlig linje). MC-läge (fokus/deklutter):
 // exklusiv MC-ruta → PIN; bilgata MC får nyttja → dämpad grön; icke-MC → tyst grått;
 // "Endast MC" → dölj allt utom pins + städ/förbud (som gäller MC med).
-function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hiddenGem) {
+function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hiddenGem, helgfynd = false) {
   const mc = vehicleMode === 'mc';
   if (vehicleMode === 'rh' && isRhPlats(s)) return;   // ritas som nål av rhPlatserOverlay
   if (s.gagata) return;                          // gågata ritas som streckad linje (FORESKRIFT) – ej dubbel heldragen
@@ -3588,6 +3599,9 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
   // är median 36 m. Cykelläget självt målar redan inga gator alls, bara nålar.
   if (vehicleMode !== 'cykel' && isCykelPlats(s.vehicle)) return;
   let weight = 6, opacity = 0.95, drawColor = color;
+  // Segmentobjekten återanvänds mellan ritningar – en linje från förra ritningen får aldrig
+  // bli den som lådans «Visa ›» pekar på.
+  if (helgfynd) s._helgfyndPl = null;
   // MC-läge: byt bara KULÖR för "ej för bil"-lila → tyst grått (samma otherColor-konvention
   // som legenden redan använder). Opaciteten sätts INTE här längre – det körde helt vid sidan
   // om Tona ner-reglaget (isBlockedColor/applyDim), så grönt (lagligt för MC) visades permanent
@@ -3612,6 +3626,11 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
     // denna path bort i MC-läge, samma avsiktliga deklutter som för nyss städad (oförändrat,
     // bara opaciteten som styrdes vid sidan om Tona ner-reglaget är borttagen, se ovan).
     weight = 7;
+  } else if (helgfynd) {
+    // Helgfynd: samma gröna familj (laglighet oförändrad), men mörkare och tjockare, och
+    // UTAN halo – halon betyder redan «förbudet tog nyss slut» och ska förbli sällsynt.
+    // Det som skiljer ut fyndet är L-nålen nedan. `color` (dimning, kortets hjälte) rörs inte.
+    drawColor = HELGFYND_FARG; weight = 8;
   }
   s.linesSweref.forEach(line => {
     const latlngs = line.map(c => toLatLng(c[0], c[1]));
@@ -3676,6 +3695,7 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
       showPlaceCardV2(utanNamn ? UTAN_GATUNAMN : s.street, txt, color, dest, infoRow,
                       (color === '#ef4444' && !!s.andamal) || color === '#9333ea', false, nasta, forbudIgen, s.platser,
                       utanNamn ? stadRadUtanNamn(dest) : null, s.rate && s.rate.raw); });
+    if (helgfynd && !s._helgfyndPl) s._helgfyndPl = pl;
   });
 }
 
@@ -7871,6 +7891,54 @@ function forbudTogNyssSlut(s, now) {
   const sedan = nu - slutMin;                          // minuter sedan fönstret tog slut
   return (sedan >= 0 && sedan < SENASTE_H * 60) ? slut : null;
 }
+
+// ── Helgfynd (Lars idé 2026-09-27, efter en lördag i stan) ─────────────────────
+// En lastplats som bara gäller vardagar är en vanlig p-plats på helgen. Appen visste det
+// redan – den föll igenom till vanlig logik och blev grön – men målade den likadan som
+// gatan bredvid. Skylten säger «Lastplats» med stora bokstäver och «(vardag 7–17)» i en
+// parentes, så den som kör förbi läser ett förbud. Helgfyndet pekar ut dem nära målet.
+//
+// Mätt 2026-09-27, hela Stockholm (VF_PLATS_TYP 7/18): 1 405 lastplatser. 1 216 gäller
+// «vardag utom vardag före sön- och helgdag», 179 en enda vardag, 2 lördag («vardag före
+// sön- och helgdag») och 8 saknar dagangivelse (räknas som alla dagar). Cirka 1 395
+// gäller alltså inte på helgen.
+//
+// Tre avgränsningar, alla medvetna:
+//   · BARA lördag och söndag. Enkeldagsposterna har en känd lucka – API:et tappar den
+//     andra veckodagen (Ormängsgatan «måndag OCH torsdag» har bara måndag). En vardag kan
+//     vi därför inte lova något om. Ingen helgdag bär en vardagslastplats på helgen.
+//   · BARA Stockholm. Göteborgs fönster står som meningar (andamalVillkor), och de andra
+//     städerna är inte mätta för den här frågan (Lars beslut 2026-09-27).
+//   · Fönster som vänder över midnatt räknas inte: ett fredagsfönster 22–06 gäller
+//     lördag morgon, och det kan provet vid starttiden inte se.
+// Ordet är «gäller inte i dag» – HÄNDELSEN, aldrig «ledig» (samma regel som glöden).
+const HELGFYND_RADIE_M = 400, HELGFYND_MAX_NALAR = 5;
+function arHelgfynd(s, now) {
+  if (STAD.id !== 'stockholm') return false;
+  const dag = now.getDay();
+  if (dag !== 0 && dag !== 6) return false;
+  if (s.andamal !== '7' && s.andamal !== '18') return false;
+  if (s.andamalAlltid || s.andamalVillkor || s.andamalOkand) return false;
+  const a = s.andamalStart, b = s.andamalEnd;
+  if (a == null || b == null || a >= b) return false;
+  // Prova vid fönstrets egen start i dag: då svarar andamalActiveAt på ren dagfråga,
+  // med exakt samma dagtolkning som färgen använder (samma knep som nastaAndamalFonster).
+  const prov = new Date(now);
+  prov.setHours(Math.floor(a / 100), a % 100, 0, 0);
+  return andamalActiveAt(s, prov) === false;
+}
+// Kartnålen: ett «L» på mörkgrönt. Ingen annan nål är grön, och gatans egen färg rörs inte.
+const HELGFYND_FARG = '#166534';
+function helgfyndIcon() {
+  return L.divIcon({ className: 'helgfynd-pin', iconSize: [22, 22], iconAnchor: [11, 11],
+    html: '<div class="helgfynd-pin-b">L</div>' });
+}
+let helgfyndNarmast = null;   // { latlng, pl } – raden i lådan zoomar hit
+function visaHelgfynd() {
+  if (!helgfyndNarmast) return;
+  map.flyTo(helgfyndNarmast.latlng, Math.max(map.getZoom(), 18));
+  if (helgfyndNarmast.pl) helgfyndNarmast.pl.fire('click');
+}
 function senasteStadTxt(n, now) {
   if (!n) return null;
   const h = (now - n.when) / 3600000;
@@ -7927,6 +7995,8 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
 
     // Gatufärg = får jag stå här just nu? (pris visas av zonerna + popupen, ej av färgen)
     let okNu = 0;
+    const helgfyndLista = [];
+    helgfyndNarmast = null;
     const now = new Date();
     const nowH = now.getHours() + now.getMinutes() / 60;   // för hidden-gem-fönstret nedan
     const nyssTid0 = performance.now();
@@ -8246,8 +8316,24 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
           infoRow = infoRow ? `${infoRow} · ${rad}` : rad;
         }
       }
+      // ── Helgfynd: lastplats som inte gäller i dag (se arHelgfynd) ────────────
+      // Sist, när färgen är avgjord: bara en sträcka som fortfarande är GRÖN kan vara ett
+      // fynd. En glöd vinner – den säger redan «bra chans» och ska inte få två budskap.
+      let helgfynd = false;
+      if (color === '#16a34a' && !nyssStadad && oppnadeKl == null && arHelgfynd(s, now)) {
+        const mitt = stadMittpunkt(s);
+        const avst = mitt ? map.distance([lat, lng], mitt) : Infinity;
+        if (avst <= HELGFYND_RADIE_M) {
+          helgfynd = true;
+          txt = 'Får stå nu · helgfynd';
+          const rad = `${andamalTxt(s)} – gäller inte i helgen, så i dag är det en vanlig p-plats. `
+                    + 'Skylten är lätt att läsa som förbud – kontrollera att den säger samma sak.';
+          infoRow = infoRow ? `${rad} · ${infoRow}` : rad;
+          helgfyndLista.push({ s, avst, mitt });
+        }
+      }
       // Glöden ritas av samma gren som nyss städad – det ÄR samma signal.
-      drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad || oppnadeKl != null, hiddenGem);
+      drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad || oppnadeKl != null, hiddenGem, helgfynd);
       drawUteservering(s, grp, dest);   // orange klipp-overlay där serveringsyta ligger
     });
     console.log(`[Nyss städad] ${nyssRaknade} uppslag på ${(performance.now() - nyssTid0).toFixed(0)} ms`);
@@ -8278,7 +8364,30 @@ async function showNowParkingV2Flow(lat, lng, parkPromise = null) {
     // Samma "gäller även moped klass 1"-tillägg som renderModeIntro() – se kommentaren i
     // showSafeStreetsV2Flow för varför detta behövs som ett eget ställe.
     const mcSuffix = vehicleMode === 'mc' ? ' Gäller även moped klass 1.' : '';
-    document.getElementById('hint').innerHTML =
+    // Helgfynd-raden överst i lådan, så den syns i peek-läget. Noll fynd = ingen rad –
+    // «0 helgfynd» vore brus, och tystnad säger inte att det finns några.
+    let helgfyndHtml = '';
+    if (helgfyndLista.length) {
+      helgfyndLista.sort((a, b) => a.avst - b.avst);
+      // L-nål bara på de närmaste. Uppmätt lördag 2026-09-26 vid Tulegatan 21: 67 helgfynd
+      // inom 400 m (egna föreskrifter, 13 gator) – 67 nålar dränkte kartan. De övriga
+      // behåller den mörkgröna linjen och samma kort; raden i lådan räknar alla.
+      helgfyndLista.slice(0, HELGFYND_MAX_NALAR).forEach(({ s, mitt }) => {
+        if (!mitt || !s._helgfyndPl) return;
+        L.marker(mitt, { icon: helgfyndIcon(), keyboard: false })   // tryck på nålen = tryck på linjen
+          .on('click', e => { L.DomEvent.stopPropagation(e); s._helgfyndPl.fire('click'); })
+          .addTo(grp);
+      });
+      const n0 = helgfyndLista[0];
+      helgfyndNarmast = { latlng: n0.mitt, pl: n0.s._helgfyndPl || null };
+      const n = helgfyndLista.length;
+      helgfyndHtml = `<button class="helgfynd-rad" onclick="visaHelgfynd()">`
+        + `<span class="helgfynd-l">L</span>`
+        + `<span class="helgfynd-txt"><b>Helgfynd:</b> ${n} ${n === 1 ? 'lastplats' : 'lastplatser'} nära målet `
+        + `gäller inte i helgen · närmast ${Math.max(10, Math.round(n0.avst / 10) * 10)} m</span>`
+        + `<span class="helgfynd-visa">Visa ›</span></button>`;
+    }
+    document.getElementById('hint').innerHTML = helgfyndHtml +
       `<span class="hint-main">Tryck på ${tapTargetPhraseAny()} för tider och vägbeskrivning.${mcSuffix}</span>` +
       DISCLAIMER_HTML;
     loadZonesForViewport(getKey());
@@ -8786,9 +8895,14 @@ function updateLegend(mode) {
     : STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#22c55e;box-shadow:0 0 0 3px #86efac"></div>Förbudet tog nyss slut – bra chans</div>`
     : `<div class="lgnd-row"><div class="lgnd-sw" style="background:#38bdf8;box-shadow:0 0 0 3px #075985"></div>Förbudet tog nyss slut – bra chans</div>`;
+  // Helgfyndet finns bara i Stockholm och bara lör–sön (se arHelgfynd) – raden förklarar
+  // inget som inte kan ritas.
+  const helgNu = new Date().getDay();
+  const helgfyndRad = (STAD.id === 'stockholm' && (helgNu === 0 || helgNu === 6))
+    ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:${HELGFYND_FARG};border-radius:50%;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">L</div>Helgfynd – lastplats som inte gäller i helgen</div>` : '';
   const nowStaRad = STAD.skiljerKorttid
     ? `<div class="lgnd-row"><div class="lgnd-sw" style="background:#16a34a;border:1px solid #166534"></div>Får stå nu</div>
-       ${nyssGlowRad}`
+       ${helgfyndRad}${nyssGlowRad}`
     : `${nyssGlowRad}
        <div class="lgnd-hidden-note">${STAD.namn} pekar inte ut vilka platser som är korttid, så appen kan inte lova hur länge du får stå. Därför blått i stället för grönt – skylten avgör.</div>`;
   // Orange i Nu-läget: städning som börjar snart, eller en ändamålsplats som börjar
