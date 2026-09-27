@@ -14,6 +14,26 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.50.1 – 2026-09-27
+**Stockholms fönster i månadsroboten – och testgrinden fungerar igen.**
+
+- **Roboten** (`datatabeller.yml`) kontrollerar varje månad om någon föreskrift är ny, ändrad
+  eller borta (`las-sthlm-fonster.js --kolla`), läser bara om det som ändrats och bygger om
+  tabellen. Stegvis: provat utan textcache – 29 lästa, 1 940 återanvända, 1 969 av 1 969
+  identiska med en full körning. Kvittot tar med rapporten, och ett trasigt anrop larmar.
+- **Testgrinden underkände fungerande kod – roboten har inte kunnat committa något.**
+  `prova-tabeller.js` letade efter strängen «r[0] === 'vardag'», som försvann när
+  `maxtidGallerVillkor` skrevs om till `maxtidDagOk`. Nu läser den dagtyperna ur
+  funktionskropparna (maxtidDagOk, gbgLastplatsFonster, SV_WEEKDAYS).
+- **Massborttagningsspärren var tyst avstängd för stora tabeller.** `git show` har en
+  gräns på 1 MB; sthlm-fonster.json är större, anropet kastade och testet trodde att filen
+  var ny. Upptäckt med ett avsiktligt fel; gränsen höjd.
+- Testgrinden prövar nu även Stockholms fönster (dagtyper, klockslag, datum, idempotent
+  generator, antal poster i blocket). Avsiktliga fel provade – alla fyra fälls.
+- Två lastplatser utan VALID_FROM (Munkbroleden, Pippi Långstrumps Gata) togs ur tabellen:
+  utan datum kan vakten inte se en ändring. De behåller dagens beteende.
+- Robotens commit-steg hade `\n` där radfortsättningen `\` skulle stå (aldrig körts skarpt).
+
 ## v1.50.0 – 2026-09-27
 **Stockholm läser föreskriftens egna tider – falskt grönt på lördagar borta, helgfynd tillbaka.**
 

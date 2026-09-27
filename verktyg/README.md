@@ -9,17 +9,22 @@ håller dem aktuella; den här filen säger hur, och vad som krävs av dig.
 | `forbud-ovrig-tid.json` | 46 föreskrifter där parkering är förbjuden dygnet runt (Stockholm) |
 | `gbg-maxtid-villkor.json` | När Göteborgs tidsgränser gäller – och när de vilar |
 | `gbg-lastplats-tider.json` | När Göteborgs lastplatser gäller |
-| `sthlm-fonster.json` | Stockholms tidsfönster ur föreskriftstexten, där kartdatan saknar några (lördag 11–17, städnatt, tappad veckodag) – och vilka lastplatser som är lästa (krävs för helgfynd). **Ej i roboten än** – kör för hand, se nedan. |
+| `sthlm-fonster.json` | Stockholms tidsfönster ur föreskriftstexten, där kartdatan saknar några (lördag 11–17, städnatt, tappad veckodag) – och vilka lastplatser som är lästa (krävs för helgfynd). I roboten sedan v1.50.1. |
 
-### `sthlm-fonster.json` (v1.50.0, 2026-09-27)
+### `sthlm-fonster.json` (v1.50.0, i roboten sedan v1.50.1)
 
 ```
-node verktyg/las-sthlm-fonster.js     # läser nya föreskrifter i RDT (~20 min första gången), skriver JSON
-node verktyg/bygg-sthlm-fonster.js    # för in tabellen i index.html
+node verktyg/las-sthlm-fonster.js --kolla   # rapport: nya/ändrade/borta, exit 0/1/2
+node verktyg/las-sthlm-fonster.js           # läser bara nya, ändrade och oläsbara i RDT
+node verktyg/bygg-sthlm-fonster.js          # för in tabellen i index.html
 ```
 
-Texterna cachas i `verktyg/.rdt-texter.json` (gitignorerad, ~3 MB), så en omkörning läser bara
-nya ärenden. Klasser per föreskrift: `lika` (texten = datan), `dolda` (texten har fler fönster),
+**Stegvis:** roboten har ingen textcache. En föreskrift vars VALID_FROM är densamma som i
+JSON-filen behåller sin klassning utan omläsning. Provat 2026-09-27 utan cache: 29 lästa
+(de oläsbara), 1 940 återanvända, 1 969 av 1 969 identiska med en full körning.
+Lokalt cachas texterna i `verktyg/.rdt-texter.json` (gitignorerad, ~2 MB) och klassas då
+om – så en förbättrad tolkning slår igenom där, inte i roboten. Förbättras tolkningen:
+kör lokalt med cachen och committa JSON-filen. Klasser per föreskrift: `lika` (texten = datan), `dolda` (texten har fler fönster),
 `oklar` (säsong, udda/jämn vecka, inga fönster), `avvikelse` (texten saknar ett fönster datan har
 – tolkningen litas inte på), `olasbar`. Bara `dolda` och `lika` hamnar i appen.
 

@@ -5,7 +5,7 @@
 #
 # ⚠ ROBOTEN PUSHAR TILL MASTER OCH RAILWAY DEPLOYAR MASTER. Det som skyddar är
 # tre saker, inte förtroende:
-#   1. Den rör BARA de tre JSON-tabellerna och de genererade blocken i index.html.
+#   1. Den rör BARA de fyra JSON-tabellerna och de genererade blocken i index.html.
 #      Ingen logik, inga texter, ingen färgsättning.
 #   2. verktyg/prova-tabeller.js måste godkänna. Den fäller okända dagtyper,
 #      trasiga klockslag, generatorer som glidit isär, index.html som slutat
@@ -66,6 +66,19 @@ jobs:
           echo "kod=$?" >> "$GITHUB_OUTPUT"
           cat rapport-sthlm.txt
 
+      # Stockholms fönster ur föreskriftstexten (v1.50.0). Kartdatan tappar fönster
+      # (lördag 11-17, städnatt); tabellen bär textens alla. Kontrollen läser INGEN text,
+      # den jämför bara ärendenummer och VALID_FROM mot sthlm-fonster.json.
+      - name: Kontroll – Stockholms fönster
+        id: kolla_fonster
+        env:
+          STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
+        run: |
+          set +e
+          node verktyg/las-sthlm-fonster.js --kolla > rapport-fonster.txt 2>&1
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          cat rapport-fonster.txt
+
       # ── 2. Utför ändringen ────────────────────────────────────────────────
       # Varje uppdaterare skriver sin egen JSON. De rör inte varandras filer, så
       # ett fel i den ena lämnar den andra orörd.
@@ -86,12 +99,25 @@ jobs:
           node verktyg/kolla-forbud-ovrig-tid.js --uppdatera > uppd-sthlm.txt 2>&1
           cat uppd-sthlm.txt
 
+      # Stegvis: en föreskrift med oförändrat VALID_FROM behåller sin klassning utan att
+      # läsas om. Bara nya, ändrade och tidigare oläsbara hämtas ur RDT – några i månaden.
+      # Ny eller ändrad föreskrift som inte går att tolka blir «oklar» = dagens beteende.
+      - name: Uppdatera Stockholms fönster
+        if: steps.kolla_fonster.outputs.kod == '1'
+        env:
+          STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
+        run: |
+          set +e
+          node verktyg/las-sthlm-fonster.js > uppd-fonster.txt 2>&1
+          cat uppd-fonster.txt
+
       # ── 3. Skriv in i index.html ──────────────────────────────────────────
       - name: Bygg om blocken
         run: |
           node verktyg/bygg-gbg-villkor.js
           node verktyg/bygg-gbg-lastplats.js
           node verktyg/bygg-forbud-ovrig-tid.js
+          node verktyg/bygg-sthlm-fonster.js
 
       # Robotens egna andringar flyttar radnummer i index.html, och da blir
       # arkitektursidans kodpekare fel. Den ska inte kunna lamna drift efter sig.
@@ -134,7 +160,8 @@ jobs:
             'skrivit om tabellerna och kort testgrinden (verktyg/prova-tabeller.js)' \
             'innan den committade. Rapporterna ligger i jobbets logg och i issuet.' \
             '' \
-            'Bara JSON-tabellerna, de genererade blocken och arkitektursidans' \n            'raknade siffror ar rorda - ingen logik, inga texter.' > .commitmsg
+            'Bara JSON-tabellerna, de genererade blocken och arkitektursidans' \
+            'raknade siffror ar rorda - ingen logik, inga texter.' > .commitmsg
           git commit -F .commitmsg
           rm -f .commitmsg
           git push
@@ -143,7 +170,7 @@ jobs:
       # Öppnas när något hänt ELLER när något inte gick att köra. Roboten ska
       # aldrig vara tyst om att den agerat, och aldrig tyst om att den inte kunde.
       - name: Kvitto som issue
-        if: always() && (steps.diff.outputs.andrat == 'ja' || steps.prov.outputs.kod != '0' || steps.kolla_gbg.outputs.kod == '2' || steps.kolla_sthlm.outputs.kod == '2')
+        if: always() && (steps.diff.outputs.andrat == 'ja' || steps.prov.outputs.kod != '0' || steps.kolla_gbg.outputs.kod == '2' || steps.kolla_sthlm.outputs.kod == '2' || steps.kolla_fonster.outputs.kod == '2')
         uses: actions/github-script@v7
         with:
           script: |
@@ -152,7 +179,8 @@ jobs:
             const provOk  = '${{ steps.prov.outputs.kod }}' === '0';
             const andrat  = '${{ steps.diff.outputs.andrat }}' === 'ja';
             const torrkor = '${{ github.event.inputs.torrkor }}' === 'true';
-            const trasig  = '${{ steps.kolla_gbg.outputs.kod }}' === '2' || '${{ steps.kolla_sthlm.outputs.kod }}' === '2';
+            const trasig  = '${{ steps.kolla_gbg.outputs.kod }}' === '2' || '${{ steps.kolla_sthlm.outputs.kod }}' === '2'
+                         || '${{ steps.kolla_fonster.outputs.kod }}' === '2';
             const rubrik = !provOk ? 'Roboten STOPPADE sig själv – testgrinden föll'
                          : trasig  ? 'Roboten kunde inte kontrollera allt'
                          : torrkor ? 'Torrkörning – så här hade tabellerna ändrats'
@@ -176,11 +204,12 @@ jobs:
               '## Testgrinden', '```', las('prov.txt').slice(0, 10000), '```', '',
               '## Kontroll – Göteborg', '```', las('rapport-gbg.txt').slice(0, 15000), '```', '',
               '## Kontroll – Stockholm', '```', las('rapport-sthlm.txt').slice(0, 15000), '```', '',
+              '## Kontroll – Stockholms fönster', '```', las('rapport-fonster.txt').slice(0, 15000), '```', '',
               '## Omläsning', '```',
-              ([las('uppd-gbg-villkor.txt'), las('uppd-gbg-lastplats.txt'), las('uppd-sthlm.txt')]
+              ([las('uppd-gbg-villkor.txt'), las('uppd-gbg-lastplats.txt'), las('uppd-sthlm.txt'), las('uppd-fonster.txt')]
                 .filter(t => t && t !== '(ingen)').join('\n\n') || '(ingen omläsning behövdes)').slice(0, 15000),
               '```', '',
-              'Roboten rör bara de tre JSON-tabellerna och de genererade blocken i',
+              'Roboten rör bara de fyra JSON-tabellerna och de genererade blocken i',
               '`index.html`. Vill du backa: `git revert` på commiten ovan.'
             ].join('\n');
             // MEJLET GÅR VIA GITHUB, inte via en egen SMTP-uppkoppling. Lars får redan

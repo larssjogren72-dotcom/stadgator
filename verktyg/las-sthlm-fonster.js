@@ -1,7 +1,14 @@
 // Läser Stockholms föreskrifter ur RDT och tar fram ALLA deras tidsfönster.
 //
-//   node verktyg/las-sthlm-fonster.js            → använder sparade texter, läser bara nya
-//   node verktyg/las-sthlm-fonster.js --inte-las → bara sparade texter, inga RDT-anrop
+//   node verktyg/las-sthlm-fonster.js            → läser bara nya och ändrade föreskrifter
+//   node verktyg/las-sthlm-fonster.js --inte-las → inga RDT-anrop alls
+//   node verktyg/las-sthlm-fonster.js --kolla    → rapport, ändrar ingenting. Exit 0 = inget
+//                                                  att göra, 1 = något ändrat, 2 = fel
+//
+// STEGVIS (månadsroboten har ingen textcache): en föreskrift vars VALID_FROM är densamma
+// som i sthlm-fonster.json behåller sin gamla klassning utan att läsas om. Bara nya,
+// ändrade och tidigare oläsbara läses – några i månaden i stället för 1 969.
+// Finns texten i cachen (lokalt) klassas den om ändå, så en förbättrad tolkning slår igenom.
 //
 // Skriver verktyg/sthlm-fonster.json (granskningsbar, meningen i klartext). Kör sedan
 // verktyg/bygg-sthlm-fonster.js för att föra in tabellen i index.html.
@@ -29,6 +36,7 @@ const HAR = __dirname;
 const TEXTER = path.join(HAR, '.rdt-texter.json');     // gitignorerad cache: citation → text
 const UT = path.join(HAR, 'sthlm-fonster.json');
 const INTE_LAS = process.argv.includes('--inte-las');
+const KOLLA = process.argv.includes('--kolla');
 
 let API_KEY = (process.env.STHLM_API_KEY || '').trim();
 if (!API_KEY) { try { API_KEY = fs.readFileSync(path.join(HAR, '..', '.apikey'), 'utf8').trim(); } catch {} }
@@ -206,10 +214,45 @@ async function wfs(lager, falt, cql) {
     }
   }
   const texter = fs.existsSync(TEXTER) ? JSON.parse(fs.readFileSync(TEXTER, 'utf8')) : {};
+  const gammal = fs.existsSync(UT) ? JSON.parse(fs.readFileSync(UT, 'utf8')) : { poster: [] };
+  const gamla = new Map(gammal.poster.map(p => [p.lager + '|' + p.citation, p]));
+  const datumFor = rader => String(rader[0].VALID_FROM || '').slice(0, 10);
+  // Kan den gamla klassningen återanvändas utan att texten läses?
+  const ateranvand = (nyckel, rader) => {
+    const g = gamla.get(nyckel);
+    return g && g.klass !== 'olasbar' && g.gallerFran === datumFor(rader) ? g : null;
+  };
+
+  // ── --kolla: vad skulle behöva läsas? ─────────────────────────────────────
+  const nya = [], andrade = [], olasbara = [];
+  for (const [nyckel, v] of pop) {
+    const g = gamla.get(nyckel);
+    if (!g) nya.push(v);
+    else if (g.gallerFran !== datumFor(v.rader)) andrade.push(v);
+    else if (g.klass === 'olasbar') olasbara.push(v);
+  }
+  const borta = [...gamla.keys()].filter(k => !pop.has(k));
+  if (KOLLA) {
+    const rad = (n, t) => String(n).padStart(5) + '  ' + t;
+    console.log('Kontroll av sthlm-fonster.json mot Stockholms kartdata, ' + new Date().toISOString().slice(0, 10));
+    console.log(rad(pop.size, 'föreskrifter i populationen (tidsreglerade förbud + ändamålsplatser)'));
+    console.log(rad(gamla.size, 'föreskrifter i tabellen'));
+    console.log(rad(nya.length, 'nya – aldrig lästa'));
+    console.log(rad(andrade.length, 'ändrade – nytt VALID_FROM, texten måste läsas om'));
+    console.log(rad(borta.length, 'borta ur kartdatan'));
+    console.log(rad(olasbara.length, 'oläsbara sedan förra gången (försöks igen vid uppdatering)'));
+    const visa = (rubrik, lista) => { if (lista.length) { console.log('\n── ' + rubrik); lista.slice(0, 40).forEach(v => console.log('  ' + v.cit + '  ' + (v.rader[0].STREET_NAME || ''))); } };
+    visa('Nya', nya); visa('Ändrade', andrade);
+    if (borta.length) { console.log('\n── Borta'); borta.slice(0, 40).forEach(k => console.log('  ' + k)); }
+    process.exit(nya.length + andrade.length + borta.length ? 1 : 0);
+  }
+
   if (!INTE_LAS) {
     // Fyra åt gången: en i taget tog ~4 s per föreskrift (1 400 st ≈ 1,5 tim). Fler än så
-    // vore ohövligt mot Transportstyrelsens server.
-    const kvar = [...new Set([...pop.values()].map(v => v.cit))].filter(c => !texter[c]);
+    // vore ohövligt mot Transportstyrelsens server. Bara det som inte kan återanvändas.
+    const kvar = [...new Set([...pop].filter(([k, v]) => !ateranvand(k, v.rader)).map(([, v]) => v.cit))]
+      .filter(c => !texter[c]);
+    console.error('läser ' + kvar.length + ' föreskrifter i RDT');
     let n = 0;
     const arbetare = async () => {
       while (kvar.length) {
@@ -224,16 +267,28 @@ async function wfs(lager, falt, cql) {
   }
 
   const poster = [], sum = {};
-  for (const { cit, lager, rader } of pop.values()) {
+  let ateranvanda = 0;
+  for (const [nyckel, { cit, lager, rader }] of pop) {
     const p0 = rader[0];
     const bas = { citation: cit, lager, gata: p0.STREET_NAME || '', stadsdel: p0.CITY_DISTRICT || '',
                   gallerFran: String(p0.VALID_FROM || '').slice(0, 10), stracker: rader.length };
+    // Ingen text här men en oförändrad gammal klassning → behåll den (se STEGVIS ovan).
+    const g = !texter[cit] ? ateranvand(nyckel, rader) : null;
+    if (g) {
+      ateranvanda++;
+      sum[lager + ' ' + g.klass] = (sum[lager + ' ' + g.klass] || 0) + 1;
+      poster.push({ ...g, gata: bas.gata, stadsdel: bas.stadsdel, stracker: bas.stracker });
+      continue;
+    }
     // Olika VALID_FROM inom samma ärende → vi vet inte vilken rad texten gäller.
     const datum = new Set(rader.map(r => String(r.VALID_FROM || '').slice(0, 10)));
     let klass, regler = null, mening = '', orsak = '';
     const text = texter[cit];
     if (!text) { klass = 'olasbar'; }
     else if (datum.size > 1) { klass = 'oklar'; orsak = 'olika VALID_FROM'; }
+    // Utan datum kan vakten i appen inte se att föreskriften ändrats («» === «» släpper igenom
+    // allt). Testgrinden fångade två sådana (Munkbroleden, Pippi Långstrumps Gata, 2026-09-27).
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(bas.gallerFran)) { klass = 'oklar'; orsak = 'VALID_FROM saknas'; }
     else if (rader.some(r => r.START_MONTH != null || r.ODD_EVEN != null)) { klass = 'oklar'; orsak = 'säsong/udda-jämn i datan'; }
     else {
       const t = tolka(text, lager);
@@ -264,4 +319,5 @@ async function wfs(lager, falt, cql) {
     beskrivning: 'Stockholms föreskrifter lästa i RDT och jämförda med kartdatans tidsrader. Se las-sthlm-fonster.js.',
     last: idag, sammanfattning: sum, poster }, null, 1));
   console.log(JSON.stringify(sum, null, 1));
+  console.log(ateranvanda + ' återanvända utan omläsning (oförändrat VALID_FROM, ingen text i cachen).');
 })().catch(e => { console.error('FEL: ' + e.message); process.exit(2); });

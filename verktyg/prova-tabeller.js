@@ -30,10 +30,32 @@ const kolla = (villkor, text) => { if (!villkor) fel.push(text); };
 const html = fs.readFileSync(path.join(ROT, 'index.html'), 'utf8');
 const VILLKOR_DAGAR = ['alla', 'vardag-ej-dagfore', 'dagfore', 'sonhelg', 'vardag'];
 const LASTPLATS_DAGAR = VILLKOR_DAGAR.concat(['mandag','tisdag','onsdag','torsdag','fredag','lordag','sondag']);
-for (const d of VILLKOR_DAGAR) {
-  if (d === 'alla') continue;
-  kolla(html.includes("r[0] === '" + d + "'"), `index.html känner inte dagtypen "${d}" i maxtidGallerVillkor`);
+// Läs funktionskroppen, inte hela filen: ett strängfynd någon annanstans ska inte kunna
+// dölja att funktionen tappat en dagtyp.
+function kropp(namn) {
+  const i = html.indexOf('function ' + namn + '(');
+  if (i < 0) { fel.push('hittar inte ' + namn + ' i index.html'); return ''; }
+  const j = html.indexOf('\n}', i);
+  return html.slice(i, j < 0 ? undefined : j);
 }
+// ⚠ Förr letade testet efter «r[0] === 'vardag'» i hela filen. maxtidGallerVillkor skrevs
+// om till att fråga maxtidDagOk(r[0], d), strängen försvann – och testet underkände
+// fungerande kod varje gång, så roboten committade aldrig något (upptäckt 2026-09-27).
+const dagOkKropp = kropp('maxtidDagOk');
+for (const d of VILLKOR_DAGAR) {
+  kolla(dagOkKropp.includes("typ === '" + d + "'"), `maxtidDagOk känner inte dagtypen "${d}"`);
+}
+const fonsterKropp = kropp('gbgLastplatsFonster');
+for (const d of VILLKOR_DAGAR) {
+  kolla(fonsterKropp.includes("dag === '" + d + "'"), `gbgLastplatsFonster känner inte dagtypen "${d}"`);
+}
+// Veckodagarna i Stockholms tabell står med å/ö («måndag», «lördag») och slås upp mot
+// SV_WEEKDAYS – läs listan ur index.html i stället för att skriva av den.
+const svVeckodagar = ((html.match(/const SV_WEEKDAYS = \[([^\]]*)\]/) || [])[1] || '')
+  .split(',').map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean);
+kolla(svVeckodagar.length === 7, 'hittar inte SV_WEEKDAYS (sju veckodagar) i index.html');
+kolla(fonsterKropp.includes('SV_WEEKDAYS[d.getDay()] === dag'), 'gbgLastplatsFonster slår inte längre upp veckodagar i SV_WEEKDAYS');
+const STHLM_DAGAR = VILLKOR_DAGAR.concat(svVeckodagar);
 
 function las(fil) {
   try { return JSON.parse(fs.readFileSync(path.join(__dirname, fil), 'utf8')); }
@@ -94,13 +116,50 @@ if (forbud) {
                   antal: (forbud.poster || []).length, nyckel: 'FORBUD_OVRIG_TID' });
 }
 
+// Stockholms fönster (sthlm-fonster.json): en post per föreskrift och lager.
+const sthlm = las('sthlm-fonster.json');
+let sthlmUrval = null;
+if (sthlm) {
+  const poster = sthlm.poster || [];
+  kolla(poster.length > 1000, 'Stockholms fönster: misstänkt få poster (' + poster.length + ')');
+  const sedda = new Set();
+  poster.forEach((p, i) => {
+    const var_ = 'Stockholms fönster rad ' + i + ' (' + p.citation + ')';
+    kolla(/^\d{4}\s+\d{4}-\d+$/.test(String(p.citation || '')), var_ + ': ärendenumret ser fel ut');
+    kolla(['forbud', 'andamal'].includes(p.lager), var_ + ': okänt lager "' + p.lager + '"');
+    kolla(['lika', 'dolda', 'oklar', 'avvikelse', 'olasbar'].includes(p.klass), var_ + ': okänd klass "' + p.klass + '"');
+    const nyckel = p.lager + '|' + p.citation;
+    kolla(!sedda.has(nyckel), var_ + ': dubblerad');
+    sedda.add(nyckel);
+    if (p.klass === 'dolda' || p.klass === 'lika') {
+      kolla(/^\d{4}-\d{2}-\d{2}$/.test(String(p.gallerFran || '')), var_ + ': gallerFran är inte ett datum');
+    }
+    if (p.klass === 'dolda') {
+      kolla(Array.isArray(p.regler) && p.regler.length > 0, var_ + ': dolda utan regler');
+      (p.regler || []).forEach(r => {
+        kolla(Array.isArray(r) && r.length === 3, var_ + ': trasig regel ' + JSON.stringify(r));
+        kolla(STHLM_DAGAR.includes(r[0]), var_ + ': okänd dagtyp "' + r[0] + '"');
+        [r[1], r[2]].forEach(t => kolla(Number.isInteger(t) && t >= 0 && t <= 2400 && (t % 100) < 60,
+                                        var_ + ': ogiltigt klockslag ' + t));
+      });
+    }
+  });
+  // Samma urval som generatorn gör – hämtat ur generatorn, inte avskrivet.
+  sthlmUrval = require('./bygg-sthlm-fonster.js').urval(sthlm);
+  tabeller.push({ namn: 'Stockholms fönster', fil: 'sthlm-fonster.json', antal: poster.length,
+                  nyckel: 'STHLM_FONSTER', iBlocket: sthlmUrval.length });
+}
+
 // ── Massborttagning ─────────────────────────────────────────────────────────
 // Verkligheten ändrar några rader i månaden. Försvinner en femtedel på en gång är
 // det ett trasigt anrop, inte en förändring – och då ska ingenting committas.
 for (const t of tabeller) {
   let forr;
   try {
-    const gammal = cp.execSync('git show HEAD:verktyg/' + t.fil, { cwd: ROT, encoding: 'utf8', stdio: ['ignore','pipe','ignore'] });
+    // maxBuffer: standardgränsen är 1 MB och sthlm-fonster.json är större. Utan den kastade
+    // anropet, catch-grenen nedan tolkade det som «filen är ny» – och massborttagningsspärren
+    // var tyst avstängd för just den största tabellen (upptäckt med ett avsiktligt fel 2026-09-27).
+    const gammal = cp.execSync('git show HEAD:verktyg/' + t.fil, { cwd: ROT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore','pipe','ignore'] });
     forr = (JSON.parse(gammal).poster || []).length;
   } catch { continue; }             // filen är ny i det här bygget – inget att jämföra med
   t.forr = forr;
@@ -114,7 +173,7 @@ for (const t of tabeller) {
 // ── Generatorerna ska vara idempotenta ──────────────────────────────────────
 // Körs två gånger. Andra gången måste de säga "Oförändrad" – annars stämmer inte
 // blocket i index.html med JSON-filen, och appen visar något annat än källan.
-const generatorer = ['bygg-gbg-villkor.js', 'bygg-gbg-lastplats.js', 'bygg-forbud-ovrig-tid.js'];
+const generatorer = ['bygg-gbg-villkor.js', 'bygg-gbg-lastplats.js', 'bygg-forbud-ovrig-tid.js', 'bygg-sthlm-fonster.js'];
 for (const g of generatorer) {
   try {
     cp.execSync('node verktyg/' + g, { cwd: ROT, encoding: 'utf8' });
@@ -145,9 +204,15 @@ for (const t of tabeller) {
   if (i < 0) { fel.push(t.namn + ': hittar inte ' + t.nyckel + ' i index.html'); continue; }
   const slut = html2.indexOf('\n  };', i);
   if (slut < 0) { fel.push(t.namn + ': hittar inte slutet på ' + t.nyckel); continue; }
-  const kropp = html2.slice(i, slut);
+  const blockText = html2.slice(i, slut);
+  if (t.iBlocket != null) {
+    // Stockholms fönster: fem poster per rad, och bara ett urval av JSON-posterna.
+    const n = (blockText.match(/'\d{4}-\d+':\[/g) || []).length;
+    kolla(n === t.iBlocket, `${t.namn}: ${t.iBlocket} poster i urvalet men ${n} i index.html`);
+    continue;
+  }
   // Räkna nycklar: en rad per post, antingen "…": eller '…':
-  const n = (kropp.match(/^\s*['"]/gm) || []).length;
+  const n = (blockText.match(/^\s*['"]/gm) || []).length;
   kolla(n === t.antal, `${t.namn}: ${t.antal} rader i JSON men ${n} i index.html`);
 }
 

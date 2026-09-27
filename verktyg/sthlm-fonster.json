@@ -8,8 +8,8 @@
   "forbud olasbar": 11,
   "forbud avvikelse": 1,
   "andamal dolda": 180,
-  "andamal lika": 1096,
-  "andamal oklar": 96,
+  "andamal lika": 1094,
+  "andamal oklar": 98,
   "andamal olasbar": 18
  },
  "poster": [
@@ -33985,8 +33985,8 @@
    "stadsdel": "",
    "gallerFran": "",
    "stracker": 1,
-   "klass": "lika",
-   "mening": "På Munkbroledens nordöstra sida mellan Kåkbrinken coh Mälartorget på de 12 metersom anges på kartan ska vara ändamålsplats för lastning och lossning vardagar utom vardag före sön- och helgdag klockan 07.00 - 17.00"
+   "klass": "oklar",
+   "orsak": "VALID_FROM saknas"
   },
   {
    "citation": "0180 2026-01175",
@@ -34346,8 +34346,8 @@
    "stadsdel": "",
    "gallerFran": "",
    "stracker": 1,
-   "klass": "lika",
-   "mening": "På Pippi Långstrumps Gatas västra sida mellan Nils Holgerssons Gata ochPellepennans Gata på de 12 meter som anges på kartan ska vara ändamålsplats förlastning och lossning vardagar utom vardag före sön- och helgdag klockan 07.00 -19.00"
+   "klass": "oklar",
+   "orsak": "VALID_FROM saknas"
   },
   {
    "citation": "0180 2026-02443",
@@ -34487,7 +34487,7 @@
    "gallerFran": "",
    "stracker": 1,
    "klass": "oklar",
-   "orsak": "inga fönster i texten"
+   "orsak": "VALID_FROM saknas"
   },
   {
    "citation": "0180 2026-02589",
