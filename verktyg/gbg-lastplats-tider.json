@@ -10,8 +10,8 @@
   "alla": "alla dagar",
   "mandag..sondag": "exakt den veckodagen"
  },
- "lastplatserTotalt": 339,
- "utanMening": 140,
+ "lastplatserTotalt": 340,
+ "utanMening": 139,
  "utanMeningBetyder": "Dygnet runt. Läst i RDT för fyra av dem (2008/2014/2022/2026) – ingen nämner klockslag. Hanteras av ANDAMAL_ALLTID i cities/goteborg.js, inte här.",
  "utelamnade": [
   {
@@ -25,7 +25,7 @@
    "skal": "inga klockslag i meningen"
   }
  ],
- "last": "2026-09-01",
+ "last": "2026-10-01",
  "poster": [
   {
    "mening": "Lastplats klockan 08.00 - 16.00.",
@@ -1143,7 +1143,7 @@
   },
   {
    "mening": "Lastplats vardag utom vardag före sön- och helgdag klockan 08.00 - 17.00.",
-   "strackor": 8,
+   "strackor": 9,
    "regler": [
     {
      "dag": "vardag-ej-dagfore",
@@ -1556,6 +1556,19 @@
      "dag": "onsdag",
      "fran": 200,
      "till": 700,
+     "vecka": null
+    }
+   ],
+   "sasong": null
+  },
+  {
+   "mening": "Lastplats vardagar utom vardag före sön- och helgdag klockan 08.00 - 20.00.",
+   "strackor": 1,
+   "regler": [
+    {
+     "dag": "vardag-ej-dagfore",
+     "fran": 800,
+     "till": 2000,
      "vecka": null
     }
    ],
