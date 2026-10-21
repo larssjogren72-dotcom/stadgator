@@ -157,6 +157,16 @@ Verifierat mot fältdata och skyltar:
   frågar den först; lastplatser får `andamalVillkor` + `andamalLast`. Tolkningen får bara
   LÄGGA TILL fönster (texten måste täcka datans rader). Lärdom: ett dataset kan inte bevisa
   sin egen fullständighet – mätningen före v1.48.0 frågade bara fälten.
+- **Udda/jämn vecka i Stockholm** (2026-10-21): servicedagar-API:t har inga paritetsfält, men
+  västra Kungsholmen (Fredhäll, Kristineberg, Marieberg) städas sommartid varannan vecka –
+  «förbjuden onsdag 09.00–14.00 utom under tiden udda veckor 1 maj – 31 oktober». Datan har bara
+  en sommarrad med samma dag och tid, så appen varnade varje vecka. Alla ~7 170 städföreskrifter
+  lästa: varannan vecka finns bara där. `verktyg/las-sthlm-stadparitet.js` →
+  `verktyg/sthlm-stad-paritet.json` → `STAD_PARITET` i server.js (`refreshSchedule`) sätter
+  `ODD_WEEKS/EVEN_WEEKS` på städposten och `veckor` på schemaraden; klientens
+  `weekParityMatches` (byggd för Göteborg) gör resten. Nyckeln = ärende + VALID_FROM + veckodag
+  + klockslag + säsong; allt som inte stämmer exakt → varje vecka. Bara EN formulering tolkas,
+  och varje omnämnande av udda/jämna veckor i texten måste vara tolkat. Månadsroboten kör den.
 - **Helgfynd** (2026-09-27): ~1 395 av Stockholms 1 405 lastplatser gäller inte lör–sön
   (1 216 «vardag utom vardag före sön- och helgdag», 179 en enda vardag). `arHelgfynd(s, now)`
   frågar `andamalActiveAt` vid fönstrets egen start i dag – samma dagtolkning som färgen.

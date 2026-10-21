@@ -280,6 +280,34 @@ function buildHallplatser() {
 const SCHED_API_DAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag']; // index = JS getDay()
 const SCHED_TTL = 6 * 60 * 60 * 1000;
 let schedFeats = null, schedTs = 0, schedInflight = null;
+
+// ── Udda/jämn vecka ur föreskriftstexten (västra Kungsholmen) ────────────────
+// Stockholms API saknar veckoparitet. Föreskriften säger t.ex. «förbjuden onsdag 09.00-14.00
+// utom under tiden udda veckor 1 maj - 31 oktober», men datan har bara en sommarrad med samma
+// dag och tid – appen varnade då varje vecka. verktyg/las-sthlm-stadparitet.js läser texterna
+// (månadsroboten håller tabellen aktuell) och här sätts ODD_WEEKS/EVEN_WEEKS, samma fält som
+// Göteborgs adapter sätter. Klientens weekParityMatches och schematexten gör resten.
+// ⚠ Nyckeln kräver EXAKT samma ärende, VALID_FROM, veckodag, klockslag och säsong som raden
+// tabellen byggdes från. Har staden ändrat något → ingen träff → varje vecka (dagens beteende).
+// Fel paritet döljer en städning som gäller, så allt som inte stämmer exakt lämnas orört.
+const stadParitetNyckel = (cit, validFrom, dag, s, e, sm, sd, em, ed) =>
+  [cit, String(validFrom || '').slice(0, 10), String(dag || '').toLowerCase(), +s, +e, `${sm}/${sd}-${em}/${ed}`].join('|');
+const STAD_PARITET = (() => {
+  const karta = new Map();
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(__dirname, 'verktyg', 'sthlm-stad-paritet.json'), 'utf8'));
+    for (const r of j.paritet || []) {
+      if (r.stadas !== 'udda' && r.stadas !== 'jamna') continue;
+      karta.set(stadParitetNyckel(r.citation, r.gallerFran, r.dag, r.s, r.e, r.sm, r.sd, r.em, r.ed), r.stadas);
+    }
+  } catch (e) { console.warn('[ParkSpot] Ingen städparitetstabell – varje vecka gäller:', e.message); }
+  return karta;
+})();
+console.log(`[ParkSpot] Städparitet (udda/jämn vecka): ${STAD_PARITET.size} rader`);
+function stadParitet(p) {
+  return STAD_PARITET.get(stadParitetNyckel(p.CITATION, p.VALID_FROM, p.START_WEEKDAY, p.START_TIME, p.END_TIME,
+                                             p.START_MONTH, p.START_DAY, p.END_MONTH, p.END_DAY)) || null;
+}
 // Samma 7 dagar en gång till, men i GeoJSON-form med ENBART de fält klienten läser.
 // Byggs i samma loop som schedFeats (ingen extra hämtning) och serveras bbox-filtrerat
 // av /servicedagar-bbox. Klienten hämtade tidigare HELA stadens schema per veckodag:
@@ -338,11 +366,16 @@ function refreshSchedule() {
         // uppmätt regression på 2 features i Gamla Stan.
         const props = {};
         for (const k of SCHED_GEO_FALT) if (p[k] != null) props[k] = p[k];
+        // Udda/jämn vecka bara där föreskriftstexten sagt det (se STAD_PARITET). Övriga
+        // poster får inga fält → weekParityMatches: «dimensionen finns inte» = varje vecka.
+        const paritet = stadParitet(p);
+        if (paritet) { props.ODD_WEEKS = paritet === 'udda'; props.EVEN_WEEKS = paritet === 'jamna'; }
         geo[day].push({ type: 'Feature', properties: props, geometry: g, _bb: bb });
         // schedFeats används av /schedule, som slår upp på gatunamn → namnlösa är oanvändbara där.
         if (!name) continue;
         out.push({ name, day, s: p.START_TIME, e: p.END_TIME,
                    sm: p.START_MONTH, sd: p.START_DAY, em: p.END_MONTH, ed: p.END_DAY,
+                   veckor: paritet === 'udda' ? 'udda' : paritet === 'jamna' ? 'jämna' : null,
                    lines, bb });
       }
     }
@@ -812,11 +845,15 @@ http.createServer((req, res) => {
         if (!hit) continue;
         // Nyckeln skiljer aktiv från vilande så att en gata med BÅDA säsongerna
         // (vanligt i innerstan) kan få med sig båda posterna för samma dag+tid.
-        const k = f.day+'_'+f.s+'_'+f.e+'_'+(aktiv?'a':'v');
+        // Pariteten ingår i nyckeln: två sidor med samma dag och tid där bara den ena städas
+        // varannan vecka får aldrig slås ihop till «jämna veckor» – då tappas «varje vecka».
+        const k = f.day+'_'+f.s+'_'+f.e+'_'+(aktiv?'a':'v')+'_'+(f.veckor||'');
         if (!seen.has(k)) {
           seen.add(k);
-          schedule.push(aktiv ? { day: f.day, s: f.s, e: f.e }
-                              : { day: f.day, s: f.s, e: f.e, vilande: true, sm: f.sm, sd: f.sd });
+          const rad = aktiv ? { day: f.day, s: f.s, e: f.e }
+                            : { day: f.day, s: f.s, e: f.e, vilande: true, sm: f.sm, sd: f.sd };
+          if (f.veckor) rad.veckor = f.veckor;
+          schedule.push(rad);
         }
       }
       send(req, res, 200, 'application/json; charset=utf-8', Buffer.from(JSON.stringify({ schedule })), warm ? 'HIT' : 'MISS');

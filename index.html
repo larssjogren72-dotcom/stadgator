@@ -2091,9 +2091,10 @@ function tidsklausul(maxMinuter) {
 }
 
 // ISO-veckonummer (svensk standard: veckan tillhör det år dess TORSDAG ligger i).
-// Behövs för städscheman som bara gäller jämna eller udda veckor. Stockholm har inga
-// sådana poster; Göteborg har det på 1 597 av 2 002 (80 %), så utan detta blir varannan
-// vecka fel – inte en kantfallsmiss utan halva sanningen.
+// Behövs för städscheman som bara gäller jämna eller udda veckor. Göteborg har det på
+// 1 597 av 2 002 (80 %), så utan detta blir varannan vecka fel – inte en kantfallsmiss utan
+// halva sanningen. Stockholms API saknar fälten; servern sätter dem ur föreskriftstexten där
+// den säger «utom udda/jämna veckor» (västra Kungsholmen sommartid, se STAD_PARITET i server.js).
 function isoWeek(d) {
   const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dag = t.getUTCDay() || 7;               // mån=1 … sön=7 (JS har söndag=0)
@@ -2102,7 +2103,7 @@ function isoWeek(d) {
   return Math.ceil(((t - nyar) / 86400000 + 1) / 7);
 }
 // Gäller posten den här veckan? Fälten är stadsneutrala och sätts av respektive adapter.
-// Saknas de helt (Stockholm) gäller posten varje vecka – befintligt beteende, oförändrat.
+// Saknas de helt (nästan alla Stockholmsposter) gäller posten varje vecka.
 // ⚠ Båda falska tolkas OCKSÅ som varje vecka, med flit: att dölja en städning som
 // faktiskt gäller kostar en bot, att visa en som inte gäller kostar en onödig flytt.
 function weekParityMatches(p, date) {

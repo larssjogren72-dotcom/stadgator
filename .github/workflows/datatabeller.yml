@@ -5,7 +5,7 @@
 #
 # ⚠ ROBOTEN PUSHAR TILL MASTER OCH RAILWAY DEPLOYAR MASTER. Det som skyddar är
 # tre saker, inte förtroende:
-#   1. Den rör BARA de fyra JSON-tabellerna och de genererade blocken i index.html.
+#   1. Den rör BARA de fem JSON-tabellerna och de genererade blocken i index.html.
 #      Ingen logik, inga texter, ingen färgsättning.
 #   2. verktyg/prova-tabeller.js måste godkänna. Den fäller okända dagtyper,
 #      trasiga klockslag, generatorer som glidit isär, index.html som slutat
@@ -79,6 +79,18 @@ jobs:
           echo "kod=$?" >> "$GITHUB_OUTPUT"
           cat rapport-fonster.txt
 
+      # Udda/jämn vecka ur städföreskrifterna (västra Kungsholmen). Kontrollen läser INGEN
+      # text, den jämför ärendenummer och VALID_FROM mot sthlm-stad-paritet.json.
+      - name: Kontroll – Stockholms städparitet
+        id: kolla_paritet
+        env:
+          STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
+        run: |
+          set +e
+          node verktyg/las-sthlm-stadparitet.js --kolla > rapport-paritet.txt 2>&1
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          cat rapport-paritet.txt
+
       # ── 2. Utför ändringen ────────────────────────────────────────────────
       # Varje uppdaterare skriver sin egen JSON. De rör inte varandras filer, så
       # ett fel i den ena lämnar den andra orörd.
@@ -110,6 +122,17 @@ jobs:
           set +e
           node verktyg/las-sthlm-fonster.js > uppd-fonster.txt 2>&1
           cat uppd-fonster.txt
+
+      # Stegvis som fönstren. Tabellen läses av server.js – inget block i index.html.
+      # Ny formulering som inte går att tolka blir «oklar» = varje vecka (dagens beteende).
+      - name: Uppdatera Stockholms städparitet
+        if: steps.kolla_paritet.outputs.kod == '1'
+        env:
+          STHLM_API_KEY: ${{ secrets.STHLM_API_KEY }}
+        run: |
+          set +e
+          node verktyg/las-sthlm-stadparitet.js > uppd-paritet.txt 2>&1
+          cat uppd-paritet.txt
 
       # ── 3. Skriv in i index.html ──────────────────────────────────────────
       - name: Bygg om blocken
@@ -170,7 +193,7 @@ jobs:
       # Öppnas när något hänt ELLER när något inte gick att köra. Roboten ska
       # aldrig vara tyst om att den agerat, och aldrig tyst om att den inte kunde.
       - name: Kvitto som issue
-        if: always() && (steps.diff.outputs.andrat == 'ja' || steps.prov.outputs.kod != '0' || steps.kolla_gbg.outputs.kod == '2' || steps.kolla_sthlm.outputs.kod == '2' || steps.kolla_fonster.outputs.kod == '2')
+        if: always() && (steps.diff.outputs.andrat == 'ja' || steps.prov.outputs.kod != '0' || steps.kolla_gbg.outputs.kod == '2' || steps.kolla_sthlm.outputs.kod == '2' || steps.kolla_fonster.outputs.kod == '2' || steps.kolla_paritet.outputs.kod == '2')
         uses: actions/github-script@v7
         with:
           script: |
@@ -180,7 +203,8 @@ jobs:
             const andrat  = '${{ steps.diff.outputs.andrat }}' === 'ja';
             const torrkor = '${{ github.event.inputs.torrkor }}' === 'true';
             const trasig  = '${{ steps.kolla_gbg.outputs.kod }}' === '2' || '${{ steps.kolla_sthlm.outputs.kod }}' === '2'
-                         || '${{ steps.kolla_fonster.outputs.kod }}' === '2';
+                         || '${{ steps.kolla_fonster.outputs.kod }}' === '2'
+                         || '${{ steps.kolla_paritet.outputs.kod }}' === '2';
             const rubrik = !provOk ? 'Roboten STOPPADE sig själv – testgrinden föll'
                          : trasig  ? 'Roboten kunde inte kontrollera allt'
                          : torrkor ? 'Torrkörning – så här hade tabellerna ändrats'
@@ -205,11 +229,12 @@ jobs:
               '## Kontroll – Göteborg', '```', las('rapport-gbg.txt').slice(0, 15000), '```', '',
               '## Kontroll – Stockholm', '```', las('rapport-sthlm.txt').slice(0, 15000), '```', '',
               '## Kontroll – Stockholms fönster', '```', las('rapport-fonster.txt').slice(0, 15000), '```', '',
+              '## Kontroll – Stockholms städparitet', '```', las('rapport-paritet.txt').slice(0, 15000), '```', '',
               '## Omläsning', '```',
-              ([las('uppd-gbg-villkor.txt'), las('uppd-gbg-lastplats.txt'), las('uppd-sthlm.txt'), las('uppd-fonster.txt')]
+              ([las('uppd-gbg-villkor.txt'), las('uppd-gbg-lastplats.txt'), las('uppd-sthlm.txt'), las('uppd-fonster.txt'), las('uppd-paritet.txt')]
                 .filter(t => t && t !== '(ingen)').join('\n\n') || '(ingen omläsning behövdes)').slice(0, 15000),
               '```', '',
-              'Roboten rör bara de fyra JSON-tabellerna och de genererade blocken i',
+              'Roboten rör bara de fem JSON-tabellerna och de genererade blocken i',
               '`index.html`. Vill du backa: `git revert` på commiten ovan.'
             ].join('\n');
             // MEJLET GÅR VIA GITHUB, inte via en egen SMTP-uppkoppling. Lars får redan

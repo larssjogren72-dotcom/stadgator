@@ -15,3 +15,5 @@ gbgkey.txt
 
 # Föreskriftstexter ur RDT (cache för verktyg/las-sthlm-fonster.js, ~3 MB, läses om vid behov)
 verktyg/.rdt-texter.json
+# Städföreskrifternas texter (cache för verktyg/las-sthlm-stadparitet.js)
+verktyg/.rdt-stadtexter.json

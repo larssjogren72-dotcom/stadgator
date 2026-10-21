@@ -1,4 +1,4 @@
-// Testgrind för de tre uppslagstabellerna. Ingen automatisk ändring får committas
+// Testgrind för uppslagstabellerna (index.html) och städpariteten (server.js). Ingen automatisk ändring får committas
 // utan att den här går igenom.
 //
 //   node verktyg/prova-tabeller.js
@@ -150,6 +150,52 @@ if (sthlm) {
                   nyckel: 'STHLM_FONSTER', iBlocket: sthlmUrval.length });
 }
 
+// Stockholms städparitet (sthlm-stad-paritet.json): udda/jämn vecka ur städföreskrifterna.
+// Läses av server.js, inte av index.html – därför inget block att räkna. Fel här DÖLJER en
+// städning som gäller, så formen prövas hårt: allt servern inte känner igen tappas där tyst.
+const paritet = las('sthlm-stad-paritet.json');
+let paritetRapport = null;
+if (paritet) {
+  const lasta = paritet.lasta || {}, rader = paritet.paritet || [];
+  const nLasta = Object.keys(lasta).length;
+  kolla(nLasta > 5000, 'Städparitet: misstänkt få lästa föreskrifter (' + nLasta + ')');
+  Object.entries(lasta).forEach(([cit, v]) => {
+    kolla(Array.isArray(v) && ['ingen', 'paritet', 'oklar', 'olasbar'].includes(v[1]), 'Städparitet ' + cit + ': okänd klass ' + JSON.stringify(v));
+  });
+  const vecko = svVeckodagar.filter(Boolean);
+  const nycklar = new Map();
+  rader.forEach((r, i) => {
+    const var_ = 'Städparitet rad ' + i + ' (' + r.citation + ' ' + r.gata + ')';
+    kolla(/^\d{4}\s+\d{4}-\d+$/.test(String(r.citation || '')), var_ + ': ärendenumret ser fel ut');
+    kolla(/^\d{4}-\d{2}-\d{2}$/.test(String(r.gallerFran || '')), var_ + ': gallerFran är inte ett datum');
+    kolla(vecko.includes(r.dag), var_ + ': okänd veckodag "' + r.dag + '"');
+    kolla(r.stadas === 'udda' || r.stadas === 'jamna', var_ + ': okänd paritet "' + r.stadas + '"');
+    [r.s, r.e].forEach(t => kolla(Number.isInteger(t) && t >= 0 && t <= 2400 && (t % 100) < 60, var_ + ': ogiltigt klockslag ' + t));
+    [r.sm, r.em].forEach(m => kolla(Number.isInteger(m) && m >= 1 && m <= 12, var_ + ': ogiltig månad ' + m));
+    [r.sd, r.ed].forEach(d => kolla(Number.isInteger(d) && d >= 1 && d <= 31, var_ + ': ogiltig dag ' + d));
+    kolla(lasta[r.citation] && lasta[r.citation][1] === 'paritet', var_ + ': ärendet är inte klassat «paritet» i lasta');
+    // Samma rad med två olika pariteter = tolkningen motsäger sig själv → stopp.
+    const k = [r.citation, r.gallerFran, r.dag, r.s, r.e, r.sm, r.sd, r.em, r.ed].join('|');
+    kolla(!nycklar.has(k) || nycklar.get(k) === r.stadas, var_ + ': samma rad med både udda och jämn');
+    nycklar.set(k, r.stadas);
+  });
+  // Servern måste läsa precis de fälten – annars sätts ingen paritet och felet syns aldrig.
+  const serverJs = fs.readFileSync(path.join(ROT, 'server.js'), 'utf8');
+  kolla(/sthlm-stad-paritet\.json/.test(serverJs), 'server.js läser inte längre sthlm-stad-paritet.json');
+  kolla(/stadParitetNyckel\(r\.citation, r\.gallerFran, r\.dag, r\.s, r\.e, r\.sm, r\.sd, r\.em, r\.ed\)/.test(serverJs),
+        'server.js bygger inte längre nyckeln ur tabellens fält (citation, gallerFran, dag, s, e, sm, sd, em, ed)');
+  kolla(kropp('weekParityMatches').includes('p.ODD_WEEKS'), 'weekParityMatches läser inte längre ODD_WEEKS');
+  // Massborttagning: lästa föreskrifter OCH paritetsrader jämförs mot git.
+  try {
+    const g = JSON.parse(cp.execSync('git show HEAD:verktyg/sthlm-stad-paritet.json', { cwd: ROT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore','pipe','ignore'] }));
+    const forrL = Object.keys(g.lasta || {}).length, forrP = (g.paritet || []).length;
+    if (forrL > 0 && nLasta < forrL * 0.8) fel.push(`Städparitet: ${forrL} → ${nLasta} lästa föreskrifter. Mer än en femtedel borta – stoppar.`);
+    if (forrP > 0 && rader.length < forrP * 0.8) fel.push(`Städparitet: ${forrP} → ${rader.length} paritetsrader. Mer än en femtedel borta – stoppar.`);
+    if (forrP !== rader.length) varning.push(`Städparitet: ${forrP} → ${rader.length} paritetsrader`);
+  } catch {}                        // filen är ny i det här bygget
+  paritetRapport = '  Städparitet (server)' + String(rader.length).padStart(4) + ' rader   (' + nLasta + ' lästa föreskrifter)';
+}
+
 // ── Massborttagning ─────────────────────────────────────────────────────────
 // Verkligheten ändrar några rader i månaden. Försvinner en femtedel på en gång är
 // det ett trasigt anrop, inte en förändring – och då ska ingenting committas.
@@ -221,6 +267,7 @@ console.log('Testgrind för uppslagstabellerna');
 console.log('');
 tabeller.forEach(t => console.log('  ' + t.namn.padEnd(20) + String(t.antal).padStart(4) + ' rader'
   + (t.forr != null && t.forr !== t.antal ? '   (var ' + t.forr + ')' : '')));
+if (paritetRapport) console.log(paritetRapport);
 if (varning.length) { console.log('\nAtt notera:'); varning.forEach(v => console.log('  · ' + v)); }
 if (fel.length) {
   console.log('\nUNDERKÄNT – ' + fel.length + ' fel:');
