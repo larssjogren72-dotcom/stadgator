@@ -1,6 +1,6 @@
 # Verktygen och roboten
 
-Tre uppslagstabeller styr vad appen påstår om verkligheten. De läses ur stadens
+Fem uppslagstabeller styr vad appen påstår om verkligheten. De läses ur stadens
 öppna data och ur Transportstyrelsens föreskrifter, och de **åldras**. Roboten
 håller dem aktuella; den här filen säger hur, och vad som krävs av dig.
 
@@ -10,6 +10,20 @@ håller dem aktuella; den här filen säger hur, och vad som krävs av dig.
 | `gbg-maxtid-villkor.json` | När Göteborgs tidsgränser gäller – och när de vilar |
 | `gbg-lastplats-tider.json` | När Göteborgs lastplatser gäller |
 | `sthlm-fonster.json` | Stockholms tidsfönster ur föreskriftstexten, där kartdatan saknar några (lördag 11–17, städnatt, tappad veckodag) – och vilka lastplatser som är lästa (krävs för helgfynd). I roboten sedan v1.50.1. |
+| `sthlm-stad-paritet.json` | Udda/jämn vecka ur Stockholms städföreskrifter (västra Kungsholmen sommartid). Läses av **server.js**, inte index.html. v1.51.0. |
+
+### `sthlm-stad-paritet.json` (v1.51.0)
+
+```
+node verktyg/las-sthlm-stadparitet.js --kolla   # rapport: nya/ändrade/borta, exit 0/1/2
+node verktyg/las-sthlm-stadparitet.js           # läser bara nya, ändrade och oläsbara i RDT
+```
+
+Ingen generator: servern läser JSON-filen vid start (`STAD_PARITET`) och sätter
+`ODD_WEEKS`/`EVEN_WEEKS` på städposterna. Stegvis som fönstren – `lasta` bär varje föreskrifts
+VALID_FROM och klass (`ingen`, `paritet`, `oklar`, `olasbar`); bara `paritet` ger rader i appen.
+Lokalt cachas texterna i `verktyg/.rdt-stadtexter.json` (gitignorerad). Första läsningen av
+alla ~7 170 tog ~45 minuter. `oklara` listar formuleringar som inte tolkades, med utdrag.
 
 ### `sthlm-fonster.json` (v1.50.0, i roboten sedan v1.50.1)
 

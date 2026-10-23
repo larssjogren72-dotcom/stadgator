@@ -14,6 +14,32 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.51.0 – 2026-10-23
+**Udda och jämna veckor i Stockholms städning – västra Kungsholmen varnas inte längre varje vecka.**
+
+Fredhäll, Kristineberg och Marieberg städas sommartid (1 maj – 31 oktober) varannan vecka:
+«förbjuden onsdag 09.00–14.00 utom under tiden udda veckor 1 maj – 31 oktober». Stockholms
+servicedagar-API har inga fält för udda/jämn vecka, och datan har bara en sommarrad med samma dag
+och tid – appen varnade därför varje vecka på ~100 sträckor.
+
+- **Alla ~7 170 städföreskrifter lästa** i RDT (`verktyg/las-sthlm-stadparitet.js`). Varannan vecka
+  finns bara på västra Kungsholmen: 101 föreskrifter, 182 av 12 816 städposter.
+- **Servern** sätter `ODD_WEEKS`/`EVEN_WEEKS` på städposten och `veckor` på schemaraden
+  (`STAD_PARITET` i `refreshSchedule`). Klientens `weekParityMatches`, byggd för Göteborg, gör
+  resten – gatans färg och kortets text («Servas torsdagar 09–14 udda veckor»). Ingen ny klientlogik.
+- **Spärrar:** bara en formulering tolkas; varje omnämnande av udda/jämna veckor i texten måste
+  vara tolkat; meningen måste stämma exakt med en datarad (veckodag, klockslag, säsong); VALID_FROM
+  ingår i nyckeln. Allt annat → varje vecka (dagens beteende). Tre ovanliga formuleringar
+  (Gjörwellsgatan ×2, Levertinsgatan) och fem oläsbara sträckor ligger kvar som förut.
+- `/schedule` slår inte längre ihop «varje vecka» och «jämna veckor» på samma dag och tid.
+- **Månadsroboten** kontrollerar och uppdaterar tabellen; testgrinden prövar dess form, att servern
+  läser rätt fält och massborttagning (tre avsiktliga fel provade – alla fälls).
+- **Verifierat:** `cleaningActiveOn` på riktig serverdata – Rålambsvägen aktiv 4 juni (v. 23) men
+  inte 11 juni (v. 24), Fyrverkarbacken tvärtom, november varje vecka; Bromma oförändrad.
+  **Skyltkoll i Street View 3/3:** Rålambsvägen «Gäller ej jämna veckor» (bild juni 2024),
+  Wivalliusgatan och Stagneliusvägen «Gäller ej udda veckor» (2022) – alla som appen.
+- Märks bara 1 maj – 31 oktober; 1 november – 30 april städas samma gator varje vecka.
+
 ## v1.50.1 – 2026-09-27
 **Stockholms fönster i månadsroboten – och testgrinden fungerar igen.**
 
