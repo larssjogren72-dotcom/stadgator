@@ -1,5 +1,20 @@
 # Karlstad — stad sex
 
+> **⛔ PAUSAD 2026-10-23.** Karlstads Parkering (Fredrik Gustafsson) svarade 2026-10-22/23 att
+> kommunens GIS-enhet helst ser att man **inte ansluter direkt till dataflödet** i dagsläget; en
+> lösning för just detta ändamål planeras till **första halvan av 2027**, och de hör av sig då.
+> Avstängt: adaptern laddas inte (`STADSNAMN` i server.js) → inga anrop till gi.karlstad.se;
+> ur stadsväljaren (`visaIVal:false`), besked + Stockholm för gamla länkar (`PAUSADE_STADER`);
+> 14 SEO-sidor svarar 410 och är ur sitemap/sidfötter/llms.txt (`KARLSTAD_PAUSAD` i seo/build.js);
+> härledda datafiler borttagna (`cities/karlstad-gatunamn.json`, `seo/karlstad.json`,
+> `verktyg/karlstad-servicedagar-facit.json`); `test/karlstad-prov.js` vägrar köra.
+> **Återstart:** återställ de tre växlarna, kör `verktyg/bygg-karlstad-gatunamn.js` och
+> `verktyg/bygg-karlstad-seo.js` mot kommunens NYA källa, sedan testrundan i NY_STAD.md.
+> Kommunens svar på fråga 2–8 (värt att spara till återstarten): tom tidsgräns = trafikförordningens
+> regel; **servicedagslagret är korrekt** (skyltarna Vikengatan/Drottninggatan justeras); aftnarna
+> räknas inte som röda dagar; jämna veckor strikt efter veckonummer (v52 2026 → v2 2027);
+> avgiftsfria platser kommer i 2027-lösningen; lastplatslagret är ett projektlager, används inte.
+
 Byggd 2026-09-17–18 enligt `NY_STAD.md`. Koden: `cities/karlstad.js`. Proven:
 `node test/karlstad-prov.js` (33 prov mot riktig data, alla gröna 2026-09-18).
 

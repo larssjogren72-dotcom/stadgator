@@ -1083,7 +1083,7 @@ function aboutPage() {
     // Om-sidan är rätt ställe – det är där tjänsten beskrivs som helhet.
     { href:'parkering-goteborg', text:'Parkering i Göteborg' },
     { href:'parkering-uppsala', text:'Parkering i Uppsala' },
-    { href:'parkering-karlstad', text:'Parkering i Karlstad' },
+    // Karlstad pausad 2026-10-23 (se KARLSTAD_PAUSAD) – ingen länk till en sida som svarar 410.
   ];
   const extraLd = { '@context':'https://schema.org', '@graph':[
     // SYSKONMODELLEN (Lars beslut 2026-08-28): 'ParkSpot' är moderorganisationen och
@@ -1091,15 +1091,14 @@ function aboutPage() {
     // identiteterna, alltså syskon – inte två organisationer. Ett nationellt varumärke
     // valdes bort för att 212 sidor redan rankar på det gamla namnet; additivt före
     // omskrivning. Ändra inte det här utan att fråga.
-    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:['ParkSpot Stockholm','ParkSpot Göteborg','ParkSpot Uppsala','ParkSpot Karlstad'], url:SITE, logo:`${SITE}/og-image-v2.png`,
+    { '@type':'Organization', '@id':`${SITE}/#organization`, name:'ParkSpot', alternateName:['ParkSpot Stockholm','ParkSpot Göteborg','ParkSpot Uppsala'], url:SITE, logo:`${SITE}/og-image-v2.png`,
       description:'ParkSpot är en gratis svensk webb-app som visar var du får parkera lagligt i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per taxazon, städdagar per gata, gratis- och nattparkering – baserat på Stockholms stads öppna data.',
       areaServed:[{ '@type':'City', name:'Stockholm', sameAs:'https://sv.wikipedia.org/wiki/Stockholm' },
                   { '@type':'City', name:'Göteborg', sameAs:'https://sv.wikipedia.org/wiki/G%C3%B6teborg' },
-                  { '@type':'City', name:'Uppsala', sameAs:'https://sv.wikipedia.org/wiki/Uppsala' },
-                  { '@type':'City', name:'Karlstad', sameAs:'https://sv.wikipedia.org/wiki/Karlstad' }] },
+                  { '@type':'City', name:'Uppsala', sameAs:'https://sv.wikipedia.org/wiki/Uppsala' }] },
     { '@type':'WebApplication', '@id':`${SITE}/#app`, name:'ParkSpot Stockholm', alternateName:'ParkSpot', url:SITE,
       applicationCategory:'TravelApplication', applicationSubCategory:'Parking', operatingSystem:'Web', inLanguage:'sv', isAccessibleForFree:true,
-      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:[{ '@type':'City', name:'Stockholm' },{ '@type':'City', name:'Göteborg' },{ '@type':'City', name:'Uppsala' },{ '@type':'City', name:'Karlstad' }], publisher:{ '@id':`${SITE}/#organization` },
+      offers:{ '@type':'Offer', price:'0', priceCurrency:'SEK' }, areaServed:[{ '@type':'City', name:'Stockholm' },{ '@type':'City', name:'Göteborg' },{ '@type':'City', name:'Uppsala' }], publisher:{ '@id':`${SITE}/#organization` },
       description:'Visar var du får parkera lagligt just nu i Stockholm – för bil, motorcykel, cykel/moped och rörelsehindrade. Pris per zon, städdagar per gata, gratis- och nattparkering. Gratis, ingen inloggning.' } ] };
   emit('om-parkspot', layout({
     slug:'om-parkspot', title:'Om ParkSpot – gratis parkeringsapp för Stockholm | ParkSpot',
@@ -1116,11 +1115,16 @@ function aboutPage() {
 //   1. Servicedagarna ÄR ett skyltat parkeringsförbud – Karlstads starkaste sida.
 //   2. De gäller INTE på röda dagar (kommunens egna ord). Stockholms gör det.
 //   3. Inga andra parkeringsförbud i datan, och ingen tidsgräns på nära hälften.
+// ⛔ PAUSAD 2026-10-23. Karlstads GIS-enhet vill inte att appar ansluter direkt till dataflödet
+// (svar från Karlstads Parkering 2026-10-22/23). En öppen lösning planeras första halvan av 2027.
+// Sidorna byggs inte, seo/karlstad.json är borttagen och server.js svarar 410 på adresserna.
+// Koden står kvar: sätt false, kör verktyg/bygg-karlstad-seo.js när kommunen öppnat datan.
+const KARLSTAD_PAUSAD = true;
 const KSD = { namn: 'ParkSpot Karlstad', relText: 'Mer om parkering i Karlstad', karta: '/?stad=karlstad' };
-const KSD_DATA = JSON.parse(fs.readFileSync(path.join(__dirname, 'karlstad.json'), 'utf8'));
+const KSD_DATA = KARLSTAD_PAUSAD ? null : JSON.parse(fs.readFileSync(path.join(__dirname, 'karlstad.json'), 'utf8'));
 const KSD_FORBEHALL = 'Karlstads kommun publicerar inga parkeringsförbud utöver servicedagarna, och inga platser för motorcykel eller rörelsehindrade som sträckor. En gata utan färg i ParkSpot betyder därför «ingen uppgift», inte «fritt». Kontrollera alltid skylten.';
 const ksdTal = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-const KSD_GRANS = Object.fromEntries(KSD_DATA.granser.map(g => [g.namn, g.antal]));
+const KSD_GRANS = KARLSTAD_PAUSAD ? {} : Object.fromEntries(KSD_DATA.granser.map(g => [g.namn, g.antal]));
 
 function ksdRelated(utom) {
   return [
@@ -2321,10 +2325,12 @@ upsPillar(); upsAvgifter(); upsNatt(); upsGarage();
 // Tre nya sidor 2026-09-22: gratis, billigare och tidsgränser (se upsGratis m.fl.).
 upsGratis(); upsBilligare(); upsParkeringstid();
 UPS_DATA.stadsdelar.forEach(upsStadsdel);
-ksdPillar(); ksdAvgifter(); ksdServicedagar(); ksdNatt();
-// Tio nya sidor 2026-09-22 (se KSD_ZON_SLUG): fyra zoner, en billigare-sida, fem veckodagar.
-KSD_GATUZONER.forEach(ksdZonSida); ksdBilligare();
-Object.keys(KSD_DAG_SLUG).forEach(ksdServicedagarDag);
+if (!KARLSTAD_PAUSAD) {                    // se KARLSTAD_PAUSAD
+  ksdPillar(); ksdAvgifter(); ksdServicedagar(); ksdNatt();
+  // Tio nya sidor 2026-09-22 (se KSD_ZON_SLUG): fyra zoner, en billigare-sida, fem veckodagar.
+  KSD_GATUZONER.forEach(ksdZonSida); ksdBilligare();
+  Object.keys(KSD_DAG_SLUG).forEach(ksdServicedagarDag);
+}
 
 fs.writeFileSync(path.join(__dirname, 'pages.json'), JSON.stringify(pages, null, 0));
 console.log(`[seo] Genererade ${pages.length} sidor i seo/site/`);

@@ -1398,7 +1398,6 @@
   <div class="seo-grid">
     <a href="/parkering-goteborg">Parkering i Göteborg</a>
     <a href="/parkering-uppsala">Parkering i Uppsala</a>
-    <a href="/parkering-karlstad">Parkering i Karlstad</a>
   </div>
 </footer>
 
@@ -1765,6 +1764,8 @@ STADER_CFG.uppsala =
         + '«ingen uppgift», inte «fritt». Kontrollera alltid skylten på plats.</span>',
       schemaUrl:'' };
 
+// ⛔ PAUSAD 2026-10-23 – se PAUSADE_STADER. Konfigurationen står kvar för återkomsten 2027;
+// servern laddar inte adaptern, så /karlstad/-adresserna nedan svarar 404 tills dess.
 STADER_CFG.karlstad =
     { id:'karlstad', namn:'Karlstad', geokodSuffix:', Karlstad',
       adressExempel:'Drottninggatan 10',
@@ -1833,7 +1834,8 @@ STADER_CFG.karlstad =
       // «Ingen städning de närmaste 22 dygnen» fast städningen var 22 dygn bort. Svep
       // nov 2026–mars 2027 (6 191 prov): längsta lucka 34,4 dygn – 42 ger en veckas marginal.
       stadHorisontDagar:42,
-      visaIVal:true, valUnder:'Servicedagar varannan vecka – men inga förbud i datan',
+      // PAUSAD 2026-10-23 (se PAUSADE_STADER) – ur valet; åter true när kommunen öppnat datan.
+      visaIVal:false, valUnder:'Servicedagar varannan vecka – men inga förbud i datan',
       pilot:false,
       disclaimer:'<span class="hint-disclaimer">Baseras på Karlstads kommuns webbkarta. '
         + 'Servicedagarna är ett skyltat parkeringsförbud och gäller varannan vecka – de gäller '
@@ -1971,9 +1973,33 @@ STADER_CFG.stockholm =
       // och förblir måttstocken de andra städerna följer (se Karlstad).
       schemaUrl:'/schedule' };
 
+// ── PAUSADE STÄDER ───────────────────────────────────────────────────────────
+// En stad vi har slutat hämta data för. Karlstad 2026-10-23: kommunens GIS-enhet vill inte att
+// appar ansluter direkt till dataflödet; en öppen lösning planeras första halvan av 2027. Den som
+// kommer med en delad länk eller ett sparat val får veta varför – en tyst Stockholmskarta hade
+// sett ut som ett fel – och valet raderas, så beskedet visas bara en gång.
+const PAUSADE_STADER = {
+  karlstad: 'ParkSpot Karlstad är pausad tills kommunen öppnar sina parkeringsdata (planerat 2027). Du ser Stockholm.'
+};
+const PAUSAD_BESKED = PAUSADE_STADER[VALD_STAD] || '';
 // Okänt ?stad= faller tillbaka på Stockholm i stället för att rita tom karta.
-const STAD = STADER_CFG[VALD_STAD] || STADER_CFG.stockholm;
-if (VALD_STAD && !STADER_CFG[VALD_STAD]) {
+const STAD = STADER_CFG[PAUSAD_BESKED ? 'stockholm' : VALD_STAD] || STADER_CFG.stockholm;
+if (PAUSAD_BESKED) {
+  try { LAGRING.removeItem(STAD_LAGRAD); } catch (e) {}
+  // Cookierutan (z 4000) ligger över toasten (z 1200) vid första besöket – och det är just då
+  // en delad länk öppnas. Beskedet väntar därför tills rutan är borta (uppmätt 2026-10-23:
+  // utan väntan syntes det aldrig). Högst en minut, sedan visas det ändå.
+  window.addEventListener('load', () => {
+    const start = Date.now();
+    (function visaNarFritt() {
+      const ruta = document.getElementById('cookie-banner');
+      // Inte offsetParent: rutan är position:fixed, och då är offsetParent alltid null.
+      const iVagen = !!ruta && getComputedStyle(ruta).display !== 'none' && ruta.getBoundingClientRect().height > 0;
+      if (iVagen && Date.now() - start < 60000) { setTimeout(visaNarFritt, 400); return; }
+      showToast(PAUSAD_BESKED, 9000);
+    })();
+  });
+} else if (VALD_STAD && !STADER_CFG[VALD_STAD]) {
   console.warn(`[ParkSpot] Okänd stad "${VALD_STAD}" – visar Stockholm.`);
   // Ett felstavat ?stad= ska inte fastna i webbläsaren och följa med för evigt.
   try { LAGRING.removeItem(STAD_LAGRAD); } catch (e) {}

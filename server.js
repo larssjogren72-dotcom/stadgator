@@ -438,7 +438,11 @@ function inSeasonNow(p, date) {        // = klientens cleaningActiveOn
 //
 // Fallerar en stad loggas det och servern startar ändå: en trasig pilotstad ska
 // aldrig kunna ta ner Stockholm.
-const STADSNAMN = ['sundbyberg', 'goteborg', 'malmo', 'uppsala', 'karlstad'];
+// ⛔ KARLSTAD PAUSAD 2026-10-23: kommunens GIS-enhet vill inte att appar ansluter direkt till
+// dataflödet (gi.karlstad.se). En öppen lösning planeras första halvan av 2027. Adaptern laddas
+// därför inte – inte ett enda anrop går till kommunen, och /karlstad/* svarar 404. cities/karlstad.js
+// står kvar; lägg tillbaka namnet här den dag kommunen öppnat datan. Se KARLSTAD_PAUSAD i seo/build.js.
+const STADSNAMN = ['sundbyberg', 'goteborg', 'malmo', 'uppsala'];
 
 // ── AV I DRIFT, PÅ LOKALT ────────────────────────────────────────────────────
 // Koden bor i huvudversionen så att den ALDRIG halkar efter Stockholm-fixarna –
@@ -565,16 +569,10 @@ const SEO_STADER = {
     nyckelord: 'parkering uppsala, gratis parkering uppsala, nattparkering uppsala, parkeringszoner uppsala, parkeringshus uppsala, tidsbegränsad parkering uppsala',
     kanonisk: 'https://parkspot.se/?stad=uppsala'
   },
-  // Karlstad: staden HAR servicedagar med skyltat parkeringsförbud, och det är det
-  // enda appen kan lova utöver avgifter och tidsgränser. Texten nämner därför
-  // städdagarna först – de är stadens starka sida – men lovar inga förbud.
-  karlstad: {
-    namn: 'ParkSpot Karlstad',
-    titel: 'ParkSpot Karlstad – var får du parkera?',
-    beskrivning: 'Se på karta var du får parkera i Karlstad – just nu eller över natten. Servicedagar med jämna och udda veckor, avgiftszoner, tidsgränser och parkeringsanläggningar.',
-    nyckelord: 'parkering karlstad, servicedagar karlstad, städdagar karlstad, nattparkering karlstad, parkeringszoner karlstad, gratis parkering karlstad, parkeringshus karlstad',
-    kanonisk: 'https://parkspot.se/?stad=karlstad'
-  },
+  // Karlstad PAUSAD 2026-10-23 (se STADSNAMN). Ingen post här: stadIdFor faller då tillbaka på
+  // Stockholm, så en delad ?stad=karlstad-länk förhandsvisas som den stad appen faktiskt visar.
+  // Texten för återkomsten: «Servicedagar med jämna och udda veckor, avgiftszoner, tidsgränser
+  // och parkeringsanläggningar» – lovar inga förbud (kommunen publicerar inga).
   // Malmö saknades här tills 2026-09-17: en delad ?stad=malmo-länk förhandsvisades
   // som "ParkSpot Stockholm", och sidfoten blev Stockholms av samma skäl (stadIdFor
   // faller tillbaka på Stockholm för en stad som inte står i den här tabellen).
@@ -642,16 +640,8 @@ const SEO_FOTER = {
       + '<a href="/om-parkspot">Om ParkSpot</a>'
       + '</div></footer>';
   })(),
-  karlstad:
-    '<footer id="seo-links" aria-label="Parkering i Karlstad">'
-    + '<div class="seo-h">Guider</div><div class="seo-grid">'
-    + '<a href="/parkering-karlstad">Parkering i Karlstad</a>'
-    + '<a href="/parkeringsavgifter-karlstad">Avgifter och zoner</a>'
-    + '<a href="/billigare-parkering-karlstad">Billigare parkering</a>'
-    + '<a href="/servicedagar-karlstad">Servicedagar</a>'
-    + '<a href="/parkering-over-natten-karlstad">Parkera över natten</a>'
-    + '<a href="/om-parkspot">Om ParkSpot</a>'
-    + '</div></footer>',
+  // Karlstad pausad 2026-10-23 – sidorna svarar 410, ingen fot att länka till.
+  karlstad: '',
   // Malmö och Sundbyberg har inga egna sidor än – tom sidfot tills de får det.
   malmo: '',
   sundbyberg: ''
@@ -665,8 +655,8 @@ const SEO_FOTER = {
 const STAD_HUBBAR = [
   { id: 'stockholm', text: 'Parkering i Stockholm',  url: '/parkering' },
   { id: 'goteborg',  text: 'Parkering i Göteborg',   url: '/parkering-goteborg' },
-  { id: 'uppsala',   text: 'Parkering i Uppsala',    url: '/parkering-uppsala' },
-  { id: 'karlstad',  text: 'Parkering i Karlstad',   url: '/parkering-karlstad' }
+  { id: 'uppsala',   text: 'Parkering i Uppsala',    url: '/parkering-uppsala' }
+  // Karlstad pausad 2026-10-23 (se STADSNAMN) – en länk dit vore en länk till en 410.
 ];
 const ANDRA_STADER = aktuell =>
   '<div class="seo-h">Andra städer</div><div class="seo-grid">'
@@ -910,6 +900,23 @@ http.createServer((req, res) => {
     ).join('\n');
     const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://parkspot.se/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n${seoXml}\n</urlset>`;
     finish(req, res, 200, Buffer.from(xmlBody));
+
+  } else if (/^\/(parkering|parkeringsavgifter|billigare-parkering|servicedagar|parkering-over-natten)-karlstad(\/[a-z-]*)?\/?$/.test(reqUrl.pathname)) {
+    // Karlstad PAUSAD 2026-10-23 (se STADSNAMN). 410 Gone, inte 404: sidorna fanns och är
+    // borttagna med avsikt, och då släpper Google dem snabbast. Texten är för människor –
+    // den som kommer från en gammal länk ska få veta varför, inte möta en tom felsida.
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    finish(req, res, 410, Buffer.from('<!doctype html><html lang="sv"><head><meta charset="utf-8">'
+      + '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
+      + '<title>Karlstad är pausad – ParkSpot</title>'
+      + '<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36rem;margin:3rem auto;padding:0 1rem;color:#1f2937}</style></head>'
+      + '<body><h1>Karlstad är pausad</h1>'
+      + '<p>ParkSpot visar inte Karlstad just nu. Karlstads kommun tar fram en lösning för öppna parkeringsdata, '
+      + 'planerad till första halvan av 2027, och tills dess använder vi inte kommunens kartdata.</p>'
+      + '<p>Servicedagar och parkeringsregler i Karlstad finns på '
+      + '<a href="https://karlstad.se" rel="nofollow">karlstad.se</a>. Kontrollera alltid skylten på plats.</p>'
+      + '<p><a href="/">Till ParkSpot</a> (Stockholm, Göteborg och Uppsala)</p></body></html>'));
 
   } else if (seoSidaTillaten(reqUrl.pathname)) {
     // SEO-sidor (statiska, genererade i seo/site/) – egna URL:er, rör ej appen.

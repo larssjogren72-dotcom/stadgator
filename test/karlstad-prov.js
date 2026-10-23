@@ -1,4 +1,11 @@
 'use strict';
+// ⛔ PAUSAD 2026-10-23: Karlstads GIS-enhet vill inte att appar ansluter direkt till dataflödet.
+// Provet anropar kommunens GeoServer och får därför inte köras förrän kommunen öppnat datan
+// (planerat första halvan av 2027). Se STADSNAMN i server.js.
+if (!process.env.KARLSTAD_TILLATEN) {
+  console.log('Karlstad är pausad – provet anropar kommunens server och körs inte. (KARLSTAD_TILLATEN=1 tvingar.)');
+  process.exit(0);
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // PROV FÖR KARLSTAD — körs mot RIKTIG data, inte mot en kopia
 // ─────────────────────────────────────────────────────────────────────────────
