@@ -14,6 +14,24 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.52.0 – 2026-10-23
+**Karlstad pausad – inga anrop till kommunens kartserver.**
+
+Karlstads Parkering svarade 22–23 oktober att kommunens GIS-enhet helst ser att man inte ansluter
+direkt till dataflödet i dagsläget. En lösning för just det ändamålet planeras till första halvan av
+2027, och kommunen hör av sig när den finns.
+
+- **Servern** laddar inte Karlstads adapter (`STADSNAMN`) – inte ett anrop till gi.karlstad.se.
+  `/karlstad/*` svarar 404. Karlstad är borta ur metadata, sidfötter och stadshubbar.
+- **Appen:** Karlstad är borta ur stadsväljaren och Stockholms sidfot. Den som kommer med
+  `?stad=karlstad` eller ett sparat val får ett kort besked och ser Stockholm; valet raderas.
+  Beskedet väntar tills cookierutan är borta – annars döljs det för förstagångsbesökare.
+- **SEO:** de 14 Karlstadsidorna svarar 410 med en kort förklaring och är borta ur sitemap,
+  sidfötter, om-sidan, strukturerade data och llms.txt (294 → 280 sidor).
+- **Repot:** datafiler härledda ur kommunens lager är borttagna (gatunamn, SEO-siffror, facit).
+  Koden står kvar för återstarten; växlarna står i KARLSTAD.md tillsammans med kommunens svar.
+- `test/karlstad-prov.js` vägrar köra – det anropar kommunens server.
+
 ## v1.51.0 – 2026-10-23
 **Udda och jämna veckor i Stockholms städning – västra Kungsholmen varnas inte längre varje vecka.**
 
