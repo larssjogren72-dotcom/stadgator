@@ -14,6 +14,16 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.52.1 – 2026-10-25
+**Göteborg: gatukortet tappar inte längre udda eller jämna veckor.**
+
+- `/gbg/schedule` slog ihop städrader med samma dag och tid inom 25 m utan att se på veckopariteten,
+  så två gatusidor där den ena städas udda och den andra jämna veckor visades som bara den ena.
+  Gyllenkrooksgatan (sidorna 16 m isär) visade «tisdagar 09–12 jämna veckor» på udda-sidan. Nu
+  ingår pariteten i nyckeln – samma rättning som Stockholms schema fick i v1.51.0.
+- Bara kortets text påverkades; gatufärgerna var hela tiden rätt. 5 av 482 kombinationer av gata,
+  dag och tid har båda pariteterna. Stickprov 288 segment: bara Gyllenkrooksgatan ändras.
+
 ## v1.52.0 – 2026-10-23
 **Karlstad pausad – inga anrop till kommunens kartserver.**
 
