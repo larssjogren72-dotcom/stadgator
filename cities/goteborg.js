@@ -545,16 +545,16 @@ module.exports = function skapaGoteborg(delade) {
             }
             if (!traff) continue;
             const aktiv = inomSasong(p, idag);
-            const k = dag + '_' + p.START_TIME + '_' + p.END_TIME + '_' + (aktiv ? 'a' : 'v');
-            if (seen.has(k)) continue;
-            seen.add(k);
-            // ⚠ KÄND LUCKA: `veckor` skickas med men klienten läser den inte än,
-            // så kortet skriver "Servas onsdagar 09–12" även när det gäller
-            // varannan vecka. Det är ofullständigt, inte farligt: felet får
-            // föraren att flytta bilen en vecka i onödan, aldrig att stå kvar
-            // en vecka den inte får. Egen runda – se projektminnet.
+            // Klienten skriver ut `veckor` («Servas tisdagar 09–12 jämna veckor»).
             const veckor = p.ODD_WEEKS && p.EVEN_WEEKS ? null
                          : p.ODD_WEEKS ? 'udda' : p.EVEN_WEEKS ? 'jämna' : null;
+            // Pariteten MÅSTE ingå i nyckeln. Utan den slogs två gatusidor med samma dag
+            // och tid ihop till den som råkade komma först – Gyllenkrooksgatan (sidorna
+            // 16 m isär) visade «jämna veckor» på udda-sidan (2026-10-25). Samma fel som
+            // Stockholms /schedule hade före v1.51.0. Färgerna påverkades aldrig.
+            const k = dag + '_' + p.START_TIME + '_' + p.END_TIME + '_' + (aktiv ? 'a' : 'v') + '_' + (veckor || '');
+            if (seen.has(k)) continue;
+            seen.add(k);
             if (aktiv) schedule.push({ day: dag, s: p.START_TIME, e: p.END_TIME, veckor });
             else schedule.push({ day: dag, s: p.START_TIME, e: p.END_TIME, veckor,
                                  vilande: true, sm: p.START_MONTH, sd: p.START_DAY });
