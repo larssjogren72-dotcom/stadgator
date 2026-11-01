@@ -4,9 +4,9 @@
   "VF_PLATS_TYP": "Tidsreglerat parkerings-/stoppförbud",
   "DAY_TYPE": "måste vara satt"
  },
- "last": "2026-08-29",
- "antal": 579,
- "kartstrackor": 838,
+ "last": "2026-11-01",
+ "antal": 609,
+ "kartstrackor": 928,
  "ejLasbara": 11,
  "arenden": [
   {
@@ -88,6 +88,36 @@
    "n": 16
   },
   {
+   "cit": "0180 2010-02242",
+   "gata": "Hasselbergsvägen",
+   "omr": "Södra Ängby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2010-04064",
+   "gata": "Göksholmsbacken",
+   "omr": "Hagsätra",
+   "n": 1
+  },
+  {
+   "cit": "0180 2011-01563",
+   "gata": "Hötorgsfaret",
+   "omr": "Norrmalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2011-02957",
+   "gata": "Linbodavägen",
+   "omr": "Långbro",
+   "n": 1
+  },
+  {
+   "cit": "0180 2012-00990",
+   "gata": "Kungssätravägen",
+   "omr": "Sätra",
+   "n": 1
+  },
+  {
    "cit": "0180 2012-01234",
    "gata": "Kvarnhagsgatan",
    "omr": "Hässelby Gård",
@@ -100,15 +130,171 @@
    "n": 2
   },
   {
+   "cit": "0180 2012-03933",
+   "gata": "Carl Barks Väg",
+   "omr": "Bromsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2013-00096",
+   "gata": "Korngränd",
+   "omr": "Långbro",
+   "n": 1
+  },
+  {
+   "cit": "0180 2013-00783",
+   "gata": "Vårsippstigen",
+   "omr": "Herrängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2013-00785",
+   "gata": "Solrosgränd",
+   "omr": "Herrängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2013-00787",
+   "gata": "Violvägen",
+   "omr": "Herrängen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2013-00846",
+   "gata": "Åkerslundsgatan",
+   "omr": "Olovslund",
+   "n": 2
+  },
+  {
+   "cit": "0180 2013-00920",
+   "gata": "Hornsgatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
+   "cit": "0180 2013-02773",
+   "gata": "Tingstädevägen",
+   "omr": "Norra Ängby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2013-03389",
+   "gata": "Vinsta skolgränd",
+   "omr": "Nälsta",
+   "n": 2
+  },
+  {
    "cit": "0180 2013-03499",
    "gata": "Carl Barks Väg",
    "omr": "Bromsten",
    "n": 1
   },
   {
+   "cit": "0180 2013-03569",
+   "gata": "Uddeholmsvägen",
+   "omr": "Stureby",
+   "n": 1
+  },
+  {
+   "cit": "0180 2014-00228",
+   "gata": "Sankt Eriksgatan",
+   "omr": "Vasastaden",
+   "n": 4
+  },
+  {
+   "cit": "0180 2014-00893",
+   "gata": "Magistervägen",
+   "omr": "Solhem",
+   "n": 2
+  },
+  {
+   "cit": "0180 2014-01703",
+   "gata": "Adolf Rudbecks väg",
+   "omr": "Solhem",
+   "n": 6
+  },
+  {
+   "cit": "0180 2014-02485",
+   "gata": "Sparbanksvägen",
+   "omr": "Hägerstensåsen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2014-03469",
+   "gata": "Nybyggarvägen",
+   "omr": "Enskede Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-00335",
+   "gata": "Folkungagatan",
+   "omr": "Södermalm",
+   "n": 1
+  },
+  {
    "cit": "0180 2015-00609",
    "gata": "Kvarnhagsgatan",
    "omr": "Hässelby Gård",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-00686",
+   "gata": "Brunklövergränd",
+   "omr": "Hässelby Villastad",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-00967",
+   "gata": "Lundagårdsvägen",
+   "omr": "Solhem",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-00970",
+   "gata": "Salagatan",
+   "omr": "Solhem",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-01064",
+   "gata": "Sankt Mickelsgatan",
+   "omr": "Mälarhöjden",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-01549",
+   "gata": "Enevägen",
+   "omr": "Flysta",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-01686",
+   "gata": "Sveavägen",
+   "omr": "Norrmalm",
+   "n": 2
+  },
+  {
+   "cit": "0180 2015-02078",
+   "gata": "Fleminggatan",
+   "omr": "Kungsholmen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2015-02537",
+   "gata": "Sjösatorg",
+   "omr": "Bandhagen",
+   "n": 2
+  },
+  {
+   "cit": "0180 2015-02830",
+   "gata": "Nyängsvägen",
+   "omr": "Ålsten",
+   "n": 1
+  },
+  {
+   "cit": "0180 2015-03073",
+   "gata": "Gamla Dalarövägen",
+   "omr": "Gamla Enskede",
    "n": 1
   },
   {
@@ -142,6 +328,12 @@
    "n": 1
   },
   {
+   "cit": "0180 2016-02532",
+   "gata": "Båtsmansklevet",
+   "omr": "Mälarhöjden",
+   "n": 1
+  },
+  {
    "cit": "0180 2016-03808",
    "gata": "Renstiernas Gata",
    "omr": "Södermalm",
@@ -161,9 +353,9 @@
   },
   {
    "cit": "0180 2016-05217",
-   "gata": "De Gamlas Väg",
+   "gata": "De gamlas väg",
    "omr": "Enskededalen",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2016-05240",
@@ -221,9 +413,9 @@
   },
   {
    "cit": "0180 2017-00509",
-   "gata": "Drottning Kristinas Väg",
+   "gata": "Drottning Kristinas väg",
    "omr": "Norra Djurgården",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2017-00513",
@@ -586,12 +778,6 @@
    "n": 1
   },
   {
-   "cit": "0180 2017-02833",
-   "gata": "Gotlandsgatan",
-   "omr": "Södermalm",
-   "n": 1
-  },
-  {
    "cit": "0180 2017-02840",
    "gata": "Heleneborgsgatan",
    "omr": "Södermalm",
@@ -934,12 +1120,6 @@
    "n": 3
   },
   {
-   "cit": "0180 2017-04003",
-   "gata": "Birkagatan",
-   "omr": "Vasastaden",
-   "n": 1
-  },
-  {
    "cit": "0180 2017-04004",
    "gata": "Birkagatan",
    "omr": "Vasastaden",
@@ -1181,9 +1361,9 @@
   },
   {
    "cit": "0180 2017-06833",
-   "gata": "Wollmar Yxkullsgatan",
+   "gata": "Wollmar yxkullsgatan",
    "omr": "Södermalm",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2017-06836",
@@ -1325,9 +1505,9 @@
   },
   {
    "cit": "0180 2017-07112",
-   "gata": "Love Almqvists Väg",
+   "gata": "Love Almqvists väg",
    "omr": "Kristineberg",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2017-07126",
@@ -1552,6 +1732,12 @@
    "n": 1
   },
   {
+   "cit": "0180 2017-08244",
+   "gata": "Torsgatan",
+   "omr": "Vasastaden",
+   "n": 2
+  },
+  {
    "cit": "0180 2017-08759",
    "gata": "Karlsviksgatan",
    "omr": "Kungsholmen",
@@ -1625,9 +1811,9 @@
   },
   {
    "cit": "0180 2017-10365",
-   "gata": "Katarina Östra Kyrkogårdsgränd",
+   "gata": "Katarina östra kyrkogårdsgränd",
    "omr": "Södermalm",
-   "n": 2
+   "n": 3
   },
   {
    "cit": "0180 2017-10455",
@@ -1649,9 +1835,9 @@
   },
   {
    "cit": "0180 2017-10640",
-   "gata": "Kinmanssonvägen",
+   "gata": "Kinmanssonsvägen",
    "omr": "Hägersten",
-   "n": 2
+   "n": 4
   },
   {
    "cit": "0180 2017-10641",
@@ -1757,9 +1943,9 @@
   },
   {
    "cit": "0180 2017-11063",
-   "gata": "Runda Vägen",
+   "gata": "Runda vägen",
    "omr": "Alvik",
-   "n": 8
+   "n": 16
   },
   {
    "cit": "0180 2017-11065",
@@ -1783,13 +1969,13 @@
    "cit": "0180 2017-11084",
    "gata": "Stora Mossens Backe",
    "omr": "Stora Mossen",
-   "n": 2
+   "n": 4
   },
   {
    "cit": "0180 2017-11086",
-   "gata": "Stora Mossens Backe",
+   "gata": "Stora Mossens backe",
    "omr": "Stora Mossen",
-   "n": 10
+   "n": 20
   },
   {
    "cit": "0180 2017-11087",
@@ -1884,7 +2070,7 @@
   {
    "cit": "0180 2018-00161",
    "gata": "Gårdsfogdevägen",
-   "omr": "Mariehäll",
+   "omr": "Ulvsunda Industriområde",
    "n": 10
   },
   {
@@ -1907,9 +2093,9 @@
   },
   {
    "cit": "0180 2018-00699",
-   "gata": "Zinkens Väg",
+   "gata": "Zinkens väg",
    "omr": "Södermalm",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2018-00762",
@@ -1960,12 +2146,6 @@
    "n": 1
   },
   {
-   "cit": "0180 2018-00988",
-   "gata": "Drottning Kristinas Väg",
-   "omr": "Norra Djurgården",
-   "n": 3
-  },
-  {
    "cit": "0180 2018-01060",
    "gata": "Ulvsundavägen",
    "omr": "Ulvsunda Industriområde",
@@ -1973,9 +2153,9 @@
   },
   {
    "cit": "0180 2018-01062",
-   "gata": "Åkeshovs Gårdsväg",
+   "gata": "Åkeshovs gårdsväg",
    "omr": "Åkeshov",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2018-01108",
@@ -2134,12 +2314,6 @@
    "n": 1
   },
   {
-   "cit": "0180 2019-03808",
-   "gata": "Luxgatan",
-   "omr": "Lilla Essingen",
-   "n": 1
-  },
-  {
    "cit": "0180 2019-03924",
    "gata": "Valhallavägen",
    "omr": "Östermalm",
@@ -2285,9 +2459,9 @@
   },
   {
    "cit": "0180 2020-03038",
-   "gata": "Hjalmar Söderbergs Väg",
+   "gata": "Hjalmar Söderbergs väg",
    "omr": "Kristineberg",
-   "n": 3
+   "n": 6
   },
   {
    "cit": "0180 2020-03061",
@@ -2303,9 +2477,9 @@
   },
   {
    "cit": "0180 2020-03315",
-   "gata": "Birger Sjöbergs Väg",
+   "gata": "Birger Sjöbergs väg",
    "omr": "Fredhäll",
-   "n": 2
+   "n": 4
   },
   {
    "cit": "0180 2020-03331",
@@ -2327,9 +2501,9 @@
   },
   {
    "cit": "0180 2020-03589",
-   "gata": "Torbjörn Klockares Gata",
+   "gata": "Torbjörn Klockares gata",
    "omr": "Vasastaden",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2020-03653",
@@ -2358,12 +2532,6 @@
   {
    "cit": "0180 2020-04036",
    "gata": "Roddargatan",
-   "omr": "Södermalm",
-   "n": 1
-  },
-  {
-   "cit": "0180 2020-04299",
-   "gata": "Tobaksspinnargatan",
    "omr": "Södermalm",
    "n": 1
   },
@@ -2669,9 +2837,9 @@
   },
   {
    "cit": "0180 2022-04919",
-   "gata": "Viveka Trolles Gränd",
+   "gata": "Viveka Trolles gränd",
    "omr": "Hässelby Gård",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2022-04999",
@@ -2795,9 +2963,9 @@
   },
   {
    "cit": "0180 2024-00885",
-   "gata": "Wollmar Yxkullsgatan",
+   "gata": "Wollmar yxkullsgatan",
    "omr": "Södermalm",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2024-02377",
@@ -2839,7 +3007,7 @@
    "cit": "0180 2024-04197",
    "gata": "Klara Norra Kyrkogata",
    "omr": "Norrmalm",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2024-04294",
@@ -2891,15 +3059,15 @@
   },
   {
    "cit": "0180 2024-04687",
-   "gata": "Bolinders Plan",
+   "gata": "Bolinders plan",
    "omr": "Kungsholmen",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2024-04688",
-   "gata": "Bolinders Plan",
+   "gata": "Bolinders plan",
    "omr": "Kungsholmen",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2024-04698",
@@ -2975,9 +3143,9 @@
   },
   {
    "cit": "0180 2024-04795",
-   "gata": "Kungsholms Hamnplan",
+   "gata": "Kungsholms hamnplan",
    "omr": "Kungsholmen",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2024-04823",
@@ -3053,9 +3221,9 @@
   },
   {
    "cit": "0180 2024-04840",
-   "gata": "Wollmar Yxkullsgatan",
+   "gata": "Wollmar yxkullsgatan",
    "omr": "Södermalm",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2024-04851",
@@ -3317,9 +3485,9 @@
   },
   {
    "cit": "0180 2025-04599",
-   "gata": "Lagerbielkes Väg",
+   "gata": "Lagerbielkes väg",
    "omr": "Älvsjö",
-   "n": 2
+   "n": 4
   },
   {
    "cit": "0180 2025-04646",
@@ -3401,9 +3569,9 @@
   },
   {
    "cit": "0180 2025-05800",
-   "gata": "Kungsbro Strand",
+   "gata": "Kungsbro strand",
    "omr": "Kungsholmen",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2025-06148",
@@ -3419,9 +3587,9 @@
   },
   {
    "cit": "0180 2025-06866",
-   "gata": "Grubbens Gata",
+   "gata": "Grubbens gata",
    "omr": "Kungsholmen",
-   "n": 1
+   "n": 2
   },
   {
    "cit": "0180 2025-07002",
@@ -3481,6 +3649,18 @@
    "cit": "0180 2026-02578",
    "gata": "Luxgatan",
    "omr": "Lilla Essingen",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-02847",
+   "gata": "Tosterövägen",
+   "omr": "Örby Slott",
+   "n": 1
+  },
+  {
+   "cit": "0180 2026-04490",
+   "gata": "Gotlandsgatan",
+   "omr": "Södermalm",
    "n": 1
   }
  ]
