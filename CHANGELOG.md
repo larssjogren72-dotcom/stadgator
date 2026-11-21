@@ -14,6 +14,20 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.54.0 – 2026-11-21
+**Saknad städdata ger felbesked, aldrig gröna gator utan städhänsyn.**
+
+- När städkällan inte svarade sparade servern ett tomt städschema och lämnade ut det som «OK» i
+  upp till 6 timmar, och appen tolkade tomt som «inga städgator». Bevisat i Göteborg: Andra
+  Långgatan blev grön en måndag 09:00 mitt under städningen. Live svarade Stockholm 21/11 med noll
+  städgator alla sju dagar under stadens avbrott.
+- Servern (Stockholm och Göteborg) sparar aldrig ett tomt eller ofullständigt schema: det förra
+  behålls, och finns inget förra svarar städadresserna 502. Efter ett misslyckat försök väntar
+  servern 5 minuter innan nästa.
+- Appen visar felkortet från v1.53.0 när städdatan saknas, i Nu och Natt. «Försök igen» hämtar
+  städdatan på nytt. Uppsala (ingen städkälla) är oförändrat.
+- Inte åtgärdat: städvarningarna för MC-, RH- och cykelplatser (`fetchStadContext`).
+
 ## v1.53.0 – 2026-11-21
 **Ärligt besked när stadens parkeringsdata inte svarar.**
 
