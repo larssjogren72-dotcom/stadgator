@@ -145,13 +145,25 @@ module.exports = function skapaGoteborg(delade) {
   // Hela lagret är 2 002 poster – litet nog att hämta en gång och filtrera i
   // minnet. Det ligger redan i WGS84, så ingen projektion behövs.
   const STAD_LAGER = 'general:cleaningzones_3007';
-  let stadCache = null, stadTs = 0, stadInflight = null;
+  let stadCache = null, stadTs = 0, stadInflight = null, stadFelTs = 0;
+  const STAD_FEL_PAUS = 5 * 60 * 1000;
 
+  // ⚠️ ALDRIG ETT TOMT STÄDLAGER I CACHEN. Förr blev ett WFS-fel (hamta → null) tyst
+  // «0 segment», cachen skrevs över och /gbg/servicedagar-bbox svarade 200 utan städgator
+  // i 6 h. Bevisat lokalt 21/11: Andra Långgatan mån 09:00 grön MITT under städningen.
+  // Nu: misslyckas bygget behålls förra lagret; finns inget svarar vägen 502 (→ felkortet).
   function byggStad() {
     if (stadInflight) return stadInflight;
-    if (stadCache && Date.now() - stadTs < TTL) return Promise.resolve(stadCache);
+    if (stadCache && (Date.now() - stadTs < TTL || Date.now() - stadFelTs < STAD_FEL_PAUS))
+      return Promise.resolve(stadCache);
     stadInflight = (async () => {
       const j = await hamta(wfsUrl(STAD_LAGER, null, 'EPSG:4326'));
+      if (!j || !Array.isArray(j.features) || !j.features.length) {
+        stadFelTs = Date.now();
+        console.warn('[Göteborg] städlagret svarade inte' + (stadCache ? ' – behåller förra' : ''));
+        if (stadCache) return stadCache;
+        throw new Error('Göteborgs städlager otillgängligt');
+      }
       const dagar = [[], [], [], [], [], [], []];
       let utan = 0;
       for (const f of (j && j.features) || []) {
@@ -198,7 +210,13 @@ module.exports = function skapaGoteborg(delade) {
       }
       const n = dagar.reduce((s, d) => s + d.length, 0);
       console.log(`[Göteborg] städdata: ${n} segment inlästa` + (utan ? `, ${utan} kastade (saknar namn/dag/linje)` : ''));
-      stadCache = dagar; stadTs = Date.now();
+      if (!n) {   // 2 002 poster i lagret men inga användbara = något har ändrats hos källan
+        stadFelTs = Date.now();
+        console.warn('[Göteborg] städlagret gav 0 användbara segment' + (stadCache ? ' – behåller förra' : ''));
+        if (stadCache) return stadCache;
+        throw new Error('Göteborgs städlager gav inga segment');
+      }
+      stadCache = dagar; stadTs = Date.now(); stadFelTs = 0;
       return dagar;
     })().finally(() => { stadInflight = null; });
     return stadInflight;

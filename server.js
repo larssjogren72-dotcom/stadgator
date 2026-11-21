@@ -280,6 +280,8 @@ function buildHallplatser() {
 const SCHED_API_DAYS = ['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag']; // index = JS getDay()
 const SCHED_TTL = 6 * 60 * 60 * 1000;
 let schedFeats = null, schedTs = 0, schedInflight = null;
+let schedFelTs = 0;                       // senaste misslyckade bygge (backoff, se buildSchedule)
+const SCHED_FEL_PAUS = 5 * 60 * 1000;
 
 // ── Udda/jämn vecka ur föreskriftstexten (västra Kungsholmen) ────────────────
 // Stockholms API saknar veckoparitet. Föreskriften säger t.ex. «förbjuden onsdag 09.00-14.00
@@ -324,7 +326,10 @@ function fetchServicedayJSON(apiDay) {
     const chunks = [];
     const r = https.request({ hostname: 'openparking.stockholm.se', port: 443, path: p, method: 'GET', agent: keepAliveAgent }, (resp) => {
       resp.on('data', c => chunks.push(c));
-      resp.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); } });
+      resp.on('end', () => {
+        if (resp.statusCode !== 200) { console.warn(`[ParkSpot] servicedagar ${apiDay}: HTTP ${resp.statusCode}`); return resolve(null); }
+        try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); }
+      });
     });
     r.on('error', () => resolve(null));
     r.setTimeout(20000, () => r.destroy());
@@ -341,6 +346,16 @@ function refreshSchedule() {
     const out = [];
     const geo = [[], [], [], [], [], [], []];   // per veckodag, trimmad GeoJSON
     const dagsvar = await Promise.all(SCHED_API_DAYS.map(fetchServicedayJSON));
+    // ⚠️ ALDRIG ETT TOMT ELLER OFULLSTÄNDIGT SCHEMA I CACHEN. Förr blev en dag som inte
+    // svarade (null / felobjekt) tyst «inga städgator», cachen skrevs över och serverades
+    // som 200 i 6 h – bevisat live 21/11 (Vasastan: 0 städgator alla 7 dagar). Klienten ritade
+    // då grönt utan städhänsyn. Nu kastas felet: det förra schemat behålls, och finns inget
+    // förra svarar /servicedagar-bbox 502 så att appen visar sitt felkort.
+    const trasiga = SCHED_API_DAYS.filter((d, i) => {
+      const j = dagsvar[i];
+      return !(Array.isArray(j) || (j && Array.isArray(j.features)));
+    });
+    if (trasiga.length) throw new Error('städschemat ofullständigt, saknar: ' + trasiga.join(', '));
     for (let day = 0; day < 7; day++) {
       const j = dagsvar[day];
       const feats = (j && (Array.isArray(j) ? j : j.features)) || [];
@@ -379,7 +394,9 @@ function refreshSchedule() {
                    lines, bb });
       }
     }
-    schedFeats = out; schedGeo = geo; schedTs = Date.now();
+    const antal = geo.reduce((s, d) => s + d.length, 0);
+    if (!antal) throw new Error('städschemat tomt (0 poster för hela veckan)');
+    schedFeats = out; schedGeo = geo; schedTs = Date.now(); schedFelTs = 0;
     console.log(`[ParkSpot] Städschema byggt: ${out.length} features (7 dagar)`);
     return out;
   })();
@@ -390,6 +407,7 @@ function refreshSchedule() {
   // "unhandled rejection"-varning på DEN HÄR sidokedjan – den riktiga anroparen (buildSchedule
   // vid kall start) får felet som vanligt via `p` självt.
   p.finally(() => { schedInflight = null; }).catch(() => {});
+  p.catch(e => { schedFelTs = Date.now(); console.warn('[ParkSpot] Städschemat EJ uppdaterat – ' + (schedFeats ? 'behåller förra' : 'ingen cache, städvägarna svarar 502') + ':', e.message); });
   return p;
 }
 
@@ -399,7 +417,10 @@ function refreshSchedule() {
 // förfrågan efter serverstart (ingen cache alls än) behöver faktiskt vänta på bygget.
 function buildSchedule() {
   if (schedFeats) {
-    if (Date.now() - schedTs >= SCHED_TTL) refreshSchedule().catch(() => {});
+    // Efter ett misslyckat bygge väntar nästa försök SCHED_FEL_PAUS – annars hade varje
+    // förfrågan under ett avbrott startat sju nya anrop mot en källa som inte svarar.
+    if (Date.now() - schedTs >= SCHED_TTL && Date.now() - schedFelTs >= SCHED_FEL_PAUS)
+      refreshSchedule().catch(() => {});
     return Promise.resolve(schedFeats);
   }
   return refreshSchedule();
