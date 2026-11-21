@@ -14,6 +14,19 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.53.0 – 2026-11-21
+**Ärligt besked när stadens parkeringsdata inte svarar.**
+
+- 21 november svarade Stockholms API:er (LTF-Tolken och geoservice WFS/WMS) med serverfel på alla
+  anrop, även på stadens egna dokumentationsexempel. Kartan blev tom och lådan visade rå kod:
+  «Fel: LTFR_P_FORBUD_GEOM: HTTP 500». En tom karta kan läsas som att det saknas parkering.
+- Nu visas ett gult kort: «Stockholms parkeringsdata svarar inte», att kartan är tom av den
+  anledningen och inte för att platser saknas, och att man ska läsa skyltarna på plats. Knappar för
+  «Försök igen» och för stadens p-hus/garage. Etiketten över kartan blir gul i stället för grön.
+- Tre fall skiljs åt så att staden inte får skulden i onödan: källan svarar med felkod, telefonen
+  saknar anslutning, eller annat fel (neutral text). Gäller alla städer.
+- Testat mot det riktiga avbrottet: Nu- och Natt-läget i Stockholm. Göteborg oförändrat.
+
 ## v1.52.1 – 2026-10-25
 **Göteborg: gatukortet tappar inte längre udda eller jämna veckor.**
 
