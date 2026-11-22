@@ -14,6 +14,21 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.55.0 – 2026-11-22
+**Feedback som går att agera på: färdiga svar efter 👎 och «Stämmer inte?» på gatukortet.**
+
+- Kommentarerna var få, mest negativa och för vaga för att åtgärda («funkar inte»), och utan konto
+  går det inte att fråga tillbaka. Tumme ner ger nu sex svar att trycka på (t.ex. «Fel besked om en
+  gata», «Svårt att förstå kartan») och en frivillig textruta.
+- Feedbacken får med det senaste kortet, om det öppnades inom en timme: gatan, beskedet, färgen,
+  gatans läge och tiden kartan visade (även Framåt). Användarens egen position skickas aldrig.
+- Gatukortet har länken «Stämmer inte?»: fem svar om just den gatan (skylt, bot, inga platser,
+  pris), fritext och frivillig mejladress för svar. Rapporten mejlas direkt. Inte på p-huskort.
+- Integritetstexten beskriver vad som skickas. Apps Script-skriptet räknar svaren per val, utan
+  att dubbelräkna tummarna, och måste klistras in i arket på nytt.
+- Rättat på vägen: formuläret nådde inte «Skicka» i helt utdragen låda, och 👎-rutan gömdes när
+  den inte fick plats ovanför lådan.
+
 ## v1.54.1 – 2026-11-22
 **Stockholm: felbeskedet syns direkt när appen öppnas.**
 
