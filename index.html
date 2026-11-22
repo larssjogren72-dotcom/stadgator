@@ -9922,6 +9922,7 @@ function loadData() {
   // den här raden blev ett avbrott en ohanterad rejection. Flödena som läser löftet får
   // felet själva (via helaStadensStadning) och visar visaDataFel.
   streetDataPromise.catch(() => {});
+  bevakaStartData();   // avbrott → felkortet direkt vid start, inte först efter ett tryck
   // Zoner laddas per sökning med BBOX (loadZonesForViewport)
   // Parkeringsrestriktioner (LTFR_P_FORBUD_GEOM) laddas numera per sökning i
   // showSafeStreetsNearby, skopat till sökrutan – inte längre hela Stockholm vid appstart.
@@ -9969,7 +9970,9 @@ function visaDataFel(e) {
                :                   'Parkeringsuppgifterna kunde inte visas';
   const orsak  = typ === 'nät' ? 'Utan anslutning kan vi inte visa var du får parkera.'
                                : 'Därför kan vi inte visa var du får parkera just nu.';
-  const pHus = STAD.phusUrl
+  // P-husknappen behöver en destination (showGarageList söker runt searchCenter) –
+  // i startbeskedet finns ingen än, och då vore knappen död.
+  const pHus = STAD.phusUrl && searchCenter
     ? `<button type="button" onclick="showGarageList()">Visa ${escHtml(STAD.phusRubrik.toLowerCase())}</button>` : '';
   document.getElementById('hint').innerHTML =
     `<div class="datafel-kort"><b>⚠️ ${escHtml(rubrik)}</b>`
@@ -9984,7 +9987,38 @@ function visaDataFel(e) {
   badge.style.display = 'block';
 }
 function forsokIgenData() {
-  if (searchCenter) flyToAndShow(searchCenter.lat, searchCenter.lng, true);
+  if (searchCenter) { flyToAndShow(searchCenter.lat, searchCenter.lng, true); return; }
+  // Startbeskedet: ingen destination än → fråga om stadens data på nytt.
+  const badge = document.getElementById('count-badge');
+  badge.textContent = 'Kontrollerar…';
+  streetDataPromise = fetchServicedays(getKey(), apiDay(tomorrow()));
+  streetDataPromise.catch(() => {});
+  bevakaStartData();
+}
+
+// ── Startbesked (2026-11-22) ─────────────────────────────────────────────────
+// Under Stockholms avbrott 21–22/11 såg man först en helt normal, tom karta – felkortet
+// kom först efter ett tryck. Stockholms appstart hämtar redan städdatan i förväg
+// (streetDataPromise i loadData), så samma anrop får avgöra: misslyckas det, och ingen
+// destination är vald, visas felkortet och den gula etiketten direkt. Inga nya anrop.
+// Bara städer med hela-staden-källa (Stockholm); övriga gör ingen förhämtning att läsa av.
+let startDatafel = null;
+function bevakaStartData() {
+  if (!STAD.heltStadenUrl || !streetDataPromise) return;
+  const p = streetDataPromise;
+  p.then(() => {
+    if (p !== streetDataPromise || !startDatafel) return;
+    startDatafel = null;
+    if (searchCenter) return;                    // sökflödet äger redan lådan och etiketten
+    const badge = document.getElementById('count-badge');
+    badge.style.display = 'none';
+    badge.classList.remove('datafel');
+    renderModeIntro();
+  }, e => {
+    if (p !== streetDataPromise) return;         // ett nyare försök har tagit över
+    startDatafel = e;
+    if (!searchCenter) visaDataFel(e);
+  });
 }
 
 // ── Rita gator ───────────────────────────────────────────────────────────────
@@ -10548,6 +10582,9 @@ function renderModeIntro() {
   const hintEl = document.getElementById('hint');
   hintEl.style.display = 'block';
   hintEl.innerHTML = `<span class="hint-main">${vehicleMode === 'cykel' ? cykelIntro : (intro[currentMode] || intro.uc2) + mcSuffix}</span>` + disclaimer;
+  // Startbeskedet (se bevakaStartData) ska överleva läges- och fordonsbyten innan man sökt –
+  // annars skrev introt över kortet och etiketten stod ensam kvar.
+  if (startDatafel && !searchCenter) visaDataFel(startDatafel);
 }
 
 // ── FRAMÅT ────────────────────────────────────────────────────────────
