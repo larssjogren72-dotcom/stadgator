@@ -14,6 +14,16 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.54.1 – 2026-11-22
+**Stockholm: felbeskedet syns direkt när appen öppnas.**
+
+- Under avbrottet 21–22 november såg man först en helt vanlig, tom karta – felkortet kom först
+  efter ett tryck. Nu avgör appstartens befintliga förhämtning av Stockholms städdata: misslyckas
+  den visas den gula etiketten och felkortet direkt. Inga nya anrop mot Stockholm.
+- Kortet ligger kvar vid läges- och fordonsbyte. P-husknappen visas först när en plats är vald.
+  «Försök igen» före första sökningen frågar staden på nytt.
+- Göteborg och Uppsala oförändrade. Ej testat: återgången när Stockholm kommer tillbaka.
+
 ## v1.54.0 – 2026-11-21
 **Saknad städdata ger felbesked, aldrig gröna gator utan städhänsyn.**
 
