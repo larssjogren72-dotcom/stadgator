@@ -471,6 +471,27 @@
     .hint-main { display: block; margin-bottom: 8px; }
     .hint-disclaimer { display: block; font-size: 11px; color: rgba(15,23,42,0.45); line-height: 1.5; }
     #street-panel { display: none; padding: 4px 18px 16px; }
+    /* «Stämmer inte?» – felrapport för gatan. Indigo = feedbackens färg (samma som rutan
+       #ps-rev), MEDVETET inte grön: grönt betyder «laglig gata» i den här appen. */
+    #gatfel { margin-top: 6px; text-align: center; }
+    #gatfel-lank { background: none; border: 0; color: #4338ca; font: inherit; font-size: 13px;
+      font-weight: 600; padding: 10px 14px; cursor: pointer; text-decoration: underline;
+      text-underline-offset: 3px; text-decoration-color: rgba(67,56,202,.35); }
+    #gatfel-ruta { text-align: left; margin-top: 4px; padding: 12px; border: 1px solid rgba(129,140,248,.35);
+      border-radius: 12px; background: rgba(129,140,248,.06); }
+    #gatfel-ruta h4 { margin: 0 0 8px; font-size: 14.5px; font-weight: 700; }
+    #gatfel-ruta textarea, #gatfel-ruta input { width: 100%; background: #fff; border: 1px solid rgba(15,23,42,.12);
+      border-radius: 10px; color: var(--text); padding: 9px; font-size: 14px; font-family: inherit; margin-top: 8px; }
+    #gatfel-ruta textarea { resize: vertical; min-height: 52px; }
+    #gatfel-ruta .skicka { width: 100%; margin-top: 8px; border: 0; border-radius: 10px; padding: 10px;
+      font: inherit; font-weight: 700; font-size: 14px; background: #818cf8; color: #0c1030; cursor: pointer; }
+    #gatfel-ruta .med { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+    #gatfel-ruta .varn { font-size: 12.5px; color: #b91c1c; margin-top: 6px; }
+    /* Svarsknappar – delas av gatrapporten och 👎-rutan (som har egna regler i #ps-rev). */
+    .fb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fb-chip { background: #fff; border: 1px solid rgba(15,23,42,.16); color: var(--text); border-radius: 999px;
+      padding: 7px 11px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; }
+    .fb-chip.on { background: rgba(129,140,248,.18); border-color: #6366f1; color: #1e1b4b; font-weight: 600; }
 
     /* Gatulista */
     #street-list { display: none; }
@@ -1208,6 +1229,7 @@
 
     <p><strong>Ansvar:</strong> informationen kan vara inaktuell eller felaktig. Kontrollera alltid lokala skyltar. ParkSpot ansvarar inte för parkeringsböter eller bogsering.</p>
     <p><strong>Din data:</strong> vi lagrar ingen personlig information på server. Hemadress och inställningar sparas bara lokalt i din webbläsare. Din GPS-position används enbart i din enhet för att visa var du är – den skickas aldrig till oss.</p>
+    <p><strong>Feedback:</strong> det du skickar via feedbackrutan eller «Stämmer inte?» sparas i ett Google-formulär som bara ParkSpot läser. Med följer appens läge, stad och version, och – om du nyss tittat på en gata – gatans namn, läge, beskedet du såg och tiden kartan visade. Din egen position skickas inte. Mejladress lämnar du bara om du vill ha svar; den används enbart för det, och du kan be om att få den raderad via samma ruta.</p>
     <p><strong>Statistik:</strong> om du accepterar används Google Analytics med anonymiserad IP för att förstå hur appen används. Du kan avböja – appen fungerar lika bra ändå.</p>
     <p><strong>Besöksräkning:</strong> oavsett ditt val räknar vår egen server hur många sidvisningar varje stad och sida får. Ingen kaka sätts, ingenting sparas om dig och inget skickas vidare – bara ett antal per dygn.</p>
     <p id="privacy-version" style="font-size:11px;opacity:.6;margin-top:4px">Version <span id="app-version-txt">–</span></p>
@@ -1348,6 +1370,11 @@
                 aria-label="Byt navigeringsapp" title="Byt navigeringsapp"><svg viewBox="0 0 24 24" fill="none"
                 stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"
                 aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+      </div>
+      <!-- Felrapport för just den här gatan (2026-11-22). Innehållet byggs av gatfelOppna(). -->
+      <div id="gatfel">
+        <button id="gatfel-lank" type="button" onclick="gatfelOppna()">⚑ Stämmer inte?</button>
+        <div id="gatfel-ruta" style="display:none"></div>
       </div>
     </div>
     <button id="phus-btn" onclick="phusToggle()" style="display:none">
@@ -2417,6 +2444,110 @@ function openPrivacy()  {
 }
 function closePrivacy() { document.getElementById('privacy-modal').style.display = 'none'; }
 
+// ── Senaste kortet: sammanhanget som följer med feedbacken (2026-11-22) ──────
+// Bakgrund: 👎-kommentarerna var för tunna för att gå att agera på («funkar inte»), och
+// eftersom ingen har konto kan man inte fråga tillbaka. Med gatan, beskedet och tiden
+// kartan visade blir samma rapport prövbar mot registret.
+// Sätts av showPlaceCardV2 (gata) och p-huskortet. 👎-rutan visas bara när INGET kort
+// är öppet, så den läser det senaste – och bara om det är högst en timme gammalt, annars
+// är det sannolikt inte det personen menar.
+var SENASTE_KORT = null;
+const KORT_GILTIG_MS = 60 * 60 * 1000;
+function kortTidText(d) {
+  const dag = ['sön', 'mån', 'tis', 'ons', 'tors', 'fre', 'lör'][d.getDay()];
+  return dag + ' ' + d.getDate() + '/' + (d.getMonth() + 1) + ' '
+    + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+function kortAktuellt() {
+  return SENASTE_KORT && (KLOCKA.riktigNu() - SENASTE_KORT.sattes) <= KORT_GILTIG_MS ? SENASTE_KORT : null;
+}
+// «kort: Hornsgatan [Du får stå här nu #16a34a] 59.31710,18.05000 · kartan lör 22/11 14:10 (+30 min)»
+function kortKontext(etikett) {
+  const k = kortAktuellt(); if (!k) return '';
+  const ren = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 90);
+  let t = etikett + ': ' + ren(k.namn || '(utan namn)') + ' [' + ren(k.besked) + (k.farg ? ' ' + k.farg : '') + ']';
+  if (typeof k.lat === 'number' && typeof k.lng === 'number') t += ' ' + k.lat.toFixed(5) + ',' + k.lng.toFixed(5);
+  t += ' · kartan ' + kortTidText(k.tid) + (k.framat ? ' (+' + k.framat + ' min)' : '') + (k.simulerad ? ' (simulerad tid)' : '');
+  return t;
+}
+// iOS: ett textfält i lådan kan skjuta upp hela sidan när tangentbordet öppnas (se resetPageScroll).
+function sidaTillToppen() { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
+
+// ── «Stämmer inte?» på gatukortet ────────────────────────────────────────────
+// Frågor som bara går att ställa om EN gata. Raden i arket börjar med 🚩 och mejlas alltid
+// (se verktyg/feedback-apps-script.gs) – det är en felanmälan, inte ett betyg, och räknas
+// därför varken som gillad eller ogillad.
+// ⚠️ Texterna nedan hamnar ordagrant i arket och räknas där. Byt inte ord i en befintlig
+// rad utan att tänka på att gamla och nya rader då räknas som olika svar.
+const GATFEL_VAL = ['Skylten säger något annat', 'Jag fick parkeringsbot', 'Det finns inga platser här', 'Fel pris', 'Annat'];
+function gatfelSpara(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review', stad: STAD.id }); } catch (e) {} }
+function gatfelAterstall(visa) {
+  const ytter = document.getElementById('gatfel'), r = document.getElementById('gatfel-ruta'), l = document.getElementById('gatfel-lank');
+  if (!ytter || !r || !l) return;
+  r.style.display = 'none'; r.innerHTML = '';
+  l.style.display = ''; ytter.style.paddingBottom = '';   // luften under formuläret, se gatfelOppna
+  ytter.style.display = visa ? '' : 'none';
+}
+function gatfelOppna() {
+  const k = SENASTE_KORT; if (!k || k.typ !== 'gata') return;
+  const l = document.getElementById('gatfel-lank'), r = document.getElementById('gatfel-ruta');
+  gatfelSpara('gatfel_open');
+  r.innerHTML = '<h4>Vad är fel på ' + escHtml(k.namn || 'den här platsen') + '?</h4>'
+    + '<div class="fb-chips">' + GATFEL_VAL.map((v, i) => '<button type="button" class="fb-chip" data-i="' + i + '">' + escHtml(v) + '</button>').join('') + '</div>'
+    + '<textarea id="gatfel-text" maxlength="500" placeholder="Vad står på skylten? (frivilligt)"></textarea>'
+    + '<input id="gatfel-mejl" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="Mejl om du vill ha svar (frivilligt)">'
+    + '<div class="med">Skickas med: gatan, beskedet du såg och tiden kartan visade. Din position skickas inte. Mejlen används bara för att svara dig.</div>'
+    + '<button type="button" class="skicka" id="gatfel-skicka">Skicka</button>'
+    + '<div class="varn" id="gatfel-varn" style="display:none"></div>';
+  l.style.display = 'none'; r.style.display = 'block';
+  const valda = new Set(), varn = r.querySelector('#gatfel-varn');
+  const text = r.querySelector('#gatfel-text'), mejl = r.querySelector('#gatfel-mejl');
+  const tyst = () => { varn.style.display = 'none'; };
+  r.querySelectorAll('.fb-chip').forEach(b => b.onclick = () => {
+    const i = +b.dataset.i;
+    if (valda.has(i)) valda.delete(i); else valda.add(i);
+    b.classList.toggle('on', valda.has(i)); tyst();
+  });
+  text.addEventListener('input', tyst); mejl.addEventListener('input', tyst);
+  text.addEventListener('blur', sidaTillToppen); mejl.addEventListener('blur', sidaTillToppen);
+  r.querySelector('#gatfel-skicka').onclick = () => {
+    const t = (text.value || '').slice(0, 500).replace(/\s+/g, ' ').trim();
+    const m = (mejl.value || '').trim();
+    if (!valda.size && !t) { varn.textContent = 'Välj ett alternativ eller skriv något.'; varn.style.display = 'block'; return; }
+    if (m && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { varn.textContent = 'Mejladressen ser inte rätt ut.'; varn.style.display = 'block'; mejl.focus(); return; }
+    const val = GATFEL_VAL.filter((v, i) => valda.has(i));
+    const msg = '🚩 ' + (val.length ? val.join(' | ') : 'Inget val') + (t ? ' — ' + t : '');
+    const extra = kortKontext('kort') + (m ? ' · svar till: ' + m : '');
+    if (window.__skickaFeedback) window.__skickaFeedback(msg, extra);
+    gatfelSpara(m ? 'gatfel_sent_med_mejl' : 'gatfel_sent');
+    sidaTillToppen();
+    document.getElementById('gatfel').style.paddingBottom = '';   // tackraden behöver ingen luft
+    r.innerHTML = '<h4>Tack! Rapporten är skickad.</h4><div class="med">Vi jämför den med stadens register.'
+      + (m ? ' Behöver vi veta mer hör vi av oss.' : '') + '</div>';
+  };
+  // Lådan upp helt, och scrolla LÅDAN (.sheet-body) så att formuläret syns. ⚠️ Inte
+  // scrollIntoView: den scrollade hela sidan (body.scrollTop 284 i test 2026-11-22) – samma
+  // förskjutning som avslöjar SEO-sidfoten på iOS (se resetPageScroll).
+  try { sheetSnapTo('full'); } catch (e) {}
+  sidaTillToppen();
+  // ⚠️ I läge «full» står lådans NEDRE del utanför skärmen (lådan har fast höjd och skjuts
+  // ner med translateY – uppmätt 2026-11-22: 138 px under kanten på 375×812). Ett kort ryms
+  // ändå, men formulärets Skicka-knapp hamnade där och gick inte att scrolla fram. Lådans
+  // mekanik rörs inte; formuläret får i stället lika mycket luft under sig medan det är öppet.
+  const sb = document.getElementById('sheet-body'), ytter = document.getElementById('gatfel');
+  if (sb) setTimeout(() => {   // efter lådans glid (sheetSet ~0,28 s), annars mäts fel läge
+    const dolt = Math.max(0, Math.round(document.getElementById('bottom').getBoundingClientRect().bottom - window.innerHeight));
+    ytter.style.paddingBottom = dolt + 'px';
+    const sbTopp = sb.getBoundingClientRect().top, rr = r.getBoundingClientRect();
+    const synligt = window.innerHeight - sbTopp;
+    // Ryms hela formuläret: visa dess nederkant (Skicka). Annars: visa dess överkant.
+    const y = rr.height + 16 <= synligt
+      ? sb.scrollTop + (rr.bottom - (window.innerHeight - 12))
+      : sb.scrollTop + (rr.top - sbTopp - 8);
+    sb.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  }, 320);
+}
+
 // ── Recensions-/feedback-prompt (AEO + datakvalitet) ─────────────────────────
 // Policy-REN: INGEN review-gating. Alla kan recensera publikt; 👎 får dessutom en privat kanal.
 // Visas EFTER ett värde-ögonblick (öppnat gatukort) för ÅTERvändande användare – aldrig mitt i en
@@ -2434,7 +2565,8 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
   function get() { try { return JSON.parse(LAGRING.getItem(KEY)) || {}; } catch (e) { return {}; } }
   function set(s) { try { LAGRING.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
   function track(ev) { try { if (window.gtag) gtag('event', ev, { event_category: 'review', stad: STAD.id }); } catch (e) {} }  // GA-händelse (bara om cookies accepterats)
-  function sendForm(msg) {   // logga reaktion/kommentar till Google-formuläret → räknebart i arket
+  // `extra` läggs sist i kontexten – senaste kortet, valda svar, ev. svarsadress.
+  function sendForm(msg, extra) {   // logga reaktion/kommentar till Google-formuläret → räknebart i arket
     if (!FEEDBACK.action || !FEEDBACK.entryMsg || !msg) return;
     // Kontext = läge + APPVERSION. Utan version går en rapport inte att knyta till den kod
     // personen faktiskt såg, så snart vi släpper oftare än användaren hör av sig.
@@ -2443,6 +2575,7 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     // utan den – färgerna betyder inte samma sak i alla städer.
     try { if (typeof STAD !== 'undefined' && STAD && STAD.id) ctx = (ctx ? ctx + ' · ' : '') + STAD.id; } catch (e) {}
     try { if (typeof APP_VERSION !== 'undefined' && APP_VERSION) ctx = (ctx ? ctx + ' · ' : '') + 'ver ' + APP_VERSION; } catch (e) {}
+    if (extra) ctx = (ctx ? ctx + ' · ' : '') + extra;
     var body = {};
     if (FEEDBACK.entryCtx) { body[FEEDBACK.entryMsg] = msg; body[FEEDBACK.entryCtx] = ctx; }
     else { body[FEEDBACK.entryMsg] = msg + (ctx ? '  ·  läge: ' + ctx : ''); }   // kontext i samma fält
@@ -2483,7 +2616,11 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
       + '#ps-rev .tgl{background:#eef1f6;color:#0f172a;border:1px solid rgba(15,23,42,.12);font-weight:600}'
       + '#ps-rev .tgl.on{background:#dcfce7;border-color:#16a34a;color:#14532d}'
       + '#ps-rev .lbl{font-size:12.5px;color:rgba(15,23,42,.62);margin:10px 0 6px}'
-      + '#ps-rev .varn{font-size:12.5px;color:#b91c1c;margin:6px 0 0;text-align:center}';
+      + '#ps-rev .varn{font-size:12.5px;color:#b91c1c;margin:6px 0 0;text-align:center}'
+      // Svarsknapparna (.fb-chip) – rutans egen «#ps-rev button» väger tyngre än klassen,
+      // så de grundregler som skiljer måste upprepas här.
+      + '#ps-rev .fb-chip{flex:none;border:1px solid rgba(15,23,42,.16);background:#fff;color:#0f172a;border-radius:999px;padding:7px 11px;font-size:13px;font-weight:500;text-align:left}'
+      + '#ps-rev .fb-chip.on{background:rgba(129,140,248,.18);border-color:#6366f1;color:#1e1b4b;font-weight:600}';
     document.head.appendChild(css);
     box = document.createElement('div'); box.id = 'ps-rev'; document.body.appendChild(box);
     return box;
@@ -2569,20 +2706,47 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
     // bara över raden som innehöll "Gillade appen", så ett rent 👎 gick rakt till mejl.
     // Från och med verktyg/feedback-apps-script.gs stämmer påståendet – rena tummar
     // räknas i månadsbrevet i stället. Ändras skriptet i Google blir raden fel igen.
-    sendForm('👎 Inte helt');
-    var b = render('<h4>Tack för ärligheten – vad kan bli bättre?</h4><textarea id="ps-msg" placeholder="Vad var fel eller saknades?"></textarea><button class="prim" id="ps-send">Skicka</button>'
+    var kort = (typeof kortKontext === 'function') ? kortKontext('senaste kort') : '';
+    sendForm('👎 Inte helt', kort);
+    // Färdiga svar (2026-11-22). Fritext ensam gav «funkar inte» – den missnöjda sitter ofta
+    // i bilen, och då är ett tryck rimligt men en mening inte. Fältet finns kvar, frivilligt.
+    // ⚠️ Texterna räknas ordagrant i månadsbrevet (👎🏷-raden) – byt inte ord i onödan.
+    var VAL = ['Fel besked om en gata', 'Hittade ingen plats', 'Svårt att förstå kartan', 'Saknar något', 'Långsam eller krånglig', 'Annat'];
+    var k = (typeof kortAktuellt === 'function') ? kortAktuellt() : null;
+    var medTxt = k && k.namn
+      ? 'Skickas med: ' + escHtml(k.namn) + ' (senaste kortet), tiden kartan visade, läge och stad.'
+      : 'Skickas med: läge, stad och appversion.';
+    var b = render('<h4>Tack för ärligheten – vad stämde inte?</h4>'
+      + '<div class="fb-chips" style="margin-bottom:8px">' + VAL.map(function (v, i) { return '<button type="button" class="fb-chip" data-i="' + i + '">' + escHtml(v) + '</button>'; }).join('') + '</div>'
+      + '<textarea id="ps-msg" placeholder="Berätta mer (frivilligt)"></textarea>'
+      + '<div class="mut" style="margin:0 0 8px;text-align:left">' + medTxt + '</div>'
+      + '<button class="prim" id="ps-send">Skicka</button>'
       + (REVIEW_URL ? '<div class="mut"><a href="' + REVIEW_URL + '" target="_blank" rel="noopener">…eller lämna en publik recension →</a></div>' : ''));
+    // Med svarsknapparna är rutan ~320 px hög och ryms inte ovanför en halvöppen låda –
+    // då gömmer sheetSet den (.undan) och personen ser sitt 👎 försvinna (test 2026-11-22).
+    // Personen har just själv tryckt, så lådan får ge plats: ner till handtaget.
+    // sheetSnapTo sparar inget val, så lådan beter sig som vanligt nästa gång.
+    if (b.classList.contains('undan')) { try { sheetSnapTo('min'); } catch (e) {} }
+    var valda = {};
+    Array.prototype.forEach.call(b.querySelectorAll('.fb-chip'), function (c) {
+      c.onclick = function () { var i = c.getAttribute('data-i'); valda[i] = !valda[i]; c.classList.toggle('on', !!valda[i]); };
+    });
     b.querySelector('#ps-msg').addEventListener('blur', resetPageScroll);   // täcker "tap bort utan skicka"
     b.querySelector('#ps-send').onclick = function () {
       var msg = ((b.querySelector('#ps-msg').value || '') + '').slice(0, 500).trim();
+      var val = VAL.filter(function (v, i) { return valda[i]; });
+      // Valen är en EGEN rad (👎🏷), inte en kommentar: de räknas per svar i månadsbrevet men
+      // mejlas inte. Skrev personen något följer valen med i kommentarens kontext, så att
+      // mejlet visar båda. Klickraden (👎 Inte helt) är redan skickad – ingen dubbelräkning.
+      if (val.length) sendForm('👎🏷 ' + val.join(' | '), kort);
+      if (msg) { sendForm('👎💬 ' + msg, (val.length ? 'val: ' + val.join(' | ') : '') + (val.length && kort ? ' · ' : '') + kort); }
       // Prefix, precis som 👍-kommentaren har. Utan det gick 👎-kommentaren ut naken och
       // kunde i arket inte skiljas från en 👍-kommentar – summeringen visste alltså inte
       // vilken känsla orden hörde till. Gammal data saknar prefixet; Apps Script-skriptet
       // tolkar därför prefixlösa rader som 👎-kommentarer (de kan bara komma härifrån).
       // ⚠️ if-satsen behövs: sendForm() avbryter på tom text, men '👎💬 ' + '' är sant och
-      // hade börjat skicka tomma rader.
-      if (msg) sendForm('👎💬 ' + msg);
-      track('feedback_sent');
+      // hade börjat skicka tomma rader. (Själva sändningen står ovanför, ihop med valen.)
+      track(val.length ? 'feedback_sent_med_val' : 'feedback_sent');
       resetPageScroll();   // direkt, inte efter close() – inget gap där sidan hänger förskjuten
       render('<h4>Tack! Din feedback gör appen bättre. 🙏</h4>');
       var s = get(); s.done = true; set(s);
@@ -2657,6 +2821,8 @@ function closePrivacy() { document.getElementById('privacy-modal').style.display
 
   // Manuell öppning (länk i Förklaring) – kringgår frekvens-spärrarna (de finns för att inte
   // tjata i onödan, inte för att stoppa någon som SJÄLV söker upp vägen att ge feedback).
+  // Gatrapporten (gatfelOppna, utanför den här closuren) skickar samma väg.
+  window.__skickaFeedback = sendForm;
   window.__openFeedback = function () {
     if (panelOpen()) return;
     shownThisSession = true;
@@ -4370,6 +4536,14 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
 
   document.getElementById('hint').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
+  // Vad kortet SA, sparat för feedbacken. En rapport som «stämmer inte» går bara att pröva
+  // mot registret om vi vet vilken gata, vilket besked och vilken tidpunkt kartan visade.
+  // Gatans läge (dest), inte användarens – GPS-positionen lämnar aldrig enheten.
+  SENASTE_KORT = { typ: 'gata', namn: name || '', besked: statusTxt || '', farg: statusColor || '',
+                   lat: dest ? dest.lat : null, lng: dest ? dest.lng : null,
+                   tid: KLOCKA.nu(), framat: KLOCKA.framatMin(), simulerad: KLOCKA.simulerad(),
+                   sattes: KLOCKA.riktigNu() };
+  gatfelAterstall(true);
   document.getElementById('street-panel').style.display = 'block';
   sheetSnapTo('peek');   // självanpassat lägsta läge – skymmer inte kartan
   if (window.__reviewValueMoment) window.__reviewValueMoment();   // värde-ögonblick → ev. recensions-prompt nästa gång
@@ -4903,6 +5077,12 @@ function selectGarage(g, marker) {
   document.getElementById('hint').style.display = 'none';
   document.getElementById('garage-list').style.display = 'none';
   document.getElementById('street-list').style.display = 'none';
+  // P-huskortet delar panel med gatukortet men har ingen gatrapport: svarsalternativen
+  // (skylt, bot, pris på gatan) handlar om gatan. Kontexten sparas ändå för 👎-rutan.
+  SENASTE_KORT = { typ: 'phus', namn: g.name || '', besked: 'p-hus', farg: '',
+                   lat: g.lat, lng: g.lng, tid: KLOCKA.nu(), framat: KLOCKA.framatMin(),
+                   simulerad: KLOCKA.simulerad(), sattes: KLOCKA.riktigNu() };
+  gatfelAterstall(false);
   document.getElementById('street-panel').style.display = 'block';
   map.panTo([g.lat, g.lng]);
   sheetSnapTo('peek');

@@ -34,6 +34,13 @@ var KOMM_NER   = '👎💬';
 // Kommentar utan vald tumme. Uppstår bara via länken "Skicka feedback", där
 // tummen är frivillig. Räknas som kommentar men varken som gillad eller ogillad.
 var KOMM_UTAN  = '💬';
+// Färdiga svar efter 👎 (2026-11-22): "👎🏷 Fel besked om en gata | Annat". Ett SVAR,
+// inte ett klick (klicket är redan en egen rad) och inte en kommentar → mejlas inte,
+// räknas per svar i summeringen.
+var SVAR_NER   = '👎🏷';
+// Felrapport från gatukortets «Stämmer inte?»: "🚩 Skylten säger något annat — <text>".
+// Mejlas ALLTID (även utan fritext) – det är en felanmälan om en gata. Ingen känsla.
+var GATFEL     = '🚩';
 
 // =============================================================================
 // Tolkning av en rad
@@ -67,6 +74,16 @@ function tolkaRad(raa) {
     kontext = hel.slice(brytIndex + '  ·  läge: '.length).trim();
   }
 
+  // Före KLICK_NER: "👎🏷" börjar inte med "👎 Inte helt", men prövas först för tydlighets skull.
+  if (text.indexOf(SVAR_NER) === 0)
+    return { kansla: 'ner', arKommentar: false, arSvar: true, val: delaVal(text.slice(SVAR_NER.length)),
+             text: '', kontext: kontext };
+  if (text.indexOf(GATFEL) === 0) {
+    var rest = text.slice(GATFEL.length).trim(), streck = rest.indexOf(' — ');
+    var valDel = streck === -1 ? rest : rest.slice(0, streck);
+    return { kansla: 'okand', arKommentar: true, arGatfel: true, val: delaVal(valDel),
+             text: rest, kontext: kontext };
+  }
   if (text.indexOf(KOMM_UPP) === 0)
     return { kansla: 'upp', arKommentar: true,  text: text.slice(KOMM_UPP.length).trim(), kontext: kontext };
   if (text.indexOf(KOMM_NER) === 0)
@@ -79,6 +96,17 @@ function tolkaRad(raa) {
     return { kansla: 'ner', arKommentar: false, text: '', kontext: kontext };
 
   return { kansla: 'ner', arKommentar: true, text: text, kontext: kontext };
+}
+
+function delaVal(s) {
+  return String(s || '').split(' | ').map(function (v) { return v.trim(); })
+    .filter(function (v) { return v && v !== 'Inget val'; });
+}
+
+/** Gatans namn ur kontexten ("… · kort: Hornsgatan [Du får stå här nu #16a34a] …"). */
+function gataUrKontext(k) {
+  var m = /(?:^| · )(?:senaste )?kort: ([^\[]+)\[/.exec(String(k || ''));
+  return m ? m[1].trim() : '';
 }
 
 /**
@@ -110,6 +138,17 @@ function vidNyttSvar(e) {
 
     // Rena tummar mejlas inte. De räknas i månadssummeringen i stället.
     if (!tolkad || !tolkad.arKommentar || !tolkad.text) return;
+
+    if (tolkad.arGatfel) {
+      var gata = gataUrKontext(tolkad.kontext);
+      MailApp.sendEmail(MOTTAGARE, GATFEL + ' Felrapport' + (gata ? ': ' + gata : '') + ' (ParkSpot)',
+        tolkad.text + '\n\n' +
+        '— — —\n' +
+        'Kontext: ' + (tolkad.kontext || 'okänd') + '\n' +
+        'Tid:     ' + formateraTid(bit.nar || new Date()) + '\n\n' +
+        'Från «Stämmer inte?» på gatukortet. Står det "svar till:" i kontexten vill personen ha svar.');
+      return;
+    }
 
     var symbol = tolkad.kansla === 'upp' ? '👍' : tolkad.kansla === 'ner' ? '👎' : '💬';
     var rubrik = symbol + ' Kommentar i ParkSpot';
@@ -149,6 +188,8 @@ function skickaSummering(arForsta) {
 
   var perManad = {};      // "2026-09" → { upp, ner }
   var kommentarer = [];   // alla kommentarer, nyast först
+  var svarPerManad = {};  // "2026-11" → { "Fel besked om en gata": 3, … } – 👎-valen
+  var gatfelPerManad = {};// "2026-11" → antal felrapporter
   var utanTid = 0;
 
   for (var i = 1; i < varden.length; i++) {
@@ -163,10 +204,15 @@ function skickaSummering(arForsta) {
     // ⚠️ Bara KLICK-raderna räknas. En kommentar skickas som en EGEN rad ovanpå
     // klicket, så att räkna alla rader hade dubbelräknat alla som skrev något.
     // Ett klick är alltid 'upp' eller 'ner' – 'okand' kan bara vara en kommentar.
-    if (!tolkad.arKommentar) {
+    // ⚠️ 👎🏷-raden är inte ett klick (klicket är en egen rad) – den får INTE räknas som 👎.
+    if (tolkad.arSvar) {
+      if (!svarPerManad[nyckel]) svarPerManad[nyckel] = {};
+      tolkad.val.forEach(function (v) { svarPerManad[nyckel][v] = (svarPerManad[nyckel][v] || 0) + 1; });
+    } else if (!tolkad.arKommentar) {
       if (tolkad.kansla === 'upp' || tolkad.kansla === 'ner') perManad[nyckel][tolkad.kansla]++;
     } else {
-      kommentarer.push({ nar: bit.nar, kansla: tolkad.kansla, text: tolkad.text, kontext: tolkad.kontext });
+      if (tolkad.arGatfel) gatfelPerManad[nyckel] = (gatfelPerManad[nyckel] || 0) + 1;
+      kommentarer.push({ nar: bit.nar, kansla: tolkad.kansla, text: tolkad.text, kontext: tolkad.kontext, arGatfel: !!tolkad.arGatfel });
     }
   }
 
@@ -214,9 +260,26 @@ function skickaSummering(arForsta) {
   });
   var visaKomm = arForsta ? kommentarer.slice(0, 30) : senasteKomm;
 
+  // Vad de missnöjda valde. Löpande brev: senaste månaden. Första: allt.
+  var svarSumma = {};
+  Object.keys(svarPerManad).forEach(function (m) {
+    if (!arForsta && m !== senaste) return;
+    Object.keys(svarPerManad[m]).forEach(function (v) { svarSumma[v] = (svarSumma[v] || 0) + svarPerManad[m][v]; });
+  });
+  var svarNycklar = Object.keys(svarSumma).sort(function (a, b) { return svarSumma[b] - svarSumma[a]; });
+  var svarHtml = svarNycklar.length
+    ? '<h3 style="margin:20px 0 8px 0">Vad de missnöjda valde</h3><ul style="margin:0;padding-left:18px">' +
+      svarNycklar.map(function (v) { return '<li>' + escapeHtml(v) + ': <b>' + svarSumma[v] + '</b></li>'; }).join('') +
+      '</ul><p style="color:#666;font-size:12px;margin:4px 0 0">Flera val per person går, så summan kan bli större än antalet 👎.</p>'
+    : '';
+  var antalGatfel = 0;
+  Object.keys(gatfelPerManad).forEach(function (m) { if (arForsta || m === senaste) antalGatfel += gatfelPerManad[m]; });
+  var gatfelHtml = antalGatfel
+    ? '<p><b>' + antalGatfel + '</b> felrapporter från gatukortet (' + GATFEL + ' bland kommentarerna nedan).</p>' : '';
+
   var kommHtml = visaKomm.length
     ? visaKomm.map(function (k) {
-        var ikon = k.kansla === 'upp' ? '👍' : k.kansla === 'ner' ? '👎' : '💬';
+        var ikon = k.arGatfel ? GATFEL : k.kansla === 'upp' ? '👍' : k.kansla === 'ner' ? '👎' : '💬';
         return '<p style="margin:0 0 10px 0">' +
           ikon + ' <i>' + escapeHtml(k.text) + '</i><br>' +
           '<span style="color:#666;font-size:12px">' + formateraTid(k.nar) +
@@ -235,6 +298,7 @@ function skickaSummering(arForsta) {
       (totUpp + totNer) + ' tummar totalt · ' + kommentarer.length + ' kommentarer</p>' +
     '<p><b>' + totUpp + '</b> gillade, <b>' + totNer + '</b> ogillade — <b>' + andelTot + ' %</b> nöjda totalt.</p>' +
     riktning +
+    gatfelHtml +
     '<table style="border-collapse:collapse;margin:12px 0">' +
       '<tr style="text-align:left;border-bottom:1px solid #ddd">' +
         '<th style="padding:4px 10px 4px 0">Månad</th>' +
@@ -243,6 +307,7 @@ function skickaSummering(arForsta) {
         '<th style="padding:4px 10px 4px 0;text-align:right">Nöjda</th>' +
       '</tr>' + rader +
     '</table>' +
+    svarHtml +
     '<h3 style="margin:20px 0 8px 0">' + (arForsta ? 'Senaste kommentarerna' : 'Kommentarer i ' + senaste) + '</h3>' +
     kommHtml +
     '<hr style="border:none;border-top:1px solid #eee;margin:20px 0">' +
@@ -294,12 +359,14 @@ function installera() {
 function provtolkning() {
   var varden = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0].getDataRange().getValues();
   var summa = { klickUpp: 0, klickNer: 0, kommUpp: 0, kommNer: 0, kommUtanTumme: 0,
-                otolkade: 0, utanTid: 0 };
+                svarNer: 0, gatfel: 0, otolkade: 0, utanTid: 0 };
   for (var i = 1; i < varden.length; i++) {
     var bit = plockaUrRad(varden[i]);
     var t = tolkaRad(bit.text);
     if (!t) { summa.otolkade++; continue; }
     if (!bit.nar) summa.utanTid++;
+    if (t.arSvar) { summa.svarNer++; continue; }
+    if (t.arGatfel) { summa.gatfel++; continue; }
     if (t.arKommentar) {
       summa[t.kansla === 'upp' ? 'kommUpp' : t.kansla === 'ner' ? 'kommNer' : 'kommUtanTumme']++;
     } else {
