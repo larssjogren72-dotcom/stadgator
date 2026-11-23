@@ -398,6 +398,54 @@ module.exports = function skapaGoteborg(delade) {
   //     svarade API:et 2 kr/tim (nattpriset) där datan säger 18, 32, 13, 20 kr/tim.
   // Här räknar vi i stället ut priset SJÄLVA ur de strukturerade fönstren, som
   // stämmer med kommunens egen pristext. Därför blir Göteborgs pris rätt, inte fel.
+  // ═══ BOENDEZON SOM KONTUR ("visa hela C4") ═════════════════════════════════
+  // Utlöst av en användarkommentar 2026-11-22: «fattar inte hur jag ser c4 parkering».
+  // Kartans vanliga hämtning är ~250 m runt nålen, och en zon är kilometervis stor.
+  // Att vidga den hämtningen vore farligt: städmatchningen måste då vidgas lika mycket,
+  // annars blir kantgatorna gröna utan städdag (500 m-glappet, se index.html).
+  // Därför en EGEN, lätt fråga som bara säger VAR zonen ligger – gatunamn, kod och
+  // läge, inga regler. Klienten ritar den utan laglighetsfärg; besked ges bara där
+  // nålen sätts, med den vanliga kedjan.
+  // Uppmätt 2026-11-23: hela boendelagret i ETT anrop, 2 102 poster, 0,4 s, 920 kB.
+  // Cachas TTL (6 h) som städlagret – ett tungt anrop per sex timmar, inte per användare.
+  const BOENDE_LAGER = 'parkering:boende';
+  let zonCache = null, zonTs = 0, zonInflight = null;
+  function byggZoner() {
+    if (zonCache && Date.now() - zonTs < TTL) return Promise.resolve(zonCache);
+    if (zonInflight) return zonInflight;
+    zonInflight = (async () => {
+      const j = await hamta(wfsUrl(BOENDE_LAGER, null, 'EPSG:4326'));
+      const ut = [];
+      for (const f of (j && j.features) || []) {
+        const p = f.properties || {};
+        const kod = String(falt(p, 'ResidentialParking') || '').trim();
+        if (!kod) continue;
+        const g = f.geometry;
+        // Linjer rakt av. De 24 ytorna ritas som sin yttre ring – en kontur av ytan,
+        // ingen påhittad gatulinje. Koordinaterna avrundas till 6 decimaler (~0,1 m).
+        const ls = g && g.type === 'Polygon' ? [g.coordinates[0]]
+                 : g && g.type === 'MultiPolygon' ? g.coordinates.map(r => r[0])
+                 : linjer(g);
+        for (const l of ls) {
+          if (!l || l.length < 2) continue;
+          ut.push({ kod, gata: falt(p, 'SiteName') || null,
+                    c: l.map(q => [+(+q[0]).toFixed(6), +(+q[1]).toFixed(6)]) });
+        }
+      }
+      if (!ut.length) {
+        if (zonCache) return zonCache;           // behåll förra hellre än att visa tomt
+        throw new Error('Göteborgs boendelager gav inga sträckor');
+      }
+      console.log(`[Göteborg] boendezoner: ${ut.length} sträckor inlästa`);
+      zonCache = ut; zonTs = Date.now();
+      return ut;
+    })().finally(() => { zonInflight = null; });
+    return zonInflight;
+  }
+  // «C4» och «C4n» är samma zon – n säger bara att tillståndet gäller nattetid på den
+  // sträckan. Båda följer med; klienten visar koden per sträcka.
+  const zonBas = k => String(k || '').trim().toUpperCase().replace(/N$/, '');
+
   const PHUS_LAGER = 'parkering:privat';
   let phusCache = null, phusTs = 0, phusInflight = null;
 
@@ -503,6 +551,19 @@ module.exports = function skapaGoteborg(delade) {
         send(req, res, 200, 'application/json; charset=utf-8',
              Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })), varm ? 'HIT' : 'MISS');
       }).catch(() => fel(res, 502, 'Göteborgs parkeringsdata otillgänglig'));
+      return true;
+    }
+
+    // ── En boendezons sträckor, bara läge (se byggZoner) ────────────────────
+    if (reqUrl.pathname === '/gbg/zon') {
+      const kod = zonBas(reqUrl.searchParams.get('kod'));
+      if (!/^[A-ZÅÄÖ]\d{1,2}$/.test(kod)) return fel(res, 400, 'kod=t.ex. C4 krävs'), true;
+      const varm = !!zonCache;
+      byggZoner().then(alla => {
+        const strackor = alla.filter(s => zonBas(s.kod) === kod);
+        send(req, res, 200, 'application/json; charset=utf-8',
+             Buffer.from(JSON.stringify({ kod, strackor })), varm ? 'HIT' : 'MISS');
+      }).catch(() => fel(res, 502, 'Göteborgs boendedata otillgänglig'));
       return true;
     }
 

@@ -396,6 +396,28 @@
       animation: popIn .4s cubic-bezier(0.34,1.56,0.64,1) both;
     }
     /* Datafel (2026-11-21): stadens källa svarar inte → gul etikett i st.f. grönt antal */
+    /* Boendezon som kontur (v1.57): under antalsbadgen, samma centrering. Vit platta,
+       inte accentfärg – rutan säger VAR zonen ligger, inget besked om laglighet. */
+    #zon-chip {
+      position: absolute; top: 46px; left: 50%; transform: translateX(-50%);
+      z-index: 400; display: none; background: #fff; color: #0f172a;
+      border: 1px solid #cbd5e1; border-radius: 12px; padding: 6px 10px 6px 12px;
+      font-size: 12.5px; line-height: 1.35; box-shadow: 0 2px 10px rgba(15,23,42,.12);
+      max-width: calc(100% - 110px); width: max-content;
+    }
+    #zon-chip .zc-rad { display: flex; align-items: center; gap: 10px; }
+    #zon-chip b { font-weight: 600; }
+    #zon-chip .zc-not { color: #475569; font-size: 11.5px; margin-top: 2px; }
+    #zon-chip .zc-not i { display: inline-block; width: 16px; height: 3px; background: #334155;
+                          border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+    #zon-chip button { margin-left: auto; background: none; border: 0; color: #2563eb;
+                       font: inherit; font-size: 12.5px; cursor: pointer; padding: 2px 0; white-space: nowrap; }
+    @media (max-width: 400px) { #zon-chip { top: 88px; } }
+    #zon-visa-btn { display: none; width: 100%; margin: 4px 0 10px; padding: 11px 14px; border: 0;
+                    border-radius: 12px; background: #16a34a; color: #fff; font: inherit;
+                    font-size: 14px; font-weight: 600; cursor: pointer; }
+    #boende-row .zon-lank { background: none; border: 0; padding: 0; margin-top: 3px; display: block;
+                            color: #2563eb; font: inherit; font-size: 12.5px; cursor: pointer; }
     #count-badge.datafel { background: #fef3c7; color: #78350f; box-shadow: 0 2px 10px rgba(120,53,15,.18); }
     .datafel-kort { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; padding: 12px 14px; color: #78350f; }
     .datafel-kort b { display: block; font-size: 15px; margin-bottom: 4px; }
@@ -1321,6 +1343,7 @@
     <div id="map"></div>
     <div id="loading"><div class="spinner"></div><span class="loading-lbl">Hämtar servicegator…</span></div>
     <div id="count-badge"></div>
+    <div id="zon-chip"></div>
     <button id="locate-btn" title="Visa min plats" onclick="locateMe()">📍</button>
     <div id="toast"></div>
   </div>
@@ -1359,6 +1382,7 @@
       <div id="taxa-row" style="display:none"></div>
       <div id="platser-row" style="display:none"></div>
       <div id="boende-row" style="display:none"></div>
+      <button id="zon-visa-btn" type="button">Visa vad som gäller här</button>
       <div class="nav-split">
         <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
@@ -1901,6 +1925,8 @@ STADER_CFG.goteborg =
       servicedagarUrl:'/gbg/servicedagar-bbox',
       heltStadenUrl:'',              // ingen hela-staden-källa utanför Stockholm
       tillatenUrl:'/gbg/wfs-tillaten',
+      // Hela boendezonen som kontur (visaZon). Bara läge, inga regler – se cities/goteborg.js.
+      zonUrl:'/gbg/zon',
       // Anläggningarna kommer från den NYCKELFRIA kartdatan, inte från
       // data.goteborg.se. Det nyckelskyddade API:et mättes 2026-08-27 och gav inget:
       // FreeSpaces tomt på alla 3 511 poster, och CurrentParkingCost fel i 87 % av
@@ -3748,6 +3774,7 @@ function svgIcon(n) {
 // Hjälte-ikon per LÄGE: Nu = grind (bock) · Morgon/Kväll = chans (staplar) · Natt = trygghet (måne).
 // Varning (gul/röd status) vinner alltid över lägesikonen.
 function heroIconFor(statusColor) {
+  if (statusColor === ZON_FARG) return 'home';            // gata i boendezonen, inget besked
   if (statusColor === '#2563eb') return 'motorcycle';   // MC-ruta
   if (statusColor === CYKEL_COLOR) return 'bike';        // cykel-/mopedplats
   if (statusColor === '#f59e0b' || statusColor === '#ef4444' || statusColor === '#dc2626') return 'warn';
@@ -4431,6 +4458,123 @@ function boendeRadText(kod) {
     + 'upp till 14 dygn, månadsavgift i stället för betalning här. Utan tillstånd: vanlig avgift och tidsgräns.';
 }
 
+// ── Hela boendezonen som KONTUR (v1.57) ──────────────────────────────────────
+// Svarar på VAR zonen ligger – inte på om du får stå där. Kartans besked räknas bara
+// ~250 m runt nålen; att vidga den hämtningen kräver att städmatchningen vidgas lika
+// mycket, annars blir kantgator gröna utan städdag (se 500 m-GLAPPET). Därför ritas
+// zonen i en egen, neutral färg utan laglighet, och en tryckning på en konturgata ger
+// inget besked – bara knappen som flyttar nålen dit och kör den vanliga kedjan.
+//
+// Kanalval (kontrollerat i koden 2026-11-23): mörk skiffer #334155, heldragen, bredd 3.
+// Inte streckad (gågata/lastplats), ingen halo (nyss städad/helgfynd), inte ljusgrått
+// (#c3ccd6 = ej för MC). «Tona ner» ritar också bredd 3 – men blekt (0,16) och i gatans
+// egen färg; konturen är nästan svart och 0,85. Ligger i ett eget lager som applyDim
+// inte rör, och läggs UNDER gatorna så att färgerna runt nålen alltid syns överst.
+const ZON_FARG = '#334155';
+let ZON = null;   // { kod, grp, antal }
+const ZON_UR_URL = ((location.search.match(/[?&]zon=([^&#]+)/i) || [])[1] || '');
+// Zonsidornas adresser är ASCII (o6, a9) – Göteborgs områden Ö och Ä. Det finns inga
+// områden O eller A, så översättningen kan inte träffa fel zon.
+function zonKodNorm(s) {
+  let k = String(s || '');
+  try { k = decodeURIComponent(k); } catch (e) {}
+  k = k.trim().toUpperCase().replace(/N$/, '');
+  if (/^O\d/.test(k)) k = 'Ö' + k.slice(1);
+  if (/^A\d/.test(k)) k = 'Ä' + k.slice(1);
+  return /^[A-ZÅÄÖ]\d{1,2}$/.test(k) ? k : null;
+}
+function stangZon() {
+  if (ZON && ZON.grp) ZON.grp.remove();
+  ZON = null;
+  const chip = document.getElementById('zon-chip');
+  if (chip) chip.style.display = 'none';
+}
+async function visaZon(kodIn) {
+  if (!STAD.zonUrl || !map) return;
+  const kod = zonKodNorm(kodIn);
+  if (!kod) { showToast('Okänd zonkod.'); return; }
+  let j = null;
+  try {
+    const r = await fetch(STAD.zonUrl + '?kod=' + encodeURIComponent(kod));
+    j = r.ok ? await r.json() : null;
+  } catch (e) { j = null; }
+  if (!j || !Array.isArray(j.strackor)) { showToast('Kunde inte hämta zonen just nu – försök igen.'); return; }
+  if (!j.strackor.length) { showToast(`Hittar ingen boendezon ${kod} i ${STAD.namn}s data.`); return; }
+  stangZon();
+  const grp = L.layerGroup();
+  const ram = L.latLngBounds([]);
+  j.strackor.forEach(s => {
+    const ll = s.c.map(p => [p[1], p[0]]);          // servern skickar [lng, lat]
+    const pl = L.polyline(ll, { color: ZON_FARG, weight: 3, opacity: 0.85 });
+    pl._zon = s;
+    pl.on('click', e => { L.DomEvent.stopPropagation(e); zonKort(s, ll); });
+    pl.addTo(grp);
+    ram.extend(ll);
+  });
+  grp.addTo(map);
+  grp.eachLayer(l => { if (l.bringToBack) l.bringToBack(); });
+  ZON = { kod, grp, antal: j.strackor.length };
+  const chip = document.getElementById('zon-chip');
+  chip.innerHTML = `<div class="zc-rad"><span><b>Boendezon ${escHtml(kod)}</b> · ${j.strackor.length} sträckor</span>`
+    + '<button type="button" onclick="stangZon()">Stäng ✕</button></div>'
+    + '<div class="zc-not"><i></i>gata i zonen · tryck för besked</div>';
+  chip.style.display = 'block';
+  // Lådan ligger OVANPÅ kartans nedre del. Utan hänsyn till den hamnade halva C4 under
+  // lägestexten (uppmätt i mobilvy 2026-11-23). Fäll ner lådan och räkna sedan med den
+  // del av kartan som faktiskt syns. 'peek' räckte inte: med lägestexten öppen syntes
+  // bara ~120 px karta på en 812 px-telefon. 'min' lämnar bara greppet.
+  if (ram.isValid()) {
+    sheetSnapTo('min');
+    setTimeout(() => {
+      const kr = map.getContainer().getBoundingClientRect();
+      const bot = document.getElementById('bottom');
+      const tackt = bot ? Math.max(0, kr.bottom - bot.getBoundingClientRect().top) : 0;
+      const chip = document.getElementById('zon-chip').getBoundingClientRect();
+      const topp = Math.max(40, chip.bottom - kr.top + 12);
+      map.fitBounds(ram, { paddingTopLeft: [30, topp], paddingBottomRight: [30, tackt + 24], maxZoom: 16 });
+    }, 380);
+  }
+  if (window.gtag) try { gtag('event', 'zon_visad', { zon: kod }); } catch (e) {}
+}
+// Kortet för en konturgata: VAR, inte OM. Inget besked, ingen taxa, inget schema – allt
+// sådant räknas först när nålen står här, med samma radie och samma städkoll som vanligt.
+function zonKort(s, ll) {
+  const mitt = ll[Math.floor(ll.length / 2)];
+  const dest = { lat: mitt[0], lng: mitt[1] };
+  showPlaceCardV2(s.gata || 'Sträcka i zonen', `Ligger i boendezon ${s.kod}`, ZON_FARG, dest,
+                  'Inget besked här än – gatan ligger för långt från nålen. Tryck nedan så räknar vi som vanligt.',
+                  true, false, null, null, null, '', null, s.kod);
+  gatfelAterstall(false);        // «Stämmer inte?» gäller ett besked, och här finns inget
+  SENASTE_KORT = { typ: 'zon', namn: s.gata || '', besked: 'zon ' + s.kod, farg: ZON_FARG,
+                   lat: dest.lat, lng: dest.lng, tid: KLOCKA.nu(), framat: KLOCKA.framatMin(),
+                   simulerad: KLOCKA.simulerad(), sattes: KLOCKA.riktigNu() };
+  // Vald konturgata: tjockare, samma färg (samma mönster som selectV2Street).
+  if (ZON && ZON.grp) ZON.grp.eachLayer(l => l.setStyle && l.setStyle({ weight: l._zon === s ? 7 : 3, opacity: l._zon === s ? 1 : 0.85 }));
+  // Kortet växer upp över kartan och täckte gatan man nyss tryckte på (uppmätt: gatan på
+  // y 624, lådans överkant 461 på en 812 px-telefon). Flytta kartan så att gatan hamnar
+  // mitt i den synliga remsan – bara om den är skymd, annars står kartan still.
+  // Prövas flera gånger: från lådans minsta läge tar uppglidningen längre än 700 ms, och
+  // en enda tidig mätning såg gatan som synlig (uppmätt). Varje prövning flyttar bara
+  // om gatan faktiskt är skymd, så de senare blir no-op när den väl syns.
+  const visaGatan = () => {
+    const kr = map.getContainer().getBoundingClientRect();
+    const lad = document.getElementById('bottom').getBoundingClientRect().top;
+    const chip = document.getElementById('zon-chip');
+    const ovan = chip && chip.style.display !== 'none' ? chip.getBoundingClientRect().bottom : kr.top;
+    const y = kr.top + map.latLngToContainerPoint(mitt).y;
+    if (y > lad - 20 || y < ovan + 10) map.panBy([0, y - (ovan + lad) / 2]);
+  };
+  [350, 800, 1400].forEach(ms => setTimeout(visaGatan, ms));
+  const knapp = document.getElementById('zon-visa-btn');
+  knapp.onclick = () => {
+    hideStreetPanel();
+    searchStreetName = null;
+    document.getElementById('search-input').value = '';
+    flyToAndShow(dest.lat, dest.lng);
+  };
+  knapp.style.display = 'block';
+}
+
 function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser, stadRad = null, prisRaw = null, boendeKod = null) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
@@ -4503,9 +4647,14 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
   const boendeRow = document.getElementById('boende-row');
   if (boendeRow) {
     const t = boendeKod ? boendeRadText(boendeKod) : null;
-    if (t) { boendeRow.innerHTML = svgIcon('home') + '<span>' + t + '</span>'; boendeRow.style.display = 'flex'; }
+    // Länken till hela zonen bara där staden har en zonkälla (i dag Göteborg).
+    const bas = boendeKod ? String(boendeKod).trim().replace(/n$/i, '').toUpperCase() : '';
+    const lank = t && STAD.zonUrl && !(ZON && ZON.kod === bas)   // redan visad → ingen länk
+      ?`<button type="button" class="zon-lank" onclick="visaZon('${escHtml(bas)}')">Visa hela ${escHtml(bas)} på kartan →</button>` : '';
+    if (t) { boendeRow.innerHTML = svgIcon('home') + '<span>' + t + lank + '</span>'; boendeRow.style.display = 'flex'; }
     else boendeRow.style.display = 'none';
   }
+  document.getElementById('zon-visa-btn').style.display = 'none';   // bara konturkortet visar den
   if (dest) setNavDest(dest.lat, dest.lng);
 
   // ── Meta: veckoschemat (beviset bakom hjälten). Gågata/uteservering har sin info i hjälten.
@@ -5108,6 +5257,7 @@ function selectGarage(g, marker) {
   taxaRow.style.display = 'block';
   document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för garage
   document.getElementById('boende-row').style.display = 'none';  // boendezon gäller gatan, inte anläggningen
+  document.getElementById('zon-visa-btn').style.display = 'none';
   // Platsraden hör till GATUKORTET. Den dolde sig aldrig här, så p-huskortet visade
   // den förra gatans antal («26 platser») under anläggningens egen siffra. Upptäckt
   // 2026-11-23 vid test av boenderaden. Anläggningens kapacitet står i taxaraden ovan.
@@ -10040,6 +10190,8 @@ function initMap() {
   // Efter kartans egna lager, så att flygningen har något att rita på.
   const vaktMal = hamtaVaktMal();
   if (vaktMal) setTimeout(() => flyToAndShow(vaktMal.lat, vaktMal.lng), 0);
+  // ?zon=c4 – från Göteborgs zonsidor. Bara där staden har en zonkälla; annars tyst.
+  else if (ZON_UR_URL && STAD.zonUrl) setTimeout(() => visaZon(ZON_UR_URL), 0);
   startaKartSynkVakt();          // håller canvasen i takt med containern, se kartSynkKoll
   if (KARTLOGG_VY) {
     // Synlig badge av samma skäl som ?debugtid= har en: annars är det lätt att glömma

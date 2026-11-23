@@ -204,7 +204,7 @@ const STADSNAMN_DEF = { namn: 'ParkSpot Stockholm', relText: 'Mer om parkering i
 const TITEL_MAX = 60;
 function kortTitel(lang, kort) { return lang.length <= TITEL_MAX ? lang : kort; }
 
-function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [], extraLd = null, stad = STADSNAMN_DEF }) {
+function layout({ slug, title, desc, h1, lead, sections, faq, related, lat, lng, match, en = false, alts = [], extraLd = null, stad = STADSNAMN_DEF, ctaHref = null, ctaText = null }) {
   const hreflang = alts.length
     ? alts.map(a => `<link rel="alternate" hreflang="${a.lang}" href="${SITE}/${a.slug}">`).join('')
       + `<link rel="alternate" hreflang="x-default" href="${SITE}/${(alts.find(a => a.lang === 'sv') || alts[0]).slug}">`
@@ -278,7 +278,7 @@ ${extraLd ? `<script type="application/ld+json">${JSON.stringify(extraLd)}</scri
   <div class="hero">
     <h1>${esc(h1)}</h1>
     <p class="lead">${lead}</p>
-    <a class="cta" href="${stad.karta}">${en ? EN.cta : '📍 Öppna kartan – se var du får parkera →'}</a>
+    <a class="cta" href="${ctaHref || stad.karta}">${ctaText ? esc(ctaText) : en ? EN.cta : '📍 Öppna kartan – se var du får parkera →'}</a>
   </div>
   ${widget}
   ${sections}
@@ -1967,8 +1967,9 @@ function gbgZonSida(z) {
       '</ul><p>En gata kan ligga i flera zoner, och zonen kan gälla bara en del av gatan. ' +
       'Skylten på platsen avgör.</p></section>' : '') +
     '<section class="card"><h2>Se zonen på karta</h2>' +
-    `<p><a href="https://parkspot.se/?stad=goteborg">ParkSpot Göteborg</a> visar gatorna med färg efter om du får stå där just nu. ` +
-    'Trycker du på en gata står zonkoden, taxan, tidsgränsen och nästa städdag på kortet. ' +
+    `<p><a href="/?stad=goteborg&amp;zon=${gbgZonSlug(z.zon)}">Visa ${esc(dagKod)} på kartan</a>: zonens gator ritas som mörka linjer. ` +
+    'Trycker du på en av dem flyttar kartan dit och visar med färg om du får stå där just nu. På kortet står ' +
+    'zonkoden, taxan, tidsgränsen och nästa städdag. ' +
     '<a href="/boendeparkering-goteborg/regler">Reglerna för boendeparkering →</a></p></section>';
   const faq = [
     { q: `Vad betyder ${dagKod} på parkeringsskylten?`,
@@ -1989,7 +1990,10 @@ function gbgZonSida(z) {
     h1: `Boendeparkering ${koderText}`,
     lead: `${z.stracker} gatusträckor på ${z.gator.length} gator${omr ? ` i ${omr.namn}` : ''}. Här är vad koden betyder – och vad som gäller om du inte har tillstånd.`,
     sections, faq, related: gbgRelated('boendeparkering-goteborg'),
-    lat: omr ? omr.lat : null, lng: omr ? omr.lng : null, match: null, stad: GBG }));
+    lat: omr ? omr.lat : null, lng: omr ? omr.lng : null, match: null, stad: GBG,
+    // Knappen öppnar kartan med zonen vald (?zon=, v1.57) – det var frågan i kommentaren
+    // som utlöste funktionen: «fattar inte hur jag ser c4 parkering».
+    ctaHref: `/?stad=goteborg&zon=${gbgZonSlug(z.zon)}`, ctaText: `📍 Visa ${dagKod} på kartan →` }));
 }
 
 // ── Reglerna, som egen sida ─────────────────────────────────────────────────
