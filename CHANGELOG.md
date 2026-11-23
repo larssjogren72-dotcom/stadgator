@@ -14,6 +14,21 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.56.0 – 2026-11-23
+**Boendezonen på gatukortet i Göteborg, och rättad avgiftstext på zonsidorna.**
+
+- Utlöst av en kommentar från Göteborg: «fattar inte hur jag ser c4 parkering». Gatukortet visar
+  nu zonkoden (t.ex. C4 eller C4n) på alla sträckor som har en – förut bara på de 496 som saknar
+  vanlig p-sträcka. Raden säger vad tillståndet ger: upp till 14 dygn mot månadsavgiften, och på
+  n-sträckor bara 18–09 (från kl. 15 dagen före sön- och helgdag). Inga kronbelopp – taxan ändras årligen.
+- Zonsidorna och regelsidan påstod att tillståndet «tar bort tidsgränsen, inte avgiften». Fel:
+  stadens egna regler (2025-01-08) säger att man parkerar «mot en fast avgift», och siffran i
+  koden är tillståndets månadstaxa. Rättat på 20 sidor, liksom «C4n är samma gator» (det är olika
+  sträckor) och vem som hanterar ansökan (Stadsmiljöförvaltningen).
+- Rättat på vägen: p-huskortet visade antalet platser från gatan man tittat på innan.
+- Ej byggt: hela zonen på kartan. Kartan hämtar bara ~250 m runt platsen, och en större hämtning
+  kräver att städmatchningen vidgas lika mycket.
+
 ## v1.55.0 – 2026-11-22
 **Feedback som går att agera på: färdiga svar efter 👎 och «Stämmer inte?» på gatukortet.**
 
