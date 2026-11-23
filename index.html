@@ -548,7 +548,7 @@
     #hero-why { font-size: 12px; line-height: 1.5; color: rgba(15,23,42,0.62); margin-top: 6px; }
 
     /* Metarader – lugna rader, ingen tung box */
-    #clean-row, #taxa-row, #platser-row, #next-clean-row, #next-forbud-row {
+    #clean-row, #taxa-row, #platser-row, #boende-row, #next-clean-row, #next-forbud-row {
       display: flex; align-items: flex-start; gap: 8px;
       background: none; border: 0; padding: 0;
       font-size: 12.5px; line-height: 1.5; margin-bottom: 7px;
@@ -564,9 +564,9 @@
     #next-forbud-row { color: var(--text); font-weight: 500; }
     /* Antal platser – samma lugna sakton som taxaraden: en uppgift om platsen, inte en
        varning och inte ett löfte om att det finns ledigt. */
-    #platser-row { color: rgba(15,23,42,0.62); }
-    #clean-row svg, #taxa-row svg, #platser-row svg, #next-clean-row svg, #next-forbud-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
-    #taxa-row b, #platser-row b  { color: var(--text); font-weight: 600; }
+    #platser-row, #boende-row { color: rgba(15,23,42,0.62); }
+    #clean-row svg, #taxa-row svg, #platser-row svg, #boende-row svg, #next-clean-row svg, #next-forbud-row svg { width: 16px; height: 16px; flex: none; margin-top: 1px; opacity: .85; }
+    #taxa-row b, #platser-row b, #boende-row b  { color: var(--text); font-weight: 600; }
     #clean-row b { color: #b45309; font-weight: 600; }
     #clean-row .season { color: rgba(15,23,42,0.58); font-size: 11.5px; }
 
@@ -1358,6 +1358,7 @@
       <div id="clean-row" style="display:none"></div>
       <div id="taxa-row" style="display:none"></div>
       <div id="platser-row" style="display:none"></div>
+      <div id="boende-row" style="display:none"></div>
       <div class="nav-split">
         <a id="gmaps-btn" href="#" target="_blank" rel="noopener">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
@@ -3730,6 +3731,7 @@ function svgIcon(n) {
     moon:     '<path d="M12 3a9 9 0 108.5 12A7 7 0 0112 3z"/>',
     calendar: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>',
     cash:     '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+    home:     '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
     warn:     '<path d="M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     car:      '<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v4a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/>',
     motorcycle:'<circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/><path d="M7.2 17h8.6l-2.8-4H9"/><path d="M13 13l2-3h3"/><path d="M5 13h3l1.5 2"/>',
@@ -3926,7 +3928,8 @@ function drawParkingSegment(s, color, txt, dest, infoRow, grp, nyssStadad, hidde
       // gäller alla städer; Stockholm visade förut taxan på 40 av 40 lila kort).
       showPlaceCardV2(utanNamn ? UTAN_GATUNAMN : s.street, txt, color, dest, infoRow,
                       (color === '#ef4444' && !!s.andamal) || color === '#9333ea', false, nasta, forbudIgen, s.platser,
-                      utanNamn ? stadRadUtanNamn(dest) : null, s.rate && s.rate.raw); });
+                      utanNamn ? stadRadUtanNamn(dest) : null, s.rate && s.rate.raw,
+                      color === '#9333ea' ? null : s.boendeKod); });
     if (helgfynd && !s._helgfyndPl) s._helgfyndPl = pl;
   });
 }
@@ -4403,7 +4406,32 @@ async function busHallplatserOverlay(lat, lng) {
 // ange exakt samma timmar ("20 kr/tim vardagar 7-19" mot "Lastplats vardag 07–19"), så kortet
 // skulle motsäga sig självt. Priset kommer tillbaka av sig självt utanför fönstret.
 // visaRattigheter: sant för en reserverad plats i rörelsehindrad-läget → visa rättighetsrutan.
-function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser, stadRad = null, prisRaw = null) {
+// ── Boendezonen på kortet (Göteborg) ─────────────────────────────────────────
+// Utlöst av en kommentar 2026-11-22: «fattar inte hur jag ser c4 parkering». Koden
+// fanns på 2 095 sträckor men stod aldrig på kortet utom på de 496 som saknar tvilling.
+// Texten bygger på två källor, båda lästa, ingen gissad:
+//   · föreskriften 1480 2007-02789: undantag från tidsgränsen, högst 14 dygn; samma
+//     områdesbokstav och samma eller HÖGRE taxenummer; n = bara 18–09, och från 15
+//     dagen före sön- och helgdag.
+//   · stadens «Regler för boendeparkering» (2025-01-08): tillståndet gäller «mot en
+//     fast avgift» – siffran i koden är MÅNADSTAXAN, och man parkerar «till en reducerad
+//     avgift». Därför står «månadsavgiften» här och inget kronbelopp: taxorna justeras
+//     årligen och ett tak på 2 200 kr/mån föreslogs från 2026, så ett tal skulle åldras.
+// Raden säger vad tillståndet ger – aldrig att någon UTAN tillstånd är utestängd.
+function boendeRadText(kod) {
+  const m = /^([A-ZÅÄÖ])(\d+)(n?)$/i.exec(String(kod || '').trim());
+  if (!m) return null;
+  const bok = m[1].toUpperCase(), siff = m[2], natt = !!m[3];
+  const bas = bok + siff;
+  if (natt) {
+    return `<b>Boendezon ${escHtml(bas)}n</b> · tillstånd ${escHtml(bok)}${escHtml(siff)} eller lägre siffra gäller här `
+      + 'bara 18–09 (från kl. 15 dagen före sön- och helgdag). Dagtid: vanlig avgift och tidsgräns.';
+  }
+  return `<b>Boendezon ${escHtml(bas)}</b> · med tillstånd ${escHtml(bok)}${escHtml(siff)} eller lägre siffra: `
+    + 'upp till 14 dygn, månadsavgift i stället för betalning här. Utan tillstånd: vanlig avgift och tidsgräns.';
+}
+
+function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, visaRattigheter, nastaStad, nastaForbud, platser, stadRad = null, prisRaw = null, boendeKod = null) {
   document.getElementById('street-name').textContent = name;
   const bd = document.getElementById('badge-district');
   bd.textContent = statusTxt;                                     // behålls (dold) för bakåtkompatibilitet
@@ -4471,6 +4499,12 @@ function showPlaceCardV2(name, statusTxt, statusColor, dest, infoRow, doljTaxa, 
         : `<span><b>${platser} platser</b> · antalet platser, inte hur många som är lediga</span>`);
       platserRow.style.display = 'flex';
     } else platserRow.style.display = 'none';
+  }
+  const boendeRow = document.getElementById('boende-row');
+  if (boendeRow) {
+    const t = boendeKod ? boendeRadText(boendeKod) : null;
+    if (t) { boendeRow.innerHTML = svgIcon('home') + '<span>' + t + '</span>'; boendeRow.style.display = 'flex'; }
+    else boendeRow.style.display = 'none';
   }
   if (dest) setNavDest(dest.lat, dest.lng);
 
@@ -5073,6 +5107,11 @@ function selectGarage(g, marker) {
     + `<span style="color:#fcd9a0">ⓘ Live-tillgång visas ej – siffran är kapacitet. Kontrollera på plats.</span>`;
   taxaRow.style.display = 'block';
   document.getElementById('clean-row').style.display = 'none';   // ingen städinfo för garage
+  document.getElementById('boende-row').style.display = 'none';  // boendezon gäller gatan, inte anläggningen
+  // Platsraden hör till GATUKORTET. Den dolde sig aldrig här, så p-huskortet visade
+  // den förra gatans antal («26 platser») under anläggningens egen siffra. Upptäckt
+  // 2026-11-23 vid test av boenderaden. Anläggningens kapacitet står i taxaraden ovan.
+  document.getElementById('platser-row').style.display = 'none';
   setNavDest(g.lat, g.lng);
   document.getElementById('hint').style.display = 'none';
   document.getElementById('garage-list').style.display = 'none';
@@ -6941,6 +6980,11 @@ function toAllowedSegment(f) {
     // post och sätter aldrig fältet.
     endastBoende: p.ENDAST_BOENDE === true,
     boendeZon: p.BOENDE_ZON || null,
+    // Zonkoden på ALLA sträckor som har en, inte bara de som står ensamma. Göteborgs
+    // adapter sätter GBG_BOENDE både på tvillingarna (taxa + boende på samma geometri)
+    // och på de egna boendesträckorna; BOENDE_ZON bara på de senare. Används enbart av
+    // zonraden på kortet – styr ingen färg. Stockholm skickar inget av fälten.
+    boendeKod: String(p.GBG_BOENDE || p.BOENDE_ZON || '').trim() || null,
     // Ändamålsplats: spara RÅDATAN, aldrig utfallet – aktiv/inaktiv beror på klockan
     // och måste räknas om vid varje rendering (jfr cache-regeln för säsong/dagtyp).
     andamal: andamalKod(p.VF_PLATS_TYP),

@@ -1938,12 +1938,17 @@ function gbgZonSida(z) {
     `<p><b>${esc(dagKod)}</b> är en boendeparkeringszon i Göteborg${omr ? ` och ligger i området <a href="/parkering-goteborg/${omr.slug}">${esc(omr.namn)}</a>` : ''}. ` +
     `Koden står på skylten och i tillståndet. I ParkSpot ritas <b>${z.stracker} gatusträckor</b> med den här zonen, fördelade på <b>${z.gator.length} gator</b>.</p>` +
     (nattKod
-      ? `<p><b>${esc(nattKod)} är samma gator, men ett annat tillstånd.</b> Ett n efter siffran betyder att tillståndet ` +
-        'bara gäller <b>kvällar och nätter, klockan 18–09</b>. Dagtid gäller det inte, och då är det avgiften och ' +
-        'tidsgränsen på skylten som styr.</p>'
-      : '<p>Den här zonen har ingen n-variant i kommunens data, alltså inget kvälls- och nattillstånd.</p>') +
-    '<p><b>Tillståndet är ett undantag från tidsgränsen, inte från avgiften.</b> Med tillstånd för zonen får du ' +
-    'stå upp till <b>14 dygn</b> i följd. Utan tillstånd gäller den tid som står på skylten.</p>' +
+      ? `<p><b>${esc(nattKod)} är samma område och samma tillstånd, men bara nattetid.</b> På sträckor skyltade med ` +
+        `${esc(nattKod)} gäller tillståndet bara <b>kvällar och nätter, klockan 18–09</b> (från kl. 15 dagen före ` +
+        'sön- och helgdag). Dagtid gäller det inte där, och då är det avgiften och tidsgränsen på skylten som styr.</p>'
+      : '<p>Den här zonen har ingen n-variant i kommunens data, alltså inga sträckor där tillståndet bara gäller nattetid.</p>') +
+    // Rättat 2026-11-23. Sidan sa förut «ett undantag från tidsgränsen, inte från avgiften».
+    // Stadens egna regler (Stadsmiljöförvaltningen 2025-01-08) säger att man med tillstånd
+    // parkerar «mot en fast avgift» – månadsavgiften – och att siffran i koden är taxan för
+    // den. Inga kronbelopp här: de justeras årligen.
+    '<p><b>Tillståndet är en månadsavgift i stället för att betala på plats.</b> Med tillstånd för zonen får du ' +
+    'stå upp till <b>14 dygn</b> i följd. Siffran i koden är tillståndets taxa, och ett tillstånd med samma bokstav ' +
+    'och lägre siffra gäller också. Utan tillstånd gäller avgiften och tiden som står på skylten.</p>' +
     '<p>' + GBG_FORBEHALL + '</p></section>' +
     (taxa.length ? '<section class="card"><h2>Vad kostar det utan tillstånd?</h2>' +
       '<p>Så här skriver kommunen taxan på sträckorna i zonen, ordagrant, med vanligast först:</p><ul>' +
@@ -1969,10 +1974,10 @@ function gbgZonSida(z) {
     { q: `Vad betyder ${dagKod} på parkeringsskylten?`,
       a: `${dagKod} är en boendeparkeringszon i Göteborg${omr ? `, i området ${omr.namn}` : ''}. Har du tillstånd för zonen får du stå upp till 14 dygn i följd på gator som är märkta med koden. Utan tillstånd gäller tiden på skylten.` },
     ...(nattKod ? [{ q: `Vad är skillnaden mellan ${dagKod} och ${nattKod}?`,
-      a: `Samma gator. Ett n betyder att tillståndet bara gäller klockan 18–09, alltså kvällar och nätter. Dagtid gäller det inte.` }] : []),
+      a: `Samma område och samma tillstånd. På sträckor skyltade ${nattKod} gäller tillståndet bara klockan 18–09, alltså kvällar och nätter. Dagtid gäller det inte där.` }] : []),
     { q: `Får jag parkera i ${dagKod} utan tillstånd?`,
       a: taxa.length
-        ? `Ja, men då gäller avgiften och tidsgränsen på skylten – till exempel «${taxa[0].text}». Tillståndet tar bort tidsgränsen, inte avgiften.`
+        ? `Ja, men då gäller avgiften och tidsgränsen på skylten – till exempel «${taxa[0].text}». Med tillstånd betalar du i stället en månadsavgift.`
         : 'Ja, men då gäller avgiften och tidsgränsen som står på skylten.' },
     { q: `Vilka gator ligger i ${dagKod}?`,
       a: z.gator.length ? `${z.gator.length} gator har sträckor i zonen, bland annat ${z.gator.slice(0, 5).join(', ')}. Hela listan står på den här sidan.` : 'Zonen omfattar gator enligt kommunens karta; skylten avgör på plats.' },
@@ -1998,16 +2003,17 @@ function gbgBoendeRegler() {
   const sections =
     '<section class="card"><h2>Vad boendeparkering är – och inte är</h2>' +
     '<p>Boendeparkering är ett <b>tillstånd</b> som folkbokförda i ett område kan köpa av Göteborgs Stad. ' +
-    'Det ger inte en egen plats och det gör inte parkeringen gratis. Det tar bort <b>tidsgränsen</b>: ' +
-    'med tillstånd får du stå upp till <b>14 dygn</b> i följd på gator i din zon, i stället för de timmar skylten anger.</p>' +
+    'Det ger inte en egen plats. Du betalar en <b>fast månadsavgift</b> i stället för att betala på plats, och ' +
+    'tidsgränsen på skylten gäller inte dig: med tillstånd får du stå upp till <b>14 dygn</b> i följd på gator i din zon.</p>' +
     '<p><b>Skylten «Boende» betyder inte att andra är förbjudna.</b> Utan tillstånd får du parkera där enligt ' +
     'skyltens vanliga villkor – betala avgiften och håll tidsgränsen.</p>' +
     '<p>' + GBG_FORBEHALL + '</p></section>' +
     '<section class="card"><h2>Koden på skylten</h2>' +
     `<p>Zonen skrivs som en bokstav och en siffra: <b>M4</b>, <b>V6</b>, <b>Ö5</b>, <b>Ä9</b>. Bokstaven är områdets ` +
-    `och siffran zonens. ParkSpot har i dag <b>${zoner.length} zoner</b> i Göteborg, varav <b>${medNatt}</b> också har en n-variant.</p>` +
-    '<p><b>Ett n på slutet betyder kväll och natt.</b> M4n är samma gator som M4, men tillståndet gäller bara ' +
-    'klockan <b>18–09</b>. Dagtid gäller det inte, och då är det avgiften och tidsgränsen på skylten som styr.</p>' +
+    `och siffran tillståndets taxa – lägre siffra är dyrare. Ett tillstånd gäller på sin egen siffra och på högre ` +
+    `siffror i samma område: M4 gäller alltså även på M5. ParkSpot har i dag <b>${zoner.length} zoner</b> i Göteborg, varav <b>${medNatt}</b> också har en n-variant.</p>` +
+    '<p><b>Ett n på slutet betyder kväll och natt.</b> På en sträcka skyltad M4n gäller M4-tillståndet bara ' +
+    'klockan <b>18–09</b> (från kl. 15 dagen före sön- och helgdag). Dagtid gäller det inte, och då är det avgiften och tidsgränsen på skylten som styr.</p>' +
     '<p>Varje zon har en egen sida med gatorna, taxan och städdagarna:</p>' +
     '<div class="seo-grid">' + zoner.map(z => `<a href="/${gbgZonHref(z.zon)}">${esc(z.koder.join('/'))}</a>`).join(' · ') + '</div></section>' +
     '<section class="card"><h2>Städdagen gäller ändå</h2>' +
@@ -2017,12 +2023,12 @@ function gbgBoendeRegler() {
     '<section class="card"><h2>Ansöka, betala och säga upp</h2>' +
     '<p>Tillståndet söks, betalas och avslutas hos Göteborgs Stad – inte hos oss. Vi visar var zonerna gäller ' +
     'och vad som står på gatan, men har inga uppgifter om ditt tillstånd, ditt pris eller din faktura. ' +
-    'Kommunens parkeringsbolag hanterar ansökan och uppsägning.</p>' +
+    'Stadsmiljöförvaltningen hanterar ansökan och uppsägning.</p>' +
     '<p>ParkSpot är gratis och kräver ingen inloggning.</p></section>';
   const faq = [
-    { q:'Vad betyder boendeparkering i Göteborg?', a:'Ett tillstånd som folkbokförda i ett område kan köpa. Det tar bort tidsgränsen – med tillstånd får du stå upp till 14 dygn i följd i din zon – men avgiften betalar du ändå. Du får ingen egen plats.' },
+    { q:'Vad betyder boendeparkering i Göteborg?', a:'Ett tillstånd som folkbokförda i ett område kan köpa. Du betalar en fast månadsavgift i stället för att betala på plats, och får stå upp till 14 dygn i följd i din zon. Du får ingen egen plats.' },
     { q:'Får man parkera på en boendeparkering utan tillstånd?', a:'Ja. Skylten «Boende» stänger inte ute andra. Utan tillstånd gäller skyltens vanliga villkor: betala avgiften och håll tidsgränsen.' },
-    { q:'Vad betyder n i M4n?', a:'Att tillståndet bara gäller kvällar och nätter, klockan 18–09. Gatorna är desamma som i M4. Dagtid gäller avgiften och tidsgränsen på skylten.' },
+    { q:'Vad betyder n i M4n?', a:'Att M4-tillståndet bara gäller kvällar och nätter på den sträckan, klockan 18–09. Dagtid gäller avgiften och tidsgränsen på skylten.' },
     { q:'Hur länge får man stå med boendeparkering?', a:'Upp till 14 dygn i följd på gator i den zon tillståndet gäller. Under städdagen måste bilen ändå flyttas.' },
     { q:'Gäller boendeparkering under städdagen?', a:'Nej. Städdagen är ett parkeringsförbud som gäller alla, även den som har tillstånd.' },
     { q:'Var ansöker jag om boendeparkering i Göteborg?', a:'Hos Göteborgs Stad. ParkSpot visar var zonerna gäller, men hanterar inte tillstånd, priser eller uppsägning.' },
