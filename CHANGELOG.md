@@ -14,6 +14,19 @@ Varje patch-version är en logisk bunt commits (samma princip som v1.0.0–v1.5.
 redan använde), inte en version per enskild commit – annars blir en rollback
 följd av dess egen återställning två meningslösa versionsnummer i rad.
 
+## v1.57.0 – 2026-11-23
+**Hela boendezonen på kartan i Göteborg.**
+
+- Zonsidornas knapp heter nu «Visa C4 på kartan» och öppnar kartan med zonen vald
+  (`?stad=goteborg&zon=c4`). Samma sak nås från gatukortets zonrad: «Visa hela C4 på kartan →».
+- Zonens gator ritas som tunna mörka linjer utan laglighetsfärg – de säger VAR zonen ligger,
+  inte om du får stå där. Besked med färg räknas som förut bara runt nålen (~250 m).
+- Trycker man på en mörk gata säger kortet «Ligger i boendezon C4 – inget besked här än», och
+  knappen «Visa vad som gäller här» flyttar nålen dit och räknar som vanligt, med samma städkoll.
+  Det är medvetet: en vidare hämtning hade krävt vidare städmatchning, annars gröna kantgator.
+- Servern hämtar Göteborgs boendelager i ett anrop (2 102 sträckor) och sparar det i 6 timmar.
+- Konturen visar bara gator där staden har registrerat zonen.
+
 ## v1.56.0 – 2026-11-23
 **Boendezonen på gatukortet i Göteborg, och rättad avgiftstext på zonsidorna.**
 
